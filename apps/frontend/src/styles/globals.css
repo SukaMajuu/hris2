@@ -1,0 +1,31 @@
+@import "tailwindcss/preflight";
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 0%;
+  }
+
+  body {
+    @apply bg-neutral-white text-neutral-black;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary text-neutral-white px-4 py-2 rounded-md hover:bg-primary/90 transition-colors;
+  }
+
+  .btn-secondary {
+    @apply bg-secondary text-neutral-white px-4 py-2 rounded-md hover:bg-secondary/90 transition-colors;
+  }
+
+  .btn-accent {
+    @apply bg-accent text-neutral-white px-4 py-2 rounded-md hover:bg-accent/90 transition-colors;
+  }
+
+  .input-base {
+    @apply border border-neutral-darkGrey rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary;
+  }
+}

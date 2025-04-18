@@ -49,3 +49,5 @@ linters:
               linters:
                   - revive
                   - errcheck
+                  - funlen
+                  - goconst

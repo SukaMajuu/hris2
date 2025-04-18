@@ -31,16 +31,42 @@ func NewAuthUseCase(
 	}
 }
 
-func (uc *AuthUseCase) RegisterWithForm(ctx context.Context, user *domain.User) error {
-	if err := validateUserData(user); err != nil {
-		return err
+func (uc *AuthUseCase) RegisterWithForm(ctx context.Context, user *domain.User, employee *domain.Employee) error {
+	department, err := uc.deptRepo.GetByID(ctx, employee.DepartmentID)
+	if err != nil {
+		return errors.New("department not found")
+	}
+	if department == nil {
+		return errors.New("department not found")
 	}
 
-	user.Role = enums.UserRole("hr")
+	position, err := uc.positionRepo.GetByID(ctx, employee.PositionID)
+	if err != nil {
+		return errors.New("position not found")
+	}
+	if position == nil {
+		return errors.New("position not found")
+	}
+	if position.DepartmentID != employee.DepartmentID {
+		return errors.New("position does not belong to the specified department")
+	}
+
+	user.Role = enums.UserRole("employee")
 	user.CreatedAt = time.Now()
 	user.LastLoginAt = &user.CreatedAt
 
 	if err := uc.authRepo.RegisterWithForm(ctx, user); err != nil {
+		return err
+	}
+
+	employee.UserID = user.ID
+	employee.EmploymentStatus = true
+	employee.CreatedAt = time.Now()
+	employee.UpdatedAt = time.Now()
+
+	if err := uc.employeeRepo.Create(ctx, employee); err != nil {
+		// If employee creation fails, we should rollback the user creation
+		// TODO: Implement rollback mechanism
 		return err
 	}
 
@@ -193,57 +219,4 @@ func (uc *AuthUseCase) DeleteUser(ctx context.Context, id uint) error {
 		return domain.ErrInvalidUserID
 	}
 	return uc.authRepo.DeleteUser(ctx, id)
-}
-
-// Helper functions
-func validateUserData(user *domain.User) error {
-	if user == nil {
-		return domain.ErrInvalidUser
-	}
-	if user.Email == "" {
-		return domain.ErrInvalidEmail
-	}
-	if user.Password == "" {
-		return domain.ErrInvalidPassword
-	}
-	return nil
-}
-
-func (uc *AuthUseCase) CreateEmployee(ctx context.Context, employee *domain.Employee) error {
-	if employee == nil {
-		return domain.ErrInvalidUser
-	}
-
-	if employee.UserID == 0 {
-		return domain.ErrInvalidUserID
-	}
-
-	if employee.EmployeeCode == "" {
-		return errors.New("employee code is required")
-	}
-
-	if employee.FirstName == "" {
-		return errors.New("first name is required")
-	}
-
-	if employee.LastName == "" {
-		return errors.New("last name is required")
-	}
-
-	if employee.DepartmentID == 0 {
-		return errors.New("department ID is required")
-	}
-
-	if employee.PositionID == 0 {
-		return errors.New("position ID is required")
-	}
-
-	// Set default values
-	employee.EmploymentStatus = true
-	employee.CreatedAt = time.Now()
-	employee.UpdatedAt = time.Now()
-
-	// TODO: Implement employee creation in repository
-	// For now, we'll just return nil
-	return nil
 }

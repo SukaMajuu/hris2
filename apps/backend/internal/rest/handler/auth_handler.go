@@ -31,7 +31,6 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	// Create user
 	user := domain.User{
 		Email:    req.Email,
 		Password: req.Password,
@@ -39,12 +38,6 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		Role:     enums.UserRole(req.Role),
 	}
 
-	if err := h.authUseCase.RegisterWithForm(c.Request.Context(), &user); err != nil {
-		response.InternalServerError(c, err)
-		return
-	}
-
-	// Create employee
 	employee := domain.Employee{
 		UserID:          user.ID,
 		EmployeeCode:    req.EmployeeCode,
@@ -57,12 +50,11 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		HireDate:        req.HireDate,
 	}
 
-	if err := h.authUseCase.CreateEmployee(c.Request.Context(), &employee); err != nil {
-		// If employee creation fails, we should rollback the user creation
-		// TODO: Implement rollback mechanism
+	if err := h.authUseCase.RegisterWithForm(c.Request.Context(), &user, &employee); err != nil {
 		response.InternalServerError(c, err)
 		return
 	}
+
 
 	responseData := gin.H{
 		"user": gin.H{

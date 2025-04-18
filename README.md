@@ -4,7 +4,28 @@ A modern, full-stack human resource management system built with Next.js and Go,
 
 ## Overview
 
-(soon)
+HRIS (Human Resource Information System) is a web-based application designed to streamline HR team activities and tasks. The application focuses on core features including employee data management, document handling, attendance tracking, overtime management, and a subscription-based payment system.
+
+### Project Description
+
+The project involves developing a web application to facilitate HR team operations. The system will manage:
+
+-   Employee data and employment records
+-   Legal document management
+-   Attendance and time tracking
+-   Overtime management
+-   Subscription-based features with Xendit payment gateway integration
+
+### Purpose and Objectives
+
+The application aims to:
+
+-   Provide a comprehensive web-based HR management solution
+-   Implement specified technical requirements
+-   Offer efficient employee data management
+-   Handle legal document processing
+-   Manage attendance and overtime tracking
+-   Integrate subscription-based features with secure payment processing
 
 ## Technology Stack
 

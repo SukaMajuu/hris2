@@ -46,7 +46,7 @@ func main() {
 
 	ginRouter := router.Setup()
 
-	ginRouter.StaticFile("/swagger.yaml", "./docs/swagger.yaml")
+	ginRouter.StaticFile("/swagger.yaml", "../../../docs/api/swagger.yaml")
 
 	url := ginSwagger.URL("/swagger.yaml")
 	ginRouter.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, url))

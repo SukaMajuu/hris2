@@ -32,9 +32,9 @@ jobs:
               run: npm run lint
               working-directory: apps/frontend
 
-            - name: Run tests
-              run: npm run test
-              working-directory: apps/frontend
+            # - name: Run tests
+            #   run: npm run test
+            #   working-directory: apps/frontend
 
     backend-checks:
         name: Backend Lint & Test

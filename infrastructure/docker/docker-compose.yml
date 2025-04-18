@@ -1,0 +1,61 @@
+version: "3.8"
+services:
+    db:
+        image: postgres:14.2
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+        environment:
+            POSTGRES_PASSWORD: root
+            POSTGRES_USER: root
+            POSTGRES_DB: hris
+        ports:
+            - "5432:5432"
+        networks:
+            - hris_network
+        healthcheck:
+            test: ["CMD", "pg_isready", "-U", "root", "-d", "hris"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    # Frontend service
+    frontend:
+        build:
+            context: ../..
+            dockerfile: infrastructure/docker/frontend/Dockerfile
+        ports:
+            - "3000:3000"
+        depends_on:
+            - backend
+        networks:
+            - hris_network
+        restart: unless-stopped
+
+    # Backend service
+    backend:
+        build:
+            context: ../..
+            dockerfile: infrastructure/docker/backend/Dockerfile
+        ports:
+            - "8080:8080"
+        depends_on:
+            db:
+                condition: service_healthy
+        networks:
+            - hris_network
+        restart: unless-stopped
+        environment:
+            DB_HOST: db
+            DB_PORT: 5432
+            DB_NAME: hris
+            DB_USER: root
+            DB_PASSWORD: root
+            PORT: 8080
+            ENV: development
+
+volumes:
+    postgres_data:
+
+networks:
+    hris_network:
+        driver: bridge

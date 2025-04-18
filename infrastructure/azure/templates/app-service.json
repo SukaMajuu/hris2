@@ -1,0 +1,209 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "frontendAppName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the frontend app service"
+            }
+        },
+        "backendAppName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the backend app service"
+            }
+        },
+        "location": {
+            "type": "string",
+            "metadata": {
+                "description": "Location for resources"
+            }
+        },
+        "containerRegistryUrl": {
+            "type": "string",
+            "metadata": {
+                "description": "URL of the Azure Container Registry"
+            }
+        },
+        "supabaseDbHost": {
+            "type": "string",
+            "metadata": {
+                "description": "Supabase Database Host (connection pooler)"
+            }
+        },
+        "supabaseDbPort": {
+            "type": "int",
+            "defaultValue": 6543,
+            "metadata": {
+                "description": "Supabase Database Port"
+            }
+        },
+        "supabaseDbName": {
+            "type": "string",
+            "defaultValue": "postgres",
+            "metadata": {
+                "description": "Supabase Database Name"
+            }
+        },
+        "supabaseDbUsername": {
+            "type": "string",
+            "metadata": {
+                "description": "Supabase Database Username"
+            }
+        },
+        "supabaseDbPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Supabase Database Password"
+            }
+        },
+        "supabaseUrl": {
+            "type": "string",
+            "metadata": {
+                "description": "Supabase Project URL"
+            }
+        },
+        "supabaseKey": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Supabase API Key"
+            }
+        },
+        "skuName": {
+            "type": "string",
+            "defaultValue": "B1",
+            "metadata": {
+                "description": "App Service pricing tier and instance size"
+            }
+        }
+    },
+    "variables": {
+        "appServicePlanName": "hris-app-service-plan"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Web/serverfarms",
+            "apiVersion": "2021-02-01",
+            "name": "[variables('appServicePlanName')]",
+            "location": "[parameters('location')]",
+            "sku": {
+                "name": "[parameters('skuName')]",
+                "tier": "Basic",
+                "size": "[parameters('skuName')]",
+                "family": "B",
+                "capacity": 1
+            },
+            "kind": "linux",
+            "properties": {
+                "reserved": true
+            }
+        },
+        {
+            "type": "Microsoft.Web/sites",
+            "apiVersion": "2021-02-01",
+            "name": "[parameters('frontendAppName')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]"
+            ],
+            "properties": {
+                "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
+                "siteConfig": {
+                    "appSettings": [
+                        {
+                            "name": "DOCKER_REGISTRY_SERVER_URL",
+                            "value": "[concat('https://', parameters('containerRegistryUrl'))]"
+                        },
+                        {
+                            "name": "WEBSITES_PORT",
+                            "value": "3000"
+                        },
+                        {
+                            "name": "NEXT_PUBLIC_API_URL",
+                            "value": "[concat('https://', parameters('backendAppName'), '.azurewebsites.net')]"
+                        }
+                    ],
+                    "linuxFxVersion": "[concat('DOCKER|', parameters('containerRegistryUrl'), '/hris-frontend:latest')]",
+                    "alwaysOn": true
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Web/sites",
+            "apiVersion": "2021-02-01",
+            "name": "[parameters('backendAppName')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]"
+            ],
+            "properties": {
+                "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
+                "siteConfig": {
+                    "appSettings": [
+                        {
+                            "name": "DOCKER_REGISTRY_SERVER_URL",
+                            "value": "[concat('https://', parameters('containerRegistryUrl'))]"
+                        },
+                        {
+                            "name": "APP_ENV",
+                            "value": "production"
+                        },
+                        {
+                            "name": "APP_DEBUG",
+                            "value": "false"
+                        },
+                        {
+                            "name": "DB_CONNECTION",
+                            "value": "pgsql"
+                        },
+                        {
+                            "name": "DB_HOST",
+                            "value": "[parameters('supabaseDbHost')]"
+                        },
+                        {
+                            "name": "DB_PORT",
+                            "value": "[parameters('supabaseDbPort')]"
+                        },
+                        {
+                            "name": "DB_DATABASE",
+                            "value": "[parameters('supabaseDbName')]"
+                        },
+                        {
+                            "name": "DB_USERNAME",
+                            "value": "[parameters('supabaseDbUsername')]"
+                        },
+                        {
+                            "name": "DB_PASSWORD",
+                            "value": "[parameters('supabaseDbPassword')]"
+                        },
+                        {
+                            "name": "SUPABASE_URL",
+                            "value": "[parameters('supabaseUrl')]"
+                        },
+                        {
+                            "name": "SUPABASE_KEY",
+                            "value": "[parameters('supabaseKey')]"
+                        },
+                        {
+                            "name": "WEBSITES_PORT",
+                            "value": "80"
+                        }
+                    ],
+                    "linuxFxVersion": "[concat('DOCKER|', parameters('containerRegistryUrl'), '/hris-backend:latest')]",
+                    "alwaysOn": true
+                }
+            }
+        }
+    ],
+    "outputs": {
+        "frontendUrl": {
+            "type": "string",
+            "value": "[concat('https://', reference(resourceId('Microsoft.Web/sites', parameters('frontendAppName'))).defaultHostName)]"
+        },
+        "backendUrl": {
+            "type": "string",
+            "value": "[concat('https://', reference(resourceId('Microsoft.Web/sites', parameters('backendAppName'))).defaultHostName)]"
+        }
+    }
+}

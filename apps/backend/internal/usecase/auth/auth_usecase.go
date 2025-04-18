@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
@@ -65,9 +66,10 @@ func (uc *AuthUseCase) RegisterWithForm(ctx context.Context, user *domain.User, 
 	employee.UpdatedAt = time.Now()
 
 	if err := uc.employeeRepo.Create(ctx, employee); err != nil {
-		// If employee creation fails, we should rollback the user creation
-		// TODO: Implement rollback mechanism
-		return err
+		if rollbackErr := uc.authRepo.DeleteUser(ctx, user.ID); rollbackErr != nil {
+			return fmt.Errorf("employee creation failed: %v, user rollback failed: %v", err, rollbackErr)
+		}
+		return fmt.Errorf("employee creation failed: %v", err)
 	}
 
 	return nil

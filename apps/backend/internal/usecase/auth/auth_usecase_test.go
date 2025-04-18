@@ -22,6 +22,7 @@ func TestRegisterWithForm(t *testing.T) {
 		repoError     error
 		deptError     error
 		positionError error
+		rollbackError error
 		expectedErr   error
 	}{
 		{
@@ -41,6 +42,7 @@ func TestRegisterWithForm(t *testing.T) {
 			repoError:     nil,
 			deptError:     nil,
 			positionError: nil,
+			rollbackError: nil,
 			expectedErr:   nil,
 		},
 		{
@@ -60,6 +62,7 @@ func TestRegisterWithForm(t *testing.T) {
 			repoError:     nil,
 			deptError:     assert.AnError,
 			positionError: nil,
+			rollbackError: nil,
 			expectedErr:   errors.New("department not found"),
 		},
 		{
@@ -79,6 +82,7 @@ func TestRegisterWithForm(t *testing.T) {
 			repoError:     nil,
 			deptError:     nil,
 			positionError: assert.AnError,
+			rollbackError: nil,
 			expectedErr:   errors.New("position not found"),
 		},
 		{
@@ -98,7 +102,48 @@ func TestRegisterWithForm(t *testing.T) {
 			repoError:     nil,
 			deptError:     nil,
 			positionError: nil,
+			rollbackError: nil,
 			expectedErr:   errors.New("position does not belong to the specified department"),
+		},
+		{
+			name: "employee creation failed with successful rollback",
+			user: &domain.User{
+				Email:    "test@example.com",
+				Password: "password123",
+				Phone:    "1234567890",
+			},
+			employee: &domain.Employee{
+				EmployeeCode: "EMP001",
+				FirstName:    "John",
+				LastName:     "Doe",
+				DepartmentID: 1,
+				PositionID:   1,
+			},
+			repoError:     nil,
+			deptError:     nil,
+			positionError: nil,
+			rollbackError: nil,
+			expectedErr:   errors.New("employee creation failed: employee creation error"),
+		},
+		{
+			name: "employee creation failed with rollback error",
+			user: &domain.User{
+				Email:    "test@example.com",
+				Password: "password123",
+				Phone:    "1234567890",
+			},
+			employee: &domain.Employee{
+				EmployeeCode: "EMP001",
+				FirstName:    "John",
+				LastName:     "Doe",
+				DepartmentID: 1,
+				PositionID:   1,
+			},
+			repoError:     nil,
+			deptError:     nil,
+			positionError: nil,
+			rollbackError: assert.AnError,
+			expectedErr:   errors.New("employee creation failed: employee creation error, user rollback failed: assert.AnError general error for testing"),
 		},
 	}
 
@@ -153,17 +198,22 @@ func TestRegisterWithForm(t *testing.T) {
 							user.LastLoginAt != nil &&
 							user.LastLoginAt.After(now.Add(-time.Second))
 					})).Return(nil)
+
+					tt.user.ID = 1
+
+					if tt.name == "employee creation failed with successful rollback" || tt.name == "employee creation failed with rollback error" {
+						mockEmployeeRepo.On("Create", mock.Anything, mock.Anything).Return(errors.New("employee creation error"))
+						mockAuthRepo.On("DeleteUser", mock.Anything, tt.user.ID).Return(tt.rollbackError)
+					} else {
+						mockEmployeeRepo.On("Create", mock.Anything, mock.MatchedBy(func(emp *domain.Employee) bool {
+							return emp.EmploymentStatus == true &&
+								emp.CreatedAt.After(now.Add(-time.Second)) &&
+								emp.UpdatedAt.After(now.Add(-time.Second))
+						})).Return(nil)
+					}
 				} else {
 					mockAuthRepo.On("RegisterWithForm", mock.Anything, mock.Anything).Return(tt.repoError)
 				}
-			}
-
-			if tt.deptError == nil && tt.positionError == nil && tt.repoError == nil && tt.name != "position department mismatch" {
-				mockEmployeeRepo.On("Create", mock.Anything, mock.MatchedBy(func(emp *domain.Employee) bool {
-					return emp.EmploymentStatus == true &&
-						emp.CreatedAt.After(now.Add(-time.Second)) &&
-						emp.UpdatedAt.After(now.Add(-time.Second))
-				})).Return(nil)
 			}
 
 			err := uc.RegisterWithForm(context.Background(), tt.user, tt.employee)

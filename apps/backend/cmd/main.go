@@ -4,6 +4,9 @@ import (
 	"log"
 
 	"github.com/SukaMajuu/hris/apps/backend/internal/repository/auth"
+	"github.com/SukaMajuu/hris/apps/backend/internal/repository/department"
+	"github.com/SukaMajuu/hris/apps/backend/internal/repository/employee"
+	"github.com/SukaMajuu/hris/apps/backend/internal/repository/position"
 	"github.com/SukaMajuu/hris/apps/backend/internal/rest"
 	authUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/auth"
 	"github.com/SukaMajuu/hris/apps/backend/pkg/config"
@@ -11,25 +14,6 @@ import (
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
-
-// @title           HRIS API
-// @version         1.0
-// @description     Human Resource Information System API
-// @termsOfService  http://swagger.io/terms/
-
-// @contact.name   API Support
-// @contact.url    http://www.swagger.io/support
-// @contact.email  support@swagger.io
-
-// @license.name  Apache 2.0
-// @license.url   http://www.apache.org/licenses/LICENSE-2.0.html
-
-// @host      localhost:8080
-// @BasePath  /v1
-
-// @securityDefinitions.apikey ApiKeyAuth
-// @in header
-// @name Authorization
 
 func main() {
 	cfg, err := config.Load()
@@ -47,7 +31,16 @@ func main() {
 		log.Fatal("Failed to initialize Firebase:", err)
 	}
 
-	authUseCase := authUseCase.NewAuthUseCase(authRepo)
+	employeeRepo := employee.NewPostgresRepository(db)
+	deptRepo := department.NewPostgresRepository(db)
+	positionRepo := position.NewPostgresRepository(db)
+
+	authUseCase := authUseCase.NewAuthUseCase(
+		authRepo,
+		employeeRepo,
+		deptRepo,
+		positionRepo,
+	)
 
 	router := rest.NewRouter(authUseCase)
 

@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
@@ -11,26 +12,64 @@ import (
 )
 
 type AuthUseCase struct {
-	authRepo interfaces.AuthRepository
-	// userRepo interfaces.UserRepository
-	// roleRepo interfaces.RoleRepository
+	authRepo     interfaces.AuthRepository
+	employeeRepo interfaces.EmployeeRepository
+	deptRepo     interfaces.DepartmentRepository
+	positionRepo interfaces.PositionRepository
 }
 
-func NewAuthUseCase(authRepo interfaces.AuthRepository) *AuthUseCase {
-	return &AuthUseCase{authRepo: authRepo}
+func NewAuthUseCase(
+	authRepo interfaces.AuthRepository,
+	employeeRepo interfaces.EmployeeRepository,
+	deptRepo interfaces.DepartmentRepository,
+	positionRepo interfaces.PositionRepository,
+) *AuthUseCase {
+	return &AuthUseCase{
+		authRepo:     authRepo,
+		employeeRepo: employeeRepo,
+		deptRepo:     deptRepo,
+		positionRepo: positionRepo,
+	}
 }
 
-func (uc *AuthUseCase) RegisterWithForm(ctx context.Context, user *domain.User) error {
-	if err := validateUserData(user); err != nil {
-		return err
+func (uc *AuthUseCase) RegisterWithForm(ctx context.Context, user *domain.User, employee *domain.Employee) error {
+	department, err := uc.deptRepo.GetByID(ctx, employee.DepartmentID)
+	if err != nil {
+		return errors.New("department not found")
+	}
+	if department == nil {
+		return errors.New("department not found")
 	}
 
-	user.Role = enums.UserRole("hr")
+	position, err := uc.positionRepo.GetByID(ctx, employee.PositionID)
+	if err != nil {
+		return errors.New("position not found")
+	}
+	if position == nil {
+		return errors.New("position not found")
+	}
+	if position.DepartmentID != employee.DepartmentID {
+		return errors.New("position does not belong to the specified department")
+	}
+
+	user.Role = enums.UserRole("employee")
 	user.CreatedAt = time.Now()
 	user.LastLoginAt = &user.CreatedAt
 
 	if err := uc.authRepo.RegisterWithForm(ctx, user); err != nil {
 		return err
+	}
+
+	employee.UserID = user.ID
+	employee.EmploymentStatus = true
+	employee.CreatedAt = time.Now()
+	employee.UpdatedAt = time.Now()
+
+	if err := uc.employeeRepo.Create(ctx, employee); err != nil {
+		if rollbackErr := uc.authRepo.DeleteUser(ctx, user.ID); rollbackErr != nil {
+			return fmt.Errorf("employee creation failed: %v, user rollback failed: %v", err, rollbackErr)
+		}
+		return fmt.Errorf("employee creation failed: %v", err)
 	}
 
 	return nil
@@ -182,57 +221,4 @@ func (uc *AuthUseCase) DeleteUser(ctx context.Context, id uint) error {
 		return domain.ErrInvalidUserID
 	}
 	return uc.authRepo.DeleteUser(ctx, id)
-}
-
-// Helper functions
-func validateUserData(user *domain.User) error {
-	if user == nil {
-		return domain.ErrInvalidUser
-	}
-	if user.Email == "" {
-		return domain.ErrInvalidEmail
-	}
-	if user.Password == "" {
-		return domain.ErrInvalidPassword
-	}
-	return nil
-}
-
-func (uc *AuthUseCase) CreateEmployee(ctx context.Context, employee *domain.Employee) error {
-	if employee == nil {
-		return domain.ErrInvalidUser
-	}
-
-	if employee.UserID == 0 {
-		return domain.ErrInvalidUserID
-	}
-
-	if employee.EmployeeCode == "" {
-		return errors.New("employee code is required")
-	}
-
-	if employee.FirstName == "" {
-		return errors.New("first name is required")
-	}
-
-	if employee.LastName == "" {
-		return errors.New("last name is required")
-	}
-
-	if employee.DepartmentID == 0 {
-		return errors.New("department ID is required")
-	}
-
-	if employee.PositionID == 0 {
-		return errors.New("position ID is required")
-	}
-
-	// Set default values
-	employee.EmploymentStatus = enums.EmploymentStatusActive
-	employee.CreatedAt = time.Now()
-	employee.UpdatedAt = time.Now()
-
-	// TODO: Implement employee creation in repository
-	// For now, we'll just return nil
-	return nil
 }

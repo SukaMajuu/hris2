@@ -28,4 +28,61 @@
   .input-base {
     @apply border border-neutral-darkGrey rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary;
   }
+
+  /* Typography Classes */
+  .typography-h1 {
+    @apply text-8xl font-light;
+  }
+
+  .typography-h2 {
+    @apply text-6xl font-light;
+  }
+
+  .typography-h3 {
+    @apply text-5xl font-normal;
+  }
+
+  .typography-h4 {
+    @apply text-[2.125rem] font-normal; /* 34px */
+  }
+
+  .typography-h5 {
+    @apply text-2xl font-normal;
+  }
+
+  .typography-h6 {
+    @apply text-xl font-medium;
+  }
+
+  .typography-subtitle1 {
+    @apply text-base font-normal;
+  }
+
+  .typography-subtitle2 {
+    @apply text-sm font-medium;
+  }
+
+  .typography-body1 {
+    @apply text-base font-normal;
+  }
+
+  .typography-body2 {
+    @apply text-sm font-normal;
+  }
+
+  .typography-body3 {
+    @apply text-xs font-normal;
+  }
+
+  .typography-button {
+    @apply text-base font-medium;
+  }
+
+  .typography-caption {
+    @apply text-xs font-normal;
+  }
+
+  .typography-overline {
+    @apply text-[0.625rem] font-normal;
+  }
 }

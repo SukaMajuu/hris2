@@ -2,8 +2,6 @@ package domain
 
 import (
 	"time"
-
-	"github.com/SukaMajuu/hris/apps/backend/domain/enums"
 )
 
 type Employee struct {
@@ -18,7 +16,7 @@ type Employee struct {
     Department      Department              `gorm:"foreignKey:DepartmentID"`
     PositionID      uint                    `gorm:"not null"`
     Position        Position                `gorm:"foreignKey:PositionID"`
-    EmploymentStatus enums.EmploymentStatus `gorm:"type:employment_status;default:'active'"`
+    EmploymentStatus bool                  `gorm:"type:boolean;default:true"`
     ResignationDate time.Time               `gorm:"type:date"`
     HireDate        time.Time               `gorm:"type:date"`
     CreatedAt       time.Time               `gorm:"autoCreateTime"`

@@ -53,7 +53,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		Phone:           req.Phone,
 		DepartmentID:    req.DepartmentID,
 		PositionID:      req.PositionID,
-		EmploymentStatus: enums.EmploymentStatus(req.EmploymentStatus),
+		EmploymentStatus: req.EmploymentStatus == "active",
 		HireDate:        req.HireDate,
 	}
 

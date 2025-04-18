@@ -239,7 +239,7 @@ func (uc *AuthUseCase) CreateEmployee(ctx context.Context, employee *domain.Empl
 	}
 
 	// Set default values
-	employee.EmploymentStatus = enums.EmploymentStatusActive
+	employee.EmploymentStatus = true
 	employee.CreatedAt = time.Now()
 	employee.UpdatedAt = time.Now()
 

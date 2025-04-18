@@ -11,13 +11,24 @@ import (
 )
 
 type AuthUseCase struct {
-	authRepo interfaces.AuthRepository
-	// userRepo interfaces.UserRepository
-	// roleRepo interfaces.RoleRepository
+	authRepo     interfaces.AuthRepository
+	employeeRepo interfaces.EmployeeRepository
+	deptRepo     interfaces.DepartmentRepository
+	positionRepo interfaces.PositionRepository
 }
 
-func NewAuthUseCase(authRepo interfaces.AuthRepository) *AuthUseCase {
-	return &AuthUseCase{authRepo: authRepo}
+func NewAuthUseCase(
+	authRepo interfaces.AuthRepository,
+	employeeRepo interfaces.EmployeeRepository,
+	deptRepo interfaces.DepartmentRepository,
+	positionRepo interfaces.PositionRepository,
+) *AuthUseCase {
+	return &AuthUseCase{
+		authRepo:     authRepo,
+		employeeRepo: employeeRepo,
+		deptRepo:     deptRepo,
+		positionRepo: positionRepo,
+	}
 }
 
 func (uc *AuthUseCase) RegisterWithForm(ctx context.Context, user *domain.User) error {

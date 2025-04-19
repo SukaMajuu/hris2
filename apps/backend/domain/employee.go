@@ -18,9 +18,9 @@ type Employee struct {
     EmploymentStatus bool              `gorm:"type:boolean;default:true;not null"`
 
     // Nullable Fields (Optional)
-    EmployeeCode          *string            `gorm:"type:varchar(255);unique"`
-    BranchID              *uint              `gorm:"type:uint"`
-    Branch                *Branch            `gorm:"foreignKey:BranchID"`
+    EmployeeCode          *string               `gorm:"type:varchar(255);unique"`
+    BranchID              *uint                 `gorm:"type:uint"`
+    Branch                *Branch               `gorm:"foreignKey:BranchID"`
     Gender                *enums.Gender         `gorm:"type:gender"`
     Phone                 *string               `gorm:"type:varchar(255)"`
     NIK                   *string               `gorm:"type:varchar(255);unique"`
@@ -33,7 +33,7 @@ type Employee struct {
     BankName              *string               `gorm:"type:varchar(100)"`
     BankAccountNumber     *string               `gorm:"type:varchar(100)"`
     BankAccountHolderName *string               `gorm:"type:varchar(255)"`
-    TaxStatus             *enums.TaxStatus      `gorm:"type:varchar(10)"`
+    TaxStatus             *enums.TaxStatus      `gorm:"type:tax_status"`
     ProfilePhotoURL       *string               `gorm:"type:varchar(255)"`
 
     // Auto-Timestamps

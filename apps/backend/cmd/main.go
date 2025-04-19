@@ -4,9 +4,7 @@ import (
 	"log"
 
 	"github.com/SukaMajuu/hris/apps/backend/internal/repository/auth"
-	"github.com/SukaMajuu/hris/apps/backend/internal/repository/department"
 	"github.com/SukaMajuu/hris/apps/backend/internal/repository/employee"
-	"github.com/SukaMajuu/hris/apps/backend/internal/repository/position"
 	"github.com/SukaMajuu/hris/apps/backend/internal/rest"
 	authUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/auth"
 	"github.com/SukaMajuu/hris/apps/backend/pkg/config"
@@ -32,14 +30,10 @@ func main() {
 	}
 
 	employeeRepo := employee.NewPostgresRepository(db)
-	deptRepo := department.NewPostgresRepository(db)
-	positionRepo := position.NewPostgresRepository(db)
 
 	authUseCase := authUseCase.NewAuthUseCase(
 		authRepo,
 		employeeRepo,
-		deptRepo,
-		positionRepo,
 	)
 
 	router := rest.NewRouter(authUseCase)

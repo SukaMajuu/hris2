@@ -308,13 +308,13 @@ paths:
                         schema:
                             type: object
                             required:
-                                - email
+                                - identifier
                                 - password
                             properties:
-                                email:
+                                identifier:
                                     type: string
-                                    format: email
-                                    example: "john.doe@example.com"
+                                    description: "User's email address, phone number, or employee code"
+                                    example: "john.doe@example.com | +1234567890 | E12345"
                                 password:
                                     type: string
                                     format: password
@@ -412,13 +412,17 @@ paths:
                         schema:
                             type: object
                             required:
-                                - name
+                                - first_name
+                                - last_name
                                 - email
                                 - password
                             properties:
-                                name:
+                                first_name:
                                     type: string
-                                    example: "John Doe"
+                                    example: "John"
+                                last_name:
+                                    type: string
+                                    example: "Doe"
                                 email:
                                     type: string
                                     format: email
@@ -427,10 +431,9 @@ paths:
                                     type: string
                                     format: password
                                     example: "securepassword123"
-                                role:
-                                    type: string
-                                    enum: [admin, hr, employee]
-                                    example: "employee"
+                                agree_terms:
+                                    type: boolean
+                                    example: true
             responses:
                 201:
                     description: User registered successfully
@@ -448,18 +451,9 @@ paths:
                                     data:
                                         type: object
                                         properties:
-                                            id:
+                                            user_id:
                                                 type: integer
                                                 example: 1
-                                            email:
-                                                type: string
-                                                example: "john.doe@example.com"
-                                            phone:
-                                                type: string
-                                                example: "+6281234567890"
-                                            role:
-                                                type: string
-                                                example: "employee"
                 400:
                     description: Bad request
                     content:

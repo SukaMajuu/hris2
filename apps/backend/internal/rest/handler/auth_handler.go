@@ -1,18 +1,20 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
-	"github.com/SukaMajuu/hris/apps/backend/domain/enums"
 	authDTO "github.com/SukaMajuu/hris/apps/backend/internal/rest/dto/auth"
 	authUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/auth"
 	"github.com/SukaMajuu/hris/apps/backend/pkg/response"
+	"github.com/SukaMajuu/hris/apps/backend/pkg/validation"
 	"github.com/gin-gonic/gin"
 )
 
 type AuthHandler struct {
 	authUseCase *authUseCase.AuthUseCase
+	// TODO: Inject JWT Service/Helper
 }
 
 func NewAuthHandler(authUseCase *authUseCase.AuthUseCase) *AuthHandler {
@@ -20,164 +22,180 @@ func NewAuthHandler(authUseCase *authUseCase.AuthUseCase) *AuthHandler {
 }
 
 func (h *AuthHandler) Register(c *gin.Context) {
-	var req authDTO.RegisterRequest
+	var req authDTO.AdminRegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, "Invalid request body", err)
-		return
-	}
-
-	if err := req.Validate(); err != nil {
-		response.BadRequest(c, "Validation failed", err)
+		validationErrors := validation.TranslateError(err)
+		firstErrorMsg := "Invalid request body"
+		for _, msg := range validationErrors {
+			firstErrorMsg = msg
+			break
+		}
+		response.BadRequest(c, firstErrorMsg, nil)
 		return
 	}
 
 	user := domain.User{
 		Email:    req.Email,
 		Password: req.Password,
-		Phone:    req.Phone,
-		Role:     enums.UserRole(req.Role),
 	}
-
 	employee := domain.Employee{
-		UserID:          user.ID,
-		EmployeeCode:    req.EmployeeCode,
-		FirstName:       req.FirstName,
-		LastName:        req.LastName,
-		Phone:           req.Phone,
-		DepartmentID:    req.DepartmentID,
-		PositionID:      req.PositionID,
-		EmploymentStatus: req.EmploymentStatus == "active",
-		HireDate:        req.HireDate,
+		FirstName: req.FirstName,
+		LastName:  req.LastName,
 	}
 
-	if err := h.authUseCase.RegisterWithForm(c.Request.Context(), &user, &employee); err != nil {
+	err := h.authUseCase.RegisterAdminWithForm(c.Request.Context(), &user, &employee)
+	if err != nil {
 		response.InternalServerError(c, err)
 		return
 	}
 
-
 	responseData := gin.H{
-		"user": gin.H{
-			"id":    user.ID,
-			"email": user.Email,
-			"phone": user.Phone,
-			"role":  user.Role,
-		},
-		"employee": gin.H{
-			"id":               employee.ID,
-			"employee_code":    employee.EmployeeCode,
-			"first_name":       employee.FirstName,
-			"last_name":        employee.LastName,
-			"department_id":    employee.DepartmentID,
-			"position_id":      employee.PositionID,
-			"employment_status": employee.EmploymentStatus,
-			"hire_date":        employee.HireDate,
-		},
+		"user_id": user.ID,
 	}
 
-	response.Created(c, "User and employee registered successfully", responseData)
+	response.Created(c, "User registered successfully", responseData)
 }
 
 func (h *AuthHandler) Login(c *gin.Context) {
-	var credentials struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
-	if err := c.ShouldBindJSON(&credentials); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	var req authDTO.LoginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		validationErrors := validation.TranslateError(err)
+		firstErrorMsg := "Invalid request body"
+		for _, msg := range validationErrors {
+			firstErrorMsg = msg
+			break
+		}
+		response.BadRequest(c, firstErrorMsg, nil)
 		return
 	}
 
-	// TODO: Implement login handler
-	// - Validate request
-	// - Call use case
-	// - Return response with JWT token
-}
-
-func (h *AuthHandler) ChangePassword(c *gin.Context) {
-	var data struct {
-		OldPassword string `json:"old_password"`
-		NewPassword string `json:"new_password"`
-	}
-	if err := c.ShouldBindJSON(&data); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	user, err := h.authUseCase.LoginWithIdentifier(c.Request.Context(), req.Identifier, req.Password)
+	if err != nil {
+		if err == domain.ErrInvalidCredentials {
+			response.Unauthorized(c, "Invalid credentials", domain.ErrInvalidCredentials)
+		} else {
+			response.InternalServerError(c, err)
+		}
 		return
 	}
 
-	// TODO: Implement change password handler
-	// - Get user ID from context (after auth middleware)
-	// - Call use case
-	// - Return response
-}
-
-func (h *AuthHandler) ResetPassword(c *gin.Context) {
-	var data struct {
-		Email string `json:"email"`
-	}
-	if err := c.ShouldBindJSON(&data); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	// TODO: Implement reset password handler
-	// - Call use case
-	// - Return response
+	// TODO: Generate JWT token
+	response.Success(c, http.StatusOK, "Login successful", gin.H{
+		"user": gin.H{
+			"id":    user.ID,
+			"email": user.Email,
+			"role":  user.Role,
+		},
+	})
 }
 
 func (h *AuthHandler) GoogleLogin(c *gin.Context) {
-	var data struct {
-		Token string `json:"token"`
-	}
-	if err := c.ShouldBindJSON(&data); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	var req authDTO.GoogleLoginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		validationErrors := validation.TranslateError(err)
+		firstErrorMsg := "Invalid request body"
+		for _, msg := range validationErrors {
+			firstErrorMsg = msg
+			break
+		}
+		response.BadRequest(c, firstErrorMsg, nil)
 		return
 	}
 
-	// TODO: Implement Google login handler
-	// - Verify Google token
-	// - Call use case
-	// - Return response with JWT token
+	user, loginErr := h.authUseCase.LoginWithGoogle(c.Request.Context(), req.Token)
+	if loginErr == nil {
+		response.Success(c, http.StatusOK, "Google login successful", gin.H{
+			"user": gin.H{"id": user.ID, "email": user.Email, "role": user.Role},
+		})
+		return
+	}
+
+	if req.AgreeTerms == nil || !*req.AgreeTerms {
+		response.BadRequest(c, "Terms must be agreed for registration", nil)
+		return
+	}
+
+	regUser, _, regErr := h.authUseCase.RegisterAdminWithGoogle(c.Request.Context(), req.Token)
+	if regErr != nil {
+		response.InternalServerError(c, regErr)
+		return
+	}
+
+	response.Created(c, "Google registration successful", gin.H{
+		"user": gin.H{"id": regUser.ID, "email": regUser.Email, "role": regUser.Role},
+	})
 }
 
-func (h *AuthHandler) EmployeeLogin(c *gin.Context) {
-	var data struct {
-		EmployeeID string `json:"employee_id"`
-	}
-	if err := c.ShouldBindJSON(&data); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+func (h *AuthHandler) ChangePassword(c *gin.Context) {
+	var req authDTO.ChangePasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		validationErrors := validation.TranslateError(err)
+		firstErrorMsg := "Invalid request body"
+		for _, msg := range validationErrors {
+			firstErrorMsg = msg
+			break
+		}
+		response.BadRequest(c, firstErrorMsg, nil)
 		return
 	}
 
-	// TODO: Implement employee login handler
-	// - Call use case
-	// - Return response with JWT token
+	userIDCtx, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User ID not found in context", fmt.Errorf("missing userID in context"))
+		return
+	}
+	userID, ok := userIDCtx.(uint)
+	if !ok {
+		response.InternalServerError(c, fmt.Errorf("invalid user ID type in context"))
+		return
+	}
+
+	if err := h.authUseCase.ChangePassword(c.Request.Context(), userID, req.OldPassword, req.NewPassword); err != nil {
+		response.InternalServerError(c, err)
+		return
+	}
+
+	response.Success(c, http.StatusOK, "Password changed successfully", nil)
 }
 
-func (h *AuthHandler) PhoneLogin(c *gin.Context) {
-	var data struct {
-		Phone string `json:"phone"`
-		OTP   string `json:"otp"`
-	}
-	if err := c.ShouldBindJSON(&data); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+func (h *AuthHandler) ResetPassword(c *gin.Context) {
+	var req authDTO.ResetPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		validationErrors := validation.TranslateError(err)
+		firstErrorMsg := "Invalid request body"
+		for _, msg := range validationErrors {
+			firstErrorMsg = msg
+			break
+		}
+		response.BadRequest(c, firstErrorMsg, nil)
 		return
 	}
 
-	// TODO: Implement phone login handler
-	// - Call use case
-	// - Return response with JWT token
+	if err := h.authUseCase.ResetPassword(c.Request.Context(), req.Email); err != nil {
+		fmt.Printf("Error during password reset request for %s: %v\n", req.Email, err)
+	}
+
+	response.Success(c, http.StatusOK, "If an account with that email exists, a password reset link has been sent.", nil)
 }
 
-func (h *AuthHandler) RequestOTP(c *gin.Context) {
-	var data struct {
-		Phone string `json:"phone"`
+func (h *AuthHandler) RefreshToken(c *gin.Context) {
+	var req authDTO.RefreshTokenRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		validationErrors := validation.TranslateError(err)
+		firstErrorMsg := "Invalid request body"
+		for _, msg := range validationErrors {
+			firstErrorMsg = msg
+			break
+		}
+		response.BadRequest(c, firstErrorMsg, nil)
+		return
 	}
-	if err := c.ShouldBindJSON(&data); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	refreshToken := req.RefreshToken
+
+	if refreshToken == "" {
+		response.Unauthorized(c, "Refresh token is missing", fmt.Errorf("refresh token missing"))
 		return
 	}
 
-	// TODO: Implement OTP request handler
-	// - Call use case
-	// - Return response
+	response.Success(c, http.StatusOK, "Token refreshed successfully", gin.H{})
 }

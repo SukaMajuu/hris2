@@ -9,17 +9,33 @@ import (
 
 func Migrate(db *gorm.DB) error {
 	if err := db.Exec(`DO $$ BEGIN
-		CREATE TYPE user_role AS ENUM ('admin', 'hr', 'employee');
-		CREATE TYPE user_status AS ENUM ('active', 'inactive');
-		CREATE TYPE employment_status AS ENUM ('active', 'inactive');
-		CREATE TYPE work_arrangement_type AS ENUM ('WFA', 'WFO', 'WFH');
-		CREATE TYPE event_type AS ENUM ('check_in', 'check_out');
-		CREATE TYPE attendance_status AS ENUM ('present', 'absent', 'late');
-		CREATE TYPE regulation_type AS ENUM ('government', 'company');
-		CREATE TYPE document_status AS ENUM ('draft', 'active');
-		CREATE TYPE billing_status AS ENUM ('unpaid', 'paid');
-		CREATE TYPE payment_status AS ENUM ('pending', 'completed');
-	EXCEPTION WHEN duplicate_object THEN null;
+		-- User Role Enum (Updated)
+		DROP TYPE IF EXISTS user_role CASCADE;
+		CREATE TYPE user_role AS ENUM ('admin', 'user');
+
+		-- Gender Enum (New)
+		DROP TYPE IF EXISTS gender CASCADE;
+		CREATE TYPE gender AS ENUM ('Male', 'Female');
+
+		-- Education Level Enum (New)
+		DROP TYPE IF EXISTS education_level CASCADE;
+		CREATE TYPE education_level AS ENUM (
+			'SD', 'SMP', 'SMA/SMK', 'D1', 'D2', 'D3', 'S1/D4', 'S2', 'S3', 'Other'
+		);
+
+		-- Contract Type Enum (New)
+		DROP TYPE IF EXISTS contract_type CASCADE;
+		CREATE TYPE contract_type AS ENUM ('permanent', 'contract', 'freelance');
+
+		-- Tax Status Enum (New)
+		DROP TYPE IF EXISTS tax_status CASCADE;
+		CREATE TYPE tax_status AS ENUM (
+			'TK/0', 'TK/1', 'TK/2', 'TK/3',
+			'K/0', 'K/1', 'K/2', 'K/3',
+			'K/I/0', 'K/I/1', 'K/I/2', 'K/I/3'
+		);
+
+	EXCEPTION WHEN undefined_object THEN null; -- Changed exception handler for DROP TYPE
 	END $$;`).Error; err != nil {
 		return err
 	}
@@ -35,17 +51,8 @@ func Migrate(db *gorm.DB) error {
 	if err := db.AutoMigrate(
 		&models.User{},
 		&models.Employee{},
-		&models.Department{},
 		&models.Position{},
-		&models.WorkArrangement{},
-		&models.AttendanceLog{},
-		&models.DailyAttendance{},
-		&models.OvertimeType{},
-		&models.OvertimeRate{},
-		&models.OvertimeRequest{},
-		&models.EmployeeDocument{},
-		&models.BillingCycle{},
-		&models.Payment{},
+		&models.Branch{},
 	); err != nil {
 		return err
 	}

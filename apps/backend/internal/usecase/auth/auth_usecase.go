@@ -2,8 +2,8 @@ package auth
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
@@ -14,211 +14,136 @@ import (
 type AuthUseCase struct {
 	authRepo     interfaces.AuthRepository
 	employeeRepo interfaces.EmployeeRepository
-	deptRepo     interfaces.DepartmentRepository
-	positionRepo interfaces.PositionRepository
 }
 
 func NewAuthUseCase(
 	authRepo interfaces.AuthRepository,
 	employeeRepo interfaces.EmployeeRepository,
-	deptRepo interfaces.DepartmentRepository,
-	positionRepo interfaces.PositionRepository,
 ) *AuthUseCase {
 	return &AuthUseCase{
 		authRepo:     authRepo,
 		employeeRepo: employeeRepo,
-		deptRepo:     deptRepo,
-		positionRepo: positionRepo,
 	}
 }
 
-func (uc *AuthUseCase) RegisterWithForm(ctx context.Context, user *domain.User, employee *domain.Employee) error {
-	department, err := uc.deptRepo.GetByID(ctx, employee.DepartmentID)
-	if err != nil {
-		return errors.New("department not found")
-	}
-	if department == nil {
-		return errors.New("department not found")
+// --- Registration (Admin Only) ---
+
+func (uc *AuthUseCase) RegisterAdminWithForm(ctx context.Context, user *domain.User, employee *domain.Employee) error {
+	if user.Email == "" || user.Password == "" || employee.FirstName == "" || employee.LastName == "" {
+		return fmt.Errorf("missing required fields for admin registration")
 	}
 
-	position, err := uc.positionRepo.GetByID(ctx, employee.PositionID)
-	if err != nil {
-		return errors.New("position not found")
-	}
-	if position == nil {
-		return errors.New("position not found")
-	}
-	if position.DepartmentID != employee.DepartmentID {
-		return errors.New("position does not belong to the specified department")
-	}
-
-	user.Role = enums.UserRole("employee")
+	user.Role = enums.RoleAdmin
+	employee.PositionID = 1
 	user.CreatedAt = time.Now()
-	user.LastLoginAt = &user.CreatedAt
-
-	if err := uc.authRepo.RegisterWithForm(ctx, user); err != nil {
-		return err
-	}
-
-	employee.UserID = user.ID
-	employee.EmploymentStatus = true
 	employee.CreatedAt = time.Now()
-	employee.UpdatedAt = time.Now()
 
-	if err := uc.employeeRepo.Create(ctx, employee); err != nil {
-		if rollbackErr := uc.authRepo.DeleteUser(ctx, user.ID); rollbackErr != nil {
-			return fmt.Errorf("employee creation failed: %v, user rollback failed: %v", err, rollbackErr)
-		}
-		return fmt.Errorf("employee creation failed: %v", err)
+	err := uc.authRepo.RegisterAdminWithForm(ctx, user, employee)
+	if err != nil {
+		return fmt.Errorf("failed to register admin: %w", err)
 	}
 
 	return nil
 }
 
-func (uc *AuthUseCase) RegisterWithGoogle(ctx context.Context, token string) (*domain.User, error) {
-	// TODO: Implement Google registration business logic
-	// - Verify Google token
-	// - Check if user exists (try login first)
-	// - Set default values for new users
-	// - Create or update user
-	return uc.authRepo.RegisterWithGoogle(ctx, token)
+func (uc *AuthUseCase) RegisterAdminWithGoogle(ctx context.Context, token string) (*domain.User, *domain.Employee, error) {
+	if token == "" {
+		return nil, nil, domain.ErrInvalidToken
+	}
+
+	user, employee, err := uc.authRepo.RegisterAdminWithGoogle(ctx, token)
+	user.Role = enums.RoleAdmin
+	employee.PositionID = 1
+	user.CreatedAt = time.Now()
+	employee.CreatedAt = time.Now()
+
+	if err != nil {
+		if user, err := uc.LoginWithGoogle(ctx, token); err == nil {
+			return user, employee, nil
+		}
+		return nil, nil, fmt.Errorf("failed Google admin registration: %w", err)
+	}
+
+	return user, employee, nil
 }
 
-// Login Methods
-func (uc *AuthUseCase) LoginWithEmail(ctx context.Context, email, password string) (*domain.User, error) {
-	// TODO: Implement login business logic
-	// - Validate credentials
-	// - Check account lockout
-	// - Handle failed attempts
-	// - Check account status
-	// - Generate JWT token
-	if email == "" || password == "" {
-		return nil, domain.ErrInvalidCredentials
-	}
-	return uc.authRepo.LoginWithEmail(ctx, email, password)
+// --- Login Methods ---
+
+func (uc *AuthUseCase) LoginWithIdentifier(ctx context.Context, identifier, password string) (*domain.User, error) {
+	// TODO: Implement form login business logic
+	return nil, nil
 }
 
 func (uc *AuthUseCase) LoginWithGoogle(ctx context.Context, token string) (*domain.User, error) {
 	// TODO: Implement Google login business logic
-	// - Verify Google token
+	// - Verify Google token (Repo does this)
+	// - Get user from repo
 	// - Check account status
-	// - Generate JWT token
+	// - Generate JWT tokens
+
 	if token == "" {
 		return nil, domain.ErrInvalidToken
 	}
-	return uc.authRepo.LoginWithGoogle(ctx, token)
-}
-
-func (uc *AuthUseCase) LoginWithPhone(ctx context.Context, phone, otp string) (*domain.User, error) {
-	// TODO: Implement phone login business logic
-	// - Validate phone and OTP
-	// - Check OTP expiration
-	// - Check attempt limits
-	// - Generate JWT token
-	if phone == "" || otp == "" {
-		return nil, domain.ErrInvalidCredentials
+	user, err := uc.authRepo.LoginWithGoogle(ctx, token)
+	if err != nil {
+		// TODO: Handle specific errors (e.g., user not registered)
+		return nil, fmt.Errorf("google login failed: %w", err)
 	}
-	return uc.authRepo.LoginWithPhone(ctx, phone, otp)
+
+	// TODO: Check user status
+	// TODO: Generate Tokens
+
+	return user, nil
 }
 
-func (uc *AuthUseCase) LoginWithEmployeeID(ctx context.Context, employeeID, password string) (*domain.User, error) {
-	// TODO: Implement employee login business logic
-	// - Validate employee ID
-	// - Check account status
-	// - Generate JWT token
-	if employeeID == "" || password == "" {
-		return nil, domain.ErrInvalidCredentials
-	}
-	return uc.authRepo.LoginWithEmployeeID(ctx, employeeID, password)
-}
+// --- Password Management ---
 
-// OTP Operations
-func (uc *AuthUseCase) RequestOTP(ctx context.Context, phone string) error {
-	// TODO: Implement OTP request business logic
-	// - Validate phone number
-	// - Check attempt limits
-	// - Generate OTP
-	// - Send OTP via SMS
-	if phone == "" {
-		return domain.ErrInvalidPhoneNumber
-	}
-	return uc.authRepo.RequestOTP(ctx, phone)
-}
-
-func (uc *AuthUseCase) VerifyOTP(ctx context.Context, phone, otp string) error {
-	// TODO: Implement OTP verification business logic
-	// - Validate OTP
-	// - Check expiration
-	// - Check attempt limits
-	if phone == "" || otp == "" {
-		return domain.ErrInvalidOTP
-	}
-	return uc.authRepo.VerifyOTP(ctx, phone, otp)
-}
-
-// Password Management
 func (uc *AuthUseCase) ChangePassword(ctx context.Context, userID uint, oldPassword, newPassword string) error {
 	// TODO: Implement password change business logic
-	// - Verify old password
-	// - Check password strength
-	// - Check password history
-	// - Update password
-	if oldPassword == "" || newPassword == "" {
-		return domain.ErrInvalidPassword
+	// - Validate userID
+	// - **VERIFY OLD PASSWORD** (Challenge: How? See login methods)
+	// - Check password strength for newPassword
+	// - Check password history (if required)
+	// - Call repo to update password (in Firebase)
+
+	if userID == 0 || oldPassword == "" || newPassword == "" {
+		return domain.ErrInvalidPassword // Or more specific errors
 	}
-	return uc.authRepo.ChangePassword(ctx, userID, oldPassword, newPassword)
+	// TODO: Add New Password Strength Check
+
+	// TODO: How to verify oldPassword? This needs to happen before calling the repo.
+	// user, err := uc.authRepo.GetUserByID(ctx, userID) ... verify oldPassword against hash or via Firebase client/API...
+
+	// Assuming old password verified somehow:
+	err := uc.authRepo.ChangePassword(ctx, userID, oldPassword, newPassword)
+	if err != nil {
+		return fmt.Errorf("failed to change password: %w", err)
+	}
+	return nil
 }
 
 func (uc *AuthUseCase) ResetPassword(ctx context.Context, email string) error {
 	// TODO: Implement password reset business logic
-	// - Validate email
-	// - Generate reset token
-	// - Send reset email
-	if email == "" {
+	// - Validate email format
+	// - Check if email exists
+	// - Generate reset token/link (Repo handles Firebase link generation)
+	// - Potentially log the request or send email via separate service
+
+	if email == "" || !strings.Contains(email, "@") { // Basic validation
 		return domain.ErrInvalidEmail
 	}
-	return uc.authRepo.ResetPassword(ctx, email)
-}
 
-// Common operations
-func (uc *AuthUseCase) GetUserByID(ctx context.Context, id uint) (*domain.User, error) {
-	// TODO: Implement get user business logic
-	// - Check permissions
-	// - Validate user ID
-	if id == 0 {
-		return nil, domain.ErrInvalidUserID
-	}
-	return uc.authRepo.GetUserByID(ctx, id)
-}
+	// Optional: Check if user exists before attempting reset link generation
+	// _, err := uc.authRepo.GetUserByEmail(ctx, email)
+	// if err != nil { return domain.ErrInvalidEmail } // Don't reveal if email exists
 
-func (uc *AuthUseCase) GetUserByEmail(ctx context.Context, email string) (*domain.User, error) {
-	// TODO: Implement get user by email business logic
-	// - Check permissions
-	// - Validate email
-	if email == "" {
-		return nil, domain.ErrInvalidEmail
+	err := uc.authRepo.ResetPassword(ctx, email)
+	if err != nil {
+		// Log the error, but maybe return a generic success message to avoid leaking info
+		fmt.Printf("Error initiating password reset for %s: %v\n", email, err)
+		// return fmt.Errorf("failed to initiate password reset: %w", err)
 	}
-	return uc.authRepo.GetUserByEmail(ctx, email)
-}
 
-func (uc *AuthUseCase) UpdateUser(ctx context.Context, user *domain.User) error {
-	// TODO: Implement update user business logic
-	// - Check permissions
-	// - Validate user data
-	// - Handle role updates
-	if user == nil {
-		return domain.ErrInvalidUser
-	}
-	return uc.authRepo.UpdateUser(ctx, user)
-}
-
-func (uc *AuthUseCase) DeleteUser(ctx context.Context, id uint) error {
-	// TODO: Implement delete user business logic
-	// - Check permissions
-	// - Handle related data
-	// - Soft delete
-	if id == 0 {
-		return domain.ErrInvalidUserID
-	}
-	return uc.authRepo.DeleteUser(ctx, id)
+	// Return nil typically, even if email doesn't exist, to prevent enumeration
+	return nil
 }

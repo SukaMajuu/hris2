@@ -35,17 +35,7 @@ func Migrate(db *gorm.DB) error {
 	if err := db.AutoMigrate(
 		&models.User{},
 		&models.Employee{},
-		&models.Department{},
 		&models.Position{},
-		&models.WorkArrangement{},
-		&models.AttendanceLog{},
-		&models.DailyAttendance{},
-		&models.OvertimeType{},
-		&models.OvertimeRate{},
-		&models.OvertimeRequest{},
-		&models.EmployeeDocument{},
-		&models.BillingCycle{},
-		&models.Payment{},
 	); err != nil {
 		return err
 	}

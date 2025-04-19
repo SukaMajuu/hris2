@@ -1,4 +1,3 @@
-// apps/backend/internal/rest/dto/auth/admin_register_request.go
 package auth
 
 import (
@@ -6,11 +5,8 @@ import (
 )
 
 type AdminRegisterRequest struct {
-	// User fields
 	Email           string `json:"email" validate:"required,email"`
 	Password        string `json:"password" validate:"required,min=8"`
-
-	// Initial Employee fields for the Admin (HR)
 	FirstName       string `json:"first_name" validate:"required"`
 	LastName        string `json:"last_name" validate:"required"`
 

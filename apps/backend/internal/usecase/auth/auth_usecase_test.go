@@ -87,10 +87,12 @@ func TestRegisterAdminWithForm(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockAuthRepo := new(mocks.AuthRepository)
 			mockEmployeeRepo := new(mocks.EmployeeRepository)
+			mockJWTService := new(mocks.JWTService)
 
 			uc := NewAuthUseCase(
 				mockAuthRepo,
 				mockEmployeeRepo,
+				mockJWTService,
 			)
 
 			if tt.name == "email already exists" {

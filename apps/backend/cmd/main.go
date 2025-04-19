@@ -9,6 +9,7 @@ import (
 	authUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/auth"
 	"github.com/SukaMajuu/hris/apps/backend/pkg/config"
 	"github.com/SukaMajuu/hris/apps/backend/pkg/database"
+	"github.com/SukaMajuu/hris/apps/backend/pkg/jwt"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
@@ -31,9 +32,12 @@ func main() {
 
 	employeeRepo := employee.NewPostgresRepository(db)
 
+	jwtService := jwt.NewJWTService(cfg)
+
 	authUseCase := authUseCase.NewAuthUseCase(
 		authRepo,
 		employeeRepo,
+		jwtService,
 	)
 
 	router := rest.NewRouter(authUseCase)

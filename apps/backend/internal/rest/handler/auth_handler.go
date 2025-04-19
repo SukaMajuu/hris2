@@ -4,6 +4,8 @@ import (
 	"github.com/SukaMajuu/hris/apps/backend/domain"
 	authDTO "github.com/SukaMajuu/hris/apps/backend/internal/rest/dto/auth"
 	authUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/auth"
+
+	// "github.com/SukaMajuu/hris/apps/backend/pkg/jwt"
 	"github.com/SukaMajuu/hris/apps/backend/pkg/response"
 	"github.com/SukaMajuu/hris/apps/backend/pkg/validation"
 	"github.com/gin-gonic/gin"
@@ -25,7 +27,7 @@ func bindAndValidate(c *gin.Context, dto interface{}) bool {
 
 type AuthHandler struct {
 	authUseCase *authUseCase.AuthUseCase
-	// TODO: Inject JWT Service/Helper
+	// jwtService  *jwt.Service
 }
 
 func NewAuthHandler(authUseCase *authUseCase.AuthUseCase) *AuthHandler {

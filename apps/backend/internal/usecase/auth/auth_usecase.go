@@ -9,20 +9,24 @@ import (
 	"github.com/SukaMajuu/hris/apps/backend/domain"
 	"github.com/SukaMajuu/hris/apps/backend/domain/enums"
 	"github.com/SukaMajuu/hris/apps/backend/domain/interfaces"
+	"github.com/SukaMajuu/hris/apps/backend/pkg/jwt"
 )
 
 type AuthUseCase struct {
 	authRepo     interfaces.AuthRepository
 	employeeRepo interfaces.EmployeeRepository
+	jwtService   jwt.Service
 }
 
 func NewAuthUseCase(
 	authRepo interfaces.AuthRepository,
 	employeeRepo interfaces.EmployeeRepository,
+	jwtService jwt.Service,
 ) *AuthUseCase {
 	return &AuthUseCase{
 		authRepo:     authRepo,
 		employeeRepo: employeeRepo,
+		jwtService:   jwtService,
 	}
 }
 

@@ -10,3 +10,7 @@ type Position struct {
     CreatedAt    time.Time  `gorm:"autoCreateTime"`
     UpdatedAt    time.Time  `gorm:"autoUpdateTime"`
 }
+
+func (a *Position) TableName() string {
+	return "positions"
+}

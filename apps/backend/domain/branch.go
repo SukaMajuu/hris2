@@ -8,3 +8,7 @@ type Branch struct {
 	CreatedAt time.Time `gorm:"autoCreateTime"`
 	UpdatedAt time.Time `gorm:"autoUpdateTime"`
 }
+
+func (a *Branch) TableName() string {
+	return "branches"
+}

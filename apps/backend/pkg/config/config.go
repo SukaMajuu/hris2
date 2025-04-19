@@ -10,6 +10,7 @@ type Config struct {
 	Database DatabaseConfig
 	Firebase FirebaseConfig
 	Server   ServerConfig
+	JWT      JWTConfig
 }
 
 type DatabaseConfig struct {
@@ -29,6 +30,11 @@ type ServerConfig struct {
 	Port string
 }
 
+type JWTConfig struct {
+	SecretKey string
+	Duration  string
+}
+
 func Load() (*Config, error) {
 	_ = godotenv.Load()
 
@@ -46,6 +52,10 @@ func Load() (*Config, error) {
 		},
 		Server: ServerConfig{
 			Port: getEnv("PORT", "8080"),
+		},
+		JWT: JWTConfig{
+			SecretKey: getEnv("JWT_SECRET_KEY", "secret"),
+			Duration:  getEnv("JWT_DURATION", "24h"),
 		},
 	}, nil
 }

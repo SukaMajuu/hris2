@@ -35,13 +35,6 @@ func (r *Router) Setup() *gin.Engine {
 			auth.POST("/register", r.authHandler.Register)
 			auth.POST("/login", r.authHandler.Login)
 			auth.POST("/google", r.authHandler.GoogleLogin)
-			auth.POST("/employee", r.authHandler.EmployeeLogin)
-
-			phone := auth.Group("/phone")
-			{
-				phone.POST("/login", r.authHandler.PhoneLogin)
-				phone.POST("/request-otp", r.authHandler.RequestOTP)
-			}
 
 			password := auth.Group("/password")
 			{

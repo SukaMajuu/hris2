@@ -161,7 +161,7 @@ func (r *firebaseRepository) ResetPassword(ctx context.Context, email string) er
 func (r *firebaseRepository) GetUserByID(ctx context.Context, id uint) (*domain.User, error) {
 	var user domain.User
 	if err := r.db.WithContext(ctx).First(&user, id).Error; err != nil {
-		return nil, err // GORM handles ErrRecordNotFound
+		return nil, err
 	}
 	return &user, nil
 }
@@ -174,7 +174,6 @@ func (r *firebaseRepository) GetUserByEmail(ctx context.Context, email string) (
 	return &user, nil
 }
 
-// GetUserByPhone finds a user by their phone number.
 func (r *firebaseRepository) GetUserByPhone(ctx context.Context, phone string) (*domain.User, error) {
 	var user domain.User
 	if err := r.db.WithContext(ctx).Where("phone = ?", phone).First(&user).Error; err != nil {
@@ -183,7 +182,6 @@ func (r *firebaseRepository) GetUserByPhone(ctx context.Context, phone string) (
 	return &user, nil
 }
 
-// GetUserByEmployeeCode finds a user associated with an employee code.
 func (r *firebaseRepository) GetUserByEmployeeCode(ctx context.Context, code string) (*domain.User, error) {
 	var employee domain.Employee
 	if err := r.db.WithContext(ctx).Where("employee_code = ?", code).Preload("User").First(&employee).Error; err != nil {

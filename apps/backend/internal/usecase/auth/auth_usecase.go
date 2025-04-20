@@ -35,8 +35,6 @@ func NewAuthUseCase(
 func (uc *AuthUseCase) RegisterAdminWithForm(ctx context.Context, user *domain.User, employee *domain.Employee) error {
 	user.Role = enums.RoleAdmin
 	employee.PositionID = 1
-	user.CreatedAt = time.Now()
-	employee.CreatedAt = time.Now()
 
 	err := uc.authRepo.RegisterAdminWithForm(ctx, user, employee)
 	if err != nil {
@@ -52,11 +50,6 @@ func (uc *AuthUseCase) RegisterAdminWithGoogle(ctx context.Context, token string
 	}
 
 	user, employee, err := uc.authRepo.RegisterAdminWithGoogle(ctx, token)
-	user.Role = enums.RoleAdmin
-	employee.PositionID = 1
-	user.CreatedAt = time.Now()
-	employee.CreatedAt = time.Now()
-
 	if err != nil {
 		if user, err := uc.LoginWithGoogle(ctx, token); err == nil {
 			return user, employee, nil

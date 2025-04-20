@@ -11,6 +11,7 @@ var (
 	ErrInvalidEmail       = errors.New("invalid email")
 	ErrInvalidUserID      = errors.New("invalid user ID")
 	ErrInvalidUser        = errors.New("invalid user")
+	ErrEmailAlreadyExists = errors.New("email already registered")
 )
 
 // Request validation errors

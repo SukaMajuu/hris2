@@ -69,9 +69,31 @@ func (uc *AuthUseCase) RegisterAdminWithGoogle(ctx context.Context, token string
 
 // --- Login Methods ---
 
-func (uc *AuthUseCase) LoginWithIdentifier(ctx context.Context, identifier, password string) (*domain.User, error) {
-	// TODO: Implement form login business logic
-	return nil, nil
+func (uc *AuthUseCase) LoginWithIdentifier(ctx context.Context, identifier, password string) (*domain.User, string, error) {
+	var user *domain.User
+	var err error
+
+	if strings.Contains(identifier, "@") {
+		user, err = uc.authRepo.LoginWithEmail(ctx, identifier, password)
+	} else if strings.HasPrefix(identifier, "+") || strings.HasPrefix(identifier, "0") {
+		user, err = uc.authRepo.LoginWithPhone(ctx, identifier, password)
+	}else {
+		user, err = uc.authRepo.LoginWithEmployeeCredentials(ctx, identifier, password)
+	}
+
+	if err != nil {
+		return nil, "", fmt.Errorf("login failed: %w", err)
+	}
+
+	token, err := uc.jwtService.GenerateToken(user.ID, user.Role)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to generate token: %w", err)
+	}
+
+	now := time.Now()
+	user.LastLoginAt = &now
+
+	return user, token, nil
 }
 
 func (uc *AuthUseCase) LoginWithGoogle(ctx context.Context, token string) (*domain.User, error) {

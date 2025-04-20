@@ -17,7 +17,12 @@ import { Separator } from "@/components/ui/separator";
 import { useRegister } from "./useRegister";
 
 export default function RegisterPage() {
-	const { register, isLoading, registerForm, handleSignIn } = useRegister();
+	const {
+		register,
+		isLoading,
+		registerForm,
+		handleRegisterWithGoogle,
+	} = useRegister();
 
 	return (
 		<div className="w-full space-y-4">
@@ -177,20 +182,20 @@ export default function RegisterPage() {
 					<Button
 						type="submit"
 						className="w-full h-12 text-base hover:cursor-pointer"
-						disabled={isLoading.register}
+						disabled={isLoading}
 					>
-						{isLoading.register ? "Signing up..." : "Sign Up"}
+						{isLoading ? "Signing up..." : "Sign Up"}
 					</Button>
 				</form>
 			</Form>
 
 			<div className="flex flex-col gap-4">
 				<Button
-					onClick={handleSignIn}
-					disabled={isLoading.google}
+					onClick={handleRegisterWithGoogle}
+					disabled={isLoading}
 					className="w-full h-12 text-base bg-white text-black border border-gray-300 hover:bg-gray-200 hover:cursor-pointer"
 				>
-					{isLoading.google ? "Signing up..." : "Sign up with Google"}
+					{isLoading ? "Signing up..." : "Sign up with Google"}
 				</Button>
 			</div>
 

@@ -12,12 +12,12 @@ type Employee struct {
     UserID           uint              `gorm:"not null"`
     User             User              `gorm:"foreignKey:UserID"`
     FirstName        string            `gorm:"type:varchar(255);not null"`
-    LastName         string            `gorm:"type:varchar(255);not null"`
     PositionID       uint              `gorm:"type:uint"`
     Position         Position          `gorm:"foreignKey:PositionID"`
     EmploymentStatus bool              `gorm:"type:boolean;default:true;not null"`
 
     // Nullable Fields (Optional)
+    LastName              *string               `gorm:"type:varchar(255)"`
     EmployeeCode          *string               `gorm:"type:varchar(255);unique"`
     BranchID              *uint                 `gorm:"type:uint"`
     Branch                *Branch               `gorm:"foreignKey:BranchID"`

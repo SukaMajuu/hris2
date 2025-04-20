@@ -10,7 +10,7 @@ type JWTService struct {
 	mock.Mock
 }
 
-func (_m *JWTService) GenerateToken(userID uint, role enums.UserRole) (string, error) {
+func (_m *JWTService) GenerateToken(userID uint, role enums.UserRole) (string, string, error) {
 	ret := _m.Called(userID, role)
 
 	var r0 string
@@ -20,14 +20,14 @@ func (_m *JWTService) GenerateToken(userID uint, role enums.UserRole) (string, e
 		r0 = ret.Get(0).(string)
 	}
 
-	var r1 error
-	if rf, ok := ret.Get(1).(func(uint, enums.UserRole) error); ok {
+	var r1 string
+	if rf, ok := ret.Get(1).(func(uint, enums.UserRole) string); ok {
 		r1 = rf(userID, role)
 	} else {
-		r1 = ret.Error(1)
+		r1 = ret.Get(1).(string)
 	}
 
-	return r0, r1
+	return r0, r1, nil
 }
 
 func (_m *JWTService) ValidateToken(tokenString string) (*jwt.CustomClaims, error) {

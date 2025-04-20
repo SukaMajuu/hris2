@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
 	"github.com/SukaMajuu/hris/apps/backend/domain/enums"
@@ -19,56 +20,77 @@ import (
 func TestRegisterAdminWithForm(t *testing.T) {
 	var repoCreateFailedErr = errors.New("repo create failed")
 	lastName := "Doe"
+	now := time.Now()
 
 	tests := []struct {
 		name          string
 		user          *domain.User
 		employee      *domain.Employee
 		repoError     error
-		rollbackError error
 		expectedErr   error
 	}{
 		{
 			name: "successful registration with last name",
 			user: &domain.User{
-				Email:    "test@example.com",
-				Password: "password123",
+				ID:          1,
+				Email:       "test@example.com",
+				Password:    "password123",
+				Role:        enums.RoleAdmin,
+				CreatedAt:   now,
+				UpdatedAt:   now,
+				LastLoginAt: nil,
 			},
 			employee: &domain.Employee{
+				ID:        1,
 				FirstName: "John",
 				LastName:  &lastName,
+				CreatedAt: now,
+				UpdatedAt: now,
 			},
-			repoError:     nil,
-			rollbackError: nil,
-			expectedErr:   nil,
+			repoError:   nil,
+			expectedErr: nil,
 		},
 		{
 			name: "successful registration without last name",
 			user: &domain.User{
-				Email:    "test@example.com",
-				Password: "password123",
+				ID:          1,
+				Email:       "test@example.com",
+				Password:    "password123",
+				Role:        enums.RoleAdmin,
+				CreatedAt:   now,
+				UpdatedAt:   now,
+				LastLoginAt: nil,
 			},
 			employee: &domain.Employee{
+				ID:        1,
 				FirstName: "John",
 				LastName:  nil,
+				CreatedAt: now,
+				UpdatedAt: now,
 			},
-			repoError:     nil,
-			rollbackError: nil,
-			expectedErr:   nil,
+			repoError:   nil,
+			expectedErr: nil,
 		},
 		{
 			name: "repository error during registration",
 			user: &domain.User{
-				Email:    "test@example.com",
-				Password: "password123",
+				ID:          1,
+				Email:       "test@example.com",
+				Password:    "password123",
+				Role:        enums.RoleAdmin,
+				CreatedAt:   now,
+				UpdatedAt:   now,
+				LastLoginAt: nil,
 			},
 			employee: &domain.Employee{
+				ID:        1,
 				FirstName: "John",
 				LastName:  &lastName,
+				CreatedAt: now,
+				UpdatedAt: now,
 			},
-			repoError:     repoCreateFailedErr,
-			rollbackError: nil,
-			expectedErr:   fmt.Errorf("failed to register admin: %w", repoCreateFailedErr),
+			repoError:   repoCreateFailedErr,
+			expectedErr: fmt.Errorf("failed to register admin: %w", repoCreateFailedErr),
 		},
 	}
 
@@ -104,21 +126,34 @@ func TestRegisterAdminWithForm(t *testing.T) {
 							emp.PositionID == 1
 					}),
 				).Return(tt.repoError)
+
+				if tt.repoError == nil {
+					mockJWTService.On("GenerateToken", tt.user.ID, tt.user.Role).
+						Return("access-token", "refresh-token", nil)
+				}
 			}
 
-			err := uc.RegisterAdminWithForm(context.Background(), tt.user, tt.employee)
+			user, accessToken, refreshToken, err := uc.RegisterAdminWithForm(context.Background(), tt.user, tt.employee)
 
 			if tt.expectedErr != nil {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tt.expectedErr.Error())
+				assert.Nil(t, user)
+				assert.Empty(t, accessToken)
+				assert.Empty(t, refreshToken)
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, enums.RoleAdmin, tt.user.Role)
-				assert.NotNil(t, tt.user.CreatedAt)
+				assert.NotNil(t, user)
+				assert.Equal(t, "access-token", accessToken)
+				assert.Equal(t, "refresh-token", refreshToken)
+				assert.Equal(t, enums.RoleAdmin, user.Role)
+				assert.NotNil(t, user.CreatedAt)
 				assert.NotNil(t, tt.employee.CreatedAt)
+				assert.NotNil(t, user.LastLoginAt)
 			}
 
 			mockAuthRepo.AssertExpectations(t)
+			mockJWTService.AssertExpectations(t)
 		})
 	}
 }
@@ -418,15 +453,11 @@ func TestRegisterAdminWithGoogle(t *testing.T) {
 		invalidToken   = "invalid-token"
 		existingEmail  = "existing@example.com"
 		firebaseError  = errors.New("firebase error")
-		firstName      = "John"
-		lastName       = "Michael Doe"
 	)
 
 	tests := []struct {
 		name           string
 		token          string
-		repoUser       *domain.User
-		repoEmployee   *domain.Employee
 		repoError      error
 		loginUser      *domain.User
 		loginError     error
@@ -434,41 +465,18 @@ func TestRegisterAdminWithGoogle(t *testing.T) {
 		expectedErr    error
 	}{
 		{
-			name:  "successful registration with full name",
+			name:  "successful registration",
 			token: validToken,
-			repoUser: &domain.User{
+			repoError: nil,
+			loginUser: &domain.User{
+				ID:       1,
 				Email:    "new@example.com",
 				GoogleID: &validToken,
 				Role:     enums.RoleAdmin,
 			},
-			repoEmployee: &domain.Employee{
-				FirstName: firstName,
-				LastName:  &lastName,
-				PositionID: 1,
-			},
-			repoError:    nil,
+			loginError: nil,
 			expectedUser: &domain.User{
-				Email:    "new@example.com",
-				GoogleID: &validToken,
-				Role:     enums.RoleAdmin,
-			},
-			expectedErr: nil,
-		},
-		{
-			name:  "successful registration with single name",
-			token: validToken,
-			repoUser: &domain.User{
-				Email:    "new@example.com",
-				GoogleID: &validToken,
-				Role:     enums.RoleAdmin,
-			},
-			repoEmployee: &domain.Employee{
-				FirstName: "John",
-				LastName:  nil,
-				PositionID: 1,
-			},
-			repoError:    nil,
-			expectedUser: &domain.User{
+				ID:       1,
 				Email:    "new@example.com",
 				GoogleID: &validToken,
 				Role:     enums.RoleAdmin,
@@ -478,17 +486,6 @@ func TestRegisterAdminWithGoogle(t *testing.T) {
 		{
 			name:  "email already exists - successful login",
 			token: validToken,
-			repoUser: &domain.User{
-				ID:       1,
-				Email:    existingEmail,
-				GoogleID: &validToken,
-				Role:     enums.RoleAdmin,
-			},
-			repoEmployee: &domain.Employee{
-				FirstName: firstName,
-				LastName:  &lastName,
-				PositionID: 1,
-			},
 			repoError: domain.ErrEmailAlreadyExists,
 			loginUser: &domain.User{
 				ID:       1,
@@ -540,28 +537,32 @@ func TestRegisterAdminWithGoogle(t *testing.T) {
 
 			if tt.token != "" {
 				mockAuthRepo.On("RegisterAdminWithGoogle", mock.Anything, tt.token).
-					Return(tt.repoUser, tt.repoEmployee, tt.repoError)
+					Return(nil, nil, tt.repoError)
 
-				if tt.repoError == domain.ErrEmailAlreadyExists {
+				if tt.repoError == nil || tt.repoError == domain.ErrEmailAlreadyExists {
 					mockAuthRepo.On("LoginWithGoogle", mock.Anything, tt.token).
 						Return(tt.loginUser, tt.loginError)
-				} else if tt.repoError != nil {
-					mockAuthRepo.On("LoginWithGoogle", mock.Anything, tt.token).
-						Return(nil, tt.loginError)
+
+					if tt.loginError == nil {
+						mockJWTService.On("GenerateToken", tt.loginUser.ID, tt.loginUser.Role).
+							Return("access-token", "refresh-token", nil)
+					}
 				}
 			}
 
-			user, employee, err := uc.RegisterAdminWithGoogle(context.Background(), tt.token)
+			user, accessToken, refreshToken, err := uc.RegisterAdminWithGoogle(context.Background(), tt.token)
 
 			if tt.expectedErr != nil {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tt.expectedErr.Error())
 				assert.Nil(t, user)
-				assert.Nil(t, employee)
+				assert.Empty(t, accessToken)
+				assert.Empty(t, refreshToken)
 			} else {
 				assert.NoError(t, err)
 				assert.NotNil(t, user)
-				assert.NotNil(t, employee)
+				assert.Equal(t, "access-token", accessToken)
+				assert.Equal(t, "refresh-token", refreshToken)
 
 				if tt.expectedUser != nil {
 					assert.Equal(t, tt.expectedUser.Email, user.Email)
@@ -569,20 +570,140 @@ func TestRegisterAdminWithGoogle(t *testing.T) {
 					if tt.expectedUser.GoogleID != nil {
 						assert.Equal(t, *tt.expectedUser.GoogleID, *user.GoogleID)
 					}
-				}
-
-				if tt.repoEmployee != nil {
-					assert.Equal(t, tt.repoEmployee.FirstName, employee.FirstName)
-					if tt.repoEmployee.LastName != nil {
-						assert.Equal(t, *tt.repoEmployee.LastName, *employee.LastName)
-					} else {
-						assert.Nil(t, employee.LastName)
-					}
-					assert.Equal(t, tt.repoEmployee.PositionID, employee.PositionID)
+					assert.NotNil(t, user.LastLoginAt)
 				}
 			}
 
 			mockAuthRepo.AssertExpectations(t)
+			mockJWTService.AssertExpectations(t)
+		})
+	}
+}
+
+func TestLoginWithGoogle(t *testing.T) {
+	var (
+		validToken    = "valid-google-token"
+		emptyToken    = ""
+		invalidToken  = "invalid-token"
+		firebaseError = errors.New("firebase error")
+	)
+
+	tests := []struct {
+		name           string
+		token          string
+		repoUser       *domain.User
+		repoError      error
+		jwtError       error
+		expectedUser   *domain.User
+		expectedErr    error
+	}{
+		{
+			name: "successful login",
+			token: validToken,
+			repoUser: &domain.User{
+				ID:        1,
+				Email:     "test@example.com",
+				GoogleID:  &validToken,
+				Role:      enums.RoleAdmin,
+			},
+			repoError:    nil,
+			jwtError:     nil,
+			expectedUser: &domain.User{
+				ID:        1,
+				Email:     "test@example.com",
+				GoogleID:  &validToken,
+				Role:      enums.RoleAdmin,
+			},
+			expectedErr: nil,
+		},
+		{
+			name:         "empty token",
+			token:        emptyToken,
+			repoUser:     nil,
+			repoError:    nil,
+			jwtError:     nil,
+			expectedUser: nil,
+			expectedErr:  domain.ErrInvalidToken,
+		},
+		{
+			name:         "invalid token",
+			token:        invalidToken,
+			repoUser:     nil,
+			repoError:    firebaseError,
+			jwtError:     nil,
+			expectedUser: nil,
+			expectedErr:  fmt.Errorf("google login failed: %w", firebaseError),
+		},
+		{
+			name: "jwt generation error",
+			token: validToken,
+			repoUser: &domain.User{
+				ID:        1,
+				Email:     "test@example.com",
+				GoogleID:  &validToken,
+				Role:      enums.RoleAdmin,
+			},
+			repoError:    nil,
+			jwtError:     fmt.Errorf("jwt generation failed"),
+			expectedUser: nil,
+			expectedErr:  fmt.Errorf("failed to generate token: %w", fmt.Errorf("jwt generation failed")),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockAuthRepo := new(mocks.AuthRepository)
+			mockEmployeeRepo := new(mocks.EmployeeRepository)
+			mockJWTService := new(mocks.JWTService)
+
+			uc := NewAuthUseCase(
+				mockAuthRepo,
+				mockEmployeeRepo,
+				mockJWTService,
+			)
+
+			if tt.token != "" {
+				mockAuthRepo.On("LoginWithGoogle", mock.Anything, tt.token).
+					Return(tt.repoUser, tt.repoError)
+
+				if tt.repoError == nil {
+					if tt.jwtError == nil {
+						mockJWTService.On("GenerateToken", tt.repoUser.ID, tt.repoUser.Role).
+							Return("access-token", "refresh-token", nil)
+					} else {
+						mockJWTService.On("GenerateToken", tt.repoUser.ID, tt.repoUser.Role).
+							Return("", "", tt.jwtError)
+					}
+				}
+			}
+
+			user, accessToken, refreshToken, err := uc.LoginWithGoogle(context.Background(), tt.token)
+
+			if tt.expectedErr != nil {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tt.expectedErr.Error())
+				assert.Nil(t, user)
+				assert.Empty(t, accessToken)
+				assert.Empty(t, refreshToken)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, user)
+				assert.Equal(t, "access-token", accessToken)
+				assert.Equal(t, "refresh-token", refreshToken)
+
+				if tt.expectedUser != nil {
+					assert.Equal(t, tt.expectedUser.ID, user.ID)
+					assert.Equal(t, tt.expectedUser.Email, user.Email)
+					assert.Equal(t, tt.expectedUser.Role, user.Role)
+					if tt.expectedUser.GoogleID != nil {
+						assert.Equal(t, *tt.expectedUser.GoogleID, *user.GoogleID)
+					}
+					assert.NotNil(t, user.LastLoginAt)
+				}
+			}
+
+			mockAuthRepo.AssertExpectations(t)
+			mockJWTService.AssertExpectations(t)
 		})
 	}
 }

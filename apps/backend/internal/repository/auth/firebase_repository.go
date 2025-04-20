@@ -10,6 +10,7 @@ import (
 	"github.com/SukaMajuu/hris/apps/backend/domain"
 	"github.com/SukaMajuu/hris/apps/backend/domain/enums"
 	"github.com/SukaMajuu/hris/apps/backend/domain/interfaces"
+	"github.com/SukaMajuu/hris/apps/backend/pkg/utils"
 	"google.golang.org/api/option"
 	"gorm.io/gorm"
 )
@@ -40,10 +41,11 @@ func NewFirebaseRepository(db *gorm.DB, credentialsFile string) (interfaces.Auth
 // --- Registration Methods (Admin Only) ---
 
 func (r *firebaseRepository) RegisterAdminWithForm(ctx context.Context, user *domain.User, employee *domain.Employee) error {
+	displayName := utils.JoinDisplayName(employee.FirstName, employee.LastName)
 	params := (&auth.UserToCreate{}).
 		Email(user.Email).
 		Password(user.Password).
-		DisplayName(fmt.Sprintf("%s %s", employee.FirstName, employee.LastName))
+		DisplayName(displayName)
 
 	firebaseUser, err := r.client.CreateUser(ctx, params)
 	if err != nil {
@@ -99,16 +101,16 @@ func (r *firebaseRepository) RegisterAdminWithGoogle(ctx context.Context, token 
 		return nil, nil, domain.ErrEmailAlreadyExists
 	}
 
-	// Create user
 	user := &domain.User{
 		Email:    firebaseUser.Email,
 		GoogleID: &firebaseUser.UID,
 		Role:     enums.RoleAdmin,
 	}
 
-	// Create employee
+	firstName, lastName := utils.SplitDisplayName(firebaseUser.DisplayName)
 	employee := &domain.Employee{
-		FirstName:  firebaseUser.DisplayName,
+		FirstName:  firstName,
+		LastName:   lastName,
 		PositionID: 1,
 	}
 

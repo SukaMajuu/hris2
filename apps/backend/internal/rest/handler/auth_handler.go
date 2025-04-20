@@ -1,27 +1,63 @@
 package handler
 
 import (
+	"errors"
+	"io"
+	"net/http"
+
 	"github.com/SukaMajuu/hris/apps/backend/domain"
 	authDTO "github.com/SukaMajuu/hris/apps/backend/internal/rest/dto/auth"
 	authUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/auth"
 
 	// "github.com/SukaMajuu/hris/apps/backend/pkg/jwt"
+
 	"github.com/SukaMajuu/hris/apps/backend/pkg/response"
 	"github.com/SukaMajuu/hris/apps/backend/pkg/validation"
 	"github.com/gin-gonic/gin"
 )
 
 func bindAndValidate(c *gin.Context, dto interface{}) bool {
-	if err := c.ShouldBindJSON(dto); err != nil {
-		validationErrors := validation.TranslateError(err)
-		firstErrorMsg := "Invalid request body"
-		for _, msg := range validationErrors {
-			firstErrorMsg = msg
-			break
-		}
-		response.BadRequest(c, firstErrorMsg, nil)
+	if dto == nil {
+		response.BadRequest(c, domain.ErrRequestBodyRequired.Error(), nil)
 		return true
 	}
+
+	if err := c.ShouldBindJSON(dto); err != nil {
+		if errors.Is(err, io.EOF) {
+			response.BadRequest(c, domain.ErrRequestBodyRequired.Error(), nil)
+			return true
+		}
+		validationErrors := validation.TranslateError(err)
+		if len(validationErrors) > 0 {
+			firstErrorMsg := domain.ErrInvalidRequestBody.Error()
+			for _, msg := range validationErrors {
+				firstErrorMsg = msg
+				break
+			}
+			response.BadRequest(c, firstErrorMsg, nil)
+			return true
+		}
+		response.BadRequest(c, domain.ErrInvalidRequestBody.Error(), nil)
+		return true
+	}
+
+	if validator, ok := dto.(interface{ Validate() error }); ok {
+		if err := validator.Validate(); err != nil {
+			validationErrors := validation.TranslateError(err)
+			if len(validationErrors) > 0 {
+				firstErrorMsg := domain.ErrInvalidRequestBody.Error()
+				for _, msg := range validationErrors {
+					firstErrorMsg = msg
+					break
+				}
+				response.BadRequest(c, firstErrorMsg, nil)
+				return true
+			}
+			response.BadRequest(c, domain.ErrInvalidRequestBody.Error(), nil)
+			return true
+		}
+	}
+
 	return false
 }
 
@@ -68,26 +104,26 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	// TODO: Implement Login with Identifier
+	user, token, err := h.authUseCase.LoginWithIdentifier(c.Request.Context(), req.Identifier, req.Password)
+	if err != nil {
+		if err == domain.ErrInvalidCredentials {
+			response.Unauthorized(c, "Invalid credentials", domain.ErrInvalidCredentials)
+		} else {
+			response.InternalServerError(c, err)
+		}
+		return
+	}
 
-	// user, err := h.authUseCase.LoginWithIdentifier(c.Request.Context(), req.Identifier, req.Password)
-	// if err != nil {
-	// 	if err == domain.ErrInvalidCredentials {
-	// 		response.Unauthorized(c, "Invalid credentials", domain.ErrInvalidCredentials)
-	// 	} else {
-	// 		response.InternalServerError(c, err)
-	// 	}
-	// 	return
-	// }
-
-	// // TODO: Generate JWT token
-	// response.Success(c, http.StatusOK, "Login successful", gin.H{
-	// 	"user": gin.H{
-	// 		"id":    user.ID,
-	// 		"email": user.Email,
-	// 		"role":  user.Role,
-	// 	},
-	// })
+	response.Success(c, http.StatusOK, "Login successful", gin.H{
+		"token": token,
+		"user": gin.H{
+			"id":         user.ID,
+			"email":      user.Email,
+			"phone":      user.Phone,
+			"role":       user.Role,
+			"last_login": user.LastLoginAt,
+		},
+	})
 }
 
 func (h *AuthHandler) GoogleLogin(c *gin.Context) {

@@ -1,6 +1,10 @@
 import { HttpClient, User } from "@/types/api";
+import { AxiosError } from "axios";
 
 const httpClient = new HttpClient();
+
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000; // 1 second
 
 export interface LoginCredentials {
 	email: string;
@@ -27,6 +31,21 @@ export interface GoogleAuthResponse {
 		last_name?: string;
 	};
 }
+
+const retry = async <T>(
+	fn: () => Promise<T>,
+	retries = MAX_RETRIES
+): Promise<T> => {
+	try {
+		return await fn();
+	} catch (error) {
+		if (retries === 0) {
+			throw error;
+		}
+		await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY));
+		return retry(fn, retries - 1);
+	}
+};
 
 export const authService = {
 	login: async (credentials: LoginCredentials) => {
@@ -71,11 +90,23 @@ export const authService = {
 	registerWithGoogle: async (
 		data: GoogleAuthRequest
 	): Promise<GoogleAuthResponse> => {
-		const response = await httpClient.request<GoogleAuthResponse>({
-			path: "/auth/google",
-			method: "POST",
-			body: data,
+		return retry(async () => {
+			try {
+				const response = await httpClient.request<GoogleAuthResponse>({
+					path: "/auth/google",
+					method: "POST",
+					body: data,
+				});
+				return response.data;
+			} catch (error) {
+				const axiosError = error as AxiosError;
+				if (axiosError.response?.status === 500) {
+					throw new Error(
+						"Unable to complete registration. Please try again later."
+					);
+				}
+				throw error;
+			}
 		});
-		return response.data;
 	},
 };

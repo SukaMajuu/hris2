@@ -10,171 +10,227 @@
  * ---------------------------------------------------------------
  */
 
+/** Represents a user account in the system. */
 export interface User {
-  /** @example 1 */
-  id?: number;
-  /** @example "John Doe" */
-  name?: string;
   /**
+   * Unique identifier for the user.
+   * @format uint
+   * @example 1
+   */
+  id: number;
+  /**
+   * User's unique email address. Required for login.
    * @format email
+   * @maxLength 255
    * @example "john.doe@example.com"
    */
-  email?: string;
-  /** @example "employee" */
-  role?: "admin" | "hr" | "employee";
-  status?: "active" | "inactive";
-  /** @format date-time */
-  created_at?: string;
+  email: string;
+  /**
+   * User's unique phone number (optional).
+   * @maxLength 20
+   * @example "+6281234567890"
+   */
+  phone?: string | null;
+  /**
+   * Role assigned to the user, determining their permissions.
+   * @example "user"
+   */
+  role: "admin" | "user" | "manager" | "hr";
+  /**
+   * Timestamp of the user's last login (optional).
+   * @format date-time
+   * @example "2024-07-15T10:00:00Z"
+   */
+  last_login_at?: string | null;
+  /**
+   * Timestamp when the user account was created.
+   * @format date-time
+   */
+  created_at: string;
+  /**
+   * Timestamp when the user account was last updated.
+   * @format date-time
+   */
+  updated_at: string;
 }
 
 export interface Employee {
-  id?: number;
-  user_id?: number;
-  employee_code?: string;
-  first_name?: string;
-  last_name?: string;
-  phone?: string;
-  department_id?: number;
-  position_id?: number;
-  employment_status?: "active" | "inactive";
-  /** @format date */
-  hire_date?: string;
-  /** @format date-time */
-  created_at?: string;
-  /** @format date-time */
-  updated_at?: string;
+  /**
+   * Unique identifier for the employee.
+   * @format uint
+   */
+  id: number;
+  /**
+   * Foreign key referencing the associated User ID.
+   * @format uint
+   */
+  user_id: number;
+  /**
+   * Employee's first name.
+   * @maxLength 255
+   */
+  first_name: string;
+  /**
+   * Employee's last name.
+   * @maxLength 255
+   */
+  last_name: string;
+  /**
+   * Foreign key referencing the Position ID.
+   * @format uint
+   */
+  position_id: number;
+  /**
+   * Indicates if the employee is currently active. True for active, False for inactive.
+   * @default true
+   */
+  employment_status: boolean;
+  /**
+   * Unique code assigned to the employee (optional).
+   * @maxLength 255
+   */
+  employee_code?: string | null;
+  /**
+   * Foreign key referencing the Branch ID (optional).
+   * @format uint
+   */
+  branch_id?: number | null;
+  /** Employee's gender (optional). */
+  gender?: "male" | "female" | "other" | null;
+  /**
+   * Employee's phone number (optional).
+   * @maxLength 255
+   */
+  phone?: string | null;
+  /**
+   * Employee's National Identity Number (KTP number in Indonesia) (optional).
+   * @maxLength 255
+   */
+  nik?: string | null;
+  /**
+   * Place where the employee was born (optional).
+   * @maxLength 255
+   */
+  place_of_birth?: string | null;
+  /** Employee's highest level of education completed (optional). */
+  last_education?:
+    | "high_school"
+    | "diploma"
+    | "bachelor"
+    | "master"
+    | "doctorate"
+    | null;
+  /**
+   * Employee's job grade or level (optional).
+   * @maxLength 50
+   */
+  grade?: string | null;
+  /** Type of employment contract (optional). */
+  contract_type?: "permanent" | "contract" | "internship" | "freelance" | null;
+  /**
+   * Date the employee resigned (optional).
+   * @format date
+   */
+  resignation_date?: string | null;
+  /**
+   * Date the employee was hired (optional).
+   * @format date
+   */
+  hire_date?: string | null;
+  /**
+   * Name of the employee's bank (optional).
+   * @maxLength 100
+   */
+  bank_name?: string | null;
+  /**
+   * Employee's bank account number (optional).
+   * @maxLength 100
+   */
+  bank_account_number?: string | null;
+  /**
+   * Name on the employee's bank account (optional).
+   * @maxLength 255
+   */
+  bank_account_holder_name?: string | null;
+  /** Employee's tax status (e.g., PTKP status in Indonesia) (optional). */
+  tax_status?:
+    | "tk0"
+    | "tk1"
+    | "tk2"
+    | "tk3"
+    | "k0"
+    | "k1"
+    | "k2"
+    | "k3"
+    | "ki0"
+    | "ki1"
+    | "ki2"
+    | "ki3"
+    | null;
+  /**
+   * URL to the employee's profile photo (optional).
+   * @format url
+   * @maxLength 255
+   */
+  profile_photo_url?: string | null;
+  /**
+   * Timestamp when the record was created.
+   * @format date-time
+   */
+  created_at: string;
+  /**
+   * Timestamp when the record was last updated.
+   * @format date-time
+   */
+  updated_at: string;
 }
 
-export interface EmployeeDocument {
-  id?: number;
-  employee_id?: number;
-  title?: string;
-  document_url?: string;
-  status?: "draft" | "active";
-  created_by?: number;
-  /** @format date-time */
-  created_at?: string;
-  /** @format date-time */
-  updated_at?: string;
-}
-
-export interface AttendanceLog {
-  id?: number;
-  employee_id?: number;
-  event_type?: "check_in" | "check_out";
-  /** @format date-time */
-  timestamp?: string;
-  work_arrangement_id?: number;
-  ip_address?: string;
-  notes?: string;
-  /** @format date-time */
-  created_at?: string;
-}
-
-export interface DailyAttendance {
-  id?: number;
-  employee_id?: number;
-  /** @format date */
-  date?: string;
-  status?: "present" | "absent" | "late";
-  /** @format date-time */
-  first_check_in?: string;
-  /** @format date-time */
-  last_check_out?: string;
-  /** @format float */
-  work_hours?: number;
-  notes?: string;
-  /** @format date-time */
-  created_at?: string;
-}
-
-export interface Department {
-  id?: number;
-  name?: string;
-  description?: string;
-  /** @default true */
-  active?: boolean;
-  /** @format date-time */
-  created_at?: string;
-  /** @format date-time */
-  updated_at?: string;
-}
-
+/** Represents a job position within the organization. */
 export interface Position {
-  id?: number;
-  name?: string;
-  department_id?: number;
-  /** @format date-time */
-  created_at?: string;
-  /** @format date-time */
-  updated_at?: string;
+  /**
+   * Unique identifier for the position.
+   * @format uint
+   */
+  id: number;
+  /**
+   * The name of the position.
+   * @maxLength 255
+   */
+  name: string;
+  /**
+   * Timestamp when the position was created.
+   * @format date-time
+   */
+  created_at: string;
+  /**
+   * Timestamp when the position was last updated.
+   * @format date-time
+   */
+  updated_at: string;
 }
 
-export interface WorkArrangement {
-  id?: number;
-  name?: string;
-  type?: "WFA" | "WFO" | "WFH";
-  /** @default false */
-  is_default?: boolean;
-  /** @format date-time */
-  created_at?: string;
-  /** @format date-time */
-  updated_at?: string;
-}
-
-export interface OvertimeRequest {
-  id?: number;
-  employee_id?: number;
-  overtime_type_id?: number;
-  /** @format date */
-  date?: string;
-  /** @format date-time */
-  start_time?: string;
-  /** @format date-time */
-  end_time?: string;
-  /** @format float */
-  hours?: number;
-  /** @format float */
-  estimated_compensation?: number;
-  reason?: string;
-  status?: "pending" | "approved" | "rejected";
-  approved_by?: number;
-  /** @format date-time */
-  created_at?: string;
-  /** @format date-time */
-  updated_at?: string;
-}
-
-export interface BillingCycle {
-  id?: number;
-  period_name?: string;
-  /** @format date */
-  start_date?: string;
-  /** @format date */
-  end_date?: string;
-  employee_count?: number;
-  /** @format float */
-  amount?: number;
-  status?: "unpaid" | "paid";
-  /** @format date-time */
-  created_at?: string;
-  /** @format date-time */
-  updated_at?: string;
-}
-
-export interface Payment {
-  id?: number;
-  billing_cycle_id?: number;
-  /** @format float */
-  amount?: number;
-  payment_method?: string;
-  payment_reference?: string;
-  /** @format date */
-  payment_date?: string;
-  status?: "pending" | "completed";
-  created_by?: number;
-  /** @format date-time */
-  created_at?: string;
+/** Represents a company branch or location. */
+export interface Branch {
+  /**
+   * Unique identifier for the branch.
+   * @format uint
+   */
+  id: number;
+  /**
+   * The unique name of the branch.
+   * @maxLength 255
+   */
+  name: string;
+  /**
+   * Timestamp when the branch was created.
+   * @format date-time
+   */
+  created_at: string;
+  /**
+   * Timestamp when the branch was last updated.
+   * @format date-time
+   */
+  updated_at: string;
 }
 
 export type QueryParamsType = Record<string | number, any>;
@@ -229,8 +285,7 @@ export enum ContentType {
 }
 
 export class HttpClient<SecurityDataType = unknown> {
-  public baseUrl: string =
-    "https://hris-backend-sukamaju123.azurewebsites.net/api";
+  public baseUrl: string = "http://localhost:8080/v1";
   private securityData: SecurityDataType | null = null;
   private securityWorker?: ApiConfig<SecurityDataType>["securityWorker"];
   private abortControllers = new Map<CancelToken, AbortController>();
@@ -425,7 +480,7 @@ export class HttpClient<SecurityDataType = unknown> {
 /**
  * @title HRIS API
  * @version 1.0.0
- * @baseUrl https://hris-backend-sukamaju123.azurewebsites.net/api
+ * @baseUrl http://localhost:8080/v1
  * @contact SukaMaju
  *
  * API documentation for Human Resource Information System
@@ -445,10 +500,10 @@ export class Api<
     loginCreate: (
       data: {
         /**
-         * @format email
-         * @example "john.doe@example.com"
+         * User's email address, phone number, or employee code
+         * @example "john.doe@example.com | +1234567890 | E12345"
          */
-        email: string;
+        identifier: string;
         /**
          * @format password
          * @example "securepassword123"
@@ -465,7 +520,9 @@ export class Api<
           message?: string;
           data?: {
             /** @example "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." */
-            token?: string;
+            access_token?: string;
+            /** @example "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." */
+            refresh_token?: string;
             user?: {
               /** @example 1 */
               id?: number;
@@ -520,8 +577,10 @@ export class Api<
      */
     registerCreate: (
       data: {
-        /** @example "John Doe" */
-        name: string;
+        /** @example "John" */
+        first_name: string;
+        /** @example "Doe" */
+        last_name?: string;
         /**
          * @format email
          * @example "john.doe@example.com"
@@ -532,8 +591,8 @@ export class Api<
          * @example "securepassword123"
          */
         password: string;
-        /** @example "employee" */
-        role?: "admin" | "hr" | "employee";
+        /** @example true */
+        agree_terms?: boolean;
       },
       params: RequestParams = {},
     ) =>
@@ -545,13 +604,7 @@ export class Api<
           message?: string;
           data?: {
             /** @example 1 */
-            id?: number;
-            /** @example "john.doe@example.com" */
-            email?: string;
-            /** @example "+6281234567890" */
-            phone?: string;
-            /** @example "employee" */
-            role?: string;
+            user_id?: number;
           };
         },
         | {
@@ -617,6 +670,175 @@ export class Api<
         path: `/auth/logout`,
         method: "POST",
         secure: true,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Authenticates a user using a Google ID Token. If the user doesn't exist, attempts registration (requires agreeing to terms if applicable).
+     *
+     * @tags Authentication
+     * @name GoogleCreate
+     * @summary Google Sign-In / Registration
+     * @request POST:/auth/google
+     * @secure
+     */
+    googleCreate: (
+      data: {
+        /**
+         * The Google ID Token received from the client-side Google Sign-In flow.
+         * @example "eyJhbGciOiJSUzI1NiIsImtpZCI6Ij..."
+         */
+        token: string;
+        /**
+         * Required if the Google user is not yet registered and needs to agree to terms.
+         * @default true
+         * @example true
+         */
+        agree_terms?: boolean;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<
+        {
+          /** @example 200 */
+          status?: number;
+          /** @example "Google login successful" */
+          message?: string;
+          data?: {
+            /** @example "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." */
+            token?: string;
+            /** Represents a user account in the system. */
+            user?: User;
+          };
+        },
+        | {
+            /** @example 400 */
+            status?: number;
+            /** @example "Bad Request" */
+            message?: string;
+          }
+        | {
+            /** @example 401 */
+            status?: number;
+            /** @example "Unauthorized" */
+            message?: string;
+          }
+        | {
+            /** @example 500 */
+            status?: number;
+            /** @example "Internal Server Error" */
+            message?: string;
+          }
+      >({
+        path: `/auth/google`,
+        method: "POST",
+        body: data,
+        secure: true,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Allows an authenticated user to change their password.
+     *
+     * @tags Authentication
+     * @name PasswordChangeCreate
+     * @summary Change Password
+     * @request POST:/auth/password/change
+     * @secure
+     */
+    passwordChangeCreate: (
+      data: {
+        /**
+         * @format password
+         * @example "oldpassword123"
+         */
+        old_password: string;
+        /**
+         * @format password
+         * @example "newpassword123"
+         */
+        new_password: string;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<
+        {
+          /** @example 200 */
+          status?: number;
+          /** @example "Password changed successfully" */
+          message?: string;
+        },
+        | {
+            /** @example 400 */
+            status?: number;
+            /** @example "Bad Request" */
+            message?: string;
+          }
+        | {
+            /** @example 401 */
+            status?: number;
+            /** @example "Unauthorized" */
+            message?: string;
+          }
+        | void
+      >({
+        path: `/auth/password/change`,
+        method: "POST",
+        body: data,
+        secure: true,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * @description Initiates the password reset process for a given email address. A reset link/code will typically be sent to the user's email.
+     *
+     * @tags Authentication
+     * @name PasswordResetCreate
+     * @summary Request Password Reset
+     * @request POST:/auth/password/reset
+     * @secure
+     */
+    passwordResetCreate: (
+      data: {
+        /**
+         * @format email
+         * @example "john.doe@example.com"
+         */
+        email: string;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<
+        {
+          /** @example 200 */
+          status?: number;
+          /** @example "If an account with that email exists, a password reset link has been sent." */
+          message?: string;
+          data?: any;
+        },
+        | {
+            /** @example 400 */
+            status?: number;
+            /** @example "Bad Request" */
+            message?: string;
+          }
+        | {
+            /** @example 500 */
+            status?: number;
+            /** @example "Internal Server Error" */
+            message?: string;
+          }
+      >({
+        path: `/auth/password/reset`,
+        method: "POST",
+        body: data,
+        secure: true,
+        type: ContentType.Json,
         format: "json",
         ...params,
       }),
@@ -1303,7 +1525,7 @@ export class Api<
       params: RequestParams = {},
     ) =>
       this.request<
-        AttendanceLog & {
+        {
           event_type?: "check_in";
         },
         void
@@ -1338,7 +1560,7 @@ export class Api<
       params: RequestParams = {},
     ) =>
       this.request<
-        AttendanceLog & {
+        {
           event_type?: "check_out";
         },
         void
@@ -1371,7 +1593,7 @@ export class Api<
       },
       params: RequestParams = {},
     ) =>
-      this.request<AttendanceLog[], any>({
+      this.request<any[], any>({
         path: `/attendance/logs`,
         method: "GET",
         query: query,
@@ -1400,7 +1622,7 @@ export class Api<
       },
       params: RequestParams = {},
     ) =>
-      this.request<DailyAttendance[], any>({
+      this.request<any[], any>({
         path: `/daily-attendance`,
         method: "GET",
         query: query,
@@ -1419,7 +1641,7 @@ export class Api<
      * @secure
      */
     dailyAttendanceDetail: (id: number, params: RequestParams = {}) =>
-      this.request<DailyAttendance, void>({
+      this.request<any, void>({
         path: `/daily-attendance/${id}`,
         method: "GET",
         secure: true,
@@ -1437,7 +1659,7 @@ export class Api<
      * @request POST:/overtime
      * @secure
      */
-    overtimeCreate: (data: OvertimeRequest, params: RequestParams = {}) =>
+    overtimeCreate: (data: any, params: RequestParams = {}) =>
       this.request<void, any>({
         path: `/overtime`,
         method: "POST",
@@ -1463,7 +1685,7 @@ export class Api<
       },
       params: RequestParams = {},
     ) =>
-      this.request<OvertimeRequest[], any>({
+      this.request<any[], any>({
         path: `/overtime`,
         method: "GET",
         query: query,
@@ -1509,7 +1731,7 @@ export class Api<
      * @secure
      */
     departmentsList: (params: RequestParams = {}) =>
-      this.request<Department[], any>({
+      this.request<any[], any>({
         path: `/departments`,
         method: "GET",
         secure: true,
@@ -1534,7 +1756,7 @@ export class Api<
       },
       params: RequestParams = {},
     ) =>
-      this.request<Department, any>({
+      this.request<any, any>({
         path: `/departments`,
         method: "POST",
         body: data,
@@ -1554,7 +1776,7 @@ export class Api<
      * @secure
      */
     departmentsDetail: (id: number, params: RequestParams = {}) =>
-      this.request<Department, void>({
+      this.request<any, void>({
         path: `/departments/${id}`,
         method: "GET",
         secure: true,
@@ -1580,7 +1802,7 @@ export class Api<
       },
       params: RequestParams = {},
     ) =>
-      this.request<Department, void>({
+      this.request<any, void>({
         path: `/departments/${id}`,
         method: "PUT",
         body: data,
@@ -1725,7 +1947,7 @@ export class Api<
      * @secure
      */
     workArrangementsList: (params: RequestParams = {}) =>
-      this.request<WorkArrangement[], any>({
+      this.request<any[], any>({
         path: `/work-arrangements`,
         method: "GET",
         secure: true,
@@ -1742,11 +1964,8 @@ export class Api<
      * @request POST:/work-arrangements
      * @secure
      */
-    workArrangementsCreate: (
-      data: WorkArrangement,
-      params: RequestParams = {},
-    ) =>
-      this.request<WorkArrangement, any>({
+    workArrangementsCreate: (data: any, params: RequestParams = {}) =>
+      this.request<any, any>({
         path: `/work-arrangements`,
         method: "POST",
         body: data,
@@ -1766,7 +1985,7 @@ export class Api<
      * @secure
      */
     workArrangementsDetail: (id: number, params: RequestParams = {}) =>
-      this.request<WorkArrangement, void>({
+      this.request<any, void>({
         path: `/work-arrangements/${id}`,
         method: "GET",
         secure: true,
@@ -1785,10 +2004,10 @@ export class Api<
      */
     workArrangementsUpdate: (
       id: number,
-      data: WorkArrangement,
+      data: any,
       params: RequestParams = {},
     ) =>
-      this.request<WorkArrangement, void>({
+      this.request<any, void>({
         path: `/work-arrangements/${id}`,
         method: "PUT",
         body: data,

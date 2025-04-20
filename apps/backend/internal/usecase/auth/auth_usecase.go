@@ -43,7 +43,8 @@ func (uc *AuthUseCase) RegisterAdminWithForm(ctx context.Context, user *domain.U
 
 	accessToken, refreshToken, err := uc.jwtService.GenerateToken(user.ID, user.Role)
 	if err != nil {
-		return nil, "", "", fmt.Errorf("failed to generate token: %w", err)
+		log.Printf("JWT generation failed for user ID %d with role %s: %v", user.ID, user.Role, err)
+		return nil, "", "", fmt.Errorf("failed to generate token for user ID %d with role %s: %w", user.ID, user.Role, err)
 	}
 
 	now := time.Now()

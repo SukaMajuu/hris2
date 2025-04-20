@@ -8,7 +8,7 @@ import (
 type CustomClaims struct {
 	UserID    uint           `json:"user_id"`
 	Role      enums.UserRole `json:"role"`
-	TokenType string         `json:"token_type"`
+	TokenType enums.TokenType `json:"token_type"`
 	jwt.RegisteredClaims
 }
 

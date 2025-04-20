@@ -32,14 +32,12 @@ func NewJWTService(config *config.Config) Service {
 }
 
 func (s *jwtService) GenerateToken(userID uint, role enums.UserRole) (string, string, error) {
-	// Generate access token
-	accessToken, err := s.generateToken(userID, role, s.accessDuration, "access")
+	accessToken, err := s.generateToken(userID, role, s.accessDuration, enums.TokenTypeAccess)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to generate access token: %w", err)
 	}
 
-	// Generate refresh token
-	refreshToken, err := s.generateToken(userID, role, s.refreshDuration, "refresh")
+	refreshToken, err := s.generateToken(userID, role, s.refreshDuration, enums.TokenTypeRefresh)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to generate refresh token: %w", err)
 	}
@@ -47,7 +45,7 @@ func (s *jwtService) GenerateToken(userID uint, role enums.UserRole) (string, st
 	return accessToken, refreshToken, nil
 }
 
-func (s *jwtService) generateToken(userID uint, role enums.UserRole, duration time.Duration, tokenType string) (string, error) {
+func (s *jwtService) generateToken(userID uint, role enums.UserRole, duration time.Duration, tokenType enums.TokenType) (string, error) {
 	expirationTime := time.Now().Add(duration)
 	claims := &CustomClaims{
 		UserID:    userID,

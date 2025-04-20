@@ -180,7 +180,7 @@ func (uc *AuthUseCase) RefreshToken(ctx context.Context, refreshToken string) (s
 		return "", "", fmt.Errorf("failed to validate refresh token: %w", err)
 	}
 
-	if claims.TokenType != "refresh" {
+	if claims.TokenType != enums.TokenTypeRefresh {
 		return "", "", domain.ErrInvalidToken
 	}
 

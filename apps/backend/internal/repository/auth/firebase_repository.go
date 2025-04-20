@@ -2,12 +2,15 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/auth"
 	"github.com/SukaMajuu/hris/apps/backend/domain"
+	"github.com/SukaMajuu/hris/apps/backend/domain/enums"
 	"github.com/SukaMajuu/hris/apps/backend/domain/interfaces"
+	"github.com/SukaMajuu/hris/apps/backend/pkg/utils"
 	"google.golang.org/api/option"
 	"gorm.io/gorm"
 )
@@ -38,10 +41,11 @@ func NewFirebaseRepository(db *gorm.DB, credentialsFile string) (interfaces.Auth
 // --- Registration Methods (Admin Only) ---
 
 func (r *firebaseRepository) RegisterAdminWithForm(ctx context.Context, user *domain.User, employee *domain.Employee) error {
+	displayName := utils.JoinDisplayName(employee.FirstName, employee.LastName)
 	params := (&auth.UserToCreate{}).
 		Email(user.Email).
 		Password(user.Password).
-		DisplayName(fmt.Sprintf("%s %s", employee.FirstName, employee.LastName))
+		DisplayName(displayName)
 
 	firebaseUser, err := r.client.CreateUser(ctx, params)
 	if err != nil {
@@ -71,16 +75,66 @@ func (r *firebaseRepository) RegisterAdminWithForm(ctx context.Context, user *do
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		_ = r.client.DeleteUser(ctx, firebaseUser.UID)
-		return fmt.Errorf("error committing transaction: %w", err)
+		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	return nil
 }
 
 func (r *firebaseRepository) RegisterAdminWithGoogle(ctx context.Context, token string) (*domain.User, *domain.Employee, error) {
-	// TODO: Implement Google registration logic
-	return nil, nil, fmt.Errorf("google registration not implemented")
+	decodedToken, err := r.client.VerifyIDToken(ctx, token)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to verify google token: %w", err)
+	}
+
+	firebaseUser, err := r.client.GetUser(ctx, decodedToken.UID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get firebase user: %w", err)
+	}
+
+	existingUser, err := r.GetUserByEmail(ctx, firebaseUser.Email)
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil, fmt.Errorf("failed to check existing user: %w", err)
+	}
+	if existingUser != nil {
+		return nil, nil, domain.ErrEmailAlreadyExists
+	}
+
+	user := &domain.User{
+		Email:    firebaseUser.Email,
+		GoogleID: &firebaseUser.UID,
+		Role:     enums.RoleAdmin,
+	}
+
+	firstName, lastName := utils.SplitDisplayName(firebaseUser.DisplayName)
+	employee := &domain.Employee{
+		FirstName:  firstName,
+		LastName:   lastName,
+		PositionID: 1,
+	}
+
+	tx := r.db.Begin()
+	if tx.Error != nil {
+		return nil, nil, fmt.Errorf("failed to start transaction: %w", tx.Error)
+	}
+
+	if err := tx.Create(user).Error; err != nil {
+		tx.Rollback()
+		return nil, nil, fmt.Errorf("failed to create user: %w", err)
+	}
+
+	employee.UserID = user.ID
+
+	if err := tx.Create(employee).Error; err != nil {
+		tx.Rollback()
+		return nil, nil, fmt.Errorf("failed to create employee: %w", err)
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return nil, nil, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return user, employee, nil
 }
 
 // --- Login Methods ---

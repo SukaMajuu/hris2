@@ -22,7 +22,6 @@ type Employee struct {
     BranchID              *uint                 `gorm:"type:uint"`
     Branch                *Branch               `gorm:"foreignKey:BranchID"`
     Gender                *enums.Gender         `gorm:"type:gender"`
-    Phone                 *string               `gorm:"type:varchar(255)"`
     NIK                   *string               `gorm:"type:varchar(255);unique"`
     PlaceOfBirth          *string               `gorm:"type:varchar(255)"`
     LastEducation         *enums.EducationLevel `gorm:"type:education_level"`

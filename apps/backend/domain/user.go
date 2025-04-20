@@ -12,8 +12,8 @@ type User struct {
 	Email         string            `gorm:"type:varchar(255);unique"`
 	Password      string            `gorm:"-"`
 	GoogleID      *string           `gorm:"type:varchar(255);unique"`
-	Phone         string            `gorm:"type:varchar(20);unique"`
-	Role          enums.UserRole    `gorm:"type:user_role;not null"`
+	Phone         string            `gorm:"type:varchar(20);unique;default:null"`
+	Role          enums.UserRole    `gorm:"type:user_role;not null;default:user"`
 	LastLoginAt   *time.Time        `gorm:"type:timestamp"`
 	CreatedAt     time.Time         `gorm:"autoCreateTime"`
 	UpdatedAt     time.Time         `gorm:"autoUpdateTime"`

@@ -10,26 +10,49 @@ import (
 )
 
 type jwtService struct {
-	secretKey []byte
-	duration  time.Duration
+	secretKey        []byte
+	accessDuration   time.Duration
+	refreshDuration  time.Duration
 }
 
 func NewJWTService(config *config.Config) Service {
-	duration, err := time.ParseDuration(config.JWT.Duration)
+	accessDuration, err := time.ParseDuration(config.JWT.AccessDuration)
+	if err != nil {
+		panic(err)
+	}
+	refreshDuration, err := time.ParseDuration(config.JWT.RefreshDuration)
 	if err != nil {
 		panic(err)
 	}
 	return &jwtService{
-		secretKey: []byte(config.JWT.SecretKey),
-		duration:  duration,
+		secretKey:        []byte(config.JWT.SecretKey),
+		accessDuration:   accessDuration,
+		refreshDuration:  refreshDuration,
 	}
 }
 
-func (s *jwtService) GenerateToken(userID uint, role enums.UserRole) (string, error) {
-	expirationTime := time.Now().Add(s.duration)
+func (s *jwtService) GenerateToken(userID uint, role enums.UserRole) (string, string, error) {
+	// Generate access token
+	accessToken, err := s.generateToken(userID, role, s.accessDuration, "access")
+	if err != nil {
+		return "", "", fmt.Errorf("failed to generate access token: %w", err)
+	}
+
+	// Generate refresh token
+	refreshToken, err := s.generateToken(userID, role, s.refreshDuration, "refresh")
+	if err != nil {
+		return "", "", fmt.Errorf("failed to generate refresh token: %w", err)
+	}
+
+	return accessToken, refreshToken, nil
+}
+
+func (s *jwtService) generateToken(userID uint, role enums.UserRole, duration time.Duration, tokenType string) (string, error) {
+	expirationTime := time.Now().Add(duration)
 	claims := &CustomClaims{
-		UserID: userID,
-		Role:   role,
+		UserID:    userID,
+		Role:      role,
+		TokenType: tokenType,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

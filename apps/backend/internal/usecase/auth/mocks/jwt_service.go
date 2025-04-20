@@ -17,17 +17,30 @@ func (_m *JWTService) GenerateToken(userID uint, role enums.UserRole) (string, s
 	if rf, ok := ret.Get(0).(func(uint, enums.UserRole) string); ok {
 		r0 = rf(userID, role)
 	} else {
-		r0 = ret.Get(0).(string)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(string)
+		}
 	}
 
 	var r1 string
 	if rf, ok := ret.Get(1).(func(uint, enums.UserRole) string); ok {
 		r1 = rf(userID, role)
 	} else {
-		r1 = ret.Get(1).(string)
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(string)
+		}
 	}
 
-	return r0, r1, nil
+	var r2 error
+	if rf, ok := ret.Get(2).(func(uint, enums.UserRole) error); ok {
+		r2 = rf(userID, role)
+	} else {
+		if ret.Get(2) != nil {
+			r2 = ret.Get(2).(error)
+		}
+	}
+
+	return r0, r1, r2
 }
 
 func (_m *JWTService) ValidateToken(tokenString string) (*jwt.CustomClaims, error) {

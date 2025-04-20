@@ -361,8 +361,10 @@ func TestRefreshToken(t *testing.T) {
 				mockJWTService,
 			)
 
-			mockJWTService.On("ValidateToken", tt.refreshToken).
-				Return(tt.claims, tt.validateError)
+			if tt.refreshToken != "" {
+				mockJWTService.On("ValidateToken", tt.refreshToken).
+					Return(tt.claims, tt.validateError)
+			}
 
 			if tt.validateError == nil && tt.claims != nil && tt.claims.TokenType == "refresh" {
 				mockAuthRepo.On("GetUserByID", mock.Anything, tt.claims.UserID).

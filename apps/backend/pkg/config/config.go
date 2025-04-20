@@ -57,7 +57,7 @@ func Load() (*Config, error) {
 		JWT: JWTConfig{
 			SecretKey:       getEnv("JWT_SECRET_KEY", "secret"),
 			AccessDuration:  getEnv("JWT_ACCESS_DURATION", "15m"),
-			RefreshDuration: getEnv("JWT_REFRESH_DURATION", "7d"),
+			RefreshDuration: getEnv("JWT_REFRESH_DURATION", "168h"),
 		},
 	}, nil
 }

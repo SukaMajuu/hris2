@@ -37,8 +37,6 @@ func NewFirebaseRepository(db *gorm.DB, credentialsFile string) (interfaces.Auth
 
 // --- Registration Methods (Admin Only) ---
 
-// RegisterAdminWithForm creates a user in Firebase and saves user+employee data locally.
-// It assumes employee data is already validated by the use case.
 func (r *firebaseRepository) RegisterAdminWithForm(ctx context.Context, user *domain.User, employee *domain.Employee) error {
 	params := (&auth.UserToCreate{}).
 		Email(user.Email).
@@ -80,8 +78,6 @@ func (r *firebaseRepository) RegisterAdminWithForm(ctx context.Context, user *do
 	return nil
 }
 
-// RegisterAdminWithGoogle verifies Google token, creates Firebase user if needed,
-// and creates local user + employee records.
 func (r *firebaseRepository) RegisterAdminWithGoogle(ctx context.Context, token string) (*domain.User, *domain.Employee, error) {
 	// TODO: Implement Google registration logic
 	return nil, nil, fmt.Errorf("google registration not implemented")
@@ -89,29 +85,54 @@ func (r *firebaseRepository) RegisterAdminWithGoogle(ctx context.Context, token 
 
 // --- Login Methods ---
 
-// LoginWithEmail verifies email and fetches the corresponding local user.
 func (r *firebaseRepository) LoginWithEmail(ctx context.Context, email, password string) (*domain.User, error) {
-	// TODO: Implement email login logic
-	return nil, fmt.Errorf("email login not implemented")
+	userRecord, err := r.client.GetUserByEmail(ctx, email)
+	if err != nil {
+		return nil, domain.ErrInvalidCredentials
+	}
+
+	var user domain.User
+	if err := r.db.WithContext(ctx).Where("firebase_uid = ?", userRecord.UID).First(&user).Error; err != nil {
+		return nil, domain.ErrInvalidCredentials
+	}
+
+	return &user, nil
 }
 
-// LoginWithGoogle verifies token and fetches the corresponding local user.
 func (r *firebaseRepository) LoginWithGoogle(ctx context.Context, token string) (*domain.User, error) {
 	// TODO: Implement Google login logic
 	return nil, fmt.Errorf("google login not implemented")
 }
 
-// LoginWithPhone verifies phone and fetches the corresponding local user.
 func (r *firebaseRepository) LoginWithPhone(ctx context.Context, phone, password string) (*domain.User, error) {
-	// TODO: Implement phone login logic
-	return nil, fmt.Errorf("phone login not implemented")
+	userRecord, err := r.client.GetUserByPhoneNumber(ctx, phone)
+	if err != nil {
+		return nil, fmt.Errorf("error getting user from Firebase: %w", err)
+	}
+
+	var user domain.User
+	if err := r.db.WithContext(ctx).Where("firebase_uid = ?", userRecord.UID).First(&user).Error; err != nil {
+		return nil, fmt.Errorf("error getting local user: %w", err)
+	}
+
+	return &user, nil
 }
 
-// LoginWithEmployeeCredentials finds user via EmployeeCode.
-// Password verification needs clarification (see LoginWithEmailOrPhone).
 func (r *firebaseRepository) LoginWithEmployeeCredentials(ctx context.Context, employeeCode, password string) (*domain.User, error) {
-	// TODO: Implement employee login logic
-	return nil, fmt.Errorf("employee login not implemented")
+	var employee domain.Employee
+	if err := r.db.WithContext(ctx).Where("employee_code = ?", employeeCode).Preload("User").First(&employee).Error; err != nil {
+		return nil, fmt.Errorf("error finding employee by code: %w", err)
+	}
+
+	if employee.User.ID == 0 {
+		return nil, fmt.Errorf("employee found but no associated user")
+	}
+
+	if _, err := r.client.GetUser(ctx, employee.User.FirebaseUID); err != nil {
+		return nil, fmt.Errorf("error verifying user with Firebase: %w", err)
+	}
+
+	return &employee.User, nil
 }
 
 // --- Password Management ---

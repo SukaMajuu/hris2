@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -32,34 +33,39 @@ func NewAuthUseCase(
 
 // --- Registration (Admin Only) ---
 
-func (uc *AuthUseCase) RegisterAdminWithForm(ctx context.Context, user *domain.User, employee *domain.Employee) error {
+func (uc *AuthUseCase) RegisterAdminWithForm(ctx context.Context, user *domain.User, employee *domain.Employee) (*domain.User, string, string, error) {
 	user.Role = enums.RoleAdmin
 	employee.PositionID = 1
 
 	err := uc.authRepo.RegisterAdminWithForm(ctx, user, employee)
 	if err != nil {
-		return fmt.Errorf("failed to register admin: %w", err)
+		return nil, "", "", fmt.Errorf("failed to register admin: %w", err)
 	}
 
-	return nil
-}
-
-func (uc *AuthUseCase) RegisterAdminWithGoogle(ctx context.Context, token string) (*domain.User, *domain.Employee, error) {
-	if token == "" {
-		return nil, nil, domain.ErrInvalidToken
-	}
-
-	user, employee, err := uc.authRepo.RegisterAdminWithGoogle(ctx, token)
+	accessToken, refreshToken, err := uc.jwtService.GenerateToken(user.ID, user.Role)
 	if err != nil {
-		if user, err := uc.LoginWithGoogle(ctx, token); err == nil {
-			return user, employee, nil
-		}
-		return nil, nil, fmt.Errorf("failed Google admin registration: %w", err)
+		log.Printf("JWT generation failed for user ID %d with role %s: %v", user.ID, user.Role, err)
+		return nil, "", "", fmt.Errorf("failed to generate token for user ID %d with role %s: %w", user.ID, user.Role, err)
 	}
 
-	return user, employee, nil
+	now := time.Now()
+	user.LastLoginAt = &now
+
+	return user, accessToken, refreshToken, nil
 }
 
+func (uc *AuthUseCase) RegisterAdminWithGoogle(ctx context.Context, token string) (*domain.User, string, string, error) {
+    if token == "" {
+        return nil, "", "", domain.ErrInvalidToken
+    }
+
+    _, _, err := uc.authRepo.RegisterAdminWithGoogle(ctx, token)
+    if err != nil && err != domain.ErrEmailAlreadyExists {
+        return nil, "", "", fmt.Errorf("failed Google admin registration: %w", err)
+    }
+
+    return uc.LoginWithGoogle(ctx, token)
+}
 // --- Login Methods ---
 
 func (uc *AuthUseCase) LoginWithIdentifier(ctx context.Context, identifier, password string) (*domain.User, string, string, error) {
@@ -89,26 +95,25 @@ func (uc *AuthUseCase) LoginWithIdentifier(ctx context.Context, identifier, pass
 	return user, accessToken, refreshToken, nil
 }
 
-func (uc *AuthUseCase) LoginWithGoogle(ctx context.Context, token string) (*domain.User, error) {
-	// TODO: Implement Google login business logic
-	// - Verify Google token (Repo does this)
-	// - Get user from repo
-	// - Check account status
-	// - Generate JWT tokens
-
+func (uc *AuthUseCase) LoginWithGoogle(ctx context.Context, token string) (*domain.User, string, string, error) {
 	if token == "" {
-		return nil, domain.ErrInvalidToken
+		return nil, "", "", domain.ErrInvalidToken
 	}
+
 	user, err := uc.authRepo.LoginWithGoogle(ctx, token)
 	if err != nil {
-		// TODO: Handle specific errors (e.g., user not registered)
-		return nil, fmt.Errorf("google login failed: %w", err)
+		return nil, "", "", fmt.Errorf("google login failed: %w", err)
 	}
 
-	// TODO: Check user status
-	// TODO: Generate Tokens
+	accessToken, refreshToken, err := uc.jwtService.GenerateToken(user.ID, user.Role)
+	if err != nil {
+		return nil, "", "", fmt.Errorf("failed to generate token: %w", err)
+	}
 
-	return user, nil
+	now := time.Now()
+	user.LastLoginAt = &now
+
+	return user, accessToken, refreshToken, nil
 }
 
 // --- Password Management ---

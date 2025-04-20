@@ -521,11 +521,6 @@ paths:
                                     type: string
                                     example: "eyJhbGciOiJSUzI1NiIsImtpZCI6Ij..."
                                     description: The Google ID Token received from the client-side Google Sign-In flow.
-                                agree_terms:
-                                    type: boolean
-                                    example: true
-                                    description: Required if the Google user is not yet registered and needs to agree to terms.
-                                    default: true
             responses:
                 "200":
                     description: Google login successful
@@ -543,7 +538,10 @@ paths:
                                     data:
                                         type: object
                                         properties:
-                                            token:
+                                            access_token:
+                                                type: string
+                                                example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                                            refresh_token:
                                                 type: string
                                                 example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                                             user:

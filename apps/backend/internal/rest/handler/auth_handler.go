@@ -74,26 +74,31 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	user := domain.User{
+	user := &domain.User{
 		Email:    req.Email,
 		Password: req.Password,
 	}
-	employee := domain.Employee{
+	employee := &domain.Employee{
 		FirstName: req.FirstName,
 		LastName:  req.LastName,
 	}
 
-	err := h.authUseCase.RegisterAdminWithForm(c.Request.Context(), &user, &employee)
+	registeredUser, accessToken, refreshToken, err := h.authUseCase.RegisterAdminWithForm(c.Request.Context(), user, employee)
 	if err != nil {
 		response.InternalServerError(c, err)
 		return
 	}
 
-	responseData := gin.H{
-		"user_id": user.ID,
-	}
-
-	response.Created(c, "User registered successfully", responseData)
+	response.Success(c, http.StatusCreated, "User registered and logged in successfully", gin.H{
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
+		"user": gin.H{
+			"id":         registeredUser.ID,
+			"email":      registeredUser.Email,
+			"role":       registeredUser.Role,
+			"last_login": registeredUser.LastLoginAt,
+		},
+	})
 }
 
 func (h *AuthHandler) Login(c *gin.Context) {
@@ -130,27 +135,25 @@ func (h *AuthHandler) GoogleLogin(c *gin.Context) {
 		return
 	}
 
-	user, employee, err := h.authUseCase.RegisterAdminWithGoogle(c.Request.Context(), req.Token)
+	user, accessToken, refreshToken, err := h.authUseCase.RegisterAdminWithGoogle(c.Request.Context(), req.Token)
 	if err != nil {
 		fmt.Printf("Google registration error: %v\n", err)
 		if err == domain.ErrEmailAlreadyExists {
-			// TODO: Implement Google login
-			response.BadRequest(c, "Google login not implemented yet", err)
+			response.Unauthorized(c, "Google login failed", err)
 		} else {
 			response.InternalServerError(c, fmt.Errorf("failed to register with Google: %w", err))
 		}
 		return
 	}
 
-	response.Created(c, "Google registration successful", gin.H{
+	response.Success(c, http.StatusOK, "Google authentication successful", gin.H{
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
 		"user": gin.H{
-			"id":    user.ID,
-			"email": user.Email,
-			"role":  user.Role,
-		},
-		"employee": gin.H{
-			"id":        employee.ID,
-			"firstName": employee.FirstName,
+			"id":         user.ID,
+			"email":      user.Email,
+			"role":       user.Role,
+			"last_login": user.LastLoginAt,
 		},
 	})
 }

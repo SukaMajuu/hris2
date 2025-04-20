@@ -1,19 +1,19 @@
+import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useMutation } from "@tanstack/react-query";
+import { useAuthStore } from "@/stores/auth.store";
+import { authService } from "@/services/auth.service";
+import { RegisterFormData } from "@/schemas/auth.schema";
 import { toast } from "sonner";
-import {
-	useRegisterMutation,
-	useGoogleAuthMutation,
-} from "@/api/mutations/auth.mutation";
-import { RegisterFormData, registerSchema } from "@/schemas/auth.schema";
-import { GoogleAuthRequest } from "@/services/auth.service";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { registerSchema } from "@/schemas/auth.schema";
 import { getGoogleToken } from "@/utils/google-auth";
 
-export function useRegister() {
+export const useRegister = () => {
+	const [isLoading, setIsLoading] = useState(false);
 	const router = useRouter();
-	const registerMutation = useRegisterMutation();
-	const googleAuthMutation = useGoogleAuthMutation();
+	const setUser = useAuthStore((state) => state.setUser);
 
 	const registerForm = useForm<RegisterFormData>({
 		resolver: zodResolver(registerSchema),
@@ -27,53 +27,62 @@ export function useRegister() {
 		},
 	});
 
-	const register = (data: RegisterFormData) => {
-		registerMutation.mutate(data, {
-			onSuccess: () => {
-				router.push("/dashboard");
-				toast.success("Successfully registered");
-			},
-			onError: (error) => {
-				toast.error("Failed to register. Please try again.");
-				console.error("Registration error:", error);
-			},
-		});
+	const registerMutation = useMutation({
+		mutationFn: (data: RegisterFormData) => authService.register(data),
+		onSuccess: (response) => {
+			setUser(response.user);
+			router.push("/dashboard");
+			toast.success("Registration successful! Welcome to HRIS.");
+		},
+		onError: (error: Error) => {
+			toast.error(
+				error.message || "Registration failed. Please try again."
+			);
+		},
+	});
+
+	const googleRegisterMutation = useMutation({
+		mutationFn: (token: string) => authService.registerWithGoogle(token),
+		onSuccess: (response) => {
+			setUser(response.user);
+			router.push("/dashboard");
+			toast.success("Google registration successful! Welcome to HRIS.");
+		},
+		onError: (error: Error) => {
+			toast.error(
+				error.message || "Google registration failed. Please try again."
+			);
+		},
+	});
+
+	const register = async (data: RegisterFormData) => {
+		setIsLoading(true);
+		try {
+			await registerMutation.mutateAsync(data);
+		} catch (error) {
+			console.error("Registration error in register function:", error);
+		} finally {
+			setIsLoading(false);
+		}
 	};
 
-	const registerWithGoogle = async (data: GoogleAuthRequest) => {
-		googleAuthMutation.mutate(data, {
-			onSuccess: () => {
-				router.push("/dashboard");
-				toast.success("Successfully registered with Google");
-			},
-			onError: (error) => {
-				toast.error(
-					"Failed to register with Google. Please try again."
-				);
-				console.error("Google auth error:", error);
-			},
-		});
-	};
-
-	const handleSignIn = async () => {
+	const handleRegisterWithGoogle = async () => {
+		setIsLoading(true);
 		try {
 			const token = await getGoogleToken();
-			await registerWithGoogle({
-				token,
-			});
-		} catch (err) {
-			console.error("Registration failed:", err);
-			toast.error("Failed to authenticate with Google");
+			await googleRegisterMutation.mutateAsync(token);
+		} finally {
+			setIsLoading(false);
 		}
 	};
 
 	return {
 		register,
-		handleSignIn,
+		handleRegisterWithGoogle,
+		isLoading:
+			isLoading ||
+			registerMutation.isPending ||
+			googleRegisterMutation.isPending,
 		registerForm,
-		isLoading: {
-			register: registerMutation.isPending,
-			google: googleAuthMutation.isPending,
-		},
 	};
-}
+};

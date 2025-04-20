@@ -1,35 +1,28 @@
-import { HttpClient, User } from "@/types/api";
-import { AxiosError } from "axios";
-
-const httpClient = new HttpClient();
+import { ApiService } from "./api.service";
+import { tokenService } from "./token.service";
+import {
+	LoginCredentials,
+	RegisterCredentials,
+	AuthResponse,
+} from "@/types/auth";
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000; // 1 second
-
-export interface LoginCredentials {
-	email: string;
-	password: string;
-}
-
-export interface RegisterCredentials {
-	first_name: string;
-	last_name: string;
-	email: string;
-	password: string;
-	confirmPassword: string;
-}
 
 export interface GoogleAuthRequest {
 	token: string;
 }
 
-export interface GoogleAuthResponse {
-	user: User;
+export interface GoogleAuthResponse extends AuthResponse {
 	employee: {
 		id: number;
 		first_name: string;
 		last_name?: string;
 	};
+}
+
+interface ApiResponse<T> {
+	data: T;
 }
 
 const retry = async <T>(
@@ -47,66 +40,67 @@ const retry = async <T>(
 	}
 };
 
-export const authService = {
-	login: async (credentials: LoginCredentials) => {
-		const response = await httpClient.request<{
-			user: User;
-			token: string;
-		}>({
-			path: "/auth/login",
-			method: "POST",
-			body: credentials,
-		});
-		return response.data;
-	},
+class AuthService {
+	private api: ApiService;
 
-	register: async (credentials: RegisterCredentials) => {
-		const response = await httpClient.request<{
-			user: User;
-			token: string;
-		}>({
-			path: "/auth/register",
-			method: "POST",
-			body: credentials,
-		});
-		return response.data;
-	},
+	constructor() {
+		this.api = new ApiService();
+	}
 
-	getCurrentUser: async () => {
-		const response = await httpClient.request<{ user: User }>({
-			path: "/auth/me",
-			method: "GET",
-		});
-		return response.data.user;
-	},
+	async login(credentials: LoginCredentials): Promise<AuthResponse> {
+		const response = await this.api.post<ApiResponse<AuthResponse>>(
+			"/auth/login",
+			credentials
+		);
+		const { access_token, refresh_token, user } = response.data.data;
+		tokenService.setTokens(access_token, refresh_token);
+		return { user, access_token, refresh_token };
+	}
 
-	logout: async () => {
-		await httpClient.request({
-			path: "/auth/logout",
-			method: "POST",
-		});
-	},
+	async register(credentials: RegisterCredentials): Promise<AuthResponse> {
+		const response = await this.api.post<ApiResponse<AuthResponse>>(
+			"/auth/register",
+			credentials
+		);
+		const { access_token, refresh_token, user } = response.data.data;
+		tokenService.setTokens(access_token, refresh_token);
+		return { user, access_token, refresh_token };
+	}
 
-	registerWithGoogle: async (
-		data: GoogleAuthRequest
-	): Promise<GoogleAuthResponse> => {
+	async registerWithGoogle(token: string): Promise<AuthResponse> {
 		return retry(async () => {
-			try {
-				const response = await httpClient.request<GoogleAuthResponse>({
-					path: "/auth/google",
-					method: "POST",
-					body: data,
-				});
-				return response.data;
-			} catch (error) {
-				const axiosError = error as AxiosError;
-				if (axiosError.response?.status === 500) {
-					throw new Error(
-						"Unable to complete registration. Please try again later."
-					);
-				}
-				throw error;
-			}
+			const response = await this.api.post<ApiResponse<AuthResponse>>(
+				"/auth/google/register",
+				{ token }
+			);
+			const { access_token, refresh_token, user } = response.data.data;
+			tokenService.setTokens(access_token, refresh_token);
+			return { user, access_token, refresh_token };
 		});
-	},
-};
+	}
+
+	async refreshToken(): Promise<AuthResponse> {
+		const refreshToken = tokenService.getRefreshToken();
+		if (!refreshToken) {
+			throw new Error("No refresh token available");
+		}
+		const response = await this.api.post<ApiResponse<AuthResponse>>(
+			"/auth/refresh",
+			{
+				refresh_token: refreshToken,
+			}
+		);
+		const { access_token, refresh_token, user } = response.data.data;
+		tokenService.setTokens(access_token, refresh_token);
+		return { user, access_token, refresh_token };
+	}
+
+	logout() {
+		tokenService.clearTokens();
+		this.api
+			.post("/auth/logout", {}, { withCredentials: true })
+			.catch(console.error);
+	}
+}
+
+export const authService = new AuthService();

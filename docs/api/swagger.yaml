@@ -20,280 +20,242 @@ components:
     schemas:
         User:
             type: object
+            description: Represents a user account in the system.
             properties:
                 id:
                     type: integer
+                    format: uint
+                    description: Unique identifier for the user.
+                    readOnly: true
                     example: 1
-                name:
-                    type: string
-                    example: "John Doe"
                 email:
                     type: string
                     format: email
+                    maxLength: 255
+                    description: User's unique email address. Required for login.
                     example: "john.doe@example.com"
+                phone:
+                    type: string
+                    maxLength: 20
+                    nullable: true
+                    description: User's unique phone number (optional).
+                    example: "+6281234567890"
                 role:
                     type: string
-                    enum: [admin, hr, employee]
-                    example: "employee"
-                status:
+                    description: Role assigned to the user, determining their permissions.
+                    enum: [admin, user, manager, hr]
+                    example: "user"
+                last_login_at:
                     type: string
-                    enum: [active, inactive]
+                    format: date-time
+                    nullable: true
+                    description: Timestamp of the user's last login (optional).
+                    readOnly: true
+                    example: "2024-07-15T10:00:00Z"
                 created_at:
                     type: string
                     format: date-time
+                    description: Timestamp when the user account was created.
+                    readOnly: true
+                updated_at:
+                    type: string
+                    format: date-time
+                    description: Timestamp when the user account was last updated.
+                    readOnly: true
+            required:
+                - id
+                - email
+                - role
+                - created_at
+                - updated_at
 
         Employee:
             type: object
             properties:
                 id:
                     type: integer
+                    format: uint
+                    description: Unique identifier for the employee.
+                    readOnly: true
                 user_id:
                     type: integer
-                employee_code:
-                    type: string
+                    format: uint
+                    description: Foreign key referencing the associated User ID.
                 first_name:
                     type: string
+                    maxLength: 255
+                    description: Employee's first name.
                 last_name:
                     type: string
-                phone:
-                    type: string
-                department_id:
-                    type: integer
+                    maxLength: 255
+                    description: Employee's last name.
                 position_id:
                     type: integer
+                    format: uint
+                    description: Foreign key referencing the Position ID.
                 employment_status:
+                    type: boolean
+                    description: Indicates if the employee is currently active. True for active, False for inactive.
+                    default: true
+                employee_code:
                     type: string
-                    enum: [active, inactive]
+                    maxLength: 255
+                    nullable: true
+                    description: Unique code assigned to the employee (optional).
+                branch_id:
+                    type: integer
+                    format: uint
+                    nullable: true
+                    description: Foreign key referencing the Branch ID (optional).
+                gender:
+                    type: string
+                    nullable: true
+                    description: Employee's gender (optional).
+                    enum: [male, female, other]
+                phone:
+                    type: string
+                    maxLength: 255
+                    nullable: true
+                    description: Employee's phone number (optional).
+                nik:
+                    type: string
+                    maxLength: 255
+                    nullable: true
+                    description: Employee's National Identity Number (KTP number in Indonesia) (optional).
+                place_of_birth:
+                    type: string
+                    maxLength: 255
+                    nullable: true
+                    description: Place where the employee was born (optional).
+                last_education:
+                    type: string
+                    nullable: true
+                    description: Employee's highest level of education completed (optional).
+                    enum: [high_school, diploma, bachelor, master, doctorate]
+                grade:
+                    type: string
+                    maxLength: 50
+                    nullable: true
+                    description: Employee's job grade or level (optional).
+                contract_type:
+                    type: string
+                    nullable: true
+                    description: Type of employment contract (optional).
+                    enum: [permanent, contract, internship, freelance]
+                resignation_date:
+                    type: string
+                    format: date
+                    nullable: true
+                    description: Date the employee resigned (optional).
                 hire_date:
                     type: string
                     format: date
+                    nullable: true
+                    description: Date the employee was hired (optional).
+                bank_name:
+                    type: string
+                    maxLength: 100
+                    nullable: true
+                    description: Name of the employee's bank (optional).
+                bank_account_number:
+                    type: string
+                    maxLength: 100
+                    nullable: true
+                    description: Employee's bank account number (optional).
+                bank_account_holder_name:
+                    type: string
+                    maxLength: 255
+                    nullable: true
+                    description: Name on the employee's bank account (optional).
+                tax_status:
+                    type: string
+                    nullable: true
+                    description: Employee's tax status (e.g., PTKP status in Indonesia) (optional).
+                    enum:
+                        [tk0, tk1, tk2, tk3, k0, k1, k2, k3, ki0, ki1, ki2, ki3]
+                profile_photo_url:
+                    type: string
+                    maxLength: 255
+                    format: url
+                    nullable: true
+                    description: URL to the employee's profile photo (optional).
                 created_at:
                     type: string
                     format: date-time
+                    description: Timestamp when the record was created.
+                    readOnly: true
                 updated_at:
                     type: string
                     format: date-time
-
-        EmployeeDocument:
-            type: object
-            properties:
-                id:
-                    type: integer
-                employee_id:
-                    type: integer
-                title:
-                    type: string
-                document_url:
-                    type: string
-                status:
-                    type: string
-                    enum: [draft, active]
-                created_by:
-                    type: integer
-                created_at:
-                    type: string
-                    format: date-time
-                updated_at:
-                    type: string
-                    format: date-time
-
-        AttendanceLog:
-            type: object
-            properties:
-                id:
-                    type: integer
-                employee_id:
-                    type: integer
-                event_type:
-                    type: string
-                    enum: [check_in, check_out]
-                timestamp:
-                    type: string
-                    format: date-time
-                work_arrangement_id:
-                    type: integer
-                ip_address:
-                    type: string
-                notes:
-                    type: string
-                created_at:
-                    type: string
-                    format: date-time
-
-        DailyAttendance:
-            type: object
-            properties:
-                id:
-                    type: integer
-                employee_id:
-                    type: integer
-                date:
-                    type: string
-                    format: date
-                status:
-                    type: string
-                    enum: [present, absent, late]
-                first_check_in:
-                    type: string
-                    format: date-time
-                last_check_out:
-                    type: string
-                    format: date-time
-                work_hours:
-                    type: number
-                    format: float
-                notes:
-                    type: string
-                created_at:
-                    type: string
-                    format: date-time
-
-        Department:
-            type: object
-            properties:
-                id:
-                    type: integer
-                name:
-                    type: string
-                description:
-                    type: string
-                active:
-                    type: boolean
-                    default: true
-                created_at:
-                    type: string
-                    format: date-time
-                updated_at:
-                    type: string
-                    format: date-time
+                    description: Timestamp when the record was last updated.
+                    readOnly: true
+            required:
+                - id
+                - user_id
+                - first_name
+                - last_name
+                - position_id
+                - employment_status
+                - created_at
+                - updated_at
 
         Position:
             type: object
+            description: Represents a job position within the organization.
             properties:
                 id:
                     type: integer
+                    format: uint
+                    description: Unique identifier for the position.
+                    readOnly: true
                 name:
                     type: string
-                department_id:
-                    type: integer
+                    maxLength: 255
+                    description: The name of the position.
                 created_at:
                     type: string
                     format: date-time
+                    description: Timestamp when the position was created.
+                    readOnly: true
                 updated_at:
                     type: string
                     format: date-time
+                    description: Timestamp when the position was last updated.
+                    readOnly: true
+            required:
+                - id
+                - name
+                - created_at
+                - updated_at
 
-        WorkArrangement:
+        Branch:
             type: object
+            description: Represents a company branch or location.
             properties:
                 id:
                     type: integer
+                    format: uint
+                    description: Unique identifier for the branch.
+                    readOnly: true
                 name:
                     type: string
-                type:
-                    type: string
-                    enum: [WFA, WFO, WFH]
-                is_default:
-                    type: boolean
-                    default: false
+                    maxLength: 255
+                    description: The unique name of the branch.
                 created_at:
                     type: string
                     format: date-time
+                    description: Timestamp when the branch was created.
+                    readOnly: true
                 updated_at:
                     type: string
                     format: date-time
-
-        OvertimeRequest:
-            type: object
-            properties:
-                id:
-                    type: integer
-                employee_id:
-                    type: integer
-                overtime_type_id:
-                    type: integer
-                date:
-                    type: string
-                    format: date
-                start_time:
-                    type: string
-                    format: date-time
-                end_time:
-                    type: string
-                    format: date-time
-                hours:
-                    type: number
-                    format: float
-                estimated_compensation:
-                    type: number
-                    format: float
-                reason:
-                    type: string
-                status:
-                    type: string
-                    enum: [pending, approved, rejected]
-                approved_by:
-                    type: integer
-                created_at:
-                    type: string
-                    format: date-time
-                updated_at:
-                    type: string
-                    format: date-time
-
-        BillingCycle:
-            type: object
-            properties:
-                id:
-                    type: integer
-                period_name:
-                    type: string
-                start_date:
-                    type: string
-                    format: date
-                end_date:
-                    type: string
-                    format: date
-                employee_count:
-                    type: integer
-                amount:
-                    type: number
-                    format: float
-                status:
-                    type: string
-                    enum: [unpaid, paid]
-                created_at:
-                    type: string
-                    format: date-time
-                updated_at:
-                    type: string
-                    format: date-time
-
-        Payment:
-            type: object
-            properties:
-                id:
-                    type: integer
-                billing_cycle_id:
-                    type: integer
-                amount:
-                    type: number
-                    format: float
-                payment_method:
-                    type: string
-                payment_reference:
-                    type: string
-                payment_date:
-                    type: string
-                    format: date
-                status:
-                    type: string
-                    enum: [pending, completed]
-                created_by:
-                    type: integer
-                created_at:
-                    type: string
-                    format: date-time
+                    description: Timestamp when the branch was last updated.
+                    readOnly: true
+            required:
+                - id
+                - name
+                - created_at
+                - updated_at
 
 paths:
     /auth/login:
@@ -540,6 +502,251 @@ paths:
                                     error:
                                         type: string
                                         example: "Failed to process logout request"
+
+    /auth/google:
+        post:
+            tags: [Authentication]
+            summary: Google Sign-In / Registration
+            description: Authenticates a user using a Google ID Token. If the user doesn't exist, attempts registration (requires agreeing to terms if applicable).
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            required:
+                                - token
+                            properties:
+                                token:
+                                    type: string
+                                    example: "eyJhbGciOiJSUzI1NiIsImtpZCI6Ij..."
+                                    description: The Google ID Token received from the client-side Google Sign-In flow.
+                                agree_terms:
+                                    type: boolean
+                                    example: true
+                                    description: Required if the Google user is not yet registered and needs to agree to terms.
+                                    default: true
+            responses:
+                "200":
+                    description: Google login successful
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "Google login successful"
+                                    data:
+                                        type: object
+                                        properties:
+                                            token:
+                                                type: string
+                                                example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                                            user:
+                                                $ref: "#/components/schemas/User"
+
+                "201":
+                    description: Google registration successful (user didn't exist previously)
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 201
+                                    message:
+                                        type: string
+                                        example: "Google registration successful"
+                                    data:
+                                        type: object
+                                        properties:
+                                            token:
+                                                type: string
+                                                example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                                            user:
+                                                $ref: "#/components/schemas/User"
+                "400":
+                    description: Bad Request (e.g., missing token, invalid token format, terms not agreed for registration)
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 400
+                                    message:
+                                        type: string
+                                        example: "Bad Request"
+                "401":
+                    description: Unauthorized (e.g., invalid Google token signature/audience/issuer)
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 401
+                                    message:
+                                        type: string
+                                        example: "Unauthorized"
+                "500":
+                    description: Internal Server Error
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 500
+                                    message:
+                                        type: string
+                                        example: "Internal Server Error"
+
+    /auth/password/change:
+        post:
+            tags: [Authentication]
+            summary: Change Password
+            description: Allows an authenticated user to change their password.
+            security:
+                - bearerAuth: []
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            required:
+                                - old_password
+                                - new_password
+                            properties:
+                                old_password:
+                                    type: string
+                                    format: password
+                                    example: "oldpassword123"
+                                new_password:
+                                    type: string
+                                    format: password
+                                    example: "newpassword123"
+            responses:
+                "200":
+                    description: Password changed successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "Password changed successfully"
+                "400":
+                    description: Bad Request (e.g., missing fields, new password doesn't meet requirements)
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 400
+                                    message:
+                                        type: string
+                                        example: "Bad Request"
+                "401":
+                    description: Unauthorized (e.g., invalid/expired JWT, incorrect old password)
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 401
+                                    message:
+                                        type: string
+                                        example: "Unauthorized"
+                "500":
+                    description: Internal Server Error
+                    content:
+                        type: object
+                        properties:
+                            status:
+                                type: integer
+                                example: 500
+                            message:
+                                type: string
+                                example: "Internal Server Error"
+
+    /auth/password/reset:
+        post:
+            tags: [Authentication]
+            summary: Request Password Reset
+            description: Initiates the password reset process for a given email address. A reset link/code will typically be sent to the user's email.
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            required:
+                                - email
+                            properties:
+                                email:
+                                    type: string
+                                    format: email
+                                    example: "john.doe@example.com"
+            responses:
+                "200":
+                    description: Password reset initiated (if account exists)
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "If an account with that email exists, a password reset link has been sent."
+                                    data:
+                                        type: null
+                "400":
+                    description: Bad Request (e.g., invalid email format)
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 400
+                                    message:
+                                        type: string
+                                        example: "Bad Request"
+                "500":
+                    description: Internal Server Error
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 500
+                                    message:
+                                        type: string
+                                        example: "Internal Server Error"
 
     /employees:
         get:

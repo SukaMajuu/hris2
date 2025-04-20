@@ -16,18 +16,18 @@ import (
 
 func bindAndValidate(c *gin.Context, dto interface{}) bool {
 	if dto == nil {
-		response.BadRequest(c, "Invalid request: request body is required", nil)
+		response.BadRequest(c, domain.ErrRequestBodyRequired.Error(), nil)
 		return true
 	}
 
 	if err := c.ShouldBindJSON(dto); err != nil {
 		if err.Error() == "EOF" {
-			response.BadRequest(c, "Invalid request: request body is required", nil)
+			response.BadRequest(c, domain.ErrRequestBodyRequired.Error(), nil)
 			return true
 		}
 		validationErrors := validation.TranslateError(err)
 		if len(validationErrors) > 0 {
-			firstErrorMsg := "Invalid request body"
+			firstErrorMsg := domain.ErrInvalidRequestBody.Error()
 			for _, msg := range validationErrors {
 				firstErrorMsg = msg
 				break
@@ -35,7 +35,7 @@ func bindAndValidate(c *gin.Context, dto interface{}) bool {
 			response.BadRequest(c, firstErrorMsg, nil)
 			return true
 		}
-		response.BadRequest(c, "Invalid request body", nil)
+		response.BadRequest(c, domain.ErrInvalidRequestBody.Error(), nil)
 		return true
 	}
 
@@ -43,7 +43,7 @@ func bindAndValidate(c *gin.Context, dto interface{}) bool {
 		if err := validator.Validate(); err != nil {
 			validationErrors := validation.TranslateError(err)
 			if len(validationErrors) > 0 {
-				firstErrorMsg := "Invalid request body"
+				firstErrorMsg := domain.ErrInvalidRequestBody.Error()
 				for _, msg := range validationErrors {
 					firstErrorMsg = msg
 					break
@@ -51,7 +51,7 @@ func bindAndValidate(c *gin.Context, dto interface{}) bool {
 				response.BadRequest(c, firstErrorMsg, nil)
 				return true
 			}
-			response.BadRequest(c, "Invalid request body", nil)
+			response.BadRequest(c, domain.ErrInvalidRequestBody.Error(), nil)
 			return true
 		}
 	}

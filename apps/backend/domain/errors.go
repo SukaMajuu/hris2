@@ -12,3 +12,9 @@ var (
 	ErrInvalidUserID      = errors.New("invalid user ID")
 	ErrInvalidUser        = errors.New("invalid user")
 )
+
+// Request validation errors
+var (
+	ErrRequestBodyRequired = errors.New("invalid request: request body is required")
+	ErrInvalidRequestBody  = errors.New("invalid request body")
+)

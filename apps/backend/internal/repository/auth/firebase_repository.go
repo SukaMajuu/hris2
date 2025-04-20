@@ -2,11 +2,13 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/auth"
 	"github.com/SukaMajuu/hris/apps/backend/domain"
+	"github.com/SukaMajuu/hris/apps/backend/domain/enums"
 	"github.com/SukaMajuu/hris/apps/backend/domain/interfaces"
 	"google.golang.org/api/option"
 	"gorm.io/gorm"
@@ -79,8 +81,60 @@ func (r *firebaseRepository) RegisterAdminWithForm(ctx context.Context, user *do
 }
 
 func (r *firebaseRepository) RegisterAdminWithGoogle(ctx context.Context, token string) (*domain.User, *domain.Employee, error) {
-	// TODO: Implement Google registration logic
-	return nil, nil, fmt.Errorf("google registration not implemented")
+	decodedToken, err := r.client.VerifyIDToken(ctx, token)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to verify google token: %w", err)
+	}
+
+	firebaseUser, err := r.client.GetUser(ctx, decodedToken.UID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get firebase user: %w", err)
+	}
+
+	existingUser, err := r.GetUserByEmail(ctx, firebaseUser.Email)
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil, fmt.Errorf("failed to check existing user: %w", err)
+	}
+	if existingUser != nil {
+		return nil, nil, domain.ErrEmailAlreadyExists
+	}
+
+	// Create user
+	user := &domain.User{
+		Email:    firebaseUser.Email,
+		GoogleID: &firebaseUser.UID,
+		Role:     enums.RoleAdmin,
+	}
+
+	// Create employee
+	employee := &domain.Employee{
+		FirstName:  firebaseUser.DisplayName,
+		PositionID: 1,
+	}
+
+	tx := r.db.Begin()
+	if tx.Error != nil {
+		return nil, nil, fmt.Errorf("failed to start transaction: %w", tx.Error)
+	}
+
+	if err := tx.Create(user).Error; err != nil {
+		tx.Rollback()
+		return nil, nil, fmt.Errorf("failed to create user: %w", err)
+	}
+
+	employee.UserID = user.ID
+
+	if err := tx.Create(employee).Error; err != nil {
+		tx.Rollback()
+		return nil, nil, fmt.Errorf("failed to create employee: %w", err)
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		tx.Rollback()
+		return nil, nil, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return user, employee, nil
 }
 
 // --- Login Methods ---

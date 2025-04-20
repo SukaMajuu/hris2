@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -117,7 +118,6 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		"user": gin.H{
 			"id":         user.ID,
 			"email":      user.Email,
-			"phone":      user.Phone,
 			"role":       user.Role,
 			"last_login": user.LastLoginAt,
 		},
@@ -130,33 +130,29 @@ func (h *AuthHandler) GoogleLogin(c *gin.Context) {
 		return
 	}
 
-	if req.AgreeTerms != nil && *req.AgreeTerms {
-		user, employee, err := h.authUseCase.RegisterAdminWithGoogle(c.Request.Context(), req.Token)
-		if err != nil {
-			if err == domain.ErrEmailAlreadyExists {
-				response.BadRequest(c, "Email already registered", err)
-			} else {
-				response.InternalServerError(c, err)
-			}
-			return
+	user, employee, err := h.authUseCase.RegisterAdminWithGoogle(c.Request.Context(), req.Token)
+	if err != nil {
+		fmt.Printf("Google registration error: %v\n", err)
+		if err == domain.ErrEmailAlreadyExists {
+			// TODO: Implement Google login
+			response.BadRequest(c, "Google login not implemented yet", err)
+		} else {
+			response.InternalServerError(c, fmt.Errorf("failed to register with Google: %w", err))
 		}
-
-		response.Created(c, "Google registration successful", gin.H{
-			"user": gin.H{
-				"id":    user.ID,
-				"email": user.Email,
-				"role":  user.Role,
-			},
-			"employee": gin.H{
-				"id":        employee.ID,
-				"firstName": employee.FirstName,
-			},
-		})
 		return
 	}
 
-	// TODO: Implement Google login
-	response.BadRequest(c, "Google login not implemented yet", nil)
+	response.Created(c, "Google registration successful", gin.H{
+		"user": gin.H{
+			"id":    user.ID,
+			"email": user.Email,
+			"role":  user.Role,
+		},
+		"employee": gin.H{
+			"id":        employee.ID,
+			"firstName": employee.FirstName,
+		},
+	})
 }
 
 func (h *AuthHandler) ChangePassword(c *gin.Context) {

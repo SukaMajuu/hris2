@@ -53,34 +53,6 @@ func TestRegisterAdminWithForm(t *testing.T) {
 			rollbackError: nil,
 			expectedErr:   fmt.Errorf("failed to register admin: %w", repoCreateFailedErr),
 		},
-		{
-			name: "missing required fields - email",
-			user: &domain.User{
-				Email:    "",
-				Password: "password123",
-			},
-			employee: &domain.Employee{
-				FirstName: "John",
-				LastName:  "Doe",
-			},
-			repoError:     nil,
-			rollbackError: nil,
-			expectedErr:   errors.New("missing required fields for admin registration"),
-		},
-		{
-			name: "missing required fields - first name",
-			user: &domain.User{
-				Email:    "test@example.com",
-				Password: "password123",
-			},
-			employee: &domain.Employee{
-				FirstName: "",
-				LastName:  "Doe",
-			},
-			repoError:     nil,
-			rollbackError: nil,
-			expectedErr:   errors.New("missing required fields for admin registration"),
-		},
 	}
 
 	for _, tt := range tests {

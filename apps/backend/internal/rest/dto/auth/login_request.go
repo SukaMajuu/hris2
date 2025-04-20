@@ -3,7 +3,7 @@ package auth
 import "github.com/go-playground/validator/v10"
 
 type LoginRequest struct {
-	Identifier string `json:"identifier" validate:"required"` // Email or Phone or Employee Code
+	Identifier string `json:"identifier" validate:"required"`
 	Password   string `json:"password" validate:"required"`
 	RememberMe bool   `json:"rememberMe"`
 }

@@ -22,11 +22,14 @@ func Success(c *gin.Context, status int, message string, data interface{}) {
 }
 
 func Error(c *gin.Context, status int, message string, err error) {
-	c.JSON(status, Response{
+	response := Response{
 		Status:  status,
 		Message: message,
-		Error:   err.Error(),
-	})
+	}
+	if err != nil {
+		response.Error = err.Error()
+	}
+	c.JSON(status, response)
 }
 
 // Common response helpers

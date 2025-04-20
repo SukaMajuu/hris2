@@ -130,30 +130,33 @@ func (h *AuthHandler) GoogleLogin(c *gin.Context) {
 		return
 	}
 
-	// TODO: Implement Google Login
+	if req.AgreeTerms != nil && *req.AgreeTerms {
+		user, employee, err := h.authUseCase.RegisterAdminWithGoogle(c.Request.Context(), req.Token)
+		if err != nil {
+			if err == domain.ErrEmailAlreadyExists {
+				response.BadRequest(c, "Email already registered", err)
+			} else {
+				response.InternalServerError(c, err)
+			}
+			return
+		}
 
-	// user, loginErr := h.authUseCase.LoginWithGoogle(c.Request.Context(), req.Token)
-	// if loginErr == nil {
-	// 	response.Success(c, http.StatusOK, "Google login successful", gin.H{
-	// 		"user": gin.H{"id": user.ID, "email": user.Email, "role": user.Role},
-	// 	})
-	// 	return
-	// }
+		response.Created(c, "Google registration successful", gin.H{
+			"user": gin.H{
+				"id":    user.ID,
+				"email": user.Email,
+				"role":  user.Role,
+			},
+			"employee": gin.H{
+				"id":        employee.ID,
+				"firstName": employee.FirstName,
+			},
+		})
+		return
+	}
 
-	// if req.AgreeTerms == nil || !*req.AgreeTerms {
-	// 	response.BadRequest(c, "Terms must be agreed for registration", nil)
-	// 	return
-	// }
-
-	// regUser, _, regErr := h.authUseCase.RegisterAdminWithGoogle(c.Request.Context(), req.Token)
-	// if regErr != nil {
-	// 	response.InternalServerError(c, regErr)
-	// 	return
-	// }
-
-	// response.Created(c, "Google registration successful", gin.H{
-	// 	"user": gin.H{"id": regUser.ID, "email": regUser.Email, "role": regUser.Role},
-	// })
+	// TODO: Implement Google login
+	response.BadRequest(c, "Google login not implemented yet", nil)
 }
 
 func (h *AuthHandler) ChangePassword(c *gin.Context) {

@@ -4,7 +4,7 @@ import "github.com/go-playground/validator/v10"
 
 type GoogleLoginRequest struct {
 	Token      string `json:"token" validate:"required"`
-	AgreeTerms *bool  `json:"agreeTerms"`
+	AgreeTerms *bool  `json:"agree_terms"`
 }
 
 func (r *GoogleLoginRequest) Validate() error {

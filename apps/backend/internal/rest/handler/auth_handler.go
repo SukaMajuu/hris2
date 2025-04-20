@@ -9,8 +9,6 @@ import (
 	authDTO "github.com/SukaMajuu/hris/apps/backend/internal/rest/dto/auth"
 	authUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/auth"
 
-	// "github.com/SukaMajuu/hris/apps/backend/pkg/jwt"
-
 	"github.com/SukaMajuu/hris/apps/backend/pkg/response"
 	"github.com/SukaMajuu/hris/apps/backend/pkg/validation"
 	"github.com/gin-gonic/gin"
@@ -63,7 +61,6 @@ func bindAndValidate(c *gin.Context, dto interface{}) bool {
 
 type AuthHandler struct {
 	authUseCase *authUseCase.AuthUseCase
-	// jwtService  *jwt.Service
 }
 
 func NewAuthHandler(authUseCase *authUseCase.AuthUseCase) *AuthHandler {
@@ -104,7 +101,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	user, token, err := h.authUseCase.LoginWithIdentifier(c.Request.Context(), req.Identifier, req.Password)
+	user, accessToken, refreshToken, err := h.authUseCase.LoginWithIdentifier(c.Request.Context(), req.Identifier, req.Password)
 	if err != nil {
 		if err == domain.ErrInvalidCredentials {
 			response.Unauthorized(c, "Invalid credentials", domain.ErrInvalidCredentials)
@@ -115,7 +112,8 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 
 	response.Success(c, http.StatusOK, "Login successful", gin.H{
-		"token": token,
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
 		"user": gin.H{
 			"id":         user.ID,
 			"email":      user.Email,
@@ -206,18 +204,21 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 		return
 	}
 
-	// TODO: Implement Refresh Token
+	accessToken, refreshToken, err := h.authUseCase.RefreshToken(c.Request.Context(), req.RefreshToken)
+	if err != nil {
+		if err == domain.ErrInvalidToken {
+			response.Unauthorized(c, "Invalid refresh token", err)
+		} else {
+			response.InternalServerError(c, err)
+		}
+		return
+	}
 
-	// refreshToken := req.RefreshToken
-
-	// if refreshToken == "" {
-	// 	response.Unauthorized(c, "Refresh token is missing", fmt.Errorf("refresh token missing"))
-	// 	return
-	// }
-
-	// response.Success(c, http.StatusOK, "Token refreshed successfully", gin.H{})
+	response.Success(c, http.StatusOK, "Token refreshed successfully", gin.H{
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
+	})
 }
-
 
 func (h *AuthHandler) Logout(c *gin.Context) {
 	// TODO: Implement Logout

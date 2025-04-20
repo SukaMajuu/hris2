@@ -69,7 +69,7 @@ func (uc *AuthUseCase) RegisterAdminWithGoogle(ctx context.Context, token string
 
 // --- Login Methods ---
 
-func (uc *AuthUseCase) LoginWithIdentifier(ctx context.Context, identifier, password string) (*domain.User, string, error) {
+func (uc *AuthUseCase) LoginWithIdentifier(ctx context.Context, identifier, password string) (*domain.User, string, string, error) {
 	var user *domain.User
 	var err error
 
@@ -77,23 +77,23 @@ func (uc *AuthUseCase) LoginWithIdentifier(ctx context.Context, identifier, pass
 		user, err = uc.authRepo.LoginWithEmail(ctx, identifier, password)
 	} else if strings.HasPrefix(identifier, "+") || strings.HasPrefix(identifier, "0") {
 		user, err = uc.authRepo.LoginWithPhone(ctx, identifier, password)
-	}else {
+	} else {
 		user, err = uc.authRepo.LoginWithEmployeeCredentials(ctx, identifier, password)
 	}
 
 	if err != nil {
-		return nil, "", fmt.Errorf("login failed: %w", err)
+		return nil, "", "", fmt.Errorf("login failed: %w", err)
 	}
 
-	token, err := uc.jwtService.GenerateToken(user.ID, user.Role)
+	accessToken, refreshToken, err := uc.jwtService.GenerateToken(user.ID, user.Role)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to generate token: %w", err)
+		return nil, "", "", fmt.Errorf("failed to generate token: %w", err)
 	}
 
 	now := time.Now()
 	user.LastLoginAt = &now
 
-	return user, token, nil
+	return user, accessToken, refreshToken, nil
 }
 
 func (uc *AuthUseCase) LoginWithGoogle(ctx context.Context, token string) (*domain.User, error) {
@@ -168,4 +168,31 @@ func (uc *AuthUseCase) ResetPassword(ctx context.Context, email string) error {
 
 	// Return nil typically, even if email doesn't exist, to prevent enumeration
 	return nil
+}
+
+func (uc *AuthUseCase) RefreshToken(ctx context.Context, refreshToken string) (string, string, error) {
+	if refreshToken == "" {
+		return "", "", domain.ErrInvalidToken
+	}
+
+	claims, err := uc.jwtService.ValidateToken(refreshToken)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to validate refresh token: %w", err)
+	}
+
+	if claims.TokenType != enums.TokenTypeRefresh {
+		return "", "", domain.ErrInvalidToken
+	}
+
+	user, err := uc.authRepo.GetUserByID(ctx, claims.UserID)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to get user: %w", err)
+	}
+
+	accessToken, newRefreshToken, err := uc.jwtService.GenerateToken(user.ID, user.Role)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to generate new tokens: %w", err)
+	}
+
+	return accessToken, newRefreshToken, nil
 }

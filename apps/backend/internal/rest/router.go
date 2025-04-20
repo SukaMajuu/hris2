@@ -43,6 +43,7 @@ func (r *Router) Setup() *gin.Engine {
 			}
 
 			auth.POST("/logout", r.authHandler.Logout)
+			auth.POST("/refresh", r.authHandler.RefreshToken)
 		}
 
 		// Protected API routes

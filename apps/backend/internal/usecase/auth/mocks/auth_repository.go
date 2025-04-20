@@ -19,7 +19,7 @@ func (m *AuthRepository) RegisterAdminWithForm(ctx context.Context, user *domain
 func (m *AuthRepository) RegisterAdminWithGoogle(ctx context.Context, token string) (*domain.User, *domain.Employee, error) {
 	args := m.Called(ctx, token)
 	if args.Get(0) == nil {
-		return nil, nil, args.Error(1)
+		return nil, nil, args.Error(2)
 	}
 	return args.Get(0).(*domain.User), args.Get(1).(*domain.Employee), args.Error(2)
 }

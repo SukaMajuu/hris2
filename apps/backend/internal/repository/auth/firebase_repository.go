@@ -75,8 +75,7 @@ func (r *firebaseRepository) RegisterAdminWithForm(ctx context.Context, user *do
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		_ = r.client.DeleteUser(ctx, firebaseUser.UID)
-		return fmt.Errorf("error committing transaction: %w", err)
+		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	return nil
@@ -132,7 +131,6 @@ func (r *firebaseRepository) RegisterAdminWithGoogle(ctx context.Context, token 
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		tx.Rollback()
 		return nil, nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 

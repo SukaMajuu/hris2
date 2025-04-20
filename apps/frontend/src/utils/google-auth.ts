@@ -5,13 +5,11 @@ export async function getGoogleToken(): Promise<string> {
 	try {
 		const provider = new GoogleAuthProvider();
 		const result = await signInWithPopup(auth, provider);
-		const credential = GoogleAuthProvider.credentialFromResult(result);
+		const user = result.user;
 
-		if (!credential?.accessToken) {
-			throw new Error("No access token received from Google");
-		}
-
-		return credential.accessToken;
+		// Get the Firebase ID token instead of the access token
+		const idToken = await user.getIdToken();
+		return idToken;
 	} catch (error) {
 		console.error("Google authentication error:", error);
 		throw error;

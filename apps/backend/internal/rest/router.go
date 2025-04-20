@@ -41,6 +41,8 @@ func (r *Router) Setup() *gin.Engine {
 				password.POST("/change", r.authMiddleware.Authenticate(), r.authHandler.ChangePassword)
 				password.POST("/reset", r.authHandler.ResetPassword)
 			}
+
+			auth.POST("/logout", r.authHandler.Logout)
 		}
 
 		// Protected API routes

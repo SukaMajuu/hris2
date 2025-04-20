@@ -181,3 +181,10 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 
 	// response.Success(c, http.StatusOK, "Token refreshed successfully", gin.H{})
 }
+
+
+func (h *AuthHandler) Logout(c *gin.Context) {
+	// TODO: Implement Logout
+
+	// response.Success(c, http.StatusOK, "Logout successful", nil)
+}

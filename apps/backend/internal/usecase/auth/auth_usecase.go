@@ -33,10 +33,6 @@ func NewAuthUseCase(
 // --- Registration (Admin Only) ---
 
 func (uc *AuthUseCase) RegisterAdminWithForm(ctx context.Context, user *domain.User, employee *domain.Employee) error {
-	if user.Email == "" || user.Password == "" || employee.FirstName == "" || employee.LastName == "" {
-		return fmt.Errorf("missing required fields for admin registration")
-	}
-
 	user.Role = enums.RoleAdmin
 	employee.PositionID = 1
 	user.CreatedAt = time.Now()

@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"errors"
+	"io"
 	"net/http"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
@@ -21,7 +23,7 @@ func bindAndValidate(c *gin.Context, dto interface{}) bool {
 	}
 
 	if err := c.ShouldBindJSON(dto); err != nil {
-		if err.Error() == "EOF" {
+		if errors.Is(err, io.EOF) {
 			response.BadRequest(c, domain.ErrRequestBodyRequired.Error(), nil)
 			return true
 		}

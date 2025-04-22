@@ -299,9 +299,6 @@ paths:
                                             access_token:
                                                 type: string
                                                 example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                                            refresh_token:
-                                                type: string
-                                                example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                                             user:
                                                 type: object
                                                 properties:
@@ -541,11 +538,18 @@ paths:
                                             access_token:
                                                 type: string
                                                 example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                                            refresh_token:
-                                                type: string
-                                                example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                                             user:
-                                                $ref: "#/components/schemas/User"
+                                                type: object
+                                                properties:
+                                                    id:
+                                                        type: integer
+                                                        example: 1
+                                                    email:
+                                                        type: string
+                                                        example: "john.doe@example.com"
+                                                    role:
+                                                        type: string
+                                                        example: "employee"
 
                 "201":
                     description: Google registration successful (user didn't exist previously)

@@ -88,3 +88,6 @@ The API documentation is available in Swagger format at swagger.yaml. When the a
 
 -   Development: http://localhost:8080/api/documentation
 -   Production: https://hris-backend-sukamaju123.azurewebsites.net/api/documentation
+
+## Diagram Arsitektur Sistem
+![Gambar diagram arsitektur sistem](<docs/assets/Diagram Arsitektur Azure Kelompok 1 TI-3A.drawio.png>)

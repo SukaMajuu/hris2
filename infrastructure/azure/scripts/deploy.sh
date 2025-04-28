@@ -3,92 +3,67 @@
 # Exit on error
 set -e
 
-source .env.deploy
+# Load environment variables
+if [ -f .env ]; then
+  export $(cat .env | grep -v '^#' | xargs)
+fi
 
-# Create Resource Group if it doesn't exist
-echo "Creating resource group..."
-az group create --name $RESOURCE_GROUP --location $LOCATION
+# Check required environment variables
+required_vars=(
+  "RESOURCE_GROUP"
+  "LOCATION"
+  "ACR_NAME"
+  "FRONTEND_APP_NAME"
+  "BACKEND_APP_NAME"
+  "SUPABASE_DB_HOST"
+  "SUPABASE_DB_USERNAME"
+  "SUPABASE_DB_PASSWORD"
+  "SUPABASE_URL"
+  "SUPABASE_KEY"
+)
 
-# Create the Azure Container Registry
-echo "Creating Azure Container Registry..."
-az acr create --resource-group $RESOURCE_GROUP --name $ACR_NAME --sku Standard
-
-# Create App Service Plan (Linux)
-echo "Creating App Service Plan..."
-az appservice plan create \
-  --resource-group $RESOURCE_GROUP \
-  --name $APP_SERVICE_PLAN \
-  --is-linux \
-  --sku B1
-
-# Create Frontend Web App
-echo "Creating Frontend Web App..."
-az webapp create \
-  --resource-group $RESOURCE_GROUP \
-  --plan $APP_SERVICE_PLAN \
-  --name $FRONTEND_APP_NAME \
-  --deployment-container-image-name nginx:alpine
-
-# Create Backend Web App
-echo "Creating Backend Web App..."
-az webapp create \
-  --resource-group $RESOURCE_GROUP \
-  --plan $APP_SERVICE_PLAN \
-  --name $BACKEND_APP_NAME \
-  --deployment-container-image-name nginx:alpine
-
-# Configure Frontend Web App
-echo "Configuring Frontend Web App..."
-az webapp config appsettings set \
-  --resource-group $RESOURCE_GROUP \
-  --name $FRONTEND_APP_NAME \
-  --settings \
-  WEBSITES_PORT=3000 \
-  NEXT_PUBLIC_API_URL=https://$BACKEND_APP_NAME.azurewebsites.net
-
-# Configure Backend Web App
-echo "Configuring Backend Web App..."
-az webapp config appsettings set \
-  --resource-group $RESOURCE_GROUP \
-  --name $BACKEND_APP_NAME \
-  --settings \
-  WEBSITES_PORT=80 \
-  APP_ENV=production \
-  APP_DEBUG=false \
-  DB_CONNECTION=pgsql \
-  DB_HOST=$SUPABASE_DB_HOST \
-  DB_PORT=$SUPABASE_DB_PORT \
-  DB_DATABASE=$SUPABASE_DB_NAME \
-  DB_USERNAME=$SUPABASE_DB_USERNAME \
-  DB_PASSWORD=$SUPABASE_DB_PASSWORD \
-  SUPABASE_URL=$SUPABASE_URL \
-  SUPABASE_KEY=$SUPABASE_KEY
+for var in "${required_vars[@]}"; do
+  if [ -z "${!var}" ]; then
+    echo "Error: $var is not set"
+    exit 1
+  fi
+done
 
 # Get ACR credentials
-ACR_USERNAME=$(az acr credential show --name $ACR_NAME --query username --output tsv)
-ACR_PASSWORD=$(az acr credential show --name $ACR_NAME --query passwords[0].value --output tsv)
-ACR_LOGIN_SERVER=$(az acr show --name $ACR_NAME --query loginServer --output tsv)
+ACR_USERNAME=$(az acr credential show --name $ACR_NAME --query "username" -o tsv)
+ACR_PASSWORD=$(az acr credential show --name $ACR_NAME --query "passwords[0].value" -o tsv)
+ACR_URL="${ACR_NAME}.azurecr.io"
 
-# Configure Frontend Web App with ACR
-echo "Configuring Frontend Web App for container deployment..."
-az webapp config container set \
+# Deploy backend to App Service
+echo "Deploying backend to App Service..."
+az deployment group create \
   --resource-group $RESOURCE_GROUP \
-  --name $FRONTEND_APP_NAME \
-  --docker-custom-image-name "$ACR_LOGIN_SERVER/hris-frontend:latest" \
-  --docker-registry-server-url "https://$ACR_LOGIN_SERVER" \
-  --docker-registry-server-user $ACR_USERNAME \
-  --docker-registry-server-password $ACR_PASSWORD
+  --template-file ../templates/app-service.json \
+  --parameters \
+    backendAppName=$BACKEND_APP_NAME \
+    location=$LOCATION \
+    containerRegistryUrl=$ACR_URL \
+    containerRegistryUsername=$ACR_USERNAME \
+    containerRegistryPassword=$ACR_PASSWORD \
+    supabaseDbHost=$SUPABASE_DB_HOST \
+    supabaseDbUsername=$SUPABASE_DB_USERNAME \
+    supabaseDbPassword=$SUPABASE_DB_PASSWORD \
+    supabaseUrl=$SUPABASE_URL \
+    supabaseKey=$SUPABASE_KEY
 
-# Configure Backend Web App with ACR
-echo "Configuring Backend Web App for container deployment..."
-az webapp config container set \
+# Deploy frontend to Container Apps
+echo "Deploying frontend to Container Apps..."
+az deployment group create \
   --resource-group $RESOURCE_GROUP \
-  --name $BACKEND_APP_NAME \
-  --docker-custom-image-name "$ACR_LOGIN_SERVER/hris-backend:latest" \
-  --docker-registry-server-url "https://$ACR_LOGIN_SERVER" \
-  --docker-registry-server-user $ACR_USERNAME \
-  --docker-registry-server-password $ACR_PASSWORD
+  --template-file ../templates/container-app.json \
+  --parameters \
+    frontendAppName=$FRONTEND_APP_NAME \
+    location=$LOCATION \
+    containerRegistryUrl=$ACR_URL \
+    containerRegistryUsername=$ACR_USERNAME \
+    containerRegistryPassword=$ACR_PASSWORD \
+    backendAppName=$BACKEND_APP_NAME
 
-# List all resources in the resource group
-echo "Listing all resources in $RESOURCE_GROUP..."
-az resource list --resource-group $RESOURCE_GROUP --output table
+echo "Deployment completed successfully!"
+echo "Frontend URL: $(az containerapp show --name $FRONTEND_APP_NAME --resource-group $RESOURCE_GROUP --query properties.configuration.ingress.fqdn -o tsv)"
+echo "Backend URL: https://$BACKEND_APP_NAME.azurewebsites.net"

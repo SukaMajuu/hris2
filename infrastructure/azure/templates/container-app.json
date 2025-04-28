@@ -1,0 +1,138 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "frontendAppName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the frontend container app"
+            }
+        },
+        "location": {
+            "type": "string",
+            "metadata": {
+                "description": "Location for resources"
+            }
+        },
+        "containerRegistryUrl": {
+            "type": "string",
+            "metadata": {
+                "description": "URL of the Azure Container Registry"
+            }
+        },
+        "containerRegistryUsername": {
+            "type": "string",
+            "metadata": {
+                "description": "Username for the Azure Container Registry"
+            }
+        },
+        "containerRegistryPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Password for the Azure Container Registry"
+            }
+        },
+        "backendAppName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the backend app service"
+            }
+        }
+    },
+    "variables": {
+        "containerAppEnvironmentName": "hris-container-app-environment",
+        "logAnalyticsWorkspaceName": "hris-logs"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.OperationalInsights/workspaces",
+            "apiVersion": "2022-10-01",
+            "name": "[variables('logAnalyticsWorkspaceName')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "sku": {
+                    "name": "PerGB2018"
+                },
+                "retentionInDays": 30,
+                "features": {
+                    "enableLogAccessUsingOnlyResourcePermissions": true
+                }
+            }
+        },
+        {
+            "type": "Microsoft.App/managedEnvironments",
+            "apiVersion": "2022-10-01",
+            "name": "[variables('containerAppEnvironmentName')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "appLogsConfiguration": {
+                    "destination": "log-analytics",
+                    "logAnalyticsConfiguration": {
+                        "customerId": "[reference(resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsWorkspaceName'))).customerId]",
+                        "sharedKey": "[listKeys(resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsWorkspaceName')), '2022-10-01').primarySharedKey]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.App/containerApps",
+            "apiVersion": "2022-10-01",
+            "name": "[parameters('frontendAppName')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.App/managedEnvironments', variables('containerAppEnvironmentName'))]"
+            ],
+            "properties": {
+                "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', variables('containerAppEnvironmentName'))]",
+                "configuration": {
+                    "ingress": {
+                        "external": true,
+                        "targetPort": 3000,
+                        "transport": "http"
+                    },
+                    "registries": [
+                        {
+                            "server": "[parameters('containerRegistryUrl')]",
+                            "username": "[parameters('containerRegistryUsername')]",
+                            "passwordSecretRef": "registry-password"
+                        }
+                    ],
+                    "secrets": [
+                        {
+                            "name": "registry-password",
+                            "value": "[parameters('containerRegistryPassword')]"
+                        }
+                    ]
+                },
+                "template": {
+                    "containers": [
+                        {
+                            "name": "frontend",
+                            "image": "[concat(parameters('containerRegistryUrl'), '/hris-frontend:latest')]",
+                            "env": [
+                                {
+                                    "name": "NEXT_PUBLIC_API_URL",
+                                    "value": "[concat('https://', parameters('backendAppName'), '.azurewebsites.net')]"
+                                }
+                            ],
+                            "resources": {
+                                "cpu": 0.5,
+                                "memory": "1Gi"
+                            }
+                        }
+                    ],
+                    "scale": {
+                        "minReplicas": 1,
+                        "maxReplicas": 10
+                    }
+                }
+            }
+        }
+    ],
+    "outputs": {
+        "frontendUrl": {
+            "type": "string",
+            "value": "[reference(resourceId('Microsoft.App/containerApps', parameters('frontendAppName'))).properties.configuration.ingress.fqdn]"
+        }
+    }
+}

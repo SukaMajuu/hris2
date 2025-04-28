@@ -47,7 +47,7 @@ The application aims to:
 
 -   **Containerization**: Docker, Docker Compose
 -   **CI/CD**: GitHub Actions
--   **Cloud**: Microsoft Azure (App Service, Container Registry)
+-   **Cloud**: Microsoft Azure (Container Apps for frontend, App Service for backend, Container Registry)
 -   **Infrastructure as Code**: Azure CLI, ARM templates
 
 ## Getting Started
@@ -86,8 +86,9 @@ hris/
 
 The API documentation is available in Swagger format at swagger.yaml. When the application is running, you can access the interactive API documentation at:
 
--   Development: http://localhost:8080/api/documentation
--   Production: https://hris-backend-sukamaju123.azurewebsites.net/api/documentation
+-   Development: http://localhost:8080/swagger/index.html
+-   Production: (soon)
 
-## Diagram Arsitektur Sistem
-![Gambar diagram arsitektur sistem](<docs/assets/Diagram Arsitektur Azure Kelompok 1 TI-3A.drawio.png>)
+## Architecture System Diagram
+
+![Architecture System Diagram](./docs/assets/arsitektur-diagram.png)

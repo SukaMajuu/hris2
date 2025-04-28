@@ -46,7 +46,7 @@
     "resources": [
         {
             "type": "Microsoft.OperationalInsights/workspaces",
-            "apiVersion": "2022-10-01",
+            "apiVersion": "2021-06-01",
             "name": "[variables('logAnalyticsWorkspaceName')]",
             "location": "[parameters('location')]",
             "properties": {
@@ -61,7 +61,7 @@
         },
         {
             "type": "Microsoft.App/managedEnvironments",
-            "apiVersion": "2022-10-01",
+            "apiVersion": "2022-03-01",
             "name": "[variables('containerAppEnvironmentName')]",
             "location": "[parameters('location')]",
             "properties": {
@@ -76,7 +76,7 @@
         },
         {
             "type": "Microsoft.App/containerApps",
-            "apiVersion": "2022-10-01",
+            "apiVersion": "2022-03-01",
             "name": "[parameters('frontendAppName')]",
             "location": "[parameters('location')]",
             "dependsOn": [

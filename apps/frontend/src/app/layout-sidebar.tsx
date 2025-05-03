@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
@@ -21,7 +23,7 @@ import {
   SidebarInset,
 } from "@/components/ui/sidebar"
 
-export default function EmployeeManagement() {
+export default function Layout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
 
   const pageTitle = (() => {
@@ -47,17 +49,17 @@ export default function EmployeeManagement() {
 
   return (
     <SidebarProvider>
-      <div className="flex w-full h-full min-h-screen bg-gray-50">      
+      <div className="flex w-full h-full min-h-screen bg-gray-50">
         <Sidebar collapsible="offcanvas" className="border-r border-gray-200">
           <SidebarHeader className="border-b border-gray-200">
-            <div className="p-4 flex items-center justify-center">
+            <div className="p-2">
               <div className="h-10 w-10 flex items-center justify-center mx-auto">
                 <Image src="/logo.png" alt="Company Logo" width={120} height={40} className="h-10 w-auto" />
               </div>
             </div>
           </SidebarHeader>
 
-          <SidebarContent >
+          <SidebarContent className="p-2">
             <SidebarMenu>
               {menuItems.map((item) => {
                 const isActive = pathname === item.href
@@ -66,7 +68,7 @@ export default function EmployeeManagement() {
                     <SidebarMenuButton
                       asChild
                       isActive={isActive}
-                      tooltip={item.title} 
+                      tooltip={item.title}
                       className={
                         isActive ? "bg-[#7CA5BF] text-white hover:bg-[#6B9AC4]" : "text-gray-600 hover:bg-gray-100"
                       }
@@ -82,13 +84,13 @@ export default function EmployeeManagement() {
             </SidebarMenu>
           </SidebarContent>
 
-          <SidebarFooter className="mt-auto border-t border-gray-200">
+          <SidebarFooter className="mt-auto border-t border-gray-200 p-2">
             <SidebarMenu>
               {footerItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
-                    tooltip={item.title} 
+                    tooltip={item.title}
                     isActive={pathname === item.href}
                     className={
                       pathname === item.href
@@ -105,14 +107,14 @@ export default function EmployeeManagement() {
               ))}
             </SidebarMenu>
           </SidebarFooter>
-        
+
           <SidebarRail />
         </Sidebar>
-        
+
         <SidebarInset className="flex-1 flex flex-col overflow-hidden w-full h-full min-h-screen">
           <header className="bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">              
-              <SidebarTrigger className="text-gray-600 hover:text-gray-900" />
+            <div className="flex items-center gap-3">
+              <SidebarTrigger className="text-gray-600 hover:text-white hover:bg-[#5A89B3]" />
               <h1 className="text-xl md:text-2xl font-semibold text-gray-800">{pageTitle}</h1>
             </div>
             <div className="flex items-center gap-2 md:gap-4">
@@ -121,7 +123,7 @@ export default function EmployeeManagement() {
                 <Input className="pl-10 w-[200px] lg:w-[250px] bg-gray-50 border-gray-200" placeholder="Search..." />
               </div>
               <div className="relative">
-                <Button variant="ghost" size="icon" className="relative">
+                <Button variant="ghost" size="icon" className="relative hover:bg-[#5A89B3] group">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="24"
@@ -132,7 +134,7 @@ export default function EmployeeManagement() {
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className="text-gray-600"
+                    className="text-gray-600 group-hover:text-white"
                   >
                     <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path>
                     <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path>
@@ -151,14 +153,9 @@ export default function EmployeeManagement() {
               </div>
             </div>
           </header>
-          
-          <div className="p-6">
-            <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-              <h2 className="text-lg font-medium mb-4">Ngoding disini woi</h2>
-              <p className="text-gray-600">
-                Kalian ngoding disini
-              </p>
-            </div>
+
+          <div className="flex-1 overflow-auto bg-[#E5E7EB]">
+            <div className="p-6">{children}</div>
           </div>
         </SidebarInset>
       </div>

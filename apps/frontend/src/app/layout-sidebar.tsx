@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
@@ -21,7 +23,7 @@ import {
   SidebarInset,
 } from "@/components/ui/sidebar"
 
-export default function EmployeeManagement() {
+export default function Layout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
 
   const pageTitle = (() => {
@@ -47,7 +49,7 @@ export default function EmployeeManagement() {
 
   return (
     <SidebarProvider>
-      <div className="flex w-full h-full min-h-screen bg-gray-50">      
+      <div className="flex w-full h-full min-h-screen bg-gray-50">
         <Sidebar collapsible="offcanvas" className="border-r border-gray-200">
           <SidebarHeader className="border-b border-gray-200">
             <div className="p-4 flex items-center justify-center">
@@ -57,7 +59,7 @@ export default function EmployeeManagement() {
             </div>
           </SidebarHeader>
 
-          <SidebarContent >
+          <SidebarContent>
             <SidebarMenu>
               {menuItems.map((item) => {
                 const isActive = pathname === item.href
@@ -66,7 +68,7 @@ export default function EmployeeManagement() {
                     <SidebarMenuButton
                       asChild
                       isActive={isActive}
-                      tooltip={item.title} 
+                      tooltip={item.title}
                       className={
                         isActive ? "bg-[#7CA5BF] text-white hover:bg-[#6B9AC4]" : "text-gray-600 hover:bg-gray-100"
                       }
@@ -88,7 +90,7 @@ export default function EmployeeManagement() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
-                    tooltip={item.title} 
+                    tooltip={item.title}
                     isActive={pathname === item.href}
                     className={
                       pathname === item.href
@@ -105,13 +107,13 @@ export default function EmployeeManagement() {
               ))}
             </SidebarMenu>
           </SidebarFooter>
-        
+
           <SidebarRail />
         </Sidebar>
-        
+
         <SidebarInset className="flex-1 flex flex-col overflow-hidden w-full h-full min-h-screen">
           <header className="bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">              
+            <div className="flex items-center gap-3">
               <SidebarTrigger className="text-gray-600 hover:text-gray-900" />
               <h1 className="text-xl md:text-2xl font-semibold text-gray-800">{pageTitle}</h1>
             </div>
@@ -151,14 +153,9 @@ export default function EmployeeManagement() {
               </div>
             </div>
           </header>
-          
-          <div className="p-6">
-            <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-              <h2 className="text-lg font-medium mb-4">Ngoding disini woi</h2>
-              <p className="text-gray-600">
-                Kalian ngoding disini
-              </p>
-            </div>
+
+          <div className="flex-1 overflow-auto bg-[#E5E7EB]">
+            <div className="p-6">{children}</div>
           </div>
         </SidebarInset>
       </div>

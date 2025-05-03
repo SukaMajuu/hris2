@@ -1,6 +1,8 @@
-"use client"
+"use client";
 
-import Link from "next/link"
+// import useState from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation"; // Import usePathname
 import {
   Search,
   FileText,
@@ -10,10 +12,10 @@ import {
   Calendar,
   HelpCircle,
   Settings,
-} from "lucide-react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+} from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Sidebar,
   SidebarContent,
@@ -23,9 +25,24 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 
 export default function EmployeeManagement() {
+  const pathname = usePathname(); // Get the current path
+  console.log("Current pathname:", pathname);
+
+  const menuItems = [
+    { title: "Dashboard", href: "/dashboard/admin", icon: BarChart2 },
+    { title: "Employee", href: "/employee-management/admin", icon: Users },
+    { title: "Check-Clock", href: "/check-clock", icon: Clock },
+    { title: "Overtime", href: "/overtime", icon: Calendar },
+    { title: "Kosong", href: "#", icon: FileText },
+  ];
+
+  const footerItems = [
+    { title: "Support", href: "#", icon: HelpCircle },
+    { title: "Settings", href: "#", icon: Settings },
+  ];
 
   return (
     <SidebarProvider>
@@ -56,84 +73,69 @@ export default function EmployeeManagement() {
           </SidebarHeader>
 
           <SidebarContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link href="../dashboard" className="flex items-center gap-3 text-gray-600">
-                    <BarChart2 className="h-5 w-5" />
-                    <span>Dashboard</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={true} className="bg-[#6B9AC4] text-white hover:bg-[#5A89B3]">
-                  <Link href="../employee-management" className="flex items-center gap-3">
-                    <Users className="h-5 w-5" />
-                    <span>Employee</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link href="../check-clock" className="flex items-center gap-3 text-gray-600">
-                    <Clock className="h-5 w-5" />
-                    <span>Check-Clock</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link href="../overtime" className="flex items-center gap-3 text-gray-600">
-                    <Calendar className="h-5 w-5" />
-                    <span>Overtime</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link href="#" className="flex items-center gap-3 text-gray-600">
-                    <FileText className="h-5 w-5" />
-                    <span>kosong</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
+          <SidebarMenu>
+            {menuItems.map((item) => {
+              const isActive = pathname === item.href; // Check if the current path matches the menu item's href
+              console.log(`Menu: ${item.title}, href: ${item.href}, isActive: ${isActive}`);
+              // Removed unused state declaration
+              return (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive} // Pass the active state
+                    className={
+                      isActive
+                        ? "bg-blue-500 text-white hover:bg-black"
+                        : "text-grey-600 hover:bg-gray-100"
+                    }
+                  >
+                    <Link href={item.href} className="flex items-center gap-3">
+                      <item.icon className="h-5 w-5" />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              );
+            })}
+          </SidebarMenu>
           </SidebarContent>
 
           <SidebarFooter className="mt-auto">
             <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link href="#" className="flex items-center gap-3 text-gray-600">
-                    <HelpCircle className="h-5 w-5" />
-                    <span>Support</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link href="#" className="flex items-center gap-3 text-gray-600">
-                    <Settings className="h-5 w-5" />
-                    <span>Settings</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              {footerItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname === item.href} // Check if the current path matches the footer item's href
+                    className={
+                      pathname === item.href
+                        ? "bg-[#6B9AC4] text-white hover:bg-[#5A89B3]"
+                        : "text-gray-600"
+                    }
+                  >
+                    <Link href={item.href} className="flex items-center gap-3">
+                      <item.icon className="h-5 w-5" />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
             </SidebarMenu>
           </SidebarFooter>
         </Sidebar>
 
         <div className="flex-1 flex flex-col overflow-hidden w-full h-full min-h-screen">
           <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-            <h1 className="text-2xl font-semibold text-gray-800">Employee Management</h1>
+            <h1 className="text-2xl font-semibold text-gray-800">
+              Employee Management
+            </h1>
             <div className="flex items-center gap-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input className="pl-10 w-[250px] bg-gray-50 border-gray-200" placeholder="Search..." />
+                <Input
+                  className="pl-10 w-[250px] bg-gray-50 border-gray-200"
+                  placeholder="Search..."
+                />
               </div>
               <div className="relative">
                 <Button variant="ghost" size="icon" className="relative">
@@ -169,5 +171,5 @@ export default function EmployeeManagement() {
         </div>
       </div>
     </SidebarProvider>
-  )
+  );
 }

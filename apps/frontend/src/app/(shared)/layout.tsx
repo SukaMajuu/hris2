@@ -2,10 +2,10 @@
 
 import MainLayout from "../_components/MainLayout";
 
-interface DashboardLayoutProps {
+interface SharedLayoutProps {
 	children: React.ReactNode;
 }
 
-export default function DashboardLayout({ children }: DashboardLayoutProps) {
+export default function SharedLayout({ children }: SharedLayoutProps) {
 	return <MainLayout>{children}</MainLayout>;
 }

@@ -5,7 +5,7 @@ import { type Role } from "@/const/role";
 
 export default function DashboardPage() {
 	const { user } = useAuthStore();
-	const role = (user?.role as Role) || "admin";
+	const role = (user?.role as Role) || "user";
 
 	const isAdminDashboard = role === "admin";
 

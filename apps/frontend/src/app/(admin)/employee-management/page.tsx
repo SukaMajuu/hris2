@@ -35,6 +35,7 @@ export default function EmployeeManagementPage() {
 	const [page, setPage] = useState(1);
 	const [pageSize, setPageSize] = useState(10);
 
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	const [employees, setEmployees] = useState(
 		[...Array(100)].map((_, index) => ({
 			id: index + 1,

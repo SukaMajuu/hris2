@@ -5,6 +5,7 @@ import {
 	RegisterCredentials,
 	AuthResponse,
 } from "@/types/auth";
+import { API_ROUTES } from "@/config/api.routes";
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000; // 1 second
@@ -49,7 +50,7 @@ class AuthService {
 
 	async login(credentials: LoginCredentials): Promise<AuthResponse> {
 		const response = await this.api.post<ApiResponse<AuthResponse>>(
-			"/auth/login",
+			API_ROUTES.v1.auth.login,
 			credentials
 		);
 		const { access_token, refresh_token, user } = response.data.data;
@@ -59,7 +60,7 @@ class AuthService {
 
 	async register(credentials: RegisterCredentials): Promise<AuthResponse> {
 		const response = await this.api.post<ApiResponse<AuthResponse>>(
-			"/auth/register",
+			API_ROUTES.v1.auth.register,
 			credentials
 		);
 		const { access_token, refresh_token, user } = response.data.data;
@@ -70,7 +71,7 @@ class AuthService {
 	async registerWithGoogle(token: string): Promise<AuthResponse> {
 		return retry(async () => {
 			const response = await this.api.post<ApiResponse<AuthResponse>>(
-				"/auth/google/register",
+				API_ROUTES.v1.auth.google,
 				{ token }
 			);
 			const { access_token, refresh_token, user } = response.data.data;
@@ -85,7 +86,7 @@ class AuthService {
 			throw new Error("No refresh token available");
 		}
 		const response = await this.api.post<ApiResponse<AuthResponse>>(
-			"/auth/refresh",
+			API_ROUTES.v1.auth.refresh,
 			{
 				refresh_token: refreshToken,
 			}
@@ -98,7 +99,7 @@ class AuthService {
 	logout() {
 		tokenService.clearTokens();
 		this.api
-			.post("/auth/logout", {}, { withCredentials: true })
+			.post(API_ROUTES.v1.auth.logout, {}, { withCredentials: true })
 			.catch(console.error);
 	}
 }

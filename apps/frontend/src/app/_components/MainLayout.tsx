@@ -45,20 +45,18 @@ export default function MainLayout({ children }: MainLayoutProps) {
 		<SidebarProvider>
 			<div className="flex w-full h-full min-h-screen bg-gray-50">
 				<Sidebar
-					collapsible="offcanvas"
+					collapsible="icon"
 					className="border-r border-gray-200"
 				>
-					<SidebarHeader className="border-b border-gray-200">
-						<div className="p-2">
-							<div className="h-10 w-10 flex items-center justify-center mx-auto">
-								<Image
-									src="/logo.png"
-									alt="Company Logo"
-									width={120}
-									height={40}
-									className="h-10 w-auto"
-								/>
-							</div>
+					<SidebarHeader className="border-b border-gray-200 h-18 justify-center">
+						<div className="h-8 flex items-center justify-center mx-auto aspect-square">
+							<Image
+								src="/logo.png"
+								alt="Company Logo"
+								width={32}
+								height={32}
+								className="object-contain h-full w-full"
+							/>
 						</div>
 					</SidebarHeader>
 
@@ -77,8 +75,10 @@ export default function MainLayout({ children }: MainLayoutProps) {
 											}
 										>
 											<Link href={item.href} className="flex items-center gap-3">
-												<item.icon className="h-5 w-5" />
-												<span>{item.title}</span>
+												<item.icon className="h-5 w-5 " />
+												<span className="overflow-hidden">
+													{item.title}
+												</span>
 											</Link>
 										</SidebarMenuButton>
 									</SidebarMenuItem>
@@ -115,7 +115,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
 				</Sidebar>
 
 				<SidebarInset className="flex-1 flex flex-col overflow-hidden w-full h-full min-h-screen">
-					<header className="bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between">
+					<header className="bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between h-18">
 						<div className="flex items-center gap-3">
 							<SidebarTrigger className="text-gray-600 hover:text-white hover:bg-[#5A89B3]" />
 							<h1 className="text-xl md:text-2xl font-semibold text-gray-800">
@@ -169,7 +169,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
 					</header>
 
 					<div className="flex-1 overflow-auto bg-[#E5E7EB]">
-						<div className="p-6">{children}</div>
+						<div className="p-4">{children}</div>
 					</div>
 				</SidebarInset>
 			</div>

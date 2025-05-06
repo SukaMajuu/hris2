@@ -25,9 +25,10 @@ func main() {
 		log.Fatal("Failed to connect to database:", err)
 	}
 
-	authRepo, err := auth.NewFirebaseRepository(db, cfg.Firebase.CredentialsFile)
+	// Initialize Supabase Auth Repository with URL and Key from config
+	authRepo, err := auth.NewSupabaseRepository(db, cfg.Supabase.URL, cfg.Supabase.Key)
 	if err != nil {
-		log.Fatal("Failed to initialize Firebase:", err)
+		log.Fatalf("Failed to initialize Supabase auth repository: %v", err)
 	}
 
 	employeeRepo := employee.NewPostgresRepository(db)
@@ -38,6 +39,7 @@ func main() {
 		authRepo,
 		employeeRepo,
 		jwtService,
+		cfg,
 	)
 
 	router := rest.NewRouter(authUseCase)

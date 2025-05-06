@@ -13,6 +13,8 @@ type CustomClaims struct {
 }
 
 type Service interface {
-	GenerateToken(userID uint, role enums.UserRole) (string, string, error)
+	GenerateToken(userID uint, role enums.UserRole) (accessToken string, refreshToken string, refreshTokenHash string, err error)
 	ValidateToken(tokenString string) (*CustomClaims, error)
+	HashToken(token string) (string, error)
+	CompareTokenHash(token, hash string) error
 }

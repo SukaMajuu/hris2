@@ -2,6 +2,7 @@ package mocks
 
 import (
 	"context"
+	"time"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
 	"github.com/stretchr/testify/mock"
@@ -96,4 +97,32 @@ func (m *AuthRepository) GetUserByEmployeeCode(ctx context.Context, code string)
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*domain.User), args.Error(1)
+}
+
+func (m *AuthRepository) FindRefreshTokenByHash(ctx context.Context, hash string) (*domain.RefreshToken, error) {
+	args := m.Called(ctx, hash)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*domain.RefreshToken), args.Error(1)
+}
+
+func (m *AuthRepository) StoreRefreshToken(ctx context.Context, token *domain.RefreshToken) error {
+	args := m.Called(ctx, token)
+	return args.Error(0)
+}
+
+func (m *AuthRepository) RevokeRefreshTokenByID(ctx context.Context, tokenID uint) error {
+	args := m.Called(ctx, tokenID)
+	return args.Error(0)
+}
+
+func (m *AuthRepository) RevokeAllUserRefreshTokens(ctx context.Context, userID uint) error {
+	args := m.Called(ctx, userID)
+	return args.Error(0)
+}
+
+func (m *AuthRepository) UpdateLastLogin(ctx context.Context, userID uint, loginTime time.Time) error {
+	args := m.Called(ctx, userID, loginTime)
+	return args.Error(0)
 }

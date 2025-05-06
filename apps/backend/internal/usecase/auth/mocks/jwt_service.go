@@ -10,7 +10,7 @@ type JWTService struct {
 	mock.Mock
 }
 
-func (_m *JWTService) GenerateToken(userID uint, role enums.UserRole) (string, string, error) {
+func (_m *JWTService) GenerateToken(userID uint, role enums.UserRole) (string, string, string, error) {
 	ret := _m.Called(userID, role)
 
 	var r0 string
@@ -31,16 +31,25 @@ func (_m *JWTService) GenerateToken(userID uint, role enums.UserRole) (string, s
 		}
 	}
 
-	var r2 error
-	if rf, ok := ret.Get(2).(func(uint, enums.UserRole) error); ok {
+	var r2 string
+	if rf, ok := ret.Get(2).(func(uint, enums.UserRole) string); ok {
 		r2 = rf(userID, role)
 	} else {
 		if ret.Get(2) != nil {
-			r2 = ret.Get(2).(error)
+			r2 = ret.Get(2).(string)
 		}
 	}
 
-	return r0, r1, r2
+	var r3 error
+	if rf, ok := ret.Get(3).(func(uint, enums.UserRole) error); ok {
+		r3 = rf(userID, role)
+	} else {
+		if ret.Get(3) != nil {
+			r3 = ret.Get(3).(error)
+		}
+	}
+
+	return r0, r1, r2, r3
 }
 
 func (_m *JWTService) ValidateToken(tokenString string) (*jwt.CustomClaims, error) {
@@ -70,3 +79,36 @@ func NewJWTService() *JWTService {
 }
 
 var _ jwt.Service = (*JWTService)(nil)
+
+func (_m *JWTService) CompareTokenHash(token string, hash string) error {
+	ret := _m.Called(token, hash)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, string) error); ok {
+		r0 = rf(token, hash)
+	} else {
+		err := ret.Error(0)
+		if err != nil {
+			r0 = err
+		}
+	}
+
+	return r0
+}
+
+func (_m *JWTService) HashToken(token string) (string, error) {
+	ret := _m.Called(token)
+
+	var r0 string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(string) (string, error)); ok {
+		r0, r1 = rf(token)
+	} else {
+		r0 = ret.Get(0).(string)
+		if ret.Get(1) != nil {
+			r1 = ret.Error(1)
+		}
+	}
+
+	return r0, r1
+}

@@ -60,3 +60,7 @@ func NotFound(c *gin.Context, message string, err error) {
 func InternalServerError(c *gin.Context, err error) {
 	Error(c, http.StatusInternalServerError, "Internal server error", err)
 }
+
+func Conflict(c *gin.Context, message string, err error) {
+	Error(c, http.StatusConflict, message, err)
+}

@@ -1,7 +1,6 @@
 class TokenService {
 	private static instance: TokenService;
 	private accessToken: string | null = null;
-	private refreshToken: string | null = null;
 
 	private constructor() {}
 
@@ -12,22 +11,16 @@ class TokenService {
 		return TokenService.instance;
 	}
 
-	setTokens(accessToken: string, refreshToken: string) {
+	setAccessToken(accessToken: string) {
 		this.accessToken = accessToken;
-		this.refreshToken = refreshToken;
 	}
 
 	getAccessToken(): string | null {
 		return this.accessToken;
 	}
 
-	getRefreshToken(): string | null {
-		return this.refreshToken;
-	}
-
 	clearTokens() {
 		this.accessToken = null;
-		this.refreshToken = null;
 	}
 
 	isAuthenticated(): boolean {

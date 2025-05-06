@@ -11,24 +11,17 @@ import (
 )
 
 func NewPostgresDB(cfg *config.Config) (*gorm.DB, error) {
-	dsn := fmt.Sprintf(
-		"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
-		cfg.Database.Host,
-		cfg.Database.User,
-		cfg.Database.Password,
-		cfg.Database.DBName,
-		cfg.Database.Port,
-	)
+	if cfg.Database.DatabaseURL == "" {
+		return nil, fmt.Errorf("DATABASE_URL is not set in the configuration")
+	}
+	dsn := cfg.Database.DatabaseURL
 
-	db, err := gorm.Open(postgres.New(postgres.Config{
-		DSN:                  dsn,
-		PreferSimpleProtocol: true,
-	}), &gorm.Config{
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		PrepareStmt: false,
 		Logger: logger.Default.LogMode(logger.Info),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to database: %v", err)
+		return nil, fmt.Errorf("failed to connect to database using DATABASE_URL: %v", err)
 	}
 
 	sqlDB, err := db.DB()
@@ -43,6 +36,6 @@ func NewPostgresDB(cfg *config.Config) (*gorm.DB, error) {
 	sqlDB.SetMaxIdleConns(10)
 	sqlDB.SetMaxOpenConns(100)
 
-	log.Println("Successfully connected to database")
+	log.Println("Successfully connected to database using DATABASE_URL")
 	return db, nil
 }

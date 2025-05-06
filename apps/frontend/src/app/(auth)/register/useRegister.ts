@@ -8,7 +8,8 @@ import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { registerSchema } from "@/schemas/auth.schema";
-import { getGoogleToken } from "@/utils/google-auth";
+import { getSupabaseGoogleToken } from "@/utils/google-auth";
+import { AxiosError } from "axios";
 
 export const useRegister = () => {
 	const [isLoading, setIsLoading] = useState(false);
@@ -34,24 +35,24 @@ export const useRegister = () => {
 			router.push("/dashboard");
 			toast.success("Registration successful! Welcome to HRIS.");
 		},
-		onError: (error: Error) => {
-			toast.error(
-				error.message || "Registration failed. Please try again."
-			);
-		},
-	});
+		onError: (error) => {
+			let errorMessage = "Registration failed. Please try again.";
 
-	const googleRegisterMutation = useMutation({
-		mutationFn: (token: string) => authService.registerWithGoogle(token),
-		onSuccess: (response) => {
-			setUser(response.user);
-			router.push("/dashboard");
-			toast.success("Google registration successful! Welcome to HRIS.");
-		},
-		onError: (error: Error) => {
-			toast.error(
-				error.message || "Google registration failed. Please try again."
-			);
+			if (error instanceof AxiosError) {
+				if (error.response?.status === 409) {
+					errorMessage =
+						error.response?.data?.message ||
+						"This email is already registered.";
+				} else if (error.response?.data?.message) {
+					errorMessage = error.response.data.message;
+				} else if (error.message) {
+					errorMessage = error.message;
+				}
+			} else if (error instanceof Error) {
+				errorMessage = error.message;
+			}
+
+			toast.error(errorMessage);
 		},
 	});
 
@@ -69,20 +70,22 @@ export const useRegister = () => {
 	const handleRegisterWithGoogle = async () => {
 		setIsLoading(true);
 		try {
-			const token = await getGoogleToken();
-			await googleRegisterMutation.mutateAsync(token);
-		} finally {
+			await getSupabaseGoogleToken();
+		} catch (error) {
+			console.error("Google OAuth initiation error:", error);
+			const errorMessage =
+				error instanceof Error
+					? error.message
+					: "Failed to start Google sign-in.";
+			toast.error(errorMessage);
 			setIsLoading(false);
 		}
 	};
 
 	return {
 		register,
-		handleRegisterWithGoogle,
-		isLoading:
-			isLoading ||
-			registerMutation.isPending ||
-			googleRegisterMutation.isPending,
+		initiateGoogleRegister: handleRegisterWithGoogle,
+		isLoading: isLoading || registerMutation.isPending,
 		registerForm,
 	};
 };

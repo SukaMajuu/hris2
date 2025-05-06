@@ -41,7 +41,7 @@ components:
                 role:
                     type: string
                     description: Role assigned to the user, determining their permissions.
-                    enum: [admin, user, manager, hr]
+                    enum: [admin, user]
                     example: "user"
                 last_login_at:
                     type: string

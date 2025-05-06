@@ -8,7 +8,8 @@ import (
 
 type User struct {
 	ID            uint              `gorm:"primaryKey"`
-	FirebaseUID   string            `gorm:"type:varchar(128);unique;not null"`
+	// FirebaseUID   string            `gorm:"type:varchar(128);unique;not null"`
+	SupabaseUID   *string           `gorm:"column:supabase_uid;type:varchar(36);unique"`
 	Email         string            `gorm:"type:varchar(255);unique"`
 	Password      string            `gorm:"-"`
 	GoogleID      *string           `gorm:"type:varchar(255);unique"`

@@ -53,6 +53,7 @@ func Migrate(db *gorm.DB) error {
 		&models.Employee{},
 		&models.Position{},
 		&models.Branch{},
+		&models.RefreshToken{},
 	); err != nil {
 		return err
 	}

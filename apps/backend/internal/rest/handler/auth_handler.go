@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"time"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
 	authDTO "github.com/SukaMajuu/hris/apps/backend/internal/rest/dto/auth"
@@ -62,10 +64,39 @@ func bindAndValidate(c *gin.Context, dto interface{}) bool {
 
 type AuthHandler struct {
 	authUseCase *authUseCase.AuthUseCase
+	refreshTokenCookieDuration time.Duration
 }
 
 func NewAuthHandler(authUseCase *authUseCase.AuthUseCase) *AuthHandler {
-	return &AuthHandler{authUseCase: authUseCase}
+	cookieDuration := 7 * 24 * time.Hour
+	return &AuthHandler{
+		authUseCase:              authUseCase,
+		refreshTokenCookieDuration: cookieDuration,
+	}
+}
+
+func (h *AuthHandler) setRefreshTokenCookie(c *gin.Context, token string) {
+	c.SetCookie(
+		"refresh_token",
+		token,
+		int(h.refreshTokenCookieDuration.Seconds()),
+		"/v1/auth",
+		"",
+		true,
+		true,
+	)
+}
+
+func (h *AuthHandler) clearRefreshTokenCookie(c *gin.Context) {
+	c.SetCookie(
+		"refresh_token",
+		"",
+		-1,
+		"/v1/auth",
+		"",
+		true,
+		true,
+	)
 }
 
 func (h *AuthHandler) Register(c *gin.Context) {
@@ -85,13 +116,19 @@ func (h *AuthHandler) Register(c *gin.Context) {
 
 	registeredUser, accessToken, refreshToken, err := h.authUseCase.RegisterAdminWithForm(c.Request.Context(), user, employee)
 	if err != nil {
-		response.InternalServerError(c, err)
+		if errors.Is(err, domain.ErrUserAlreadyExists) || errors.Is(err, domain.ErrEmailAlreadyExists) {
+			response.Conflict(c, "User with this email or identity already exists", err)
+		} else {
+			log.Printf("Internal server error during registration: %v", err)
+			response.InternalServerError(c, fmt.Errorf("failed to complete registration"))
+		}
 		return
 	}
 
+	h.setRefreshTokenCookie(c, refreshToken)
+
 	response.Success(c, http.StatusCreated, "User registered and logged in successfully", gin.H{
-		"access_token":  accessToken,
-		"refresh_token": refreshToken,
+		"access_token": accessToken,
 		"user": gin.H{
 			"id":         registeredUser.ID,
 			"email":      registeredUser.Email,
@@ -109,17 +146,18 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	user, accessToken, refreshToken, err := h.authUseCase.LoginWithIdentifier(c.Request.Context(), req.Identifier, req.Password)
 	if err != nil {
-		if err == domain.ErrInvalidCredentials {
-			response.Unauthorized(c, "Invalid credentials", domain.ErrInvalidCredentials)
+		if errors.Is(err, domain.ErrInvalidCredentials) {
+			response.Unauthorized(c, "Invalid credentials", err)
 		} else {
-			response.InternalServerError(c, err)
+			response.InternalServerError(c, fmt.Errorf("login process failed: %w", err))
 		}
 		return
 	}
 
+	h.setRefreshTokenCookie(c, refreshToken)
+
 	response.Success(c, http.StatusOK, "Login successful", gin.H{
-		"access_token":  accessToken,
-		"refresh_token": refreshToken,
+		"access_token": accessToken,
 		"user": gin.H{
 			"id":         user.ID,
 			"email":      user.Email,
@@ -135,20 +173,19 @@ func (h *AuthHandler) GoogleLogin(c *gin.Context) {
 		return
 	}
 
-	user, accessToken, refreshToken, err := h.authUseCase.RegisterAdminWithGoogle(c.Request.Context(), req.Token)
+	user, accessToken, refreshToken, err := h.authUseCase.LoginWithGoogle(c.Request.Context(), req.Token)
 	if err != nil {
-		fmt.Printf("Google registration error: %v\n", err)
-		if err == domain.ErrEmailAlreadyExists {
-			response.Unauthorized(c, "Google login failed", err)
-		} else {
-			response.InternalServerError(c, fmt.Errorf("failed to register with Google: %w", err))
+		user, accessToken, refreshToken, err = h.authUseCase.RegisterAdminWithGoogle(c.Request.Context(), req.Token)
+		if err != nil {
+			response.InternalServerError(c, fmt.Errorf("google authentication process failed: %w", err))
+			return
 		}
-		return
 	}
 
+	h.setRefreshTokenCookie(c, refreshToken)
+
 	response.Success(c, http.StatusOK, "Google authentication successful", gin.H{
-		"access_token":  accessToken,
-		"refresh_token": refreshToken,
+		"access_token": accessToken,
 		"user": gin.H{
 			"id":         user.ID,
 			"email":      user.Email,
@@ -201,29 +238,58 @@ func (h *AuthHandler) ResetPassword(c *gin.Context) {
 }
 
 func (h *AuthHandler) RefreshToken(c *gin.Context) {
-	var req authDTO.RefreshTokenRequest
-	if bindAndValidate(c, &req) {
+	rawRefreshToken, err := c.Cookie("refresh_token")
+	if err != nil {
+		if errors.Is(err, http.ErrNoCookie) {
+			response.Unauthorized(c, "Refresh token not found", domain.ErrInvalidToken)
+		} else {
+			response.InternalServerError(c, fmt.Errorf("error reading refresh token cookie: %w", err))
+		}
+		return
+	}
+	if rawRefreshToken == "" {
+		response.Unauthorized(c, "Refresh token is empty", domain.ErrInvalidToken)
 		return
 	}
 
-	accessToken, refreshToken, err := h.authUseCase.RefreshToken(c.Request.Context(), req.RefreshToken)
+	newAccessToken, newRefreshToken, err := h.authUseCase.RefreshToken(c.Request.Context(), rawRefreshToken)
 	if err != nil {
-		if err == domain.ErrInvalidToken {
-			response.Unauthorized(c, "Invalid refresh token", err)
+		if errors.Is(err, domain.ErrInvalidToken) {
+			h.clearRefreshTokenCookie(c)
+			response.Unauthorized(c, "Invalid or expired refresh token", err)
 		} else {
-			response.InternalServerError(c, err)
+			log.Printf("Internal error during token refresh: %v", err)
+			response.InternalServerError(c, fmt.Errorf("token refresh failed internally"))
 		}
 		return
 	}
 
+	h.setRefreshTokenCookie(c, newRefreshToken)
+
 	response.Success(c, http.StatusOK, "Token refreshed successfully", gin.H{
-		"access_token":  accessToken,
-		"refresh_token": refreshToken,
+		"access_token": newAccessToken,
 	})
 }
 
 func (h *AuthHandler) Logout(c *gin.Context) {
-	// TODO: Implement Logout
+	userIDCtx, exists := c.Get("userID")
+	if !exists {
+		h.clearRefreshTokenCookie(c)
+		response.Unauthorized(c, "User not authenticated for logout", nil)
+		return
+	}
+	userID, ok := userIDCtx.(uint)
+	if !ok || userID == 0 {
+		h.clearRefreshTokenCookie(c)
+		response.InternalServerError(c, fmt.Errorf("invalid user ID type or value in context during logout"))
+		return
+	}
 
-	// response.Success(c, http.StatusOK, "Logout successful", nil)
+	if err := h.authUseCase.Logout(c.Request.Context(), userID); err != nil {
+		log.Printf("Error revoking tokens in DB during logout for user %d: %v", userID, err)
+	}
+
+	h.clearRefreshTokenCookie(c)
+
+	response.Success(c, http.StatusOK, "Logout successful", nil)
 }

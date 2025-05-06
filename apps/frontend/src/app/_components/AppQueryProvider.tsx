@@ -2,7 +2,7 @@
 
 import { QueryClientProvider } from "@tanstack/react-query";
 
-import useQueryClient from "@/hook/useQueryClient";
+import useQueryClient from "@/hooks/useQueryClient";
 
 const AppQueryProvider = ({ children }: { children: React.ReactNode }) => {
 	const { queryClient } = useQueryClient();

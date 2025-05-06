@@ -8,22 +8,24 @@ import (
 
 type Config struct {
 	Database DatabaseConfig
-	Firebase FirebaseConfig
+	Supabase SupabaseConfig
 	Server   ServerConfig
 	JWT      JWTConfig
 }
 
 type DatabaseConfig struct {
-	Host     string
-	Port     string
-	User     string
-	Password string
-	DBName   string
-	SSLMode  string
+	DatabaseURL string
+	Host        string
+	Port        string
+	User        string
+	Password    string
+	DBName      string
+	SSLMode     string
 }
 
-type FirebaseConfig struct {
-	CredentialsFile string
+type SupabaseConfig struct {
+	URL string
+	Key string
 }
 
 type ServerConfig struct {
@@ -41,15 +43,17 @@ func Load() (*Config, error) {
 
 	return &Config{
 		Database: DatabaseConfig{
-			Host:     getEnv("DB_HOST", "localhost"),
-			Port:     getEnv("DB_PORT", "5432"),
-			User:     getEnv("DB_USER", "postgres"),
-			Password: getEnv("DB_PASSWORD", ""),
-			DBName:   getEnv("DB_NAME", "hris"),
-			SSLMode:  getEnv("DB_SSLMODE", "disable"),
+			DatabaseURL: getEnv("DATABASE_URL", ""),
+			Host:        getEnv("DB_HOST", "localhost"),
+			Port:        getEnv("DB_PORT", "5432"),
+			User:        getEnv("DB_USER", "postgres"),
+			Password:    getEnv("DB_PASSWORD", ""),
+			DBName:      getEnv("DB_NAME", "hris"),
+			SSLMode:     getEnv("DB_SSLMODE", "disable"),
 		},
-		Firebase: FirebaseConfig{
-			CredentialsFile: getEnv("FIREBASE_CREDENTIALS_FILE", "firebase-credentials.json"),
+		Supabase: SupabaseConfig{
+			URL: getEnv("SUPABASE_URL", ""),
+			Key: getEnv("SUPABASE_KEY", ""),
 		},
 		Server: ServerConfig{
 			Port: getEnv("PORT", "8080"),

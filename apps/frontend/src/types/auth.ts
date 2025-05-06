@@ -16,9 +16,16 @@ export interface RegisterCredentials {
 export interface AuthResponse {
 	user: User;
 	access_token: string;
-	refresh_token: string;
 }
 
 export interface GoogleAuthResponse extends AuthResponse {
 	google_id: string;
+}
+
+export interface RefreshResponse {
+	access_token: string;
+}
+
+export interface ApiRefreshResponse {
+	data: RefreshResponse;
 }

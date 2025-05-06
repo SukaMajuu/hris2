@@ -48,7 +48,10 @@ func (r *supabaseRepository) RegisterAdminWithForm(ctx context.Context, user *do
 	supaUserResponse, err := r.client.Auth.Signup(signUpOpts)
 	if err != nil {
 		errStr := err.Error()
-		if strings.Contains(errStr, "User already registered") || strings.Contains(errStr, "user_already_exists") || strings.Contains(errStr, "400") || strings.Contains(errStr, "422"){
+		if strings.Contains(errStr, "User already registered") ||
+			strings.Contains(errStr, "user_already_exists") ||
+			strings.Contains(errStr, "400") ||
+			strings.Contains(errStr, "422") {
 			return domain.ErrEmailAlreadyExists
 		}
 		return fmt.Errorf("error creating user in Supabase: %w", err)

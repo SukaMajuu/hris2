@@ -540,7 +540,11 @@ func TestRefreshToken(t *testing.T) {
 				if tt.hashError == nil {
 					mockAuthRepo.On("FindRefreshTokenByHash", mock.Anything, "hashed-"+tt.refreshToken).Return(tt.findToken, tt.findError).Maybe()
 
-					if tt.findError == nil && tt.findToken != nil && !tt.findToken.Revoked && time.Now().Before(tt.findToken.ExpiresAt) && tt.findToken.UserID == tt.claims.UserID {
+					if tt.findError == nil &&
+						tt.findToken != nil &&
+						!tt.findToken.Revoked &&
+						time.Now().Before(tt.findToken.ExpiresAt) &&
+						tt.findToken.UserID == tt.claims.UserID {
 						mockAuthRepo.On("RevokeRefreshTokenByID", mock.Anything, tt.findToken.ID).Return(tt.revokeError).Maybe()
 
 						if tt.revokeError == nil {

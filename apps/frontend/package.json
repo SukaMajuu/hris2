@@ -27,6 +27,7 @@
     "@radix-ui/react-tabs": "^1.1.9",
     "@radix-ui/react-tooltip": "^1.2.4",
     "@tanstack/react-query": "^5.67.1",
+    "@tanstack/react-table": "^8.21.3",
     "axios": "^1.8.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

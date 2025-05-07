@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Search, Filter, FileText, Upload, Plus, DotIcon as Detail, Edit } from "lucide-react"
+import { Search, Filter, FileText, Upload, Plus, BookUser, Trash2Icon} from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -250,22 +250,24 @@ export default function EmployeeManagementPage() {
                     <TableCell>{employee.position}</TableCell>
                     <TableCell>{employee.grade}</TableCell>
                     <TableCell>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2">      
+                        <a href={`/employee-management/${employee.id}`}>             
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-9 px-3 bg-[#6B9AC4] text-white hover:bg-[#5A89B3] border-none"
+                          >
+                            <BookUser className="h-4 w-4 mr-1" />
+                            Detail
+                          </Button>
+                        </a>                        
                         <Button
                           size="sm"
-                          variant="outline"
-                          className="h-9 px-3 bg-[#6B9AC4] text-white hover:bg-[#5A89B3] border-none"
+                          variant="destructive"
+                          className="hover:bg-red-800 " 
                         >
-                          <Detail className="h-4 w-4 mr-1" />
-                          Detail
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-9 px-3 bg-[#FFA500] text-white hover:bg-[#E69500] border-none"
-                        >
-                          <Edit className="h-4 w-4 mr-1" />
-                          Edit
+                          <Trash2Icon className="h-4 w-4 mr-1" />
+                          Delete
                         </Button>
                       </div>
                     </TableCell>

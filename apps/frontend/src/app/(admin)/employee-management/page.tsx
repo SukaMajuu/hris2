@@ -18,6 +18,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
+import Link from "next/link"
 
 export default function EmployeeManagementPage() {
   const [page, setPage] = useState(1)
@@ -203,7 +204,7 @@ export default function EmployeeManagementPage() {
               </Button>
               <Button className="gap-2 bg-[#6B9AC4] hover:bg-[#5A89B3]">
                 <Plus className="h-4 w-4" />
-                Add Data
+                <Link href="/employee-management/add">Add Data</Link>
               </Button>
             </div>
           </div>

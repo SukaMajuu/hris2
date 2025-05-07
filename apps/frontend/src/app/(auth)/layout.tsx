@@ -35,7 +35,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
 			</div>
 
 			{/* Right side - Form */}
-			<div className="w-full lg:w-1/3 flex items-center justify-center p-8">
+			<div className="relative w-full lg:w-1/3 flex items-center justify-center p-8">
 				{children}
 			</div>
 		</div>

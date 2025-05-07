@@ -29,6 +29,10 @@ export const googleAuthSchema = z.object({
 	}),
 });
 
+export const forgotPasswordSchema = z.object({
+	email: z.string().email("Invalid email address"),
+});
+
 export const resetPasswordSchema = z
 	.object({
 		newPassword: z
@@ -44,4 +48,5 @@ export const resetPasswordSchema = z
 export type LoginFormData = z.infer<typeof loginSchema>;
 export type RegisterFormData = z.infer<typeof registerSchema>;
 export type GoogleAuthFormData = z.infer<typeof googleAuthSchema>;
+export type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;

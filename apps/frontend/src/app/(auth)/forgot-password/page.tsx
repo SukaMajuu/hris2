@@ -11,18 +11,24 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import {
+	forgotPasswordSchema,
+	ForgotPasswordFormData,
+} from "@/schemas/auth.schema";
 
 export default function ForgotPasswordPage() {
-	const forgotPasswordForm = useForm({
-		resolver: zodResolver(
-			z.object({
-				email: z.string().email(),
-			})
-		),
+	const forgotPasswordForm = useForm<ForgotPasswordFormData>({
+		resolver: zodResolver(forgotPasswordSchema),
+		defaultValues: {
+			email: "",
+		},
 	});
+
+	const onSubmit = (values: ForgotPasswordFormData) => {
+		console.log(values);
+	};
 
 	return (
 		<div className="h-full w-full flex flex-col justify-center items-center gap-10">
@@ -31,12 +37,15 @@ export default function ForgotPasswordPage() {
 					Forgot Password
 				</h4>
 				<p className="text-sm text-gray-500 text-center">
-					No worries! Enter your email address below, and we’ll send
-					you a link to reset your password
+					No worries! Enter your email address below, and we&apos;ll
+					send you a link to reset your password
 				</p>
 			</div>
 			<Form {...forgotPasswordForm}>
-				<form className="w-full max-w-xl flex flex-col gap-4">
+				<form
+					onSubmit={forgotPasswordForm.handleSubmit(onSubmit)}
+					className="w-full max-w-xl flex flex-col gap-4"
+				>
 					<FormField
 						control={forgotPasswordForm.control}
 						name="email"

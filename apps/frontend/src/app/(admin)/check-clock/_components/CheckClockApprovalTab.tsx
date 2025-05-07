@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Edit, Filter, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 
 
 export default function CheckClockApprovalTab() {
-
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [page, setPage] = useState(2);
     const [pageSize, setPageSize] = useState(10);
     const [currentPage, setCurrentPage] = useState(1);
@@ -27,7 +27,7 @@ export default function CheckClockApprovalTab() {
             checkOut: "17:00=18:00",
         }))
     );
-
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [approvalData, setApprovalData] = useState([
         {
             id: 1,

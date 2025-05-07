@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -19,7 +20,7 @@ export default function EditCheckClockPage() {
                     <Card className="p-6 min-h-56 flex flex-col justify-center">
                         <div className="flex items-center gap-4">
                             <div className="h-24 w-24 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
-                                <img src="/placeholder.svg?height=96&width=96" alt="Employee photo" className="h-full w-full object-cover" />
+                                <Image src="/placeholder.svg?height=96&width=96" alt="Employee photo" width={96} height={96} className="h-full w-full object-cover" />
                             </div>
                             <div>
                                 <h3 className="text-lg font-medium">{form.name}</h3>
@@ -88,7 +89,7 @@ export default function EditCheckClockPage() {
                             <div>
                                 <label className="block text-sm font-medium mb-1">Map Picker</label>
                                 <div className="h-32 bg-gray-200 rounded-md relative overflow-hidden">
-                                    <img src="/placeholder.svg?height=128&width=400&text=Map+of+Malang" alt="Map" className="h-full w-full object-cover" />
+                                    <Image src="/placeholder.svg?height=128&width=400&text=Map+of+Malang" alt="Map" width={400} height={128} className="h-full w-full object-cover" />
                                     <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
                                         <div className="h-6 w-6 rounded-full bg-red-500 border-2 border-white flex items-center justify-center text-white">
                                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>

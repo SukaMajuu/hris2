@@ -72,7 +72,7 @@ export default function LoginPage() {
 									<FormControl>
 										<Input
 											className="h-12 px-4 text-base"
-											type="email"
+											type="text"
 											placeholder="Enter your email or phone number"
 											{...field}
 										/>

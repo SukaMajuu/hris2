@@ -1,7 +1,9 @@
 import { Inter, Roboto } from "next/font/google";
 import "./globals.css";
 import AppQueryProvider from "./_components/AppQueryProvider";
-import { metadata } from "./_components/Metadata";
+import { Metadata } from "next";
+import { AuthProvider } from "./_components/AuthProvider";
+import { Toaster } from "sonner";
 
 const inter = Inter({
 	variable: "--font-inter",
@@ -16,7 +18,10 @@ const roboto = Roboto({
 	variable: "--font-roboto",
 });
 
-export { metadata };
+export const metadata: Metadata = {
+	title: "HRIS",
+	description: "A Human Resource Information System",
+};
 
 export default function RootLayout({
 	children,
@@ -28,7 +33,10 @@ export default function RootLayout({
 			<body
 				className={`antialiased ${inter.variable} ${roboto.variable}`}
 			>
-				<AppQueryProvider>{children}</AppQueryProvider>
+				<AppQueryProvider>
+					<AuthProvider>{children}</AuthProvider>
+					<Toaster />
+				</AppQueryProvider>
 			</body>
 		</html>
 	);

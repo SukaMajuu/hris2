@@ -37,7 +37,7 @@ linters:
         revive:
             confidence: 0.8
         lll:
-            line-length: 160
+            line-length: 200
             tab-width: 1
         funlen:
             lines: 150

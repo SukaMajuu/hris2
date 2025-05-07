@@ -21,7 +21,7 @@ export default function RegisterPage() {
 		register,
 		isLoading,
 		registerForm,
-		handleRegisterWithGoogle,
+		initiateGoogleRegister,
 	} = useRegister();
 
 	return (
@@ -191,7 +191,7 @@ export default function RegisterPage() {
 
 			<div className="flex flex-col gap-4">
 				<Button
-					onClick={handleRegisterWithGoogle}
+					onClick={initiateGoogleRegister}
 					disabled={isLoading}
 					className="w-full h-12 text-base bg-white text-black border border-gray-300 hover:bg-gray-200 hover:cursor-pointer"
 				>

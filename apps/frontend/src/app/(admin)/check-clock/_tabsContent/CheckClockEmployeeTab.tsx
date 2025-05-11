@@ -83,9 +83,9 @@ export default function CheckClockEmployeeTab() {
 	];
 
 	return (
-		<Card className="mb-6 p-0 border border-gray-100 dark:border-gray-800">
-			<CardContent className="p-6">
-				<div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+		<Card className="border border-gray-100 dark:border-gray-800">
+			<CardContent>
+				<header className="flex flex-col gap-4 mb-6">
 					<h2 className="text-xl font-semibold">
 						Check-Clock Employee
 					</h2>
@@ -105,7 +105,7 @@ export default function CheckClockEmployeeTab() {
 							Filter
 						</Button>
 					</div>
-				</div>
+				</header>
 
 				<DataTable
 					columns={columns}
@@ -114,7 +114,7 @@ export default function CheckClockEmployeeTab() {
 					pageSize={pageSize}
 				/>
 
-				<div className="flex flex-col md:flex-row items-center justify-between mt-4 gap-4">
+				<footer className="flex flex-col md:flex-row items-center justify-between mt-4 gap-4">
 					<PageSizeComponent
 						pageSize={pageSize}
 						setPageSize={setPageSize}
@@ -128,7 +128,7 @@ export default function CheckClockEmployeeTab() {
 						setPage={setPage}
 						totalPages={totalPages}
 					/>
-				</div>
+				</footer>
 			</CardContent>
 		</Card>
 	);

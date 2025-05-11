@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Search } from "lucide-react";
+import { Filter, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -118,24 +118,28 @@ export default function CheckClockApprovalTab() {
 
 	return (
 		<Card className="mb-6 border border-gray-100 dark:border-gray-800">
-			<CardContent className="p-6">
-				{/* Header */}
-				<div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+			<CardContent>
+				<header className="flex flex-col gap-4 mb-6">
 					<h2 className="text-xl font-semibold">
 						Check-Clock Approval
 					</h2>
-				</div>
-
-				{/* Search */}
-				<div className="mb-6">
-					<div className="relative">
-						<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-						<Input
-							className="pl-10 w-full bg-white border-gray-200"
-							placeholder="Search Check-clock"
-						/>
+					<div className="flex flex-wrap items-center justify-center gap-4 w-[400px]">
+						<div className="relative flex-[1]">
+							<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+							<Input
+								className="pl-10 w-full bg-white border-gray-200"
+								placeholder="Search Employee"
+							/>
+						</div>
+						<Button
+							variant="outline"
+							className="gap-2 hover:bg-[#5A89B3]"
+						>
+							<Filter className="h-4 w-4" />
+							Filter
+						</Button>
 					</div>
-				</div>
+				</header>
 
 				{/* Table */}
 				<DataTable
@@ -146,7 +150,7 @@ export default function CheckClockApprovalTab() {
 				/>
 
 				{/* Pagination */}
-				<div className="flex flex-col md:flex-row items-center justify-between mt-4 gap-4">
+				<footer className="flex flex-col md:flex-row items-center justify-between mt-4 gap-4">
 					<PageSizeComponent
 						pageSize={pageSize}
 						setPageSize={setPageSize}
@@ -160,7 +164,7 @@ export default function CheckClockApprovalTab() {
 						setPage={setPage}
 						totalPages={totalPages}
 					/>
-				</div>
+				</footer>
 
 				{/* Approval Modal */}
 				<ApprovalConfirmationModal

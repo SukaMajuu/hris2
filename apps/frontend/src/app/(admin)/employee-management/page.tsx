@@ -8,6 +8,10 @@ import {
 	Plus,
 	BookUser,
 	Trash2Icon,
+	CalendarIcon,
+	UsersIcon,
+	UserPlusIcon,
+	BriefcaseIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -96,22 +100,44 @@ export default function EmployeeManagementPage() {
 	];
 
 	return (
-		<div className="p-0">
-			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 mb-6">
-				<StatCard label="Period" value="April 2025" />
-				<StatCard label="Total Employee" value="208" />
-				<StatCard label="Total New Hire" value="20" />
-				<StatCard label="Full Time Employee" value="20" />
+		<main>
+			<div className="mb-6">
+				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+					<StatCard
+						label="Period"
+						value="April 2025"
+						icon={<CalendarIcon className="h-5 w-5" />}
+						description="Current reporting period"
+					/>
+					<StatCard
+						label="Total Employee"
+						value="208"
+						icon={<UsersIcon className="h-5 w-5" />}
+						trend={{ value: 5, label: "from last month" }}
+					/>
+					<StatCard
+						label="Total New Hire"
+						value="20"
+						icon={<UserPlusIcon className="h-5 w-5" />}
+						trend={{ value: 15, label: "from last month" }}
+					/>
+					<StatCard
+						label="Full Time Employee"
+						value="188"
+						icon={<BriefcaseIcon className="h-5 w-5" />}
+						trend={{ value: 3, label: "from last month" }}
+					/>
+				</div>
 			</div>
 
 			<Card className="mb-6 border border-gray-100 dark:border-gray-800">
 				<CardContent>
 					<header className="flex flex-col justify-between items-start gap-4 mb-6">
-						<div className="flex justify-between items-center w-full">
+						<div className="flex flex-row flex-wrap gap-4 justify-between items-center w-full">
 							<h2 className="text-xl font-semibold">
 								All Employees Information
 							</h2>
-							<div className="flex gap-2">
+							<div className="flex gap-2 flex-wrap">
 								<Button
 									variant="outline"
 									className="gap-2 hover:bg-[#5A89B3] hover:text-white"
@@ -134,8 +160,8 @@ export default function EmployeeManagementPage() {
 								</Button>
 							</div>
 						</div>
-						<div className="flex gap-2">
-							<div className="relative">
+						<div className="flex flex-wrap gap-2 w-full md:w-[400px]">
+							<div className="relative flex-[1]">
 								<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
 								<Input
 									className="pl-10 w-full bg-white border-gray-200"
@@ -159,7 +185,7 @@ export default function EmployeeManagementPage() {
 						pageSize={pageSize}
 					/>
 
-					<div className="flex flex-col md:flex-row items-center justify-between mt-4 gap-4">
+					<div className="flex flex-col md:flex-row items-center justify-between mt-6 gap-4">
 						<PageSizeComponent
 							pageSize={pageSize}
 							setPageSize={setPageSize}
@@ -176,6 +202,6 @@ export default function EmployeeManagementPage() {
 					</div>
 				</CardContent>
 			</Card>
-		</div>
+		</main>
 	);
 }

@@ -32,12 +32,12 @@ export function PageSizeComponent({
 	};
 
 	return (
-		<div className="flex items-center gap-2">
+		<div className="flex items-center gap-2 w-full">
 			<Select
 				defaultValue={String(pageSize)}
 				onValueChange={handlePageSizeChange}
 			>
-				<SelectTrigger className="w-[70px]">
+				<SelectTrigger className="w-[80px]">
 					<SelectValue placeholder="10" />
 				</SelectTrigger>
 				<SelectContent>

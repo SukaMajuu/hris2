@@ -123,7 +123,7 @@ export default function CheckClockApprovalTab() {
 					<h2 className="text-xl font-semibold">
 						Check-Clock Approval
 					</h2>
-					<div className="flex flex-wrap items-center justify-center gap-4 w-[400px]">
+					<div className="flex flex-wrap items-center gap-4 md:w-[400px]">
 						<div className="relative flex-[1]">
 							<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
 							<Input

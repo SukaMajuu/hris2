@@ -68,7 +68,7 @@ export default function CheckClockEmployeeTab() {
 					<Button
 						size="sm"
 						variant="outline"
-						className="h-9 px-3 bg-[#FFA500] text-white hover:bg-[#E69500] border-none"
+						className="h-9 px-3 bg-[#FFA500] text-white hover:bg-[#E69500] border-none hover:cursor-pointer"
 						onClick={(e) => {
 							e.stopPropagation();
 							handleEdit(item.id);

@@ -75,8 +75,8 @@ export default function EmployeeManagementPage() {
 					<Link href={`/employee-management/${item.id}`}>
 						<Button
 							size="sm"
-							variant="outline"
-							className="h-9 px-3 bg-[#6B9AC4] text-white hover:bg-[#5A89B3] border-none"
+							variant="default"
+							className="bg-[#6B9AC4] hover:bg-[#5A89B3] hover:cursor-pointer"
 						>
 							<BookUser className="h-4 w-4 mr-1" />
 							Detail
@@ -85,7 +85,7 @@ export default function EmployeeManagementPage() {
 					<Button
 						size="sm"
 						variant="destructive"
-						className="hover:bg-red-800"
+						className="hover:bg-red-800 hover:cursor-pointer"
 					>
 						<Trash2Icon className="h-4 w-4 mr-1" />
 						Delete

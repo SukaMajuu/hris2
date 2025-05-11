@@ -67,7 +67,7 @@ export default function CheckClockApprovalTab() {
 						<Button
 							size="sm"
 							variant="outline"
-							className="bg-yellow-500 text-white hover:bg-yellow-600 border-yellow-500"
+							className="bg-yellow-500 text-white hover:bg-yellow-600 border-yellow-500 hover:cursor-pointer"
 							onClick={(e) => {
 								e.stopPropagation();
 								openApprovalModal(item);
@@ -104,7 +104,7 @@ export default function CheckClockApprovalTab() {
 				<Button
 					size="sm"
 					variant="default"
-					className="bg-blue-500 hover:bg-blue-600"
+					className="bg-blue-500 hover:bg-blue-600 hover:cursor-pointer"
 					onClick={(e) => {
 						e.stopPropagation();
 						handleViewDetails(item.id);

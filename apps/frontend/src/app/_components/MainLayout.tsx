@@ -65,12 +65,11 @@ export default function MainLayout({ children }: MainLayoutProps) {
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
                       asChild
-                      isActive={isActive}
                       tooltip={item.title}
                       className={
                         isActive
-                          ? 'bg-[#7CA5BF] text-white hover:bg-[#6B9AC4]'
-                          : 'text-gray-600 hover:bg-gray-100'
+                          ? 'bg-[#7CA5BF] text-white hover:bg-[#6B9AC4] hover:text-white'
+                          : 'text-gray-600 hover:bg-[#6B9AC4] hover:text-white'
                       }
                     >
                       <Link href={item.href} className='flex items-center gap-3'>
@@ -91,7 +90,6 @@ export default function MainLayout({ children }: MainLayoutProps) {
                   <SidebarMenuButton
                     asChild
                     tooltip={item.title}
-                    isActive={pathname === item.href}
                     className={
                       pathname === item.href
                         ? 'bg-[#7CA5BF] text-white hover:bg-[#6B9AC4]'

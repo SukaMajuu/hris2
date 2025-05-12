@@ -26,7 +26,6 @@ export default function LoginIdEmployeePage() {
 	const loginForm = useForm<LoginIdEmployeeFormData>({
 		resolver: zodResolver(loginIdEmployeeSchema),
 		defaultValues: {
-			companyUsername: "",
 			employeeId: "",
 			password: "",
 		},
@@ -66,25 +65,6 @@ export default function LoginIdEmployeePage() {
 						onSubmit={loginForm.handleSubmit(login)}
 						className="space-y-4"
 					>
-						<FormField
-							control={loginForm.control}
-							name="companyUsername"
-							render={({ field }) => (
-								<FormItem className="min-h-20 relative">
-									<FormLabel>Company Username</FormLabel>
-									<FormControl>
-										<Input
-											className="h-12 px-4 text-base"
-											type="text"
-											placeholder="Enter your company username"
-											{...field}
-										/>
-									</FormControl>
-									<FormMessage className="absolute -bottom-4" />
-								</FormItem>
-							)}
-						/>
-
 						<FormField
 							control={loginForm.control}
 							name="employeeId"

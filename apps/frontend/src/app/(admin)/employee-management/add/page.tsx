@@ -25,6 +25,9 @@ import {
 
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
+import { CalendarIcon } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 
 export default function AddEmployeePage() {
   const [activeStep, setActiveStep] = useState(1);
@@ -128,7 +131,7 @@ export default function AddEmployeePage() {
                 </div>
                 <div>
                   <label className='mb-1 block font-medium'>Date of Birth</label>
-                  <Input type='date' className='border-secondary' />
+                  <DateInput />
                 </div>
               </div>
             </form>
@@ -197,13 +200,14 @@ export default function AddEmployeePage() {
               <AlertDialogDescription>All entered data will be discarded.</AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel className='hover:bg-secondary'>Close</AlertDialogCancel>
               <AlertDialogAction
+                className='bg-destructive hover:bg-red-500'
                 onClick={() => {
                   window.location.href = '/employee-management';
                 }}
               >
-                Yes, cancel
+                Yes
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -223,5 +227,34 @@ export default function AddEmployeePage() {
         )}
       </div>
     </div>
+  );
+}
+
+function DateInput() {
+  const [value, setValue] = useState<Date | undefined>(new Date());
+  const currentYear = new Date().getFullYear();
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant='outline' className='w-full justify-between'>
+          {value ? value.toLocaleDateString() : 'Pick a date'}
+          <CalendarIcon className='ml-2 h-4 w-4' />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className='w-auto p-0'>
+        <Calendar
+          mode='single'
+          selected={value}
+          onSelect={(date) => {
+            setValue(date);
+          }}
+          initialFocus
+          captionLayout='dropdown-buttons'
+          fromYear={1900}
+          toYear={currentYear + 5}
+        />
+      </PopoverContent>
+    </Popover>
   );
 }

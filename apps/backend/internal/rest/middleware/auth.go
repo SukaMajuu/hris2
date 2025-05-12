@@ -18,13 +18,7 @@ func NewAuthMiddleware(authUseCase *auth.AuthUseCase) *AuthMiddleware {
 
 func (m *AuthMiddleware) Authenticate() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// TODO: Implement authentication middleware
-		// - Extract ACCESS token from Authorization header (Bearer <token>)
-		// - Verify access token (check signature, expiration)
-		// - If valid: Get user details from token payload
-		// - If invalid/expired: Return 401 Unauthorized
-		// - Set user details (ID, Role, Email etc.) in Gin context (e.g., c.Set("user", userDetails))
-
+		// Extract ACCESS token from Authorization header (Bearer <token>)
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is required"})
@@ -40,18 +34,18 @@ func (m *AuthMiddleware) Authenticate() gin.HandlerFunc {
 		}
 
 		accessToken := parts[1]
-		// TODO: Verify access token using the auth use case or a dedicated JWT service
-		// userDetails, err := m.authUseCase.VerifyAccessToken(c.Request.Context(), accessToken)
-		// if err != nil {
-		//     c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
-		//     c.Abort()
-		//     return
-		// }
 
-		// TODO: Set verified user details in context
-		// c.Set("user", userDetails)
+		// Verify access token using the auth use case
+		userID, role, err := m.authUseCase.VerifyAccessToken(c.Request.Context(), accessToken)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
+			c.Abort()
+			return
+		}
 
-		_ = accessToken // Placeholder
+		// Set verified user details in context
+		c.Set("userID", userID)
+		c.Set("userRole", role)
 
 		c.Next()
 	}

@@ -47,13 +47,6 @@ func (r *supabaseRepository) RegisterAdminWithForm(ctx context.Context, user *do
 
 	supaUserResponse, err := r.client.Auth.Signup(signUpOpts)
 	if err != nil {
-		errStr := err.Error()
-		if strings.Contains(errStr, "User already registered") ||
-			strings.Contains(errStr, "user_already_exists") ||
-			strings.Contains(errStr, "400") ||
-			strings.Contains(errStr, "422") {
-			return domain.ErrEmailAlreadyExists
-		}
 		return fmt.Errorf("error creating user in Supabase: %w", err)
 	}
 
@@ -201,12 +194,10 @@ func (r *supabaseRepository) LoginWithEmail(ctx context.Context, email, password
 		return nil, domain.ErrInvalidCredentials
 	}
 
-	// Find the local user linked to the Supabase User ID
 	var user domain.User
 	supaUserIDStr := session.User.ID.String()
 	if err := r.db.WithContext(ctx).Where("supabase_uid = ?", supaUserIDStr).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			// Local user not found, treat as invalid credentials overall
 			return nil, domain.ErrInvalidCredentials
 		}
 		return nil, fmt.Errorf("error retrieving local user: %w", err)
@@ -440,7 +431,6 @@ func (r *supabaseRepository) RevokeRefreshTokenByID(ctx context.Context, tokenID
 	return nil
 }
 
-// RevokeAllUserRefreshTokens marks all active refresh tokens for a given user as revoked.
 func (r *supabaseRepository) RevokeAllUserRefreshTokens(ctx context.Context, userID uint) error {
 	result := r.db.WithContext(ctx).Model(&domain.RefreshToken{}).
 		Where("user_id = ? AND revoked = ?", userID, false).
@@ -449,8 +439,6 @@ func (r *supabaseRepository) RevokeAllUserRefreshTokens(ctx context.Context, use
 	if result.Error != nil {
 		return fmt.Errorf("failed to revoke refresh tokens for user %d: %w", userID, result.Error)
 	}
-	// GORM V2 returns RowsAffected
-	// log.Printf("Revoked %d refresh tokens for user %d", result.RowsAffected, userID)
 	return nil
 }
 

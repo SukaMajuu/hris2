@@ -158,12 +158,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	response.Success(c, http.StatusOK, "Login successful", gin.H{
 		"access_token": accessToken,
-		"user": gin.H{
-			"id":         user.ID,
-			"email":      user.Email,
-			"role":       user.Role,
-			"last_login": user.LastLoginAt,
-		},
+		"user":         user,
 	})
 }
 

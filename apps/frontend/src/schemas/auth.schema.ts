@@ -7,7 +7,6 @@ export const loginSchema = z.object({
 });
 
 export const loginIdEmployeeSchema = z.object({
-	companyUsername: z.string().min(1, "Company username is required"),
 	employeeId: z.string().min(1, "Employee ID is required"),
 	password: z.string().min(6, "Password must be at least 6 characters"),
 	rememberMe: z.boolean().optional(),

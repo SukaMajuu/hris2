@@ -93,7 +93,7 @@ export default function CheckClockEmployeeTab() {
 						</h2>
 						<Button className="gap-2 bg-[#6B9AC4] hover:bg-[#5A89B3]">
 							<Plus className="h-4 w-4" />
-							<Link href="/employee-management/add">
+							<Link href="/check-clock/add">
 								Add Data
 							</Link>
 						</Button>

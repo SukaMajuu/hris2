@@ -6,7 +6,9 @@ import { usePathname } from "next/navigation";
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
 	const pathname = usePathname();
-	const isAuthPage = ["/login", "/register"].includes(pathname);
+	const isAuthPage = ["/login", "/register", "/login/id-employee"].includes(
+		pathname
+	);
 
 	return (
 		<div

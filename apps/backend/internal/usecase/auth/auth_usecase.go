@@ -99,20 +99,15 @@ func (uc *AuthUseCase) RegisterAdminWithGoogle(ctx context.Context, token string
 	var userToProcess *domain.User
 
 	if err == nil {
-		log.Printf("DEBUG RegisterAdminWithGoogle: err is nil, newUser is %p (%#v)", newUser, newUser)
-		log.Printf("New user registered via Google: ID %d, Email %s", newUser.ID, newUser.Email)
 		userToProcess = newUser
 		_ = newEmployee
 	} else if errors.Is(err, domain.ErrEmailAlreadyExists) || errors.Is(err, domain.ErrUserAlreadyExists) {
-		log.Printf("User already exists, attempting Google login for token: %s...", token[:min(10, len(token))])
 		existingUser, loginErr := uc.authRepo.LoginWithGoogle(ctx, token)
 		if loginErr != nil {
-			log.Printf("Error logging in existing Google user: %v", loginErr)
 			return nil, "", "", fmt.Errorf("existing user login failed: %w", loginErr)
 		}
 		userToProcess = existingUser
 	} else {
-		log.Printf("Failed Google admin registration: %v", err)
 		return nil, "", "", fmt.Errorf("failed Google admin registration: %w", err)
 	}
 
@@ -292,4 +287,25 @@ func (uc *AuthUseCase) Logout(ctx context.Context, userID uint) error {
 	}
 	log.Printf("Successfully revoked all refresh tokens for user %d", userID)
 	return nil
+}
+
+// VerifyAccessToken validates an access token and returns the user ID and role
+func (uc *AuthUseCase) VerifyAccessToken(ctx context.Context, accessToken string) (uint, enums.UserRole, error) {
+	if accessToken == "" {
+		return 0, "", domain.ErrInvalidToken
+	}
+
+	claims, err := uc.jwtService.ValidateToken(accessToken)
+	if err != nil {
+		if errors.Is(err, domain.ErrTokenExpired) {
+			return 0, "", fmt.Errorf("access token expired: %w", domain.ErrInvalidToken)
+		}
+		return 0, "", fmt.Errorf("failed to validate access token: %w", domain.ErrInvalidToken)
+	}
+
+	if claims.TokenType != enums.TokenTypeAccess {
+		return 0, "", fmt.Errorf("token is not an access token: %w", domain.ErrInvalidToken)
+	}
+
+	return claims.UserID, claims.Role, nil
 }

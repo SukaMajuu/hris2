@@ -53,9 +53,12 @@ class AuthService {
 
 	logout() {
 		tokenService.clearTokens();
+
 		this.api.post(API_ROUTES.v1.auth.logout, {}).catch((err) => {
 			console.error("Backend logout call failed:", err);
 		});
+
+		return Promise.resolve();
 	}
 }
 

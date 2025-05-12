@@ -16,20 +16,23 @@ import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { LoginFormData, loginSchema } from "@/schemas/auth.schema";
+import {
+	LoginIdEmployeeFormData,
+	loginIdEmployeeSchema,
+} from "@/schemas/auth.schema";
 import { z } from "zod";
 
-export default function LoginPage() {
-	const loginForm = useForm<LoginFormData>({
-		resolver: zodResolver(loginSchema),
+export default function LoginIdEmployeePage() {
+	const loginForm = useForm<LoginIdEmployeeFormData>({
+		resolver: zodResolver(loginIdEmployeeSchema),
 		defaultValues: {
-			emailOrPhoneNumber: "",
+			companyUsername: "",
+			employeeId: "",
 			password: "",
-			rememberMe: false,
 		},
 	});
 
-	const login = (data: z.infer<typeof loginSchema>) => {
+	const login = (data: z.infer<typeof loginIdEmployeeSchema>) => {
 		console.log(data);
 	};
 
@@ -49,7 +52,7 @@ export default function LoginPage() {
 				{/* Title and Description */}
 				<div className="flex flex-col gap-4">
 					<h1 className="typography-h5 font-bold text-gray-900">
-						Sign In
+						Sign in with Employee ID
 					</h1>
 					<p className="typography-body2 text-gray-600">
 						Welcome back to HRIS cmlabs! Manage everything with
@@ -65,15 +68,34 @@ export default function LoginPage() {
 					>
 						<FormField
 							control={loginForm.control}
-							name="emailOrPhoneNumber"
+							name="companyUsername"
 							render={({ field }) => (
 								<FormItem className="min-h-20 relative">
-									<FormLabel>Email or Phone Number</FormLabel>
+									<FormLabel>Company Username</FormLabel>
 									<FormControl>
 										<Input
 											className="h-12 px-4 text-base"
 											type="text"
-											placeholder="Enter your email or phone number"
+											placeholder="Enter your company username"
+											{...field}
+										/>
+									</FormControl>
+									<FormMessage className="absolute -bottom-4" />
+								</FormItem>
+							)}
+						/>
+
+						<FormField
+							control={loginForm.control}
+							name="employeeId"
+							render={({ field }) => (
+								<FormItem className="min-h-20 relative">
+									<FormLabel>Employee ID</FormLabel>
+									<FormControl>
+										<Input
+											className="h-12 px-4 text-base"
+											type="text"
+											placeholder="Enter your employee ID"
 											{...field}
 										/>
 									</FormControl>
@@ -135,15 +157,9 @@ export default function LoginPage() {
 							>
 								Sign in
 							</Button>
-							<Button
-								onClick={() => {}}
-								className="w-full h-12 text-base bg-white text-black border border-gray-300 hover:bg-gray-200 hover:cursor-pointer"
-							>
-								Sign in with Google
-							</Button>
-							<Link href="/login/id-employee">
+							<Link href="/login">
 								<Button className="w-full h-12 text-base bg-white text-black border border-gray-300 hover:bg-gray-200 hover:cursor-pointer">
-									Sign in with ID Employee
+									Use a different sign-in method
 								</Button>
 							</Link>
 						</div>

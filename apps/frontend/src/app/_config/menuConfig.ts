@@ -12,12 +12,19 @@ import { ROLES, type Role } from "@/const/role"
 
 export type MenuItemType = "main" | "footer"
 
+export interface SubMenuItemConfig {
+  title: string;
+  href: string;
+  icon?: LucideIcon; // Opsional jika ingin ada icon untuk sub menu
+}
+
 export interface MenuItemConfig {
   title: string
   href: string
   icon: LucideIcon
   roles: Role[]
   type: MenuItemType
+  items?: SubMenuItemConfig[]
 }
 
 export const menuItems: MenuItemConfig[] = [
@@ -40,7 +47,16 @@ export const menuItems: MenuItemConfig[] = [
     href: "/check-clock",
     icon: Clock,
     roles: [ROLES.admin],
-    type: "main"
+    type: "main",
+    items: [
+      {
+        title: "Work Schedule",
+        href: "/check-clock/work-schedule",
+      },
+      { title: "Location",
+        href: "/check-clock/location",
+      }
+    ]
   },
   {
     title: "Overtime",

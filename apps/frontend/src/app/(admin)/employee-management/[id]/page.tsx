@@ -33,10 +33,27 @@ export default function Page() {
   const [accountNumber, setAccountNumber] = useState('');
   const [accountName, setAccountName] = useState('');
   const [sp, setSp] = useState('');
+  const [documents, setDocuments] = useState<{ name: string; file: File | null }[]>([]);
 
   if (!employee) {
     return <div className='p-4'>Employee not found.</div>;
   }
+
+  const handleDeleteDocument = (idx: number) => {
+    setDocuments(documents.filter((_, i) => i !== idx));
+  };
+
+  const handleDownloadDocument = (file: File | null) => {
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = file.name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className='space-y-4 p-4'>
@@ -160,8 +177,10 @@ export default function Page() {
                   onChange={(e) => setPhone(e.target.value)}
                 />
               </div>
-              <div className='col-span-2 flex justify-end '>
-                <Button disabled={!editPersonal} className='hover:cursor-pointer'>Save</Button>
+              <div className='col-span-2 flex justify-end'>
+                <Button disabled={!editPersonal} className='hover:cursor-pointer'>
+                  Save
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -236,8 +255,10 @@ export default function Page() {
                   onChange={(e) => setSp(e.target.value)}
                 />
               </div>
-              <div className='col-span-2 flex justify-end '>
-                <Button disabled={!editAdditional} className='hover:cursor-pointer'>Save</Button>
+              <div className='col-span-2 flex justify-end'>
+                <Button disabled={!editAdditional} className='hover:cursor-pointer'>
+                  Save
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -255,16 +276,67 @@ export default function Page() {
               ✎
             </span>
           </CardHeader>
-          <CardContent className='grid grid-cols-1 gap-6 text-sm sm:grid-cols-2 lg:grid-cols-4'>
-            {[1, 2, 3, 4].map((idx) => (
-              <div key={idx}>
-                <div className='font-semibold'>Certification</div>
-                <Input disabled={!editDocument} type='file' placeholder='Enter Certification' />
+          <CardContent>
+            <div className='mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4'>
+              <div className='flex flex-col gap-2'>
+                <label className='font-semibold'>File</label>
+                <Input
+                  disabled={!editDocument}
+                  type='file'
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] || null;
+                    if (file && editDocument) {
+                      setDocuments((prev) => [...prev, { name: file.name, file }]);
+                      e.target.value = '';
+                    }
+                  }}
+                />
               </div>
-            ))}
-            <div className='col-span-4 flex justify-end '>
-                <Button disabled={!editDocument} className='hover:cursor-pointer'>Save</Button>
-              </div>
+            </div>
+            {/* Tabel Dokumen */}
+            <div className='overflow-x-auto'>
+              <table className='min-w-full border text-sm'>
+                <thead>
+                  <tr className='bg-gray-100'>
+                    <th className='border px-2 py-1'>No</th>
+                    <th className='border px-2 py-1'>File Name</th>
+                    <th className='border px-2 py-1'>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {documents.length === 0 && (
+                    <tr>
+                      <td colSpan={3} className='py-2 text-center'>
+                        No documents
+                      </td>
+                    </tr>
+                  )}
+                  {documents.map((doc, idx) => (
+                    <tr key={idx}>
+                      <td className='border-none px-2 py-1 flex justify-center'>{idx + 1}</td>
+                      <td className='border px-2 py-1'>{doc.file?.name}</td>
+                      <td className='border px-2 py-1'>
+                        <div className='flex flex-row justify-center gap-2'>
+                          <Button
+                            variant='destructive'                            
+                            onClick={() => handleDeleteDocument(idx)}
+                          >
+                            Delete
+                          </Button>
+                          <Button                            
+                            onClick={() => handleDownloadDocument(doc.file)}
+                            disabled={!doc.file}
+                            variant='secondary'
+                          >
+                            Download
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </CardContent>
         </Card>
       )}

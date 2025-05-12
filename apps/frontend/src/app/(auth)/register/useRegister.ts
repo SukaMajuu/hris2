@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useMutation } from "@tanstack/react-query";
 import { useAuthStore } from "@/stores/auth.store";
-import { authService } from "@/services/auth.service";
 import { RegisterFormData } from "@/schemas/auth.schema";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
@@ -10,11 +8,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { registerSchema } from "@/schemas/auth.schema";
 import { getSupabaseGoogleToken } from "@/utils/google-auth";
 import { AxiosError } from "axios";
+import { useRegisterMutation } from "@/api/mutations/auth.mutation";
 
 export const useRegister = () => {
 	const [isLoading, setIsLoading] = useState(false);
 	const router = useRouter();
 	const setUser = useAuthStore((state) => state.setUser);
+
+	const registerMutation = useRegisterMutation();
 
 	const registerForm = useForm<RegisterFormData>({
 		resolver: zodResolver(registerSchema),
@@ -28,14 +29,14 @@ export const useRegister = () => {
 		},
 	});
 
-	const registerMutation = useMutation({
-		mutationFn: (data: RegisterFormData) => authService.register(data),
-		onSuccess: (response) => {
+	const register = async (data: RegisterFormData) => {
+		setIsLoading(true);
+		try {
+			const response = await registerMutation.mutateAsync(data);
 			setUser(response.user);
 			router.push("/dashboard");
 			toast.success("Registration successful! Welcome to HRIS.");
-		},
-		onError: (error) => {
+		} catch (error) {
 			let errorMessage = "Registration failed. Please try again.";
 
 			if (error instanceof AxiosError) {
@@ -53,15 +54,6 @@ export const useRegister = () => {
 			}
 
 			toast.error(errorMessage);
-		},
-	});
-
-	const register = async (data: RegisterFormData) => {
-		setIsLoading(true);
-		try {
-			await registerMutation.mutateAsync(data);
-		} catch (error) {
-			console.error("Registration error in register function:", error);
 		} finally {
 			setIsLoading(false);
 		}

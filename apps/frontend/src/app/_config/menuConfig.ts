@@ -7,6 +7,7 @@ import {
   HelpCircle,
   Settings,
   type LucideIcon,
+  LogOut,
 } from "lucide-react"
 import { ROLES, type Role } from "@/const/role"
 
@@ -77,6 +78,13 @@ export const menuItems: MenuItemConfig[] = [
     roles: [ROLES.admin, ROLES.user],
     type: "footer"
   },
+  {
+    title: "Logout",
+    href: "/logout",
+    icon: LogOut,
+    roles: [ROLES.admin, ROLES.user],
+    type: "footer"
+  }
 ]
 
 export const getMenuItemsByRole = (role: Role): MenuItemConfig[] => {

@@ -9,11 +9,11 @@ import (
 type LeaveType string
 
 const (
-	SickLeave         LeaveType = "Sick Leave"          // Sick Leave
-	CompasionateLeave LeaveType = "Compassionate Leave" // Compassionate Leave
-	MaternityLeave    LeaveType = "Maternity Leave"     // Maternity Leave
-	AnnualLeave       LeaveType = "Annual Leave"        // Annual Leave
-	MarriageLeave     LeaveType = "Marriage Leave"      // Marriage Leave
+	SickLeave         LeaveType = "sick_leave"          // Sick Leave
+	CompasionateLeave LeaveType = "compassionate_leave" // Compassionate Leave
+	MaternityLeave    LeaveType = "maternity_leave"     // Maternity Leave
+	AnnualLeave       LeaveType = "annual_leave"        // Annual Leave
+	MarriageLeave     LeaveType = "marriage_leave"      // Marriage Leave
 )
 
 func (lt *LeaveType) Scan(value interface{}) error {

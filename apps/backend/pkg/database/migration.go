@@ -35,6 +35,22 @@ func Migrate(db *gorm.DB) error {
 			'K/I/0', 'K/I/1', 'K/I/2', 'K/I/3'
 		);
 
+		-- Work Type Enum (New)
+		DROP TYPE IF EXISTS work_type CASCADE;
+		CREATE TYPE work_type AS ENUM ('WFO', 'WFH', 'WFA','Hybrid');
+		
+		-- leave_type Enum (New)
+		DROP TYPE IF EXISTS leave_type CASCADE;
+		CREATE TYPE leave_type AS ENUM ('sick_leave', 'annual_leave', 'maternity_leave', 'compassionate_leave', 'marriage Leave');
+
+		-- attendance_status (new)
+		DROP TYPE IF EXISTS attendance_status CASCADE;
+		CREATE TYPE attendance_status AS ENUM ('on_time', 'late', 'early_eave', 'absent', 'leave');
+
+		-- leave_status (new)
+		DROP TYPE IF EXISTS leave_status CASCADE;
+		CREATE TYPE leave_status AS ENUM ('Waiting Approval', 'Approved', 'Rejected');
+
 	EXCEPTION WHEN undefined_object THEN null; -- Changed exception handler for DROP TYPE
 	END $$;`).Error; err != nil {
 		return err
@@ -54,6 +70,11 @@ func Migrate(db *gorm.DB) error {
 		&models.Position{},
 		&models.Branch{},
 		&models.RefreshToken{},
+		&models.Location{},
+		&models.CheckClockSettings{},
+		&models.WorkSchedule{},
+		&models.Attendance{},
+		&models.LeaveRequest{},
 	); err != nil {
 		return err
 	}

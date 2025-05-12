@@ -17,6 +17,22 @@ export default function Page() {
   const employee = employees.find((e) => e.id === id);
 
   const [activeTab, setActiveTab] = useState<'personal' | 'document'>('personal');
+  const [editPersonal, setEditPersonal] = useState(false);
+  const [editAdditional, setEditAdditional] = useState(false);
+  const [editDocument, setEditDocument] = useState(false);
+
+  const [nik, setNik] = useState('');
+  const [gender, setGender] = useState(employee?.gender || '');
+  const [placeOfBirth, setPlaceOfBirth] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [lastEducation, setLastEducation] = useState('');
+  const [phone, setPhone] = useState(employee?.phone || '');
+  const [contractType, setContractType] = useState('');
+  const [grade, setGrade] = useState('');
+  const [bank, setBank] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [accountName, setAccountName] = useState('');
+  const [sp, setSp] = useState('');
 
   if (!employee) {
     return <div className='p-4'>Employee not found.</div>;
@@ -51,7 +67,6 @@ export default function Page() {
       <div className='mb-2 flex flex-col items-start gap-2 text-sm text-gray-600 sm:flex-row sm:items-center'>
         <Button
           className={`hover:text-gray w-full hover:cursor-pointer hover:bg-gray-200 sm:w-auto ${
-          className={`hover:text-gray w-full hover:cursor-pointer hover:bg-gray-200 sm:w-auto ${
             activeTab === 'personal' ? 'font-bold' : ''
           }`}
           variant='ghost'
@@ -76,77 +91,153 @@ export default function Page() {
           <Card className='border-none bg-white px-4 py-6 shadow'>
             <CardHeader className='mb-2 flex justify-between border-none font-semibold'>
               Personal Information
-              <span className='cursor-pointer text-blue-500'>✎</span>
+              <span
+                className='cursor-pointer text-blue-500'
+                onClick={() => setEditPersonal((prev) => !prev)}
+              >
+                ✎
+              </span>
             </CardHeader>
-            <CardContent className='grid grid-cols-1 gap-x-5 gap-y-5 border-none text-sm sm:grid-cols-2'>
-            <CardContent className='grid grid-cols-1 gap-x-4 gap-y-6 border-none text-sm sm:grid-cols-2 '>
+            <CardContent className='grid grid-cols-1 gap-x-4 gap-y-6 border-none text-sm sm:grid-cols-2'>
               <div>
                 <span className='font-semibold'>NIK</span>
-                <Input disabled type='text' placeholder='Enter NIK' value='' />
+                <Input
+                  disabled={!editPersonal}
+                  type='text'
+                  placeholder='Enter NIK'
+                  value={nik}
+                  onChange={(e) => setNik(e.target.value)}
+                />
               </div>
               <div>
                 <span className='font-semibold'>Gender</span>
-                <Input disabled type='text' placeholder='Enter Gender' value={employee.gender} />
+                <Input
+                  disabled={!editPersonal}
+                  type='text'
+                  placeholder='Enter Gender'
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value)}
+                />
               </div>
               <div>
                 <span className='font-semibold'>Place of Birth</span>
-                <Input disabled type='text' placeholder='Enter Place of Birth' value='' />
+                <Input
+                  disabled={!editPersonal}
+                  type='text'
+                  placeholder='Enter Place of Birth'
+                  value={placeOfBirth}
+                  onChange={(e) => setPlaceOfBirth(e.target.value)}
+                />
               </div>
               <div>
                 <span className='font-semibold'>Date of Birth</span>
-                <Input disabled type='text' placeholder='Enter Date of Birth' value='' />
+                <Input
+                  disabled={!editPersonal}
+                  type='text'
+                  placeholder='Enter Date of Birth'
+                  value={dateOfBirth}
+                  onChange={(e) => setDateOfBirth(e.target.value)}
+                />
               </div>
               <div>
                 <span className='font-semibold'>Last Education</span>
                 <Input
-                  disabled
+                  disabled={!editPersonal}
                   type='text'
                   placeholder='Enter Last Education'
-                  value=''
+                  value={lastEducation}
+                  onChange={(e) => setLastEducation(e.target.value)}
                   className='border-secondary'
                 />
               </div>
               <div>
                 <span className='font-semibold'>Phone Number</span>
                 <Input
-                  disabled
+                  disabled={!editPersonal}
                   type='text'
                   placeholder='Enter Phone Number'
-                  value={employee.phone}
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
                 />
+              </div>
+              <div className='col-span-2 flex justify-end '>
+                <Button disabled={!editPersonal} className='hover:cursor-pointer'>Save</Button>
               </div>
             </CardContent>
           </Card>
           <Card className='border-none bg-white px-4 py-6 shadow'>
             <CardHeader className='mb-2 flex justify-between border-none font-semibold'>
               Additional Information
-              <span className='cursor-pointer text-blue-500'>✎</span>
+              <span
+                className='cursor-pointer text-blue-500'
+                onClick={() => setEditAdditional((prev) => !prev)}
+              >
+                ✎
+              </span>
             </CardHeader>
-            <CardContent className='grid grid-cols-1 gap-x-5 gap-y-5 border-none text-sm sm:grid-cols-2'>
             <CardContent className='grid grid-cols-1 gap-x-4 gap-y-6 border-none text-sm sm:grid-cols-2'>
               <div>
                 <span className='font-semibold'>Contract Type</span>
-                <Input disabled type='text' placeholder='Enter Contract Type' value='' />
+                <Input
+                  disabled={!editAdditional}
+                  type='text'
+                  placeholder='Enter Contract Type'
+                  value={contractType}
+                  onChange={(e) => setContractType(e.target.value)}
+                />
               </div>
               <div>
                 <span className='font-semibold'>Grade</span>
-                <Input disabled type='text' placeholder='Enter Grade' value='' />
+                <Input
+                  disabled={!editAdditional}
+                  type='text'
+                  placeholder='Enter Grade'
+                  value={grade}
+                  onChange={(e) => setGrade(e.target.value)}
+                />
               </div>
               <div>
                 <span className='font-semibold'>Bank</span>
-                <Input disabled type='text' placeholder='Enter Bank' value='' />
+                <Input
+                  disabled={!editAdditional}
+                  type='text'
+                  placeholder='Enter Bank'
+                  value={bank}
+                  onChange={(e) => setBank(e.target.value)}
+                />
               </div>
               <div>
                 <span className='font-semibold'>Account Number</span>
-                <Input disabled type='text' placeholder='Enter Account Number' value='' />
+                <Input
+                  disabled={!editAdditional}
+                  type='text'
+                  placeholder='Enter Account Number'
+                  value={accountNumber}
+                  onChange={(e) => setAccountNumber(e.target.value)}
+                />
               </div>
               <div>
                 <span className='font-semibold'>Account Name</span>
-                <Input disabled type='text' placeholder='Enter Account Name' value='' />
+                <Input
+                  disabled={!editAdditional}
+                  type='text'
+                  placeholder='Enter Account Name'
+                  value={accountName}
+                  onChange={(e) => setAccountName(e.target.value)}
+                />
               </div>
               <div>
                 <span className='font-semibold'>SP</span>
-                <Input disabled type='text' placeholder='Enter SP' value='' />
+                <Input
+                  disabled={!editAdditional}
+                  type='text'
+                  placeholder='Enter SP'
+                  value={sp}
+                  onChange={(e) => setSp(e.target.value)}
+                />
+              </div>
+              <div className='col-span-2 flex justify-end '>
+                <Button disabled={!editAdditional} className='hover:cursor-pointer'>Save</Button>
               </div>
             </CardContent>
           </Card>
@@ -157,17 +248,24 @@ export default function Page() {
         <Card className='border-none bg-white p-4 shadow'>
           <CardHeader className='mb-2 flex justify-between font-semibold'>
             Document Information
-            <span className='cursor-pointer text-blue-500'>✎</span>
+            <span
+              className='cursor-pointer text-blue-500'
+              onClick={() => setEditDocument((prev) => !prev)}
+            >
+              ✎
+            </span>
           </CardHeader>
           <CardContent className='grid grid-cols-1 gap-6 text-sm sm:grid-cols-2 lg:grid-cols-4'>
             {[1, 2, 3, 4].map((idx) => (
               <div key={idx}>
                 <div className='font-semibold'>Certification</div>
-                <Input disabled type='file' placeholder='Enter Certification' value='' />
+                <Input disabled={!editDocument} type='file' placeholder='Enter Certification' />
               </div>
             ))}
+            <div className='col-span-4 flex justify-end '>
+                <Button disabled={!editDocument} className='hover:cursor-pointer'>Save</Button>
+              </div>
           </CardContent>
-          <div className='mt-4 flex justify-end'></div>
         </Card>
       )}
 

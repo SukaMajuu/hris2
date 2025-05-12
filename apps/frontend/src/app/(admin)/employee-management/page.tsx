@@ -26,13 +26,6 @@ import type { Employee } from './_types/employee';
 import { StatCard } from './_components/StatCard';
 import { useState } from 'react';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -40,12 +33,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 export default function EmployeeManagementPage() {
-  const { page, setPage, pageSize, setPageSize, employees, totalRecords, totalPages } =
+  const { page, setPage, pageSize, setPageSize, employees} =
     useEmployeeManagement();
 
-  const [searchInput, setSearchInput] = useState('');
-  const [genderInput, setGenderInput] = useState('');
-  const [showFilter, setShowFilter] = useState(false);
   const [genderFilter, setGenderFilter] = useState('all');
   const [search, setSearch] = useState('');
 

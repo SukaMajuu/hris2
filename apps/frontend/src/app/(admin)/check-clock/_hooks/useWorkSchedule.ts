@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 export interface WorkSchedule {
     id: number;
@@ -16,7 +15,6 @@ export interface WorkSchedule {
 export function useWorkSchedule() {
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
-    const router = useRouter();
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [workSchedules, setWorkSchedules] = useState<WorkSchedule[]>(
@@ -37,10 +35,6 @@ export function useWorkSchedule() {
     const totalRecords = workSchedules.length;
     const totalPages = Math.ceil(totalRecords / pageSize);
 
-    const handleEdit = (id: number) => {
-        router.push(`/check-clock/work-schedule/edit/${id}`);
-    };
-
     return {
         page,
         setPage,
@@ -49,6 +43,5 @@ export function useWorkSchedule() {
         workSchedules,
         totalRecords,
         totalPages,
-        handleEdit,
     };
 }

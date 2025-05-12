@@ -1,43 +1,32 @@
-import { Inter, Roboto } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
-import AppQueryProvider from "./_components/AppQueryProvider";
 import { Metadata } from "next";
 import { AuthProvider } from "./_components/AuthProvider";
-import { Toaster } from "sonner";
+import { Toaster } from "../components/ui/toaster";
 
 const inter = Inter({
-	variable: "--font-inter",
-	subsets: ["latin"],
-	display: "swap",
-});
-
-const roboto = Roboto({
-	weight: ["400", "500", "700"],
-	subsets: ["latin"],
-	display: "swap",
-	variable: "--font-roboto",
+  variable: "--font-inter",
+  subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-	title: "HRIS",
-	description: "A Human Resource Information System",
+  title: "HRIS",
+  description: "A Human Resource Information System",
 };
 
 export default function RootLayout({
-	children,
-}: Readonly<{
-	children: React.ReactNode;
-}>) {
-	return (
-		<html lang="en">
-			<body
-				className={`antialiased ${inter.variable} ${roboto.variable}`}
-			>
-				<AppQueryProvider>
-					<AuthProvider>{children}</AuthProvider>
-					<Toaster />
-				</AppQueryProvider>
-			</body>
-		</html>
-	);
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="en">
+      <body className={inter.variable}>
+        <AuthProvider>
+          {children}
+          <Toaster />
+        </AuthProvider>
+      </body>
+    </html>
+  );
 }

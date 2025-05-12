@@ -42,6 +42,13 @@ export const WFH: Story = {
 	},
 };
 
+//story for Hybrid
+export const Hybrid: Story = {
+	args: {
+		workType: WORK_TYPES.Hybrid,
+	},
+};
+
 // Story showing all badge types together
 export const AllTypes: Story = {
 	render: () => (
@@ -49,6 +56,7 @@ export const AllTypes: Story = {
 			<WorkTypeBadge workType={WORK_TYPES.WFO} />
 			<WorkTypeBadge workType={WORK_TYPES.WFA} />
 			<WorkTypeBadge workType={WORK_TYPES.WFH} />
+			<WorkTypeBadge workType={WORK_TYPES.Hybrid} />
 		</div>
 	),
 };

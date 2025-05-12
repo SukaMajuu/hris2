@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Edit, Filter, Search } from "lucide-react";
+import { Edit, Filter, Plus, Search } from "lucide-react";
 import WorkTypeBadge from "@/components/workTypeBadge";
 import { WorkType } from "@/const/work";
 import { DataTable, Column } from "@/components/dataTable";
@@ -11,6 +11,7 @@ import {
 } from "../_hooks/useCheckClockEmployee";
 import { PaginationComponent } from "@/components/pagination";
 import { PageSizeComponent } from "@/components/pageSize";
+import Link from "next/link";
 
 export default function CheckClockEmployeeTab() {
 	const {
@@ -86,9 +87,17 @@ export default function CheckClockEmployeeTab() {
 		<Card className="border border-gray-100 dark:border-gray-800">
 			<CardContent>
 				<header className="flex flex-col gap-4 mb-6">
-					<h2 className="text-xl font-semibold">
-						Check-Clock Employee
-					</h2>
+					<div className="flex flex-row flex-wrap justify-between items-center w-full">
+						<h2 className="text-xl font-semibold">
+							Check-Clock Employee
+						</h2>
+						<Button className="gap-2 bg-[#6B9AC4] hover:bg-[#5A89B3]">
+							<Plus className="h-4 w-4" />
+							<Link href="/employee-management/add">
+								Add Data
+							</Link>
+						</Button>
+					</div>
 					<div className="flex flex-wrap items-center gap-4 md:w-[400px]">
 						<div className="relative flex-[1]">
 							<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />

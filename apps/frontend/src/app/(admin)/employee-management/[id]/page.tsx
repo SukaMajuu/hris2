@@ -51,6 +51,7 @@ export default function Page() {
       <div className='mb-2 flex flex-col items-start gap-2 text-sm text-gray-600 sm:flex-row sm:items-center'>
         <Button
           className={`hover:text-gray w-full hover:cursor-pointer hover:bg-gray-200 sm:w-auto ${
+          className={`hover:text-gray w-full hover:cursor-pointer hover:bg-gray-200 sm:w-auto ${
             activeTab === 'personal' ? 'font-bold' : ''
           }`}
           variant='ghost'
@@ -78,6 +79,7 @@ export default function Page() {
               <span className='cursor-pointer text-blue-500'>✎</span>
             </CardHeader>
             <CardContent className='grid grid-cols-1 gap-x-5 gap-y-5 border-none text-sm sm:grid-cols-2'>
+            <CardContent className='grid grid-cols-1 gap-x-4 gap-y-6 border-none text-sm sm:grid-cols-2 '>
               <div>
                 <span className='font-semibold'>NIK</span>
                 <Input disabled type='text' placeholder='Enter NIK' value='' />
@@ -121,6 +123,7 @@ export default function Page() {
               <span className='cursor-pointer text-blue-500'>✎</span>
             </CardHeader>
             <CardContent className='grid grid-cols-1 gap-x-5 gap-y-5 border-none text-sm sm:grid-cols-2'>
+            <CardContent className='grid grid-cols-1 gap-x-4 gap-y-6 border-none text-sm sm:grid-cols-2'>
               <div>
                 <span className='font-semibold'>Contract Type</span>
                 <Input disabled type='text' placeholder='Enter Contract Type' value='' />
@@ -156,7 +159,7 @@ export default function Page() {
             Document Information
             <span className='cursor-pointer text-blue-500'>✎</span>
           </CardHeader>
-          <CardContent className='grid grid-cols-1 gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4'>
+          <CardContent className='grid grid-cols-1 gap-6 text-sm sm:grid-cols-2 lg:grid-cols-4'>
             {[1, 2, 3, 4].map((idx) => (
               <div key={idx}>
                 <div className='font-semibold'>Certification</div>

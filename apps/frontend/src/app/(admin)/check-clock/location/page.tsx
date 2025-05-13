@@ -106,7 +106,7 @@ export default function LocationPage() {
 	return (
 		<>
 			<Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-				<DialogContent className="sm:max-w-[1000px] overflow-y-auto">
+				<DialogContent className="sm:max-w-[800px] overflow-y-auto">
 					<DialogHeader>
 						<DialogTitle>
 							{isEditing ? "Edit" : "Add"} Location
@@ -118,7 +118,7 @@ export default function LocationPage() {
 						</DialogDescription>
 					</DialogHeader>
 
-					<div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
+					<div className="grid grid-cols-1 gap-6 py-4">
 						<div className="h-full space-y-2 min-h-[200px]">
 							<Label>Pilih Lokasi</Label>
 							<MapComponent
@@ -153,11 +153,6 @@ export default function LocationPage() {
 														latitude: newLat,
 														longitude: newLng,
 													}));
-
-													// Force map to update by triggering a re-render
-													setTimeout(() => {
-														// This empty timeout forces a re-render after state update
-													}, 0);
 												},
 												(error) => {
 													console.error(
@@ -196,18 +191,6 @@ export default function LocationPage() {
 
 						<div className="space-y-4">
 							<div className="grid gap-4">
-								<div className="space-y-2">
-									<Label htmlFor="nama">Nama Lokasi</Label>
-									<Input
-										id="nama"
-										value={formData.nama ?? ""}
-										onChange={(e) =>
-											handleChange("nama", e.target.value)
-										}
-										placeholder="Masukkan nama lokasi"
-									/>
-								</div>
-
 								<div className="grid grid-cols-2 gap-4">
 									<div className="space-y-2">
 										<Label htmlFor="latitude">
@@ -231,6 +214,18 @@ export default function LocationPage() {
 											className="bg-gray-300 dark:bg-gray-800"
 										/>
 									</div>
+								</div>
+
+								<div className="space-y-2">
+									<Label htmlFor="nama">Nama Lokasi</Label>
+									<Input
+										id="nama"
+										value={formData.nama ?? ""}
+										onChange={(e) =>
+											handleChange("nama", e.target.value)
+										}
+										placeholder="Masukkan nama lokasi"
+									/>
 								</div>
 
 								<div className="space-y-2">

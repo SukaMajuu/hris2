@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 export interface OverviewData {
     id: number;
@@ -15,7 +14,6 @@ export interface OverviewData {
 export function useCheckClockOverview() {
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
-    const router = useRouter();
 
     // Mock data generation
     const [overviewData] = useState<OverviewData[]>(
@@ -34,19 +32,6 @@ export function useCheckClockOverview() {
     const totalRecords = overviewData.length;
     const totalPages = Math.ceil(totalRecords / pageSize);
 
-    const handleViewDetails = (id: number) => {
-        router.push(`/check-clock/details/${id}`);
-    };
-
-    const handleAddData = () => {
-        router.push('/check-clock/add');
-    };
-
-    const handleFilter = () => {
-        // Implement filter logic
-        console.log("Filter clicked");
-    };
-
     return {
         page,
         setPage,
@@ -55,8 +40,5 @@ export function useCheckClockOverview() {
         overviewData,
         totalRecords,
         totalPages,
-        handleViewDetails,
-        handleAddData,
-        handleFilter,
     };
 }

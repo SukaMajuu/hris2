@@ -14,10 +14,26 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useLogin } from "./_hooks/useLogin";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+	LoginIdEmployeeFormData,
+	loginIdEmployeeSchema,
+} from "@/schemas/auth.schema";
+import { z } from "zod";
 
-export default function LoginPage() {
-	const { loginForm, login, initiateGoogleLogin, isLoading } = useLogin();
+export default function LoginIdEmployeePage() {
+	const loginForm = useForm<LoginIdEmployeeFormData>({
+		resolver: zodResolver(loginIdEmployeeSchema),
+		defaultValues: {
+			employeeId: "",
+			password: "",
+		},
+	});
+
+	const login = (data: z.infer<typeof loginIdEmployeeSchema>) => {
+		console.log(data);
+	};
 
 	return (
 		<div className="h-full w-full flex flex-col">
@@ -35,7 +51,7 @@ export default function LoginPage() {
 				{/* Title and Description */}
 				<div className="flex flex-col gap-4">
 					<h1 className="typography-h5 font-bold text-gray-900">
-						Sign In
+						Sign in with Employee ID
 					</h1>
 					<p className="typography-body2 text-gray-600">
 						Welcome back to HRIS cmlabs! Manage everything with
@@ -51,15 +67,15 @@ export default function LoginPage() {
 					>
 						<FormField
 							control={loginForm.control}
-							name="emailOrPhoneNumber"
+							name="employeeId"
 							render={({ field }) => (
 								<FormItem className="min-h-20 relative">
-									<FormLabel>Email or Phone Number</FormLabel>
+									<FormLabel>Employee ID</FormLabel>
 									<FormControl>
 										<Input
 											className="h-12 px-4 text-base"
 											type="text"
-											placeholder="Enter your email or phone number"
+											placeholder="Enter your employee ID"
 											{...field}
 										/>
 									</FormControl>
@@ -118,23 +134,12 @@ export default function LoginPage() {
 							<Button
 								type="submit"
 								className="w-full h-12 text-base hover:cursor-pointer"
-								disabled={isLoading}
 							>
-								{isLoading ? "Signing in..." : "Sign in"}
+								Sign in
 							</Button>
-							<Button
-								onClick={initiateGoogleLogin}
-								className="w-full h-12 text-base bg-white text-black border border-gray-300 hover:bg-gray-200 hover:cursor-pointer"
-								disabled={isLoading}
-							>
-								Sign in with Google
-							</Button>
-							<Link href="/login/id-employee">
-								<Button
-									className="w-full h-12 text-base bg-white text-black border border-gray-300 hover:bg-gray-200 hover:cursor-pointer"
-									disabled={isLoading}
-								>
-									Sign in with ID Employee
+							<Link href="/login">
+								<Button className="w-full h-12 text-base bg-white text-black border border-gray-300 hover:bg-gray-200 hover:cursor-pointer">
+									Use a different sign-in method
 								</Button>
 							</Link>
 						</div>

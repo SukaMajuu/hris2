@@ -1,49 +1,46 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/auth.store";
-import { RegisterFormData } from "@/schemas/auth.schema";
+import { LoginFormData } from "@/schemas/auth.schema";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { registerSchema } from "@/schemas/auth.schema";
+import { loginSchema } from "@/schemas/auth.schema";
 import { getSupabaseGoogleToken } from "@/utils/google-auth";
 import { AxiosError } from "axios";
-import { useRegisterMutation } from "@/api/mutations/auth.mutation";
+import { useLoginMutation } from "@/api/mutations/auth.mutation";
 
-export const useRegister = () => {
+export const useLogin = () => {
 	const [isLoading, setIsLoading] = useState(false);
 	const router = useRouter();
 	const setUser = useAuthStore((state) => state.setUser);
 
-	const registerMutation = useRegisterMutation();
-
-	const registerForm = useForm<RegisterFormData>({
-		resolver: zodResolver(registerSchema),
+	const loginForm = useForm<LoginFormData>({
+		resolver: zodResolver(loginSchema),
 		defaultValues: {
-			email: "",
+			emailOrPhoneNumber: "",
 			password: "",
-			first_name: "",
-			last_name: "",
-			confirmPassword: "",
-			agree_terms: false,
+			rememberMe: false,
 		},
 	});
 
-	const register = async (data: RegisterFormData) => {
+	const loginMutation = useLoginMutation();
+
+	const login = async (data: LoginFormData) => {
 		setIsLoading(true);
 		try {
-			const response = await registerMutation.mutateAsync(data);
+			const response = await loginMutation.mutateAsync(data);
 			setUser(response.user);
 			router.push("/dashboard");
-			toast.success("Registration successful! Welcome to HRIS.");
+			toast.success("Login successful! Welcome back.");
 		} catch (error) {
-			let errorMessage = "Registration failed. Please try again.";
+			console.error("Login error in login function:", error);
+			let errorMessage =
+				"Login failed. Please check your credentials and try again.";
 
 			if (error instanceof AxiosError) {
-				if (error.response?.status === 409) {
-					errorMessage =
-						error.response?.data?.message ||
-						"This email is already registered.";
+				if (error.response?.status === 401) {
+					errorMessage = "Invalid email or password.";
 				} else if (error.response?.data?.message) {
 					errorMessage = error.response.data.message;
 				} else if (error.message) {
@@ -59,7 +56,7 @@ export const useRegister = () => {
 		}
 	};
 
-	const handleRegisterWithGoogle = async () => {
+	const handleLoginWithGoogle = async () => {
 		setIsLoading(true);
 		try {
 			await getSupabaseGoogleToken();
@@ -75,9 +72,9 @@ export const useRegister = () => {
 	};
 
 	return {
-		register,
-		initiateGoogleRegister: handleRegisterWithGoogle,
-		isLoading: isLoading || registerMutation.isPending,
-		registerForm,
+		login,
+		initiateGoogleLogin: handleLoginWithGoogle,
+		isLoading: isLoading || loginMutation.isPending,
+		loginForm,
 	};
 };

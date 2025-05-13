@@ -80,7 +80,7 @@ func (r *Router) Setup() *gin.Engine {
 				password.POST("/reset", r.authHandler.ResetPassword)
 			}
 
-			auth.POST("/logout", r.authHandler.Logout)
+			auth.POST("/logout", r.authMiddleware.Authenticate(), r.authHandler.Logout)
 			auth.POST("/refresh", r.authHandler.RefreshToken)
 		}
 

@@ -6,6 +6,12 @@ export const loginSchema = z.object({
 	rememberMe: z.boolean().optional(),
 });
 
+export const loginIdEmployeeSchema = z.object({
+	employeeId: z.string().min(1, "Employee ID is required"),
+	password: z.string().min(6, "Password must be at least 6 characters"),
+	rememberMe: z.boolean().optional(),
+});
+
 export const registerSchema = z
 	.object({
 		first_name: z.string().min(1, "First name is required"),
@@ -46,6 +52,7 @@ export const resetPasswordSchema = z
 	});
 
 export type LoginFormData = z.infer<typeof loginSchema>;
+export type LoginIdEmployeeFormData = z.infer<typeof loginIdEmployeeSchema>;
 export type RegisterFormData = z.infer<typeof registerSchema>;
 export type GoogleAuthFormData = z.infer<typeof googleAuthSchema>;
 export type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;

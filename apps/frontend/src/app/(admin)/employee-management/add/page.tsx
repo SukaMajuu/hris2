@@ -82,24 +82,24 @@ export default function AddEmployeePage() {
               <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
                 <div className='border-none'>
                   <label className='mb-1 block font-medium'>First Name</label>
-                  <Input placeholder='Enter' className='border-secondary' />
+                  <Input placeholder='Enter' className='border-secondary cursor-pointer' />
                 </div>
                 <div>
                   <label className='mb-1 block font-medium'>Last Name</label>
-                  <Input placeholder='Enter' className='border-secondary' />
+                  <Input placeholder='Enter' className='border-secondary cursor-pointer' />
                 </div>
                 <div>
                   <label className='mb-1 block font-medium'>NIK</label>
-                  <Input placeholder='Enter' className='border-secondary' />
+                  <Input placeholder='Enter' className='border-secondary cursor-pointer' />
                 </div>
                 <div>
                   <label className='mb-1 block font-medium'>Phone Number</label>
-                  <Input placeholder='Enter' className='border-secondary' />
+                  <Input placeholder='Enter' className='border-secondary cursor-pointer' />
                 </div>
                 <div>
                   <label className='mb-1 block font-medium'>Gender</label>
                   <Select>
-                    <SelectTrigger className='border-secondary min-w-full'>
+                    <SelectTrigger className='border-secondary min-w-full cursor-pointer'>
                       <SelectValue placeholder='Choose' className='border-secondary' />
                     </SelectTrigger>
                     <SelectContent>
@@ -111,7 +111,7 @@ export default function AddEmployeePage() {
                 <div>
                   <label className='mb-1 block font-medium'>Last Education</label>
                   <Select>
-                    <SelectTrigger className='border-secondary min-w-full'>
+                    <SelectTrigger className='border-secondary min-w-full cursor-pointer'>
                       <SelectValue placeholder='Choose' />
                     </SelectTrigger>
                     <SelectContent>
@@ -124,10 +124,10 @@ export default function AddEmployeePage() {
                 </div>
                 <div>
                   <label className='mb-1 block font-medium'>Place of Birth</label>
-                  <Input placeholder='Enter' className='border-secondary' />
+                  <Input placeholder='Enter' className='border-secondary cursor-pointer' />
                 </div>
                 <div>
-                  <label className='mb-1 block font-medium'>Date of Birth</label>
+                  <label className='mb-1 block font-medium'> Dateof Birth</label>
                   <Input type='date' className='border-secondary' />
                 </div>
               </div>
@@ -183,11 +183,7 @@ export default function AddEmployeePage() {
       <div className='mt-8 flex justify-end gap-3'>
         <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
           <AlertDialogTrigger asChild>
-            <Button
-              type='button'
-              variant='outline'
-              className='hover:bg-destructive bg-[#c7d3dd] text-black'
-            >
+            <Button type='button' variant='outline' className='bg-[#c7d3dd] text-black'>
               Close
             </Button>
           </AlertDialogTrigger>
@@ -197,13 +193,14 @@ export default function AddEmployeePage() {
               <AlertDialogDescription>All entered data will be discarded.</AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel className='hover:bg-blue-500'>Close</AlertDialogCancel>
               <AlertDialogAction
+                className='bg-destructive hover:bg-red-500'
                 onClick={() => {
                   window.location.href = '/employee-management';
                 }}
               >
-                Yes, cancel
+                Yes
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

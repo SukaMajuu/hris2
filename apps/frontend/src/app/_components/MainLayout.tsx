@@ -71,7 +71,6 @@ export default function MainLayout({ children }: MainLayoutProps) {
                       <Collapsible defaultOpen={isAnySubActive}>
                         <CollapsibleTrigger asChild>
                           <SidebarMenuButton
-                            asChild
                             tooltip={item.title}
                             className={
                               isAnySubActive
@@ -80,10 +79,10 @@ export default function MainLayout({ children }: MainLayoutProps) {
                             }
                           >
                             <div className='flex items-center justify-between w-full'>
-                              <Link href={item.href} className='flex items-center gap-3'>
+                              <div className='flex items-center gap-3'>
                                 <item.icon className='h-5 w-5' />
                                 <span>{item.title}</span>
-                              </Link>
+                              </div>
                               <svg
                                 xmlns='http://www.w3.org/2000/svg'
                                 className='h-4 w-4 ml-auto text-gray-400'
@@ -101,7 +100,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
                           {item.items?.map((sub) => {
                             const isSubActive = pathname === sub.href;
                             return (
-                              <SidebarMenuItem key={sub.title}>
+                              <div key={sub.title} className="my-1">
                                 <SidebarMenuButton
                                   asChild
                                   tooltip={sub.title}
@@ -116,7 +115,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
                                     <span className='text-sm'>{sub.title}</span>
                                   </Link>
                                 </SidebarMenuButton>
-                              </SidebarMenuItem>
+                              </div>
                             );
                           })}
                         </CollapsibleContent>

@@ -45,11 +45,15 @@ export const menuItems: MenuItemConfig[] = [
   },
   {
     title: "Check-Clock",
-    href: "/check-clock",
+    href: "#",
     icon: Clock,
     roles: [ROLES.admin],
     type: "main",
     items: [
+      {
+        title: "Overview",
+        href: "/check-clock",
+      },
       {
         title: "Work Schedule",
         href: "/check-clock/work-schedule",

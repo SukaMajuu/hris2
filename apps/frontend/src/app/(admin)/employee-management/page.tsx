@@ -31,6 +31,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog';
 
 export default function EmployeeManagementPage() {
   const { page, setPage, pageSize, setPageSize, employees} =
@@ -97,10 +108,26 @@ export default function EmployeeManagementPage() {
               Detail
             </Button>
           </Link>
-          <Button size='sm' variant='destructive' className='hover:cursor-pointer hover:bg-red-800'>
-            <Trash2Icon className='mr-1 h-4 w-4' />
-            Delete
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button size='sm' variant='destructive' className='hover:cursor-pointer hover:bg-red-800'>
+                <Trash2Icon className='mr-1 h-4 w-4' />
+                Delete
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure want to delete this data?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete the employee data.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel className='bg-white hover:bg-secondary'>Cancel</AlertDialogCancel>
+                <AlertDialogAction className='bg-destructive hover:bg-red-600'>Delete</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       ),
     },

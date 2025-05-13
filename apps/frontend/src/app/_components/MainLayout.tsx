@@ -100,7 +100,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
                           {item.items?.map((sub) => {
                             const isSubActive = pathname === sub.href;
                             return (
-                              <SidebarMenuItem key={sub.title}>
+                              <div key={sub.title} className="mb-1">
                                 <SidebarMenuButton
                                   asChild
                                   tooltip={sub.title}
@@ -115,7 +115,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
                                     <span className='text-sm'>{sub.title}</span>
                                   </Link>
                                 </SidebarMenuButton>
-                              </SidebarMenuItem>
+                              </div>
                             );
                           })}
                         </CollapsibleContent>

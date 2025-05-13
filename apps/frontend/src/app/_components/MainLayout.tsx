@@ -100,7 +100,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
                           {item.items?.map((sub) => {
                             const isSubActive = pathname === sub.href;
                             return (
-                              <div key={sub.title} className="mb-1">
+                              <div key={sub.title} className="my-1">
                                 <SidebarMenuButton
                                   asChild
                                   tooltip={sub.title}

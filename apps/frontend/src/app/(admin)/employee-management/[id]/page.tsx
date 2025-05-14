@@ -112,7 +112,7 @@ export default function Page() {
                 className='cursor-pointer text-blue-500'
                 onClick={() => setEditPersonal((prev) => !prev)}
               >
-                ✎
+                Edit ✎
               </span>
             </CardHeader>
             <CardContent className='grid grid-cols-1 gap-x-4 gap-y-6 border-none text-sm sm:grid-cols-2'>
@@ -191,7 +191,7 @@ export default function Page() {
                 className='cursor-pointer text-blue-500'
                 onClick={() => setEditAdditional((prev) => !prev)}
               >
-                ✎
+                Edit ✎
               </span>
             </CardHeader>
             <CardContent className='grid grid-cols-1 gap-x-4 gap-y-6 border-none text-sm sm:grid-cols-2'>
@@ -273,7 +273,7 @@ export default function Page() {
               className='cursor-pointer text-blue-500'
               onClick={() => setEditDocument((prev) => !prev)}
             >
-              ✎
+              Edit ✎
             </span>
           </CardHeader>
           <CardContent>

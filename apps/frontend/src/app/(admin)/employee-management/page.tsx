@@ -44,7 +44,7 @@ import {
 } from '@/components/ui/alert-dialog';
 
 export default function EmployeeManagementPage() {
-  const { page, setPage, pageSize, setPageSize, employees} =
+  const { page, setPage, pageSize, setPageSize, employees, setEmployees } =
     useEmployeeManagement();
 
   const [genderFilter, setGenderFilter] = useState('all');
@@ -55,6 +55,11 @@ export default function EmployeeManagementPage() {
       emp.name.toLowerCase().includes(search.toLowerCase()) &&
       (genderFilter === 'all' ? true : emp.gender === genderFilter),
   );
+
+  // Fungsi untuk menghapus employee berdasarkan id
+  const handleDeleteEmployee = (id: number) => {
+    setEmployees((prev: Employee[]) => prev.filter(emp => emp.id !== id));
+  };
 
   const columns: Column<Employee>[] = [
     {
@@ -124,7 +129,12 @@ export default function EmployeeManagementPage() {
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel className='bg-white hover:bg-secondary'>Cancel</AlertDialogCancel>
-                <AlertDialogAction className='bg-destructive hover:bg-red-600'>Delete</AlertDialogAction>
+                <AlertDialogAction
+                  className='bg-destructive hover:bg-red-600'
+                  onClick={() => handleDeleteEmployee(item.id)}
+                >
+                  Delete
+                </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>

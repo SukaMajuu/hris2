@@ -22,6 +22,7 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from '@/components/ui/alert-dialog';
+import Image from 'next/image';
 
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
@@ -233,9 +234,11 @@ export default function AddEmployeePage() {
                 />
                 {formData.profilePhotoPreview && (
                   <>
-                    <img
+                    <Image
                       src={formData.profilePhotoPreview}
                       alt='Profile Preview'
+                      width={128}
+                      height={128}
                       className='mt-4 h-32 w-32 rounded-full object-cover border border-gray-300 shadow'
                     />
                     {formData.profilePhoto && (

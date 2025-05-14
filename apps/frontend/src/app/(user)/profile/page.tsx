@@ -32,6 +32,7 @@ export default function Page() {
     const [sp, setSp] = useState('');
     const [documents, setDocuments] = useState<{ name: string; file: File | null }[]>([]);
     const [profileImage, setProfileImage] = useState<string | null>(null);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [profileFile, setProfileFile] = useState<File | null>(null);
   
     if (!employee) {

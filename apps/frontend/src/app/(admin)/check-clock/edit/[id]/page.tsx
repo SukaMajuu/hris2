@@ -1,19 +1,22 @@
 'use client'
 
 import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
+import Image from "next/image";
 
 export default function EditCheckClockEmployee() {
   const router = useRouter();
   const { toast } = useToast();
   const [isEditingLocation, setIsEditingLocation] = useState(false);
   const [isEditingSchedule, setIsEditingSchedule] = useState(false);
+  // eslint-disable-next-line
+  const [profileImage, setProfileImage] = useState<string | null>(null);
 
   const handleSave = () => {
     // Add your save logic here
@@ -36,12 +39,21 @@ export default function EditCheckClockEmployee() {
 
       {/* Profile */}
       <Card>
+        <CardHeader>
+            <CardTitle className="text-lg font-semibold bg-[#E69500] text-white p-4 rounded-lg">
+                Edit Checkclock
+            </CardTitle>
+        </CardHeader>
+      </Card>
+      <Card>
         <CardContent className="flex items-center gap-4 p-4">
-          <img
-            src="/profile.jpg"
-            alt="Profile"
-            className="w-16 h-16 rounded-full object-cover"
-          />
+          <Image
+              src={profileImage || '/logo.png'}
+              alt='Profile Photo'
+              width={80}
+              height={80}
+              className='object-fill'
+            />
           <div>
             <p className="text-lg font-semibold">Sarah Connor</p>
             <p className="text-gray-500 text-sm">CEO</p>
@@ -135,9 +147,9 @@ export default function EditCheckClockEmployee() {
             </div>
           </CardContent>
         </Card>
-        </div>
+      </div>
 
-    {/* Action Buttons */}
+      {/* Action Buttons */}
       <div className="flex justify-end space-x-2">
         <Button variant="destructive" onClick={() => router.back()}>
           Cancel

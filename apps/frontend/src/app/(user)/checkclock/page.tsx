@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { Column, DataTable } from "@/components/dataTable";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Crosshair, Filter, Plus, Search, X } from "lucide-react";
+import { Crosshair, Filter, Plus, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { PageSizeComponent } from "@/components/pageSize";
 import { PaginationComponent } from "@/components/pagination";
@@ -30,23 +30,28 @@ export default function CheckClock() {
     const [selectedData, setSelectedData] = useState<CheckClockData | null>(null);
     const [openDialog, setOpenDialog] = useState(false);
 
-    const { register, handleSubmit, reset, setValue, watch } = useForm({
+    const { register, handleSubmit, reset, setValue, watch } = useForm<{
+        attendanceType: string;
+        checkIn: string;
+        checkOut: string;
+        latitude: string;
+        longitude: string;
+        permitEndDate: string;
+        evidence: FileList | null;
+    }>({
         defaultValues: {
             attendanceType: "check-in",
             checkIn: "",
             checkOut: "",
-            workHours: "",
-            location: "",
-            detailAddress: "",
             latitude: "",
             longitude: "",
-            permitEndDate: ""
+            permitEndDate: "",
+            evidence: null,
         },
     });
 
     const formData = watch();
     const attendanceType = formData.attendanceType;
-    const isPermit = !["check-in", "check-out"].includes(attendanceType);
 
     function handleViewDetails(id: number) {
         const data = checkClockData.find((item) => item.id === id);
@@ -56,7 +61,15 @@ export default function CheckClock() {
         }
     }
 
-    const onSubmit = (data: Record<string, string>) => {
+    const onSubmit = (data: {
+        attendanceType: string;
+        checkIn: string;
+        checkOut: string;
+        latitude: string;
+        longitude: string;
+        permitEndDate: string;
+        evidence: FileList | null;
+    }) => {
         console.log("Form submitted:", data);
         setOpenDialog(false);
         reset();
@@ -91,12 +104,16 @@ export default function CheckClock() {
         {
             header: "Status",
             accessorKey: "status",
-            cell: (item) => (
-                <span className={`px-4 py-1 rounded-md text-sm font-medium ${item.status === "Late" ? "bg-red-600 text-white" : "bg-green-600 text-white"
-                    }`}>
-                    {item.status}
-                </span>
-            )
+            cell: (item) => {
+                let bg = "bg-green-600";
+                if (item.status === "Late") bg = "bg-red-600";
+                else if (item.status === "Leave") bg = "bg-yellow-800";
+                return (
+                    <span className={`px-4 py-1 rounded-md text-sm font-medium ${bg} text-white`}>
+                        {item.status}
+                    </span>
+                );
+            }
         },
         {
             header: "Details",
@@ -220,6 +237,25 @@ export default function CheckClock() {
                                     </div>
                                 </div>
                             </div>
+
+                            <div className="border p-4">
+                                <h4 className="text-sm font-medium mb-2">Support Evidence</h4>
+                                {selectedData.status === "Leave" ? (
+                                    <div className="space-y-2">
+                                        <div className="text-sm text-muted-foreground">
+                                            <span className="font-semibold">Leave Type: </span>
+                                            {selectedData.leaveType ? selectedData.leaveType.replace(/\b\w/g, c => c.toUpperCase()) : "-"}
+                                        </div>
+                                        <div className="text-sm text-muted-foreground">
+                                            <span className="font-semibold">Evidence: </span>
+                                            <span>-</span>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground">Support evidence is only required for leave/permit attendance types.</p>
+                                    </div>
+                                ) : (
+                                    <span className="text-xs text-muted-foreground">No support evidence required for this attendance type.</span>
+                                )}
+                            </div>
                         </div>
                     )}
                 </SheetContent>
@@ -231,63 +267,13 @@ export default function CheckClock() {
                     <DialogHeader>
                         <DialogTitle>Add Attendance Data</DialogTitle>
                         <DialogDescription>
-                            Fill in the attendance details and select location on the map.
+                            Fill in the attendance details. Location will be taken from your current position.
                         </DialogDescription>
                     </DialogHeader>
 
                     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
-                            {/* Left Column - Map & Location (only for check-in/check-out) */}
-                            {(!isPermit) && (
-                                <div className="space-y-2">
-                                    <Label>Select Location on Map</Label>
-                                    <div className="h-full min-h-[300px]">
-                                        <MapComponent
-                                            latitude={parseFloat(formData.latitude || "-6.2088")}
-                                            longitude={parseFloat(formData.longitude || "106.8456")}
-                                            radius={100}
-                                            onPositionChange={(lat: number, lng: number) => {
-                                                setValue("latitude", lat.toString());
-                                                setValue("longitude", lng.toString());
-                                            }}
-                                        />
-                                    </div>
-                                    <div className="flex gap-2 mt-2">
-                                        <Button
-                                            variant="outline"
-                                            type="button"
-                                            onClick={() => {
-                                                navigator.geolocation.getCurrentPosition(
-                                                    (position) => {
-                                                        setValue("latitude", position.coords.latitude.toString());
-                                                        setValue("longitude", position.coords.longitude.toString());
-                                                    },
-                                                    (error) => {
-                                                        console.error("Error getting current location:", error);
-                                                    }
-                                                );
-                                            }}
-                                            className="flex-1"
-                                        >
-                                            <Crosshair className="h-4 w-4 mr-2" />
-                                            Use Current Location
-                                        </Button>
-                                        <Button
-                                            variant="outline"
-                                            type="button"
-                                            onClick={() => {
-                                                setValue("latitude", "");
-                                                setValue("longitude", "");
-                                            }}
-                                            className="flex-1"
-                                        >
-                                            <X className="h-4 w-4 mr-2" />
-                                            Clear Location
-                                        </Button>
-                                    </div>
-                                </div>
-                            )}
-                            {/* Right Column - Form */}
+                            {/* Left Column - Attendance Type & Permit Duration */}
                             <div className="space-y-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="attendanceType">Attendance Type</Label>
@@ -306,36 +292,67 @@ export default function CheckClock() {
                                     </select>
                                 </div>
                                 {/* Permit duration for leave types */}
-                                {isPermit && (
+                                {["sick leave", "compassionate leave", "maternity leave", "annual leave", "marriage leave"].includes(attendanceType) && (
                                     <div className="space-y-2">
                                         <Label htmlFor="permitEndDate">Permit Duration (End Date)</Label>
                                         <Input
                                             id="permitEndDate"
                                             type="date"
-                                            {...register("permitEndDate", { required: isPermit })}
+                                            {...register("permitEndDate", { required: true })}
                                         />
                                     </div>
                                 )}
-                                {/* Location fields for check-in/check-out only */}
-                                {(!isPermit) && (
-                                    <>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="location">Location Name</Label>
-                                            <Input
-                                                id="location"
-                                                {...register("location", { required: true })}
-                                                placeholder="Enter location name"
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="detailAddress">Detail Address</Label>
-                                            <Input
-                                                id="detailAddress"
-                                                {...register("detailAddress")}
-                                                placeholder="Enter detailed address"
-                                            />
+                                {/* Work Schedule Section */}
+                                {!["sick leave", "compassionate leave", "maternity leave", "annual leave", "marriage leave"].includes(attendanceType) && (
+                                    <div className="border rounded-md p-4 mt-4">
+                                        <Label className="block text-base font-semibold mb-4">Work Schedule</Label>
+                                        <div className="grid grid-cols-2 gap-4 mb-2">
+                                            <div className="space-y-2">
+                                                <Label htmlFor="workType">Work Type</Label>
+                                                <Input id="workType" placeholder="WFO" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="checkInSchedule">Check-In</Label>
+                                                <Input id="checkInSchedule" placeholder="07:00 - 08:00" />
+                                            </div>
                                         </div>
                                         <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <Label htmlFor="breakSchedule">Break</Label>
+                                                <Input id="breakSchedule" placeholder="12:00 - 13:00" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="checkOutSchedule">Check-Out</Label>
+                                                <Input id="checkOutSchedule" placeholder="17:00 - 18:00" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                                {/* Location Section */}
+                                {!["sick leave", "compassionate leave", "maternity leave", "annual leave", "marriage leave"].includes(attendanceType) && (
+                                    <div className="space-y-2 mt-4">
+                                        <div className="flex gap-2 mt-2">
+                                            <Button
+                                                variant="outline"
+                                                type="button"
+                                                onClick={() => {
+                                                    navigator.geolocation.getCurrentPosition(
+                                                        (position) => {
+                                                            setValue("latitude", position.coords.latitude.toString());
+                                                            setValue("longitude", position.coords.longitude.toString());
+                                                        },
+                                                        (error) => {
+                                                            console.error("Error getting current location:", error);
+                                                        }
+                                                    );
+                                                }}
+                                                className="flex-1"
+                                            >
+                                                <Crosshair className="h-4 w-4 mr-2" />
+                                                Use Current Location
+                                            </Button>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4 mt-2">
                                             <div className="space-y-2">
                                                 <Label htmlFor="latitude">Latitude</Label>
                                                 <Input
@@ -355,28 +372,32 @@ export default function CheckClock() {
                                                 />
                                             </div>
                                         </div>
-                                    </>
+                                    </div>
                                 )}
-                                <div className="grid grid-cols-2 gap-4">
+                            </div>
+                            {/* Right Column - Map & Upload Evidence */}
+                            <div className="space-y-4">
+                                {!["sick leave", "compassionate leave", "maternity leave", "annual leave", "marriage leave"].includes(attendanceType) && (
                                     <div className="space-y-2">
-                                        <Label htmlFor="checkIn">Check In</Label>
-                                        <Input
-                                            id="checkIn"
-                                            type="time"
-                                            {...register("checkIn", { required: !isPermit })}
-                                            disabled={isPermit}
-                                        />
+                                        <Label>Your Current Location</Label>
+                                        <div className="min-h-[100px]">
+                                            <MapComponent
+                                                latitude={parseFloat(formData.latitude || "-6.2088")}
+                                                longitude={parseFloat(formData.longitude || "106.8456")}
+                                                radius={100}
+                                                onPositionChange={() => { /* readonly, do nothing */ }}
+                                            />
+                                        </div>
                                     </div>
+                                )}
+                                {/* Upload Evidence */}
+                                {["sick leave", "compassionate leave", "maternity leave", "annual leave", "marriage leave"].includes(attendanceType) && (
                                     <div className="space-y-2">
-                                        <Label htmlFor="checkOut">Check Out</Label>
-                                        <Input
-                                            id="checkOut"
-                                            type="time"
-                                            {...register("checkOut")}
-                                            disabled={isPermit}
-                                        />
+                                        <Label htmlFor="evidence">Upload Support Evidence</Label>
+                                        <Input id="evidence" type="file" accept="image/*,application/pdf" {...register("evidence")} />
+                                        <p className="text-xs text-muted-foreground">Upload bukti tambahan (foto, PDF, dsb) untuk attendance selain check-in dan check-out.</p>
                                     </div>
-                                </div>
+                                )}
                             </div>
                         </div>
                         <DialogFooter>

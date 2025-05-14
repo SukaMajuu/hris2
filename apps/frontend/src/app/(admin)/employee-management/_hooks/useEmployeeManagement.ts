@@ -53,26 +53,28 @@ export function useEmployeeManagement() {
     },
   ];
 
-  const employees: Employee[] = Array.from({ length: 100 }, (_, index) => {
-    const base = baseEmployees[index % 5] ?? {
-      id: 0,
-      name: '',
-      gender: '',
-      phone: '',
-      branch: '',
-      position: '',
-      grade: '',
-    };
-    return {
-      id: index + 1,
-      name: base.name,
-      gender: base.gender,
-      phone: base.phone,
-      branch: base.branch,
-      position: base.position,
-      grade: base.grade,
-    };
-  });
+  const [employees, setEmployees] = useState<Employee[]>(
+    Array.from({ length: 100 }, (_, index) => {
+      const base = baseEmployees[index % 5] ?? {
+        id: 0,
+        name: '',
+        gender: '',
+        phone: '',
+        branch: '',
+        position: '',
+        grade: '',
+      };
+      return {
+        id: index + 1,
+        name: base.name,
+        gender: base.gender,
+        phone: base.phone,
+        branch: base.branch,
+        position: base.position,
+        grade: base.grade,
+      };
+    })
+  );
 
   const totalRecords = employees.length;
   const totalPages = Math.ceil(totalRecords / pageSize);
@@ -82,6 +84,7 @@ export function useEmployeeManagement() {
     setPage,
     pageSize,
     setPageSize,
+    setEmployees,
     employees,
     totalRecords,
     totalPages,

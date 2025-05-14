@@ -34,6 +34,10 @@ export default function Page() {
   const [accountName, setAccountName] = useState('');
   const [sp, setSp] = useState('');
   const [documents, setDocuments] = useState<{ name: string; file: File | null }[]>([]);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [profileFile, setProfileFile] = useState<File | null>(null);
 
   if (!employee) {
     return <div className='p-4'>Employee not found.</div>;
@@ -58,14 +62,35 @@ export default function Page() {
   return (
     <div className='space-y-4 p-4'>
       <div className='flex flex-col items-center gap-4 rounded-lg bg-white p-4 shadow md:flex-row'>
-        <div className='flex h-20 w-20 items-center justify-center rounded-full border-2'>
-          <Image
-            src='/logo.png'
-            alt='Company Logo'
-            width={80}
-            height={80}
-            className='object-fill'
-          />
+        <div className='flex flex-col items-center'>
+          <div className='group relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-2'>
+            <Image
+              src={profileImage || '/logo.png'}
+              alt='Profile Photo'
+              width={80}
+              height={80}
+              className='object-fill'
+            />
+            <label className='hover:bg-secondary bg-opacity-80 absolute m-1 cursor-pointer rounded-full bg-white p-1 opacity-0 shadow transition group-hover:opacity-100'>
+              <Input
+                type='file'
+                accept='image/*'
+                className='hidden'
+                onChange={(e) => {
+                  const file = e.target.files?.[0] || null;
+                  if (file) {
+                    setProfileFile(file);
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                      setProfileImage(ev.target?.result as string);
+                    };
+                    reader.readAsDataURL(file);
+                  }
+                }}
+              />
+              <span className='text-lg'>✎</span>
+            </label>
+          </div>
         </div>
         <div className='flex-1'>
           <div className='text-lg font-bold'>{employee.name}</div>
@@ -112,7 +137,7 @@ export default function Page() {
                 className='cursor-pointer text-blue-500'
                 onClick={() => setEditPersonal((prev) => !prev)}
               >
-                ✎
+                Edit ✎
               </span>
             </CardHeader>
             <CardContent className='grid grid-cols-1 gap-x-4 gap-y-6 border-none text-sm sm:grid-cols-2'>
@@ -191,7 +216,7 @@ export default function Page() {
                 className='cursor-pointer text-blue-500'
                 onClick={() => setEditAdditional((prev) => !prev)}
               >
-                ✎
+                Edit ✎
               </span>
             </CardHeader>
             <CardContent className='grid grid-cols-1 gap-x-4 gap-y-6 border-none text-sm sm:grid-cols-2'>
@@ -273,7 +298,7 @@ export default function Page() {
               className='cursor-pointer text-blue-500'
               onClick={() => setEditDocument((prev) => !prev)}
             >
-              ✎
+              Edit ✎
             </span>
           </CardHeader>
           <CardContent>
@@ -313,17 +338,14 @@ export default function Page() {
                   )}
                   {documents.map((doc, idx) => (
                     <tr key={idx}>
-                      <td className='border-none px-2 py-1 flex justify-center'>{idx + 1}</td>
+                      <td className='flex justify-center border-none px-2 py-1'>{idx + 1}</td>
                       <td className='border px-2 py-1'>{doc.file?.name}</td>
                       <td className='border px-2 py-1'>
                         <div className='flex flex-row justify-center gap-2'>
-                          <Button
-                            variant='destructive'                            
-                            onClick={() => handleDeleteDocument(idx)}
-                          >
+                          <Button variant='destructive' onClick={() => handleDeleteDocument(idx)}>
                             Delete
                           </Button>
-                          <Button                            
+                          <Button
                             onClick={() => handleDownloadDocument(doc.file)}
                             disabled={!doc.file}
                             variant='secondary'

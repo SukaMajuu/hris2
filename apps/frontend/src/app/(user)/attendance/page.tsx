@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { CheckClockData, useCheckClock } from "./_hooks/useCheckClock";
+import { useState, useMemo, useCallback } from "react";
+import { CheckClockData, useCheckClock } from "./_hooks/useAttendance";
 import { useForm } from "react-hook-form";
-import { Column, DataTable } from "@/components/dataTable";
+import { DataTable } from "@/components/dataTable";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Crosshair, Filter, Plus, Search } from "lucide-react";
@@ -26,33 +26,53 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { MapComponent } from "@/components/MapComponent";
+import {
+	ColumnDef,
+	useReactTable,
+	getCoreRowModel,
+	getPaginationRowModel,
+	getFilteredRowModel,
+	PaginationState,
+	ColumnFiltersState,
+} from "@tanstack/react-table";
+
+interface DialogFormData {
+	attendanceType: string;
+	checkIn: string;
+	checkOut: string;
+	latitude: string;
+	longitude: string;
+	permitEndDate: string;
+	evidence: FileList | null;
+}
 
 export default function CheckClock() {
-	const {
-		page,
-		setPage,
-		pageSize,
-		setPageSize,
-		checkClockData,
-		totalRecords,
-		totalPages,
-	} = useCheckClock();
+	const { checkClockData } = useCheckClock();
 
 	const [openSheet, setOpenSheet] = useState(false);
 	const [selectedData, setSelectedData] = useState<CheckClockData | null>(
 		null
 	);
 	const [openDialog, setOpenDialog] = useState(false);
+	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+	const [nameFilter, setNameFilter] = useState("");
 
-	const { register, handleSubmit, reset, setValue, watch } = useForm<{
-		attendanceType: string;
-		checkIn: string;
-		checkOut: string;
-		latitude: string;
-		longitude: string;
-		permitEndDate: string;
-		evidence: FileList | null;
-	}>({
+	const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
+		pageIndex: 0,
+		pageSize: 10,
+	});
+
+	const pagination = useMemo(
+		() => ({
+			pageIndex,
+			pageSize,
+		}),
+		[pageIndex, pageSize]
+	);
+
+	const { register, handleSubmit, reset, setValue, watch } = useForm<
+		DialogFormData
+	>({
 		defaultValues: {
 			attendanceType: "check-in",
 			checkIn: "",
@@ -67,86 +87,110 @@ export default function CheckClock() {
 	const formData = watch();
 	const attendanceType = formData.attendanceType;
 
-	function handleViewDetails(id: number) {
-		const data = checkClockData.find((item) => item.id === id);
-		if (data) {
-			setSelectedData(data);
-			setOpenSheet(true);
-		}
-	}
+	const handleViewDetails = useCallback(
+		(id: number) => {
+			const data = checkClockData.find(
+				(item: CheckClockData) => item.id === id
+			);
+			if (data) {
+				setSelectedData(data);
+				setOpenSheet(true);
+			}
+		},
+		[checkClockData]
+	);
 
-	const onSubmit = (data: {
-		attendanceType: string;
-		checkIn: string;
-		checkOut: string;
-		latitude: string;
-		longitude: string;
-		permitEndDate: string;
-		evidence: FileList | null;
-	}) => {
+	const onSubmit = (data: DialogFormData) => {
 		console.log("Form submitted:", data);
 		setOpenDialog(false);
 		reset();
 	};
 
-	const columns: Column<CheckClockData>[] = [
-		{
-			header: "No.",
-			accessorKey: (item) =>
-				checkClockData.indexOf(item) + 1 + (page - 1) * pageSize,
-			className: "max-w-[80px]",
-		},
-		{
-			header: "Date",
-			accessorKey: "date",
-		},
-		{
-			header: "Check-In",
-			accessorKey: "checkIn",
-		},
-		{
-			header: "Check-Out",
-			accessorKey: "checkOut",
-		},
-		{
-			header: "Location",
-			accessorKey: "location",
-		},
-		{
-			header: "Work Hours",
-			accessorKey: "workHours",
-		},
-		{
-			header: "Status",
-			accessorKey: "status",
-			cell: (item) => {
-				let bg = "bg-green-600";
-				if (item.status === "Late") bg = "bg-red-600";
-				else if (item.status === "Leave") bg = "bg-yellow-800";
-				return (
-					<span
-						className={`px-4 py-1 rounded-md text-sm font-medium ${bg} text-white`}
-					>
-						{item.status}
-					</span>
-				);
+	const columns: ColumnDef<CheckClockData>[] = useMemo(
+		() => [
+			{
+				header: "No.",
+				cell: ({ row, table }) => {
+					const pageIdx = table.getState().pagination.pageIndex;
+					const pgSize = table.getState().pagination.pageSize;
+					return pageIdx * pgSize + row.index + 1;
+				},
+				meta: {
+					className: "max-w-[80px]",
+				},
 			},
+			{
+				header: "Date",
+				accessorKey: "date",
+			},
+			{
+				header: "Check-In",
+				accessorKey: "checkIn",
+			},
+			{
+				header: "Check-Out",
+				accessorKey: "checkOut",
+			},
+			{
+				header: "Location",
+				accessorKey: "location",
+			},
+			{
+				header: "Work Hours",
+				accessorKey: "workHours",
+			},
+			{
+				header: "Status",
+				accessorKey: "status",
+				cell: ({ row }) => {
+					const item = row.original;
+					let bg = "bg-green-600";
+					if (item.status === "Late") bg = "bg-red-600";
+					else if (item.status === "Leave") bg = "bg-yellow-800";
+					return (
+						<span
+							className={`px-4 py-1 rounded-md text-sm font-medium ${bg} text-white`}
+						>
+							{item.status}
+						</span>
+					);
+				},
+			},
+			{
+				header: "Details",
+				accessorKey: "id",
+				cell: ({ row }) => (
+					<Button
+						variant="default"
+						size="sm"
+						className="bg-blue-500 hover:bg-blue-600 text-white px-6"
+						onClick={() =>
+							handleViewDetails(Number(row.original.id))
+						}
+					>
+						View
+					</Button>
+				),
+			},
+		],
+		[handleViewDetails]
+	);
+
+	const table = useReactTable({
+		data: checkClockData,
+		columns,
+		getCoreRowModel: getCoreRowModel(),
+		getPaginationRowModel: getPaginationRowModel(),
+		getFilteredRowModel: getFilteredRowModel(),
+		state: {
+			pagination,
+			columnFilters,
 		},
-		{
-			header: "Details",
-			accessorKey: "id",
-			cell: (item) => (
-				<Button
-					variant="default"
-					size="sm"
-					className="bg-blue-500 hover:bg-blue-600 text-white px-6"
-					onClick={() => handleViewDetails(Number(item.id))}
-				>
-					View
-				</Button>
-			),
-		},
-	];
+		onPaginationChange: setPagination,
+		onColumnFiltersChange: setColumnFilters,
+		manualPagination: false,
+		pageCount: Math.ceil(checkClockData.length / pageSize),
+	});
 
 	return (
 		<>
@@ -171,6 +215,10 @@ export default function CheckClock() {
 								<Input
 									className="pl-10 w-full bg-white border-gray-200"
 									placeholder="Search Employee"
+									value={nameFilter}
+									onChange={(e) => {
+										setNameFilter(e.target.value);
+									}}
 								/>
 							</div>
 							<Button
@@ -183,26 +231,11 @@ export default function CheckClock() {
 						</div>
 					</header>
 
-					<DataTable
-						columns={columns}
-						data={checkClockData}
-						page={page}
-						pageSize={pageSize}
-					/>
+					<DataTable table={table} />
 
 					<footer className="flex flex-col md:flex-row items-center justify-between mt-4 gap-4">
-						<PageSizeComponent
-							pageSize={pageSize}
-							setPageSize={setPageSize}
-							page={page}
-							setPage={setPage}
-							totalRecords={totalRecords}
-						/>
-						<PaginationComponent
-							page={page}
-							setPage={setPage}
-							totalPages={totalPages}
-						/>
+						<PageSizeComponent table={table} />
+						<PaginationComponent table={table} />
 					</footer>
 				</CardContent>
 			</Card>
@@ -303,7 +336,8 @@ export default function CheckClock() {
 											{selectedData.leaveType
 												? selectedData.leaveType.replace(
 														/\b\w/g,
-														(c) => c.toUpperCase()
+														(c: string) =>
+															c.toUpperCase()
 												  )
 												: "-"}
 										</div>

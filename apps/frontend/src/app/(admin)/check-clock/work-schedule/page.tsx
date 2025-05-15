@@ -24,6 +24,7 @@ import {
 	PaginationState,
 } from "@tanstack/react-table";
 import { WorkScheduleForm } from "./_components/WorkScheduleForm";
+import ConfirmationDelete from "./_components/ConfirmationDelete";
 
 export default function WorkSchedulePage() {
 	const { workSchedules } = useWorkSchedule();
@@ -31,6 +32,12 @@ export default function WorkSchedulePage() {
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [formData, setFormData] = useState<Partial<WorkScheduleType>>({});
 	const [isEditing, setIsEditing] = useState(false);
+
+	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+	const [
+		workScheduleToDelete,
+		setWorkScheduleToDelete,
+	] = useState<WorkScheduleType | null>(null);
 
 	const [scheduleNameFilter, setScheduleNameFilter] = React.useState("");
 	const [pagination, setPagination] = React.useState<PaginationState>({
@@ -55,10 +62,19 @@ export default function WorkSchedulePage() {
 	}, []);
 
 	const handleOpenDelete = useCallback((data: WorkScheduleType) => {
-		setFormData(data);
-		setIsEditing(true);
-		setDialogOpen(true);
+		setWorkScheduleToDelete(data);
+		setIsDeleteDialogOpen(true);
 	}, []);
+
+	const handleCloseDeleteDialog = useCallback(() => {
+		setWorkScheduleToDelete(null);
+		setIsDeleteDialogOpen(false);
+	}, []);
+
+	const handleConfirmDelete = useCallback(() => {
+		console.log("Delete", workScheduleToDelete);
+		setIsDeleteDialogOpen(false);
+	}, [workScheduleToDelete]);
 
 	const handleSave = () => {
 		console.log(isEditing ? "Update" : "Create", formData);
@@ -228,6 +244,13 @@ export default function WorkSchedulePage() {
 				formData={formData}
 				handleChange={handleChange}
 				handleSave={handleSave}
+			/>
+
+			<ConfirmationDelete
+				isDeleteDialogOpen={isDeleteDialogOpen}
+				handleCloseDeleteDialog={handleCloseDeleteDialog}
+				handleConfirmDelete={handleConfirmDelete}
+				workScheduleToDelete={workScheduleToDelete}
 			/>
 		</div>
 	);

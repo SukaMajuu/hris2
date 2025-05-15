@@ -1,6 +1,6 @@
 import React from "react";
 import {
-	Table,
+	Table as ShadcnTable,
 	TableBody,
 	TableCell,
 	TableHead,
@@ -8,6 +8,12 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import {
+	flexRender,
+	Table as TanStackTableType,
+	Row as TanStackRow,
+	Cell as TanStackCell,
+} from "@tanstack/react-table";
 
 export interface Column<T> {
 	header: string;
@@ -16,90 +22,131 @@ export interface Column<T> {
 	className?: string;
 }
 
-interface DataTableProps<T> {
-	columns: Column<T>[];
-	data: T[];
-	page?: number;
-	pageSize?: number;
-	className?: string;
-	rowClassName?: string;
+interface DataTableProps<TData> {
+	table: TanStackTableType<TData>;
+	containerClassName?: string;
+	rowClassName?: string | ((row: TanStackRow<TData>) => string);
 	headerClassName?: string;
-	cellClassName?: string;
-	onRowClick?: (item: T) => void;
+	cellClassName?: string | ((cell: TanStackCell<TData, unknown>) => string);
+	onRowClick?: (row: TanStackRow<TData>) => void;
 }
 
-export function DataTable<T>({
-	columns,
-	data,
-	page = 1,
-	pageSize = 10,
-	className,
+export function DataTable<TData>({
+	table,
+	containerClassName,
 	rowClassName,
 	headerClassName,
 	cellClassName,
 	onRowClick,
-}: DataTableProps<T>) {
-	const paginatedData = pageSize
-		? data.slice((page - 1) * pageSize, page * pageSize)
-		: data;
-
+}: DataTableProps<TData>) {
 	return (
-		<div className="rounded-md border border-gray-100 dark:border-gray-800 overflow-auto">
-			<Table
-				className={cn(
-					"border border-gray-100 dark:border-gray-800",
-					className
-				)}
-			>
+		<div
+			className={cn(
+				"rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-auto",
+				containerClassName
+			)}
+		>
+			<ShadcnTable>
 				<TableHeader>
-					<TableRow
-						className={cn(
-							"border border-gray-100 dark:border-gray-800 hover:bg-transparent",
-							headerClassName
-						)}
-					>
-						{columns.map((column, index) => (
-							<TableHead
-								key={index}
-								className={cn("text-center", column.className)}
-							>
-								{column.header}
-							</TableHead>
-						))}
-					</TableRow>
-				</TableHeader>
-				<TableBody>
-					{paginatedData.map((item, rowIndex) => (
+					{table.getHeaderGroups().map((headerGroup) => (
 						<TableRow
-							key={rowIndex}
+							key={headerGroup.id}
 							className={cn(
-								"data-[state=selected]:bg-muted border-b transition-colors hover:bg-transparent",
-								onRowClick && "cursor-pointer",
-								rowClassName
+								"border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800",
+								headerClassName
 							)}
-							onClick={() => onRowClick && onRowClick(item)}
 						>
-							{columns.map((column, colIndex) => (
-								<TableCell
-									key={colIndex}
-									className={cn(
-										"text-center",
-										cellClassName,
-										column.className
-									)}
-								>
-									{column.cell
-										? column.cell(item)
-										: typeof column.accessorKey ===
-										  "function"
-										? column.accessorKey(item)
-										: String(item[column.accessorKey])}
-								</TableCell>
-							))}
+							{headerGroup.headers.map((header) => {
+								const columnMeta = header.column.columnDef
+									.meta as { className?: string } | undefined;
+								return (
+									<TableHead
+										key={header.id}
+										className={cn(
+											"text-center text-sm font-medium text-slate-500 dark:text-slate-400 py-3 px-4 h-12",
+											columnMeta?.className
+										)}
+										style={{
+											width:
+												header.getSize() !== 150
+													? header.getSize()
+													: undefined,
+										}}
+									>
+										{header.isPlaceholder
+											? null
+											: flexRender(
+													header.column.columnDef
+														.header,
+													header.getContext()
+											  )}
+									</TableHead>
+								);
+							})}
 						</TableRow>
 					))}
+				</TableHeader>
+				<TableBody>
+					{table.getRowModel().rows?.length ? (
+						table.getRowModel().rows.map((row) => (
+							<TableRow
+								key={row.id}
+								data-state={row.getIsSelected() && "selected"}
+								onClick={() => onRowClick && onRowClick(row)}
+								className={cn(
+									"border-b border-slate-200 dark:border-slate-700 transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-800/50",
+									"data-[state=selected]:bg-slate-100 dark:data-[state=selected]:bg-slate-700",
+									onRowClick && "cursor-pointer",
+									typeof rowClassName === "function"
+										? rowClassName(row)
+										: rowClassName
+								)}
+							>
+								{row.getVisibleCells().map((cell) => {
+									const columnMeta = cell.column.columnDef
+										.meta as
+										| { className?: string }
+										| undefined;
+									return (
+										<TableCell
+											key={cell.id}
+											className={cn(
+												"text-center py-3 px-4 text-sm text-slate-700 dark:text-slate-300",
+												typeof cellClassName ===
+													"function"
+													? cellClassName(cell)
+													: cellClassName,
+												columnMeta?.className
+											)}
+											style={{
+												width:
+													cell.column.getSize() !==
+													150
+														? cell.column.getSize()
+														: undefined,
+											}}
+										>
+											{flexRender(
+												cell.column.columnDef.cell,
+												cell.getContext()
+											)}
+										</TableCell>
+									);
+								})}
+							</TableRow>
+						))
+					) : (
+						<TableRow>
+							<TableCell
+								colSpan={table.getAllColumns().length}
+								className="h-24 text-center text-slate-500 dark:text-slate-400"
+							>
+								No results.
+							</TableCell>
+						</TableRow>
+					)}
 				</TableBody>
-			</Table>
+			</ShadcnTable>
 		</div>
 	);
 }

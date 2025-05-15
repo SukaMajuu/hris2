@@ -9,8 +9,6 @@ interface ApprovalItem {
 }
 
 export function useCheckClockApproval() {
-	const [pageSize, setPageSize] = useState(10);
-	const [page, setPage] = useState(1);
 	const [selectedItem, setSelectedItem] = useState<ApprovalItem | null>(null);
 	const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -59,13 +57,6 @@ export function useCheckClockApproval() {
 		},
 	]);
 
-	const totalRecords = approvalData.length;
-	const totalPages = Math.ceil(totalRecords / pageSize);
-
-	const handleViewDetails = (id: number) => {
-		console.log("View details for ID:", id);
-	};
-
 	const openApprovalModal = (item: ApprovalItem) => {
 		setSelectedItem(item);
 		setIsModalOpen(true);
@@ -98,18 +89,10 @@ export function useCheckClockApproval() {
 	};
 
 	return {
-		pageSize,
-		setPageSize,
-		page,
-		setPage,
 		selectedItem,
-		setSelectedItem,
 		isModalOpen,
 		setIsModalOpen,
 		approvalData,
-		totalRecords,
-		totalPages,
-		handleViewDetails,
 		openApprovalModal,
 		handleApprove,
 		handleReject,

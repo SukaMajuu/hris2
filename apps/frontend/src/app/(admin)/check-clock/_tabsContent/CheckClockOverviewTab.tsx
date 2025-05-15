@@ -1,16 +1,14 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import {
 	useCheckClockOverview,
 	OverviewData,
-	employeeList,
 } from "../_hooks/useCheckClockOverview";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Filter, Search, Plus, Crosshair } from "lucide-react";
-import { Column, DataTable } from "@/components/dataTable";
+import { Filter, Search, Plus, Crosshair, Eye } from "lucide-react";
+import { DataTable } from "@/components/dataTable";
 import {
 	Sheet,
 	SheetContent,
@@ -28,35 +26,48 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { useForm } from "react-hook-form";
-import { useState } from "react";
+import * as React from "react";
 import { MapComponent } from "@/components/MapComponent";
 import { Label } from "@/components/ui/label";
+import {
+	ColumnDef,
+	useReactTable,
+	getCoreRowModel,
+	getPaginationRowModel,
+	getFilteredRowModel,
+	PaginationState,
+} from "@tanstack/react-table";
+
+interface DialogFormData {
+	name: string;
+	date: string;
+	attendanceType: string;
+	checkIn: string;
+	checkOut: string;
+	latitude: string;
+	longitude: string;
+	permitEndDate: string;
+	evidence: FileList | null;
+}
 
 export default function CheckClockOverviewTab() {
-	const {
-		page,
-		setPage,
-		pageSize,
-		setPageSize,
-		overviewData,
-		totalRecords,
-		totalPages,
-	} = useCheckClockOverview();
+	const { overviewData } = useCheckClockOverview();
 
-	const [openSheet, setOpenSheet] = useState(false);
-	const [selectedData, setSelectedData] = useState<OverviewData | null>(null);
-	const [openDialog, setOpenDialog] = useState(false);
-	const { register, handleSubmit, reset, setValue, watch } = useForm<{
-		name: string;
-		date: string;
-		attendanceType: string;
-		checkIn: string;
-		checkOut: string;
-		latitude: string;
-		longitude: string;
-		permitEndDate: string;
-		evidence: FileList | null;
-	}>({
+	const [openSheet, setOpenSheet] = React.useState(false);
+	const [selectedData, setSelectedData] = React.useState<OverviewData | null>(
+		null
+	);
+	const [openDialog, setOpenDialog] = React.useState(false);
+	const [nameFilter, setNameFilter] = React.useState("");
+
+	const [pagination, setPagination] = React.useState<PaginationState>({
+		pageIndex: 0,
+		pageSize: 10,
+	});
+
+	const { register, handleSubmit, reset, setValue, watch } = useForm<
+		DialogFormData
+	>({
 		defaultValues: {
 			name: "",
 			date: "",
@@ -69,172 +80,188 @@ export default function CheckClockOverviewTab() {
 			evidence: null,
 		},
 	});
-	const form = useForm({
-		defaultValues: {
-			name: "",
-			date: "",
-			checkIn: "",
-			checkOut: "",
-			workHours: "",
-			status: "On Time",
-			location: "",
-			detailAddress: "",
-			lat: "",
-			long: "",
-		},
-	});
 
 	const formData = watch();
 	const attendanceType = formData.attendanceType;
 
-	function handleViewDetails(id: number) {
-		const data = overviewData.find((item) => item.id === id);
-		if (data) {
-			setSelectedData(data);
-			setOpenSheet(true);
-		}
-	}
+	const handleViewDetails = React.useCallback(
+		(id: number) => {
+			const data = overviewData.find((item) => item.id === id);
+			if (data) {
+				setSelectedData(data);
+				setOpenSheet(true);
+			}
+		},
+		[overviewData]
+	);
 
-	const onSubmit = (data: {
-		name: string;
-		date: string;
-		attendanceType: string;
-		checkIn: string;
-		checkOut: string;
-		latitude: string;
-		longitude: string;
-		permitEndDate: string;
-		evidence: FileList | null;
-	}) => {
+	const onSubmit = (data: DialogFormData) => {
 		console.log("Form submitted:", data);
 		setOpenDialog(false);
 		reset();
 	};
 
-	const columns: Column<OverviewData>[] = [
-		{
-			header: "No.",
-			accessorKey: (item) =>
-				overviewData.indexOf(item) + 1 + (page - 1) * pageSize,
-			className: "max-w-[80px]",
-		},
-		{
-			header: "Name",
-			accessorKey: "name",
-			cell: (item) => (
-				<div className="flex items-center gap-2">{item.name}</div>
-			),
-		},
-		{
-			header: "Date",
-			accessorKey: "date",
-		},
-		{
-			header: "Check-In",
-			accessorKey: "checkIn",
-		},
-		{
-			header: "Check-Out",
-			accessorKey: "checkOut",
-		},
-		{
-			header: "Location",
-			accessorKey: "location",
-		},
-		{
-			header: "Work Hours",
-			accessorKey: "workHours",
-		},
-		{
-			header: "Status",
-			accessorKey: "status",
-			cell: (item) => {
-				let bg = "bg-green-600";
-
-				if (item.status === "Late") bg = "bg-red-600";
-				else if (item.status === "Leave") bg = "bg-yellow-800";
-				return (
-					<span
-						className={`px-4 py-1 rounded-md text-sm font-medium ${bg} text-white`}
-					>
-						{item.status}
-					</span>
-				);
+	const baseColumns = React.useMemo<ColumnDef<OverviewData>[]>(
+		() => [
+			{ header: "No.", id: "no-placeholder" },
+			{
+				header: "Name",
+				accessorKey: "name",
+				cell: ({ row }) => (
+					<div className="flex items-center gap-2">
+						{row.original.name}
+					</div>
+				),
+				meta: { className: "text-start" },
 			},
+			{
+				header: "Date",
+				accessorKey: "date",
+			},
+			{
+				header: "Check-In",
+				accessorKey: "checkIn",
+			},
+			{
+				header: "Check-Out",
+				accessorKey: "checkOut",
+			},
+			{
+				header: "Location",
+				accessorKey: "location",
+			},
+			{
+				header: "Work Hours",
+				accessorKey: "workHours",
+			},
+			{
+				header: "Status",
+				accessorKey: "status",
+				cell: ({ row }) => {
+					let bg = "bg-green-600";
+					if (row.original.status === "Late") bg = "bg-red-600";
+					else if (row.original.status === "Leave")
+						bg = "bg-yellow-800";
+					return (
+						<span
+							className={`px-3 py-1 rounded-md text-sm font-medium ${bg} text-white`}
+						>
+							{row.original.status}
+						</span>
+					);
+				},
+			},
+			{
+				header: "Details",
+				id: "details",
+				cell: ({ row }) => (
+					<Button
+						variant="default"
+						size="sm"
+						className="bg-blue-500 hover:bg-blue-600 text-white px-6"
+						onClick={() => handleViewDetails(row.original.id)}
+					>
+						<Eye className="h-4 w-4 mr-1" />
+						View
+					</Button>
+				),
+				enableSorting: false,
+				enableColumnFilter: false,
+			},
+		],
+		[handleViewDetails]
+	);
+
+	const finalColumns = React.useMemo<ColumnDef<OverviewData>[]>(
+		() => [
+			{
+				header: "No.",
+				id: "no",
+				cell: ({ row, table }) => {
+					const { pageIndex, pageSize } = table.getState().pagination;
+					return pageIndex * pageSize + row.index + 1;
+				},
+				meta: { className: "max-w-[80px]" },
+				enableSorting: false,
+				enableColumnFilter: false,
+			},
+			...baseColumns.slice(1),
+		],
+		[baseColumns]
+	);
+
+	const table = useReactTable<OverviewData>({
+		data: overviewData,
+		columns: finalColumns,
+		state: {
+			columnFilters: [{ id: "name", value: nameFilter }],
+			pagination,
 		},
-		{
-			header: "Details",
-			accessorKey: "id",
-			cell: (item) => (
-				<Button
-					variant="default"
-					size="sm"
-					className="bg-blue-500 hover:bg-blue-600 text-white px-6"
-					onClick={() => handleViewDetails(Number(item.id))}
-				>
-					View
-				</Button>
-			),
+		onColumnFiltersChange: (updater) => {
+			const newFilters =
+				typeof updater === "function"
+					? updater(table.getState().columnFilters)
+					: updater;
+			const nameFilterUpdate = newFilters.find((f) => f.id === "name");
+			setNameFilter((nameFilterUpdate?.value as string) || "");
 		},
-	];
+		onPaginationChange: setPagination,
+		getCoreRowModel: getCoreRowModel(),
+		getPaginationRowModel: getPaginationRowModel(),
+		getFilteredRowModel: getFilteredRowModel(),
+		autoResetPageIndex: false,
+	});
 
 	return (
 		<>
-			<Card className="border border-gray-100 dark:border-gray-800">
+			<Card className="border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm">
 				<CardContent>
-					<header className="flex flex-col gap-4 mb-6">
-						<div className="flex items-center justify-between w-full">
-							<h2 className="text-xl font-semibold">
+					<header className="flex flex-col gap-6 mb-6">
+						<div className="flex items-center justify-between w-full gap-4">
+							<h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">
 								Check-Clock Overview
 							</h2>
 							<Button
-								className="gap-2 bg-[#6B9AC4] hover:bg-[#5A89B3]"
+								className="gap-2 bg-[#6B9AC4] hover:bg-[#5A89B3] text-white dark:text-slate-100 px-4 py-2 rounded-md"
 								onClick={() => setOpenDialog(true)}
 							>
 								<Plus className="h-4 w-4" />
 								Add Data
 							</Button>
 						</div>
-						<div className="flex flex-wrap items-center gap-4 md:w-[400px]">
-							<div className="relative flex-[1]">
-								<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+						<div className="flex flex-wrap items-center gap-4 md:w-full lg:w-[500px]">
+							<div className="relative flex-1 min-w-[200px]">
+								<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 dark:text-slate-500 h-4 w-4" />
 								<Input
-									className="pl-10 w-full bg-white border-gray-200"
-									placeholder="Search Employee"
-									// onChange={(e) => handleSearch(e.target.value)}
+									value={nameFilter ?? ""}
+									onChange={(event) => {
+										const newNameFilter =
+											event.target.value;
+										setNameFilter(newNameFilter);
+										table
+											.getColumn("name")
+											?.setFilterValue(newNameFilter);
+									}}
+									className="pl-10 w-full bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-md"
+									placeholder="Search by employee name..."
 								/>
 							</div>
 							<Button
 								variant="outline"
-								className="gap-2 hover:bg-[#5A89B3]"
-								// onClick={handleFilter}
+								className="gap-2 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-800 dark:hover:text-slate-200 px-4 py-2 rounded-md"
+								onClick={() => {
+									/* readonly, do nothing */
+								}}
 							>
 								<Filter className="h-4 w-4" />
 								Filter
 							</Button>
 						</div>
 					</header>
-
-					<DataTable
-						columns={columns}
-						data={overviewData}
-						page={page}
-						pageSize={pageSize}
-					/>
-
-					<footer className="flex flex-col md:flex-row items-center justify-between mt-4 gap-4">
-						<PageSizeComponent
-							pageSize={pageSize}
-							setPageSize={setPageSize}
-							page={page}
-							setPage={setPage}
-							totalRecords={totalRecords}
-						/>
-						<PaginationComponent
-							page={page}
-							setPage={setPage}
-							totalPages={totalPages}
-						/>
+					<DataTable table={table} />
+					<footer className="flex flex-col md:flex-row items-center justify-between mt-4 gap-4 p-6">
+						<PageSizeComponent table={table} />
+						<PaginationComponent table={table} />
 					</footer>
 				</CardContent>
 			</Card>
@@ -421,11 +448,11 @@ export default function CheckClockOverviewTab() {
 										<option value="">
 											Select Employee
 										</option>
-										{employeeList.map((emp) => (
+										{/* employeeList.map((emp) => (
 											<option key={emp} value={emp}>
 												{emp}
 											</option>
-										))}
+										))} */}
 									</select>
 								</div>
 								<div className="space-y-2">

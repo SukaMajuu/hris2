@@ -91,12 +91,12 @@ export default function CheckClockEmployeeTab() {
 						<h2 className="text-xl font-semibold">
 							Check-Clock Employee
 						</h2>
-						<Button className="gap-2 bg-[#6B9AC4] hover:bg-[#5A89B3]">
-							<Plus className="h-4 w-4" />
-							<Link href="/check-clock/add">
+						<Link href="/check-clock/add">
+							<Button className="gap-2 bg-[#6B9AC4] hover:bg-[#5A89B3] hover:cursor-pointer">
+								<Plus className="h-4 w-4" />
 								Add Data
-							</Link>
-						</Button>
+							</Button>
+						</Link>
 					</div>
 					<div className="flex flex-wrap items-center gap-4 md:w-[400px]">
 						<div className="relative flex-[1]">

@@ -18,7 +18,7 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { MapComponent } from "@/components/MapComponenent";
+import { MapComponent } from "@/components/MapComponent";
 
 export default function LocationPage() {
 	const {
@@ -106,7 +106,7 @@ export default function LocationPage() {
 	return (
 		<>
 			<Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-				<DialogContent className="sm:max-w-[800px] overflow-y-auto">
+				<DialogContent className="sm:max-w-[800px] h-[90vh] overflow-y-auto">
 					<DialogHeader>
 						<DialogTitle>
 							{isEditing ? "Edit" : "Add"} Location

@@ -1,163 +1,78 @@
-'use client'
+"use client";
 
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Pencil } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
-import { useToast } from "@/components/ui/use-toast";
-import Image from "next/image";
+import { toast } from "@/components/ui/use-toast";
+import {
+	CheckClockForm,
+	type CheckClockFormData,
+	type Employee,
+	type Location,
+} from "@/components/check-clock/CheckClockForm";
+
+// Mock data - replace with actual data fetching
+const mockEmployees: Employee[] = [
+	{ value: "employee1", label: "Sarah Connor", position: "CEO" },
+	{ value: "employee2", label: "John Doe", position: "Developer" },
+	{ value: "employee3", label: "Jane Smith", position: "Designer" },
+];
+
+const mockLocations: Location[] = [
+	{ value: "location1", label: "Main Office Alpha" },
+	{ value: "location2", label: "Branch Office Beta" },
+	{ value: "location3", label: "Remote Hub Gamma" },
+];
 
 export default function EditCheckClockEmployee() {
-  const router = useRouter();
-  const { toast } = useToast();
-  const [isEditingLocation, setIsEditingLocation] = useState(false);
-  const [isEditingSchedule, setIsEditingSchedule] = useState(false);
-  // eslint-disable-next-line
-  const [profileImage, setProfileImage] = useState<string | null>(null);
+	const router = useRouter();
 
-  const handleSave = () => {
-    // Add your save logic here
-    
-    // Show success toast
-    toast({
-      title: "Success",
-      description: "Changes saved successfully",
-      duration: 2000,
-    });
+	const handleSave = (data: CheckClockFormData) => {
+		console.log("Saving edited check-clock data:", data);
+		// Add your save logic here (e.g., API call)
 
-    // Redirect after toast
-    setTimeout(() => {
-      router.push("/check-clock");
-    }, 2000);
-  };
+		toast({
+			title: "Success",
+			description: "Changes saved successfully",
+			duration: 2000,
+		});
 
-  return (
-    <div className="space-y-4">
+		setTimeout(() => {
+			router.push("/check-clock");
+		}, 2000);
+	};
 
-      {/* Profile */}
-      <Card>
-        <CardHeader>
-            <CardTitle className="text-lg font-semibold bg-[#E69500] text-white p-4 rounded-lg">
-                Edit Checkclock
-            </CardTitle>
-        </CardHeader>
-      </Card>
-      <Card>
-        <CardContent className="flex items-center gap-4 p-4">
-          <Image
-              src={profileImage || '/logo.png'}
-              alt='Profile Photo'
-              width={80}
-              height={80}
-              className='object-fill'
-            />
-          <div>
-            <p className="text-lg font-semibold">Sarah Connor</p>
-            <p className="text-gray-500 text-sm">CEO</p>
-          </div>
-        </CardContent>
-      </Card>
+	// Mock initial data - replace with actual data fetching based on ID
+	const initialData: CheckClockFormData = {
+		employeeId: "employee1", // Sarah Connor
+		workScheduleType: "morning",
+		checkInTime: "07:00 - 08:00",
+		checkOutTime: "17:00 - 18:00",
+		breakStartTime: "12:00 - 13:00",
+		workType: "WFO (Work From Office)",
+		locationId: "location1",
+		addressDetails: "Kota Malang, Jawa Timur",
+		latitude: "-7.983908",
+		longitude: "112.621391",
+	};
 
-      {/* Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Work Schedule */}
-        <Card>
-          <CardContent className="relative p-4 space-y-3">
-            <div className="absolute top-3 right-3 cursor-pointer">
-              <Pencil onClick={() => setIsEditingSchedule(!isEditingSchedule)} />
-            </div>
+	return (
+		<div className="space-y-4">
+			<Card className="border-none py-0">
+				<CardHeader className="bg-[#E69500] text-white p-4 rounded-lg">
+					<CardTitle className="text-lg font-semibold">
+						Edit Checkclock
+					</CardTitle>
+				</CardHeader>
+			</Card>
 
-            <h3 className="font-semibold text-md">Work Schedule</h3>
-
-            <div>
-              <label className="text-sm text-gray-600">Work Schedule Type</label>
-              <Select disabled={!isEditingSchedule}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Morning" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="morning">Morning</SelectItem>
-                  <SelectItem value="evening">Evening</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm text-gray-600">Check In</label>
-                <Input value="07:00 - 08:00" readOnly />
-              </div>
-              <div>
-                <label className="text-sm text-gray-600">Check-out</label>
-                <Input value="17:00 - 18:00" readOnly />
-              </div>
-            </div>
-
-            <div>
-              <label className="text-sm text-gray-600">Break Start</label>
-              <Input value="12:00 - 13:00" readOnly />
-            </div>
-
-            <div>
-              <label className="text-sm text-gray-600">Work Type</label>
-              <Input value="WFO (Work From Office)" readOnly />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Check-Clock Location */}
-        <Card>
-          <CardContent className="relative p-4 space-y-3">
-            <div className="absolute top-3 right-3 cursor-pointer">
-              <Pencil onClick={() => setIsEditingLocation(!isEditingLocation)} />
-            </div>
-
-            <h3 className="font-semibold text-md">Check-Clock Location</h3>
-
-            <div>
-              <label className="text-sm text-gray-600">Location</label>
-              <Select disabled={!isEditingLocation}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select Location" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="malang">Kota Malang</SelectItem>
-                  <SelectItem value="jakarta">Jakarta</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="text-sm text-gray-600">Address Details</label>
-              <Input value="Kota Malang, Jawa Timur" readOnly />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm text-gray-600">Lat</label>
-                <Input value="Lat Location" readOnly />
-              </div>
-              <div>
-                <label className="text-sm text-gray-600">Long</label>
-                <Input value="Long Location" readOnly />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Action Buttons */}
-      <div className="flex justify-end space-x-2">
-        <Button variant="destructive" onClick={() => router.back()}>
-          Cancel
-        </Button>
-        <Button variant="default" onClick={handleSave}>
-          Save Changes
-        </Button>
-      </div>
-    </div>
-  );
+			<CheckClockForm
+				onSubmit={handleSave}
+				isEditMode={true}
+				employees={mockEmployees}
+				locations={mockLocations}
+				initialData={initialData}
+				showProfileCard={true}
+			/>
+		</div>
+	);
 }

@@ -173,3 +173,15 @@
   --sidebar-border: hsl(240 3.7% 15.9%);
   --sidebar-ring: hsl(217.2 91.2% 59.8%);
 }
+
+/* Ensure Leaflet map is always below popovers/dropdowns */
+.leaflet-container,
+.leaflet-pane,
+.leaflet-map-pane,
+.leaflet-marker-pane,
+.leaflet-shadow-pane,
+.leaflet-overlay-pane,
+.leaflet-popup-pane,
+.leaflet-tooltip-pane {
+  z-index: 0 !important;
+}

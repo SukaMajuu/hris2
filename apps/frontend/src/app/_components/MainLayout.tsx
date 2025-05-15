@@ -1,3 +1,5 @@
+"use client";
+
 import type React from 'react';
 import Image from 'next/image';
 // import { Search } from "lucide-react";
@@ -18,6 +20,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import { type Role } from '../../const/role';
 import { getMainMenuItemsByRole, getFooterItemsByRole } from '../_config/menuConfig';
@@ -26,6 +29,23 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 
 interface MainLayoutProps {
   children: React.ReactNode;
+}
+
+// Logo component that uses the useSidebar hook
+function LogoComponent() {
+  const { open } = useSidebar();
+
+  return (
+    <div className='flex-1 flex items-center justify-center overflow-hidden'>
+      <Image
+        src={open ? '/logo.png' : '/logo2.png'}
+        alt='Company Logo'
+        width={96}
+        height={96}
+        className='h-[80%] w-[80%] object-contain'
+      />
+    </div>
+  );
 }
 
 export default function MainLayout({ children }: MainLayoutProps) {
@@ -46,16 +66,8 @@ export default function MainLayout({ children }: MainLayoutProps) {
     <SidebarProvider>
       <div className='flex h-full min-h-screen w-full bg-gray-50'>
         <Sidebar collapsible='icon' className='border-r border-gray-200'>
-          <SidebarHeader className='h-18 justify-center border-b border-gray-200'>
-            <div className='mx-auto flex aspect-square h-8 items-center justify-center'>
-              <Image
-                src='/logo.png'
-                alt='Company Logo'
-                width={32}
-                height={32}
-                className='h-full w-full object-contain'
-              />
-            </div>
+          <SidebarHeader className='h-18 justify-center border-b border-gray-200 relative'>
+            <LogoComponent />
           </SidebarHeader>
 
           <SidebarContent className='p-2'>
@@ -96,7 +108,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
                           </SidebarMenuButton>
                         </CollapsibleTrigger>
 
-                        <CollapsibleContent className='ml-4'>
+                        <CollapsibleContent className='ml-4 sidebar-collapsible-content'>
                           {item.items?.map((sub) => {
                             const isSubActive = pathname === sub.href;
                             return (
@@ -219,6 +231,12 @@ export default function MainLayout({ children }: MainLayoutProps) {
           </div>
         </SidebarInset>
       </div>
+
+      <style jsx global>{`
+        [data-state="collapsed"] .sidebar-collapsible-content {
+          display: none !important;
+        }
+      `}</style>
     </SidebarProvider>
   );
 }

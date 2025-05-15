@@ -11,6 +11,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
+import {
 	Pencil,
 	Trash2,
 	Download,
@@ -592,15 +599,28 @@ export default function Page() {
 									>
 										Gender
 									</Label>
-									<Input
-										id="gender"
+									<Select
 										value={gender}
-										onChange={(e) =>
-											setGender(e.target.value)
+										onValueChange={(value) =>
+											setGender(value)
 										}
 										disabled={!editPersonal}
-										className="mt-1 bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-600 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-70"
-									/>
+									>
+										<SelectTrigger
+											id="gender"
+											className="mt-1 w-full bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-600 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-70"
+										>
+											<SelectValue placeholder="Select gender" />
+										</SelectTrigger>
+										<SelectContent className="bg-white dark:bg-slate-800">
+											<SelectItem value="Male">
+												Male
+											</SelectItem>
+											<SelectItem value="Female">
+												Female
+											</SelectItem>
+										</SelectContent>
+									</Select>
 								</div>
 								<div>
 									<Label

@@ -40,12 +40,6 @@ export default function CheckClockEmployeeTab() {
 				accessorKey: "nama",
 				enableColumnFilter: true,
 				filterFn: "includesString",
-				cell: ({ row }) => (
-					<div className="flex items-center gap-3">
-						<span>{row.original.nama}</span>
-					</div>
-				),
-				meta: { className: "text-start" },
 			},
 			{
 				header: "Posisi",

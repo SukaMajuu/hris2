@@ -107,12 +107,6 @@ export default function CheckClockOverviewTab() {
 			{
 				header: "Name",
 				accessorKey: "name",
-				cell: ({ row }) => (
-					<div className="flex items-center gap-2">
-						{row.original.name}
-					</div>
-				),
-				meta: { className: "text-start" },
 			},
 			{
 				header: "Date",

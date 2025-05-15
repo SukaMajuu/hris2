@@ -2,19 +2,19 @@
 
 import WorkTypeBadge from "@/components/workTypeBadge";
 import { WorkType } from "@/const/work";
-import { DataTable, Column } from "@/components/dataTable";
+import { DataTable } from "@/components/dataTable";
 
 import {
 	useWorkSchedule,
-	WorkSchedule as WorkScheduletype,
-} from "../_hooks/useWorkSchedule";
+	WorkSchedule as WorkScheduleType,
+} from "./_hooks/useWorkSchedule";
 import { Card, CardContent } from "@/components/ui/card";
 import { PaginationComponent } from "@/components/pagination";
 import { PageSizeComponent } from "@/components/pageSize";
 import { Button } from "@/components/ui/button";
 import { Edit, Plus, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
 	Dialog,
 	DialogContent,
@@ -23,111 +23,146 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import {
+	ColumnDef,
+	useReactTable,
+	getCoreRowModel,
+	getPaginationRowModel,
+	getFilteredRowModel,
+	PaginationState,
+} from "@tanstack/react-table";
 
-export default function WorkSchedule() {
-	const {
-		page,
-		setPage,
-		pageSize,
-		setPageSize,
-		workSchedules,
-		totalRecords,
-		totalPages,
-	} = useWorkSchedule();
+export default function WorkSchedulePage() {
+	const { workSchedules } = useWorkSchedule();
 
 	const [dialogOpen, setDialogOpen] = useState(false);
-	const [formData, setFormData] = useState<Partial<WorkScheduletype>>({});
+	const [formData, setFormData] = useState<Partial<WorkScheduleType>>({});
 	const [isEditing, setIsEditing] = useState(false);
 
-	const handleChange = (key: keyof WorkScheduletype, value: string) => {
+	const [scheduleNameFilter, setScheduleNameFilter] = React.useState("");
+	const [pagination, setPagination] = React.useState<PaginationState>({
+		pageIndex: 0,
+		pageSize: 10,
+	});
+
+	const handleChange = (key: keyof WorkScheduleType, value: string) => {
 		setFormData((prev) => ({ ...prev, [key]: value }));
 	};
 
-	const handleOpenAdd = () => {
+	const handleOpenAdd = useCallback(() => {
 		setFormData({});
 		setIsEditing(false);
 		setDialogOpen(true);
-	};
+	}, []);
 
-	const handleOpenEdit = (data: WorkScheduletype) => {
+	const handleOpenEdit = useCallback((data: WorkScheduleType) => {
 		setFormData(data);
 		setIsEditing(true);
 		setDialogOpen(true);
-	};
+	}, []);
 
 	const handleSave = () => {
-		// logika untuk simpan data
 		console.log(isEditing ? "Update" : "Create", formData);
 		setDialogOpen(false);
 	};
 
-	const columns: Column<WorkScheduletype>[] = [
-		{
-			header: "No.",
-			accessorKey: (item) =>
-				(page - 1) * pageSize + workSchedules.indexOf(item) + 1,
-			className: "max-w-[80px]",
+	const columns = React.useMemo<ColumnDef<WorkScheduleType>[]>(
+		() => [
+			{
+				header: "No.",
+				id: "no",
+				cell: ({ row, table }) => {
+					const { pageIndex, pageSize } = table.getState().pagination;
+					return pageIndex * pageSize + row.index + 1;
+				},
+				meta: { className: "max-w-[80px]" },
+				enableSorting: false,
+				enableColumnFilter: false,
+			},
+			{
+				header: "Nama",
+				accessorKey: "nama",
+			},
+			{
+				header: "Tipe Pekerjaan",
+				accessorKey: "workType",
+				cell: ({ row }) => (
+					<WorkTypeBadge
+						workType={row.original.workType as WorkType}
+					/>
+				),
+			},
+			{
+				header: "Check-in Start",
+				accessorKey: "checkInStart",
+			},
+			{
+				header: "Check-in End",
+				accessorKey: "checkInEnd",
+			},
+			{
+				header: "Break Start",
+				accessorKey: "breakStart",
+			},
+			{
+				header: "Break End",
+				accessorKey: "breakEnd",
+			},
+			{
+				header: "Check-out Start",
+				accessorKey: "checkOutStart",
+			},
+			{
+				header: "Check-out End",
+				accessorKey: "checkOutEnd",
+			},
+			{
+				header: "Action",
+				id: "action",
+				cell: ({ row }) => (
+					<div className="flex gap-2">
+						<Button
+							size="sm"
+							variant="outline"
+							className="h-9 px-3 bg-[#FFA500] text-white hover:bg-[#E69500] border-none hover:cursor-pointer"
+							onClick={(e) => {
+								e.stopPropagation();
+								handleOpenEdit(row.original);
+							}}
+						>
+							<Edit className="h-4 w-4 mr-1" />
+							Edit
+						</Button>
+					</div>
+				),
+				enableSorting: false,
+				enableColumnFilter: false,
+			},
+		],
+		[handleOpenEdit]
+	);
+
+	const table = useReactTable<WorkScheduleType>({
+		data: workSchedules,
+		columns,
+		state: {
+			columnFilters: [{ id: "nama", value: scheduleNameFilter }],
+			pagination,
 		},
-		{
-			header: "Nama",
-			accessorKey: "nama",
-			cell: (item) => (
-				<div className="flex items-center gap-3">
-					<span>{item.nama}</span>
-				</div>
-			),
+		onColumnFiltersChange: (updater) => {
+			const newFilters =
+				typeof updater === "function"
+					? updater(table.getState().columnFilters)
+					: updater;
+			const nameFilterUpdate = newFilters.find((f) => f.id === "nama");
+			setScheduleNameFilter((nameFilterUpdate?.value as string) || "");
 		},
-		{
-			header: "Tipe Pekerjaan",
-			accessorKey: "workType",
-			cell: (item) => (
-				<WorkTypeBadge workType={item.workType as WorkType} />
-			),
-		},
-		{
-			header: "Check-in Start",
-			accessorKey: "checkInStart",
-		},
-		{
-			header: "Check-in End",
-			accessorKey: "checkInEnd",
-		},
-		{
-			header: "Break Start",
-			accessorKey: "breakStart",
-		},
-		{
-			header: "Break End",
-			accessorKey: "breakEnd",
-		},
-		{
-			header: "Check-out Start",
-			accessorKey: "checkOutStart",
-		},
-		{
-			header: "Check-out End",
-			accessorKey: "checkOutEnd",
-		},
-		{
-			header: "Action",
-			accessorKey: (item) => (
-				<div className="flex gap-2">
-					<Button
-						size="sm"
-						variant="outline"
-						className="h-9 px-3 bg-[#FFA500] text-white hover:bg-[#E69500] border-none hover:cursor-pointer"
-						onClick={(e) => {
-							e.stopPropagation();
-							handleOpenEdit(item);
-						}}
-					>
-						<Edit className="h-4 w-4 mr-1" />
-						Edit
-					</Button>
-				</div>
-			),
-		},
-	];
+		onPaginationChange: setPagination,
+		getCoreRowModel: getCoreRowModel(),
+		getPaginationRowModel: getPaginationRowModel(),
+		getFilteredRowModel: getFilteredRowModel(),
+		autoResetPageIndex: false,
+	});
 
 	return (
 		<>
@@ -383,32 +418,25 @@ export default function WorkSchedule() {
 							<div className="relative flex-[1]">
 								<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
 								<Input
+									value={scheduleNameFilter ?? ""}
+									onChange={(event) => {
+										const newNameFilter =
+											event.target.value;
+										setScheduleNameFilter(newNameFilter);
+										table
+											.getColumn("nama")
+											?.setFilterValue(newNameFilter);
+									}}
 									className="pl-10 w-full bg-white border-gray-200"
-									placeholder="Search Employee"
+									placeholder="Search Schedule Name"
 								/>
 							</div>
 						</div>
 					</header>
-					<DataTable
-						columns={columns}
-						data={workSchedules}
-						page={page}
-						pageSize={pageSize}
-					/>
+					<DataTable table={table} />
 					<div className="flex flex-col md:flex-row items-center justify-between mt-4 gap-4">
-						<PageSizeComponent
-							pageSize={pageSize}
-							setPageSize={setPageSize}
-							page={page}
-							setPage={setPage}
-							totalRecords={totalRecords}
-						/>
-
-						<PaginationComponent
-							page={page}
-							setPage={setPage}
-							totalPages={totalPages}
-						/>
+						<PageSizeComponent table={table} />
+						<PaginationComponent table={table} />
 					</div>
 				</CardContent>
 			</Card>

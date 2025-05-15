@@ -4,11 +4,11 @@ import { Search, Filter, Plus, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { DataTable, Column } from "@/components/dataTable";
+import { DataTable } from "@/components/dataTable";
 import { PaginationComponent } from "@/components/pagination";
 import { PageSizeComponent } from "@/components/pageSize";
-import { useLocation, Location } from "../_hooks/useLocation";
-import { useState } from "react";
+import { useLocation, Location } from "./_hooks/useLocation";
+import React, { useState, useCallback } from "react";
 import {
 	Dialog,
 	DialogContent,
@@ -19,89 +19,129 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { MapComponent } from "@/components/MapComponent";
+import {
+	ColumnDef,
+	useReactTable,
+	getCoreRowModel,
+	getPaginationRowModel,
+	getFilteredRowModel,
+	PaginationState,
+} from "@tanstack/react-table";
 
 export default function LocationPage() {
-	const {
-		page,
-		setPage,
-		pageSize,
-		setPageSize,
-		locations,
-		totalRecords,
-		totalPages,
-	} = useLocation();
+	const { locations } = useLocation();
 
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [formData, setFormData] = useState<Partial<Location>>({});
 	const [isEditing, setIsEditing] = useState(false);
 
-	const handleChange = (key: keyof Location, value: string) => {
+	const [locationNameFilter, setLocationNameFilter] = React.useState("");
+	const [pagination, setPagination] = React.useState<PaginationState>({
+		pageIndex: 0,
+		pageSize: 10,
+	});
+
+	const handleChange = (key: keyof Location, value: string | number) => {
 		setFormData((prev) => ({ ...prev, [key]: value }));
 	};
 
-	const handleOpenAdd = () => {
+	const handleOpenAdd = useCallback(() => {
 		setFormData({});
 		setIsEditing(false);
 		setDialogOpen(true);
-	};
+	}, []);
 
-	const handleOpenEdit = (data: Location) => {
+	const handleOpenEdit = useCallback((data: Location) => {
 		setFormData(data);
 		setIsEditing(true);
 		setDialogOpen(true);
-	};
+	}, []);
 
 	const handleSave = () => {
 		// logika untuk simpan data
 		console.log(isEditing ? "Update" : "Create", formData);
+		// Here you would typically call a function from the hook to save/update `locations`
+		// For now, it just closes the dialog
 		setDialogOpen(false);
 	};
 
-	const columns: Column<Location>[] = [
-		{
-			header: "No.",
-			accessorKey: (item) =>
-				locations.indexOf(item) + 1 + (page - 1) * pageSize,
-			className: "w-[60px]",
+	const columns = React.useMemo<ColumnDef<Location>[]>(
+		() => [
+			{
+				header: "No.",
+				id: "no",
+				cell: ({ row, table }) => {
+					const { pageIndex, pageSize } = table.getState().pagination;
+					return pageIndex * pageSize + row.index + 1;
+				},
+				meta: { className: "w-[60px]" },
+				enableSorting: false,
+				enableColumnFilter: false,
+			},
+			{
+				header: "Nama Lokasi",
+				accessorKey: "nama",
+			},
+			{
+				header: "Latitude",
+				accessorKey: "latitude",
+			},
+			{
+				header: "Longitude",
+				accessorKey: "longitude",
+			},
+			{
+				header: "Radius (m)",
+				accessorKey: "radius",
+			},
+			{
+				header: "Action",
+				id: "action", // Use id for non-accessor columns
+				cell: ({ row }) => (
+					<div className="flex gap-2 justify-center">
+						<Button
+							size="sm"
+							variant="outline"
+							className="h-9 px-3 bg-[#FFA500] text-white hover:bg-[#E69500] border-none hover:cursor-pointer"
+							onClick={(e) => {
+								e.stopPropagation();
+								handleOpenEdit(row.original);
+							}}
+						>
+							<Edit className="h-4 w-4 mr-1" />
+							Edit
+						</Button>
+					</div>
+				),
+				meta: { className: "w-[160px]" },
+				enableSorting: false,
+				enableColumnFilter: false,
+			},
+		],
+		[handleOpenEdit] // Add handleOpenEdit to dependencies
+	);
+
+	const table = useReactTable<Location>({
+		data: locations,
+		columns,
+		state: {
+			columnFilters: [{ id: "nama", value: locationNameFilter }], // Assuming filter by 'nama'
+			pagination,
 		},
-		{
-			header: "Nama Lokasi",
-			accessorKey: "nama",
+		onColumnFiltersChange: (updater) => {
+			const newFilters =
+				typeof updater === "function"
+					? updater(table.getState().columnFilters)
+					: updater;
+			const nameFilterUpdate = newFilters.find((f) => f.id === "nama");
+			setLocationNameFilter((nameFilterUpdate?.value as string) || "");
 		},
-		{
-			header: "Latitude",
-			accessorKey: "latitude",
-		},
-		{
-			header: "Longitude",
-			accessorKey: "longitude",
-		},
-		{
-			header: "Radius (m)",
-			accessorKey: "radius",
-		},
-		{
-			header: "Action",
-			accessorKey: "id",
-			cell: (item) => (
-				<div className="flex gap-2 justify-center">
-					<Button
-						size="sm"
-						variant="outline"
-						className="h-9 px-3 bg-[#FFA500] text-white hover:bg-[#E69500] border-none hover:cursor-pointer"
-						onClick={(e) => {
-							e.stopPropagation();
-							handleOpenEdit(item);
-						}}
-					>
-						<Edit className="h-4 w-4 mr-1" />
-						Edit
-					</Button>
-				</div>
-			),
-			className: "w-[160px]",
-		},
-	];
+		onPaginationChange: setPagination,
+		getCoreRowModel: getCoreRowModel(),
+		getPaginationRowModel: getPaginationRowModel(),
+		getFilteredRowModel: getFilteredRowModel(),
+		autoResetPageIndex: false,
+	});
 
 	return (
 		<>
@@ -122,9 +162,21 @@ export default function LocationPage() {
 						<div className="h-full space-y-2 min-h-[200px]">
 							<Label>Pilih Lokasi</Label>
 							<MapComponent
-								latitude={formData.latitude}
-								longitude={formData.longitude}
-								radius={formData.radius || 100}
+								latitude={
+									typeof formData.latitude === "string"
+										? parseFloat(formData.latitude)
+										: formData.latitude
+								}
+								longitude={
+									typeof formData.longitude === "string"
+										? parseFloat(formData.longitude)
+										: formData.longitude
+								}
+								radius={
+									typeof formData.radius === "string"
+										? parseFloat(formData.radius)
+										: formData.radius || 100
+								}
 								onPositionChange={(lat, lng) => {
 									setFormData((prev) => ({
 										...prev,
@@ -238,7 +290,7 @@ export default function LocationPage() {
 										onChange={(e) =>
 											handleChange(
 												"radius",
-												e.target.value
+												parseFloat(e.target.value) || 0 // Ensure number
 											)
 										}
 										type="number"
@@ -278,6 +330,15 @@ export default function LocationPage() {
 							<div className="relative flex-[1]">
 								<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
 								<Input
+									value={locationNameFilter ?? ""}
+									onChange={(event) => {
+										const newNameFilter =
+											event.target.value;
+										setLocationNameFilter(newNameFilter);
+										table
+											.getColumn("nama")
+											?.setFilterValue(newNameFilter);
+									}}
 									className="pl-10 w-full bg-white border-gray-200"
 									placeholder="Cari Lokasi"
 								/>
@@ -285,6 +346,7 @@ export default function LocationPage() {
 							<Button
 								variant="outline"
 								className="gap-2 hover:bg-[#5A89B3] hover:text-white"
+								// onClick={ // Future filter logic }
 							>
 								<Filter className="h-4 w-4" />
 								Filter
@@ -292,27 +354,11 @@ export default function LocationPage() {
 						</div>
 					</header>
 
-					<DataTable
-						columns={columns}
-						data={locations}
-						page={page}
-						pageSize={pageSize}
-					/>
+					<DataTable table={table} />
 
 					<footer className="flex flex-col md:flex-row items-center justify-between mt-4 gap-4">
-						<PageSizeComponent
-							pageSize={pageSize}
-							setPageSize={setPageSize}
-							page={page}
-							setPage={setPage}
-							totalRecords={totalRecords}
-						/>
-
-						<PaginationComponent
-							page={page}
-							setPage={setPage}
-							totalPages={totalPages}
-						/>
+						<PageSizeComponent table={table} />
+						<PaginationComponent table={table} />
 					</footer>
 				</CardContent>
 			</Card>

@@ -99,7 +99,6 @@ export default function CheckClockApprovalTab() {
 			{
 				header: "Nama",
 				accessorKey: "name",
-				meta: { className: "text-start" },
 				enableColumnFilter: true,
 			},
 			{

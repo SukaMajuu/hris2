@@ -8,7 +8,7 @@ import {
 	type CheckClockFormData,
 	type Employee,
 	type Location,
-} from "@/components/check-clock/CheckClockForm";
+} from "@/app/(admin)/check-clock/_components/CheckClockForm";
 
 // Mock data - replace with actual data fetching
 const mockEmployees: Employee[] = [

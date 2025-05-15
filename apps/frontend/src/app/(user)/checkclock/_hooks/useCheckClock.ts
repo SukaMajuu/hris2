@@ -1,28 +1,20 @@
 import { useState } from "react";
 
-export interface OverviewData {
+export interface CheckClockData {
     id: number;
-    name: string;
     date: string;
     checkIn: string;
     checkOut: string;
     location: string;
     workHours: string;
     status: "On Time" | "Late" | "Leave";
-    detailAddress: string;
-    latitude: string;
-    longitude: string;
+    detailAddress?: string;
+    latitude?: string;
+    longitude?: string;
     leaveType?: string; // Jenis cuti, hanya jika status Leave
 }
 
-// Dummy employee list
-export const employeeList: string[] = [
-    "Jackmerius Tacktheritrix",
-    "D'Squarius Green, Jr.",
-    "Sarah Connor"
-];
-
-export function useCheckClockOverview() {
+export function useCheckClock() {
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
 
@@ -36,30 +28,27 @@ export function useCheckClockOverview() {
     ];
 
     // Mock data generation
-    const [overviewData] = useState<OverviewData[]>(() => 
-        [...Array(100)].map((_, index) => {
-            const employeeName = employeeList[index % employeeList.length] ?? "Unknown";
-            if ((index + 1) % 3 === 0) {
+    const [checkClockData] = useState<CheckClockData[]>(
+        [...Array(50)].map((_, index) => {
+            if ((index + 1) % 5 === 0) {
                 // Set leaveType secara bergantian
-                const leaveType = leaveTypes[((index + 1) / 3 - 1) % leaveTypes.length];
+                const leaveType = leaveTypes[((index + 1) / 5 - 1) % leaveTypes.length];
                 return {
                     id: index + 1,
-                    name: employeeName,
                     date: `March ${String(index + 1).padStart(2, "0")}, 2025`,
                     checkIn: "-",
                     checkOut: "-",
                     location: "-",
                     workHours: "-",
                     status: "Leave",
-                    detailAddress: leaveType ?? "-",
-                    latitude: "-",
-                    longitude: "-",
+                    detailAddress: "-",
+                    latitude: undefined,
+                    longitude: undefined,
                     leaveType: leaveType,
                 };
             } else {
                 return {
                     id: index + 1,
-                    name: employeeName,
                     date: `March ${String(index + 1).padStart(2, "0")}, 2025`,
                     checkIn: index % 2 === 0 ? "07:15" : "08:15",
                     checkOut: "17:30",
@@ -74,7 +63,7 @@ export function useCheckClockOverview() {
         })
     );
 
-    const totalRecords = overviewData.length;
+    const totalRecords = checkClockData.length;
     const totalPages = Math.ceil(totalRecords / pageSize);
 
     return {
@@ -82,9 +71,8 @@ export function useCheckClockOverview() {
         setPage,
         pageSize,
         setPageSize,
-        overviewData,
+        checkClockData,
         totalRecords,
         totalPages,
-        employeeList,
     };
 }

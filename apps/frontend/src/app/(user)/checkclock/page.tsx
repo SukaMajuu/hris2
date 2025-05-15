@@ -1,38 +1,36 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-"use client"
+'use client';
 
-import { useCheckClockOverview, OverviewData, employeeList } from "../_hooks/useCheckClockOverview";
+import { useState } from "react";
+import { CheckClockData, useCheckClock } from "./_hooks/useCheckClock";
+import { useForm } from "react-hook-form";
+import { Column, DataTable } from "@/components/dataTable";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Crosshair, Filter, Plus, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Filter, Search, Plus, Crosshair } from "lucide-react";
-import { Column, DataTable } from "@/components/dataTable";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { PaginationComponent } from "@/components/pagination";
 import { PageSizeComponent } from "@/components/pageSize";
+import { PaginationComponent } from "@/components/pagination";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useForm } from "react-hook-form";
-import { useState } from "react";
-import { MapComponent } from "@/components/MapComponenent";
 import { Label } from "@/components/ui/label";
+import { MapComponent } from "@/components/MapComponenent";
 
-export default function CheckClockOverviewTab() {
+export default function CheckClock() {
     const {
         page,
         setPage,
         pageSize,
         setPageSize,
-        overviewData,
+        checkClockData,
         totalRecords,
         totalPages,
-    } = useCheckClockOverview();
+    } = useCheckClock();
 
     const [openSheet, setOpenSheet] = useState(false);
-    const [selectedData, setSelectedData] = useState<OverviewData | null>(null);
+    const [selectedData, setSelectedData] = useState<CheckClockData | null>(null);
     const [openDialog, setOpenDialog] = useState(false);
+
     const { register, handleSubmit, reset, setValue, watch } = useForm<{
-        name: string;
-        date: string;
         attendanceType: string;
         checkIn: string;
         checkOut: string;
@@ -42,8 +40,6 @@ export default function CheckClockOverviewTab() {
         evidence: FileList | null;
     }>({
         defaultValues: {
-            name: "",
-            date: "",
             attendanceType: "check-in",
             checkIn: "",
             checkOut: "",
@@ -53,35 +49,19 @@ export default function CheckClockOverviewTab() {
             evidence: null,
         },
     });
-    const form = useForm({
-        defaultValues: {
-            name: "",
-            date: "",
-            checkIn: "",
-            checkOut: "",
-            workHours: "",
-            status: "On Time",
-            location: "",
-            detailAddress: "",
-            lat: "",
-            long: "",
-        },
-    });
 
     const formData = watch();
     const attendanceType = formData.attendanceType;
 
     function handleViewDetails(id: number) {
-        const data = overviewData.find((item) => item.id === id);
+        const data = checkClockData.find((item) => item.id === id);
         if (data) {
             setSelectedData(data);
             setOpenSheet(true);
         }
-    };
+    }
 
     const onSubmit = (data: {
-        name: string;
-        date: string;
         attendanceType: string;
         checkIn: string;
         checkOut: string;
@@ -95,20 +75,11 @@ export default function CheckClockOverviewTab() {
         reset();
     };
 
-    const columns: Column<OverviewData>[] = [
+    const columns: Column<CheckClockData>[] = [
         {
             header: "No.",
-            accessorKey: (item) => overviewData.indexOf(item) + 1 + (page - 1) * pageSize,
+            accessorKey: (item) => checkClockData.indexOf(item) + 1 + (page - 1) * pageSize,
             className: "max-w-[80px]",
-        },
-        {
-            header: "Name",
-            accessorKey: "name",
-            cell: (item) => (
-                <div className="flex items-center gap-2">
-                    {item.name}
-                </div>
-            ),
         },
         {
             header: "Date",
@@ -135,7 +106,6 @@ export default function CheckClockOverviewTab() {
             accessorKey: "status",
             cell: (item) => {
                 let bg = "bg-green-600";
-                
                 if (item.status === "Late") bg = "bg-red-600";
                 else if (item.status === "Leave") bg = "bg-yellow-800";
                 return (
@@ -167,9 +137,7 @@ export default function CheckClockOverviewTab() {
                 <CardContent>
                     <header className="flex flex-col gap-4 mb-6">
                         <div className="flex items-center justify-between w-full">
-                            <h2 className="text-xl font-semibold">
-                                Check-Clock Overview
-                            </h2>
+                            <h2 className="text-xl font-semibold">Check-Clock Overview</h2>
                             <Button className="gap-2 bg-[#6B9AC4] hover:bg-[#5A89B3]" onClick={() => setOpenDialog(true)}>
                                 <Plus className="h-4 w-4" />
                                 Add Data
@@ -181,14 +149,9 @@ export default function CheckClockOverviewTab() {
                                 <Input
                                     className="pl-10 w-full bg-white border-gray-200"
                                     placeholder="Search Employee"
-                                // onChange={(e) => handleSearch(e.target.value)}
                                 />
                             </div>
-                            <Button
-                                variant="outline"
-                                className="gap-2 hover:bg-[#5A89B3]"
-                            // onClick={handleFilter}
-                            >
+                            <Button variant="outline" className="gap-2 hover:bg-[#5A89B3]">
                                 <Filter className="h-4 w-4" />
                                 Filter
                             </Button>
@@ -197,7 +160,7 @@ export default function CheckClockOverviewTab() {
 
                     <DataTable
                         columns={columns}
-                        data={overviewData}
+                        data={checkClockData}
                         page={page}
                         pageSize={pageSize}
                     />
@@ -218,6 +181,7 @@ export default function CheckClockOverviewTab() {
                     </footer>
                 </CardContent>
             </Card>
+
             {/* Sheet for Detail View */}
             <Sheet open={openSheet} onOpenChange={setOpenSheet}>
                 <SheetContent className="w-[100%] sm:max-w-2xl overflow-y-auto">
@@ -226,11 +190,6 @@ export default function CheckClockOverviewTab() {
                     </SheetHeader>
                     {selectedData && (
                         <div className="space-y-6 text-sm mx-6">
-                            <div className="border p-4 mb-4">
-                                <h3 className="text-base font-semibold">{selectedData.name}</h3>
-                                <p className="text-muted-foreground">CEO</p>
-                            </div>
-
                             <div className="border p-4">
                                 <h4 className="text-sm font-medium mb-2">Attendance Information</h4>
                                 <div className="grid grid-cols-2 gap-4">
@@ -278,6 +237,7 @@ export default function CheckClockOverviewTab() {
                                     </div>
                                 </div>
                             </div>
+
                             <div className="border p-4">
                                 <h4 className="text-sm font-medium mb-2">Support Evidence</h4>
                                 {selectedData.status === "Leave" ? (
@@ -300,6 +260,7 @@ export default function CheckClockOverviewTab() {
                     )}
                 </SheetContent>
             </Sheet>
+
             {/* Dialog for Add Data */}
             <Dialog open={openDialog} onOpenChange={setOpenDialog}>
                 <DialogContent className="sm:max-w-[800px]">
@@ -312,21 +273,8 @@ export default function CheckClockOverviewTab() {
 
                     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
-                            {/* Left Column - Select Employee, Attendance Type & Permit Duration */}
+                            {/* Left Column - Attendance Type & Permit Duration */}
                             <div className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="name">Select Employee</Label>
-                                    <select
-                                        id="name"
-                                        className="input input-bordered w-full"
-                                        {...register("name", { required: true })}
-                                    >
-                                        <option value="">Select Employee</option>
-                                        {employeeList.map((emp) => (
-                                            <option key={emp} value={emp}>{emp}</option>
-                                        ))}
-                                    </select>
-                                </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="attendanceType">Attendance Type</Label>
                                     <select

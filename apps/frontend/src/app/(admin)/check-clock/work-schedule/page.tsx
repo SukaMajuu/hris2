@@ -16,14 +16,6 @@ import { Edit, Plus, Search, Trash } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import React, { useState, useCallback } from "react";
 import {
-	Dialog,
-	DialogContent,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import {
 	ColumnDef,
 	useReactTable,
 	getCoreRowModel,
@@ -31,6 +23,7 @@ import {
 	getFilteredRowModel,
 	PaginationState,
 } from "@tanstack/react-table";
+import { WorkScheduleForm } from "./_components/WorkScheduleForm";
 
 export default function WorkSchedulePage() {
 	const { workSchedules } = useWorkSchedule();
@@ -183,238 +176,7 @@ export default function WorkSchedulePage() {
 	});
 
 	return (
-		<>
-			<Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-				<DialogContent className="sm:max-w-[700px]">
-					<DialogHeader>
-						<DialogTitle className="text-xl font-bold">
-							{isEditing ? "Edit" : "Add"} Work Schedule
-						</DialogTitle>
-					</DialogHeader>
-
-					<div className="py-4">
-						<div className="flex flex-col-reverse md:flex-row gap-4">
-							<div className="space-y-4 md:border-r border-gray-200 pr-4">
-								<h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">
-									Time Settings
-								</h3>
-								<div className="flex flex-col gap-6">
-									<div className="flex flex-row gap-6">
-										<div className="space-y-2">
-											<Label
-												htmlFor="checkInStart"
-												className="text-sm font-medium"
-											>
-												Check-in Start
-											</Label>
-											<Input
-												id="checkInStart"
-												type="time"
-												value={
-													formData.checkInStart ?? ""
-												}
-												onChange={(e) =>
-													handleChange(
-														"checkInStart",
-														e.target.value
-													)
-												}
-												className="w-full"
-											/>
-										</div>
-
-										<div className="space-y-2">
-											<Label
-												htmlFor="checkInEnd"
-												className="text-sm font-medium"
-											>
-												Check-in End
-											</Label>
-											<Input
-												id="checkInEnd"
-												type="time"
-												value={
-													formData.checkInEnd ?? ""
-												}
-												onChange={(e) =>
-													handleChange(
-														"checkInEnd",
-														e.target.value
-													)
-												}
-												className="w-full"
-											/>
-										</div>
-									</div>
-
-									<div className="flex flex-row gap-6">
-										<div className="space-y-2">
-											<Label
-												htmlFor="breakStart"
-												className="text-sm font-medium"
-											>
-												Break Start
-											</Label>
-											<Input
-												id="breakStart"
-												type="time"
-												value={
-													formData.breakStart ?? ""
-												}
-												onChange={(e) =>
-													handleChange(
-														"breakStart",
-														e.target.value
-													)
-												}
-												className="w-full"
-											/>
-										</div>
-
-										<div className="space-y-2">
-											<Label
-												htmlFor="breakEnd"
-												className="text-sm font-medium"
-											>
-												Break End
-											</Label>
-											<Input
-												id="breakEnd"
-												type="time"
-												value={formData.breakEnd ?? ""}
-												onChange={(e) =>
-													handleChange(
-														"breakEnd",
-														e.target.value
-													)
-												}
-												className="w-full"
-											/>
-										</div>
-									</div>
-									<div className="flex flex-row gap-6">
-										<div className="space-y-2">
-											<Label
-												htmlFor="checkOutStart"
-												className="text-sm font-medium"
-											>
-												Check-out Start
-											</Label>
-											<Input
-												id="checkOutStart"
-												type="time"
-												value={
-													formData.checkOutStart ?? ""
-												}
-												onChange={(e) =>
-													handleChange(
-														"checkOutStart",
-														e.target.value
-													)
-												}
-												className="w-full"
-											/>
-										</div>
-
-										<div className="space-y-2">
-											<Label
-												htmlFor="checkOutEnd"
-												className="text-sm font-medium"
-											>
-												Check-out End
-											</Label>
-											<Input
-												id="checkOutEnd"
-												type="time"
-												value={
-													formData.checkOutEnd ?? ""
-												}
-												onChange={(e) =>
-													handleChange(
-														"checkOutEnd",
-														e.target.value
-													)
-												}
-												className="w-full"
-											/>
-										</div>
-									</div>
-								</div>
-							</div>
-
-							<div className="space-y-4 flex-1">
-								<h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">
-									Basic Information
-								</h3>
-								<div className="grid gap-4">
-									<div className="space-y-2">
-										<Label
-											htmlFor="nama"
-											className="text-sm font-medium"
-										>
-											Schedule Name
-										</Label>
-										<Input
-											id="nama"
-											value={formData.nama ?? ""}
-											onChange={(e) =>
-												handleChange(
-													"nama",
-													e.target.value
-												)
-											}
-											placeholder="Enter schedule name"
-											className="w-full"
-										/>
-									</div>
-
-									<div className="space-y-2">
-										<Label
-											htmlFor="workType"
-											className="text-sm font-medium"
-										>
-											Work Type
-										</Label>
-										<select
-											id="workType"
-											value={formData.workType ?? ""}
-											onChange={(e) =>
-												handleChange(
-													"workType",
-													e.target.value
-												)
-											}
-											className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-										>
-											<option value="">
-												Select work type
-											</option>
-											<option value="WFO">
-												Work From Office
-											</option>
-											<option value="WFH">
-												Work From Home
-											</option>
-											<option value="HYBRID">
-												Hybrid
-											</option>
-										</select>
-									</div>
-								</div>
-							</div>
-						</div>
-					</div>
-
-					<DialogFooter className="pt-4">
-						<Button
-							onClick={handleSave}
-							className="bg-[#6B9AC4] hover:bg-[#5A89B3]"
-						>
-							{isEditing ? "Update Schedule" : "Save Schedule"}
-						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
+		<div>
 			<Card className="border border-gray-100 dark:border-gray-800">
 				<CardContent>
 					<header className="flex flex-col gap-4 mb-6">
@@ -458,6 +220,15 @@ export default function WorkSchedulePage() {
 					</div>
 				</CardContent>
 			</Card>
-		</>
+
+			<WorkScheduleForm
+				dialogOpen={dialogOpen}
+				setDialogOpen={setDialogOpen}
+				isEditing={isEditing}
+				formData={formData}
+				handleChange={handleChange}
+				handleSave={handleSave}
+			/>
+		</div>
 	);
 }

@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { DataTable } from "@/components/dataTable";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Crosshair, Filter, Plus, Search } from "lucide-react";
+import { Filter, Search, LogIn, LogOut, FileText } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { PageSizeComponent } from "@/components/pageSize";
 import { PaginationComponent } from "@/components/pagination";
@@ -17,16 +17,6 @@ import {
 	SheetTitle,
 } from "@/components/ui/sheet";
 import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { MapComponent } from "@/components/MapComponent";
-import {
 	ColumnDef,
 	useReactTable,
 	getCoreRowModel,
@@ -35,6 +25,8 @@ import {
 	PaginationState,
 	ColumnFiltersState,
 } from "@tanstack/react-table";
+import { CheckInOutDialog } from "./_components/CheckInOutDialog";
+import { PermitDialog } from "./_components/PermitDialog";
 
 interface DialogFormData {
 	attendanceType: string;
@@ -54,6 +46,10 @@ export default function CheckClock() {
 		null
 	);
 	const [openDialog, setOpenDialog] = useState(false);
+	const [dialogActionType, setDialogActionType] = useState<
+		"check-in" | "check-out" | "permit"
+	>("check-in");
+	const [dialogTitle, setDialogTitle] = useState("Add Attendance Data");
 	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 	const [nameFilter, setNameFilter] = useState("");
 
@@ -70,9 +66,7 @@ export default function CheckClock() {
 		[pageIndex, pageSize]
 	);
 
-	const { register, handleSubmit, reset, setValue, watch } = useForm<
-		DialogFormData
-	>({
+	const form = useForm<DialogFormData>({
 		defaultValues: {
 			attendanceType: "check-in",
 			checkIn: "",
@@ -84,8 +78,8 @@ export default function CheckClock() {
 		},
 	});
 
+	const { reset, setValue, watch } = form;
 	const formData = watch();
-	const attendanceType = formData.attendanceType;
 
 	const handleViewDetails = useCallback(
 		(id: number) => {
@@ -101,9 +95,45 @@ export default function CheckClock() {
 	);
 
 	const onSubmit = (data: DialogFormData) => {
-		console.log("Form submitted:", data);
+		console.log("Form submitted for:", dialogActionType, data);
 		setOpenDialog(false);
 		reset();
+	};
+
+	const openDialogHandler = (action: "check-in" | "check-out" | "permit") => {
+		reset();
+		setDialogActionType(action);
+		let title = "Record Attendance";
+		let defaultAttendanceType = "check-in";
+
+		if (action === "check-in") {
+			title = "Record Check-In";
+			defaultAttendanceType = "check-in";
+		} else if (action === "check-out") {
+			title = "Record Check-Out";
+			defaultAttendanceType = "check-out";
+		} else if (action === "permit") {
+			title = "Request Permit / Leave";
+			defaultAttendanceType = "sick leave"; // Default permit type
+		}
+		setDialogTitle(title);
+		setValue("attendanceType", defaultAttendanceType);
+		// Pre-fetch location for check-in/check-out if desired
+		if (action === "check-in" || action === "check-out") {
+			navigator.geolocation.getCurrentPosition(
+				(position) => {
+					setValue("latitude", position.coords.latitude.toString());
+					setValue("longitude", position.coords.longitude.toString());
+				},
+				(error) => {
+					console.error("Error getting current location:", error);
+					// Optionally set to a default or leave empty
+					setValue("latitude", "");
+					setValue("longitude", "");
+				}
+			);
+		}
+		setOpenDialog(true);
 	};
 
 	const columns: ColumnDef<CheckClockData>[] = useMemo(
@@ -193,27 +223,47 @@ export default function CheckClock() {
 	});
 
 	return (
-		<>
+		<div>
 			<Card className="border border-gray-100 dark:border-gray-800">
 				<CardContent>
 					<header className="flex flex-col gap-4 mb-6">
-						<div className="flex items-center justify-between w-full">
+						<div className="flex flex-wrap gap-2 items-center justify-between w-full">
 							<h2 className="text-xl font-semibold">
-								Check-Clock Overview
+								Attendance Overview
 							</h2>
-							<Button
-								className="gap-2 bg-[#6B9AC4] hover:bg-[#5A89B3]"
-								onClick={() => setOpenDialog(true)}
-							>
-								<Plus className="h-4 w-4" />
-								Add Data
-							</Button>
+							<div className="flex flex-wrap gap-2">
+								<Button
+									className="gap-2 bg-green-600 hover:bg-green-700 text-white"
+									onClick={() =>
+										openDialogHandler("check-in")
+									}
+								>
+									<LogIn className="h-4 w-4" />
+									Check In
+								</Button>
+								<Button
+									className="gap-2 bg-orange-500 hover:bg-orange-600 text-white"
+									onClick={() =>
+										openDialogHandler("check-out")
+									}
+								>
+									<LogOut className="h-4 w-4" />
+									Check Out
+								</Button>
+								<Button
+									className="gap-2 bg-blue-500 hover:bg-blue-600 text-white"
+									onClick={() => openDialogHandler("permit")}
+								>
+									<FileText className="h-4 w-4" />
+									Permit
+								</Button>
+							</div>
 						</div>
 						<div className="flex flex-wrap items-center gap-4 md:w-[400px]">
 							<div className="relative flex-[1]">
 								<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
 								<Input
-									className="pl-10 w-full bg-white border-gray-200"
+									className="pl-10 w-full bg-white border-gray-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
 									placeholder="Search Employee"
 									value={nameFilter}
 									onChange={(e) => {
@@ -223,7 +273,7 @@ export default function CheckClock() {
 							</div>
 							<Button
 								variant="outline"
-								className="gap-2 hover:bg-[#5A89B3]"
+								className="gap-2 hover:bg-[#5A89B3] hover:text-white dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100"
 							>
 								<Filter className="h-4 w-4" />
 								Filter
@@ -242,80 +292,100 @@ export default function CheckClock() {
 
 			{/* Sheet for Detail View */}
 			<Sheet open={openSheet} onOpenChange={setOpenSheet}>
-				<SheetContent className="w-[100%] sm:max-w-2xl overflow-y-auto">
-					<SheetHeader>
-						<SheetTitle>Attendance Details</SheetTitle>
+				<SheetContent className="w-[100%] sm:max-w-2xl overflow-y-auto bg-slate-50">
+					<SheetHeader className="pb-4 border-b">
+						<SheetTitle className="text-xl font-semibold text-slate-800">
+							Attendance Details
+						</SheetTitle>
 					</SheetHeader>
 					{selectedData && (
-						<div className="space-y-6 text-sm mx-6">
-							<div className="border p-4">
-								<h4 className="text-sm font-medium mb-2">
+						<div className="space-y-6 text-sm mx-2 sm:mx-4 py-6">
+							{/* Attendance Information Card */}
+							<div className="bg-white dark:bg-slate-800 shadow-md rounded-lg p-6">
+								<h4 className="text-md font-semibold text-slate-700 dark:text-slate-300 mb-4 pb-2 border-b dark:border-slate-700">
 									Attendance Information
 								</h4>
-								<div className="grid grid-cols-2 gap-4">
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
 									<div>
-										<p className="font-semibold">Date</p>
-										<p>{selectedData.date}</p>
+										<p className="text-xs font-medium text-slate-500">
+											Date
+										</p>
+										<p className="text-slate-700 dark:text-slate-300">
+											{selectedData.date}
+										</p>
 									</div>
 									<div>
-										<p className="font-semibold">
+										<p className="text-xs font-medium text-slate-500">
 											Check In
 										</p>
-										<p>{selectedData.checkIn}</p>
+										<p className="text-slate-700 dark:text-slate-300">
+											{selectedData.checkIn}
+										</p>
 									</div>
 									<div>
-										<p className="font-semibold">
+										<p className="text-xs font-medium text-slate-500">
 											Check Out
 										</p>
-										<p>{selectedData.checkOut}</p>
+										<p className="text-slate-700 dark:text-slate-300">
+											{selectedData.checkOut}
+										</p>
 									</div>
 									<div>
-										<p className="font-semibold">
+										<p className="text-xs font-medium text-slate-500">
 											Work Hours
 										</p>
-										<p>{selectedData.workHours}</p>
+										<p className="text-slate-700 dark:text-slate-300">
+											{selectedData.workHours}
+										</p>
 									</div>
 									<div>
-										<p className="font-semibold">Status</p>
-										<p>{selectedData.status}</p>
+										<p className="text-xs font-medium text-slate-500">
+											Status
+										</p>
+										<p className="text-slate-700 dark:text-slate-300">
+											{selectedData.status}
+										</p>
 									</div>
 								</div>
 							</div>
 
-							<div className="border p-4">
-								<h4 className="text-sm font-medium mb-2">
+							{/* Location Information Card */}
+							<div className="bg-white dark:bg-slate-800 shadow-md rounded-lg p-6">
+								<h4 className="text-md font-semibold text-slate-700 dark:text-slate-300 mb-4 pb-2 border-b dark:border-slate-700">
 									Location Information
 								</h4>
-								<div className="grid grid-cols-2 gap-4">
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
 									<div>
-										<p className="font-semibold">
+										<p className="text-xs font-medium text-slate-500">
 											Location
 										</p>
-										<p>{selectedData.location}</p>
+										<p className="text-slate-700 dark:text-slate-300">
+											{selectedData.location}
+										</p>
 									</div>
 									<div>
-										<p className="font-semibold">
+										<p className="text-xs font-medium text-slate-500">
 											Detail Address
 										</p>
-										<p>
+										<p className="text-slate-700 dark:text-slate-300">
 											{selectedData.detailAddress ||
 												"Jl. Veteran No.1, Kota Malang"}
 										</p>
 									</div>
 									<div>
-										<p className="font-semibold">
+										<p className="text-xs font-medium text-slate-500">
 											Latitude
 										</p>
-										<p>
+										<p className="text-slate-700 dark:text-slate-300">
 											{selectedData.latitude ||
 												"-7.9783908"}
 										</p>
 									</div>
 									<div>
-										<p className="font-semibold">
+										<p className="text-xs font-medium text-slate-500">
 											Longitude
 										</p>
-										<p>
+										<p className="text-slate-700 dark:text-slate-300">
 											{selectedData.longitude ||
 												"112.621381"}
 										</p>
@@ -323,40 +393,46 @@ export default function CheckClock() {
 								</div>
 							</div>
 
-							<div className="border p-4">
-								<h4 className="text-sm font-medium mb-2">
+							{/* Support Evidence Card */}
+							<div className="bg-white dark:bg-slate-800 shadow-md rounded-lg p-6">
+								<h4 className="text-md font-semibold text-slate-700 dark:text-slate-300 mb-4 pb-2 border-b dark:border-slate-700">
 									Support Evidence
 								</h4>
 								{selectedData.status === "Leave" ? (
 									<div className="space-y-2">
-										<div className="text-sm text-muted-foreground">
-											<span className="font-semibold">
-												Leave Type:{" "}
-											</span>
-											{selectedData.leaveType
-												? selectedData.leaveType.replace(
-														/\b\w/g,
-														(c: string) =>
-															c.toUpperCase()
-												  )
-												: "-"}
+										<div>
+											<p className="text-xs font-medium text-slate-500">
+												Leave Type
+											</p>
+											<p className="text-slate-700 dark:text-slate-300">
+												{selectedData.leaveType
+													? selectedData.leaveType.replace(
+															/\b\w/g,
+															(c: string) =>
+																c.toUpperCase()
+													  )
+													: "-"}
+											</p>
 										</div>
-										<div className="text-sm text-muted-foreground">
-											<span className="font-semibold">
-												Evidence:{" "}
-											</span>
-											<span>-</span>
+										<div>
+											<p className="text-xs font-medium text-slate-500">
+												Evidence
+											</p>
+											<p className="text-slate-700 dark:text-slate-300">
+												-
+											</p>{" "}
+											{/* Placeholder for evidence link/display if available */}
 										</div>
-										<p className="text-xs text-muted-foreground">
+										<p className="text-xs text-slate-500 dark:text-slate-400 pt-2">
 											Support evidence is only required
 											for leave/permit attendance types.
 										</p>
 									</div>
 								) : (
-									<span className="text-xs text-muted-foreground">
+									<p className="text-sm text-slate-500 dark:text-slate-400">
 										No support evidence required for this
 										attendance type.
-									</span>
+									</p>
 								)}
 							</div>
 						</div>
@@ -364,272 +440,29 @@ export default function CheckClock() {
 				</SheetContent>
 			</Sheet>
 
-			{/* Dialog for Add Data */}
-			<Dialog open={openDialog} onOpenChange={setOpenDialog}>
-				<DialogContent className="sm:max-w-[800px]">
-					<DialogHeader>
-						<DialogTitle>Add Attendance Data</DialogTitle>
-						<DialogDescription>
-							Fill in the attendance details. Location will be
-							taken from your current position.
-						</DialogDescription>
-					</DialogHeader>
+			{/* Conditional Dialog Rendering */}
+			{(dialogActionType === "check-in" ||
+				dialogActionType === "check-out") && (
+				<CheckInOutDialog
+					open={openDialog}
+					onOpenChange={setOpenDialog}
+					dialogTitle={dialogTitle}
+					actionType={dialogActionType}
+					formMethods={form}
+					onSubmit={onSubmit}
+				/>
+			)}
 
-					<form
-						onSubmit={handleSubmit(onSubmit)}
-						className="space-y-4"
-					>
-						<div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
-							{/* Left Column - Attendance Type & Permit Duration */}
-							<div className="space-y-4">
-								<div className="space-y-2">
-									<Label htmlFor="attendanceType">
-										Attendance Type
-									</Label>
-									<select
-										id="attendanceType"
-										className="input input-bordered w-full"
-										{...register("attendanceType", {
-											required: true,
-										})}
-									>
-										<option value="check-in">
-											Check-In
-										</option>
-										<option value="check-out">
-											Check-Out
-										</option>
-										<option value="sick leave">
-											Sick Leave
-										</option>
-										<option value="compassionate leave">
-											Compassionate Leave
-										</option>
-										<option value="maternity leave">
-											Maternity Leave
-										</option>
-										<option value="annual leave">
-											Annual Leave
-										</option>
-										<option value="marriage leave">
-											Marriage Leave
-										</option>
-									</select>
-								</div>
-								{/* Permit duration for leave types */}
-								{[
-									"sick leave",
-									"compassionate leave",
-									"maternity leave",
-									"annual leave",
-									"marriage leave",
-								].includes(attendanceType) && (
-									<div className="space-y-2">
-										<Label htmlFor="permitEndDate">
-											Permit Duration (End Date)
-										</Label>
-										<Input
-											id="permitEndDate"
-											type="date"
-											{...register("permitEndDate", {
-												required: true,
-											})}
-										/>
-									</div>
-								)}
-								{/* Work Schedule Section */}
-								{![
-									"sick leave",
-									"compassionate leave",
-									"maternity leave",
-									"annual leave",
-									"marriage leave",
-								].includes(attendanceType) && (
-									<div className="border rounded-md p-4 mt-4">
-										<Label className="block text-base font-semibold mb-4">
-											Work Schedule
-										</Label>
-										<div className="grid grid-cols-2 gap-4 mb-2">
-											<div className="space-y-2">
-												<Label htmlFor="workType">
-													Work Type
-												</Label>
-												<Input
-													id="workType"
-													placeholder="WFO"
-												/>
-											</div>
-											<div className="space-y-2">
-												<Label htmlFor="checkInSchedule">
-													Check-In
-												</Label>
-												<Input
-													id="checkInSchedule"
-													placeholder="07:00 - 08:00"
-												/>
-											</div>
-										</div>
-										<div className="grid grid-cols-2 gap-4">
-											<div className="space-y-2">
-												<Label htmlFor="breakSchedule">
-													Break
-												</Label>
-												<Input
-													id="breakSchedule"
-													placeholder="12:00 - 13:00"
-												/>
-											</div>
-											<div className="space-y-2">
-												<Label htmlFor="checkOutSchedule">
-													Check-Out
-												</Label>
-												<Input
-													id="checkOutSchedule"
-													placeholder="17:00 - 18:00"
-												/>
-											</div>
-										</div>
-									</div>
-								)}
-								{/* Location Section */}
-								{![
-									"sick leave",
-									"compassionate leave",
-									"maternity leave",
-									"annual leave",
-									"marriage leave",
-								].includes(attendanceType) && (
-									<div className="space-y-2 mt-4">
-										<div className="flex gap-2 mt-2">
-											<Button
-												variant="outline"
-												type="button"
-												onClick={() => {
-													navigator.geolocation.getCurrentPosition(
-														(position) => {
-															setValue(
-																"latitude",
-																position.coords.latitude.toString()
-															);
-															setValue(
-																"longitude",
-																position.coords.longitude.toString()
-															);
-														},
-														(error) => {
-															console.error(
-																"Error getting current location:",
-																error
-															);
-														}
-													);
-												}}
-												className="flex-1"
-											>
-												<Crosshair className="h-4 w-4 mr-2" />
-												Use Current Location
-											</Button>
-										</div>
-										<div className="grid grid-cols-2 gap-4 mt-2">
-											<div className="space-y-2">
-												<Label htmlFor="latitude">
-													Latitude
-												</Label>
-												<Input
-													id="latitude"
-													value={
-														formData.latitude || ""
-													}
-													disabled
-													className="bg-gray-100 dark:bg-gray-800"
-												/>
-											</div>
-											<div className="space-y-2">
-												<Label htmlFor="longitude">
-													Longitude
-												</Label>
-												<Input
-													id="longitude"
-													value={
-														formData.longitude || ""
-													}
-													disabled
-													className="bg-gray-100 dark:bg-gray-800"
-												/>
-											</div>
-										</div>
-									</div>
-								)}
-							</div>
-							{/* Right Column - Map & Upload Evidence */}
-							<div className="space-y-4">
-								{![
-									"sick leave",
-									"compassionate leave",
-									"maternity leave",
-									"annual leave",
-									"marriage leave",
-								].includes(attendanceType) && (
-									<div className="space-y-2">
-										<Label>Your Current Location</Label>
-										<div className="min-h-[100px]">
-											<MapComponent
-												latitude={parseFloat(
-													formData.latitude ||
-														"-6.2088"
-												)}
-												longitude={parseFloat(
-													formData.longitude ||
-														"106.8456"
-												)}
-												radius={100}
-												onPositionChange={() => {
-													/* readonly, do nothing */
-												}}
-											/>
-										</div>
-									</div>
-								)}
-								{/* Upload Evidence */}
-								{[
-									"sick leave",
-									"compassionate leave",
-									"maternity leave",
-									"annual leave",
-									"marriage leave",
-								].includes(attendanceType) && (
-									<div className="space-y-2">
-										<Label htmlFor="evidence">
-											Upload Support Evidence
-										</Label>
-										<Input
-											id="evidence"
-											type="file"
-											accept="image/*,application/pdf"
-											{...register("evidence")}
-										/>
-										<p className="text-xs text-muted-foreground">
-											Upload bukti tambahan (foto, PDF,
-											dsb) untuk attendance selain
-											check-in dan check-out.
-										</p>
-									</div>
-								)}
-							</div>
-						</div>
-						<DialogFooter>
-							<Button
-								type="button"
-								variant="outline"
-								onClick={() => setOpenDialog(false)}
-							>
-								Cancel
-							</Button>
-							<Button type="submit">Save Attendance</Button>
-						</DialogFooter>
-					</form>
-				</DialogContent>
-			</Dialog>
-		</>
+			{dialogActionType === "permit" && (
+				<PermitDialog
+					open={openDialog}
+					onOpenChange={setOpenDialog}
+					dialogTitle={dialogTitle}
+					formMethods={form}
+					onSubmit={onSubmit}
+					currentAttendanceType={formData.attendanceType}
+				/>
+			)}
+		</div>
 	);
 }

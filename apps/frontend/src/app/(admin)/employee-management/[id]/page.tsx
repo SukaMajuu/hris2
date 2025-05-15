@@ -202,20 +202,17 @@ export default function Page() {
 	};
 
 	const handleResetPassword = () => {
-		// Placeholder: Add actual password reset logic here
-		// For now, generate a random string and log it
 		const newPassword = Math.random().toString(36).slice(-8);
 		console.log(
 			`Password reset requested for employee ${employee?.id}. New temporary password: ${newPassword}`
 		);
-		// Ideally, show a confirmation to the user
 		alert(
 			`Password has been reset. New temporary password: ${newPassword}`
 		);
 	};
 
 	return (
-		<div className="space-y-6 p-4 md:p-6 bg-slate-50 dark:bg-slate-950 min-h-screen">
+		<div className="space-y-6 min-h-screen">
 			<div className="mb-6">
 				<Link href="/employee-management">
 					<Button

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import {
 	Select,
@@ -136,24 +136,22 @@ export function CheckClockForm({
 		employees.find((emp) => emp.value === employeeId)?.label ||
 		"Select Employee...";
 
-	// Find the current employee for the profile card
 	const currentEmployee = employees.find((emp) => emp.value === employeeId);
 
-	// Add a helper to get location details by id
-	const getLocationDetails = (id: string) => {
-		const loc = locations.find((l) => l.value === id);
-		// You may need to adjust this if your location object has more fields
-		// For now, we use label as address, and assume latitude/longitude are present
-		return loc
-			? {
-					address: loc.label || "",
-					latitude: loc.latitude || "",
-					longitude: loc.longitude || "",
-			  }
-			: { address: "", latitude: "", longitude: "" };
-	};
+	const getLocationDetails = useCallback(
+		(id: string) => {
+			const loc = locations.find((l) => l.value === id);
+			return loc
+				? {
+						address: loc.label || "",
+						latitude: loc.latitude || "",
+						longitude: loc.longitude || "",
+				  }
+				: { address: "", latitude: "", longitude: "" };
+		},
+		[locations]
+	);
 
-	// Update address, latitude, longitude when locationId changes
 	useEffect(() => {
 		if (locationId) {
 			const details = getLocationDetails(locationId);
@@ -165,24 +163,23 @@ export function CheckClockForm({
 			setLatitude("");
 			setLongitude("");
 		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [locationId]);
+	}, [getLocationDetails, locationId]);
 
 	return (
 		<form onSubmit={handleSubmit} className="space-y-6">
 			{/* Grid */}
-			<div className="flex flex-col lg:flex-row max-w-[1200px] mx-auto gap-6">
+			<div className="flex flex-col lg:flex-row max-w-[1200px] mx-auto gap-8">
 				{/* Left Column - Employee Profile or Selection */}
 				<div className="w-full lg:w-2/6">
 					{/* Employee Profile Card */}
 					{showProfileCard ? (
 						<Card className="border-none shadow-sm">
-							<CardContent>
-								<div className="flex flex-col items-center text-center mb-3">
-									<div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center mb-2">
-										<User className="h-8 w-8 text-gray-500" />
+							<CardContent className="p-6">
+								<div className="flex flex-col items-center text-center mb-4">
+									<div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+										<User className="h-10 w-10 text-gray-500" />
 									</div>
-									<h3 className="text-lg font-semibold">
+									<h3 className="text-xl font-semibold text-gray-800">
 										{currentEmployee?.label || "N/A"}
 									</h3>
 									<p className="text-sm text-gray-500">
@@ -190,13 +187,13 @@ export function CheckClockForm({
 									</p>
 								</div>
 
-								<div className="space-y-3">
-									<div className="flex flex-col gap-1">
-										<Label className="text-xs font-medium">
+								<div className="space-y-4">
+									<div>
+										<Label className="block text-sm font-medium text-gray-700 mb-1">
 											Employee ID
 										</Label>
 										<Input
-											className="bg-gray-50 text-sm py-1"
+											className="bg-slate-50 text-sm py-2 px-3 text-gray-600 cursor-not-allowed"
 											disabled
 											value={employeeId || "N/A"}
 										/>
@@ -206,10 +203,10 @@ export function CheckClockForm({
 						</Card>
 					) : (
 						<Card className="border-none shadow-sm">
-							<CardContent>
-								<div className="flex items-center gap-2 mb-3">
-									<User className="h-4 w-4 text-gray-500" />
-									<h3 className="font-semibold text-base">
+							<CardContent className="p-6">
+								<div className="flex items-center gap-2 mb-4">
+									<User className="h-5 w-5 text-gray-500" />
+									<h3 className="font-semibold text-lg text-gray-800">
 										Employee Selection
 									</h3>
 								</div>
@@ -217,7 +214,7 @@ export function CheckClockForm({
 								<div>
 									<Label
 										htmlFor="employeeId"
-										className="text-xs font-medium"
+										className="block text-sm font-medium text-gray-700 mb-1.5"
 									>
 										Select Employee
 									</Label>
@@ -230,11 +227,11 @@ export function CheckClockForm({
 												variant="outline"
 												role="combobox"
 												aria-expanded={comboboxOpen}
-												className="w-full justify-between mt-1 text-sm"
+												className="w-full justify-between text-sm font-normal text-gray-700 border-gray-300 hover:border-gray-400"
 												id="employeeId"
 											>
 												{currentEmployeeLabel}
-												<ChevronsUpDown className="ml-2 h-3 shrink-0 opacity-50" />
+												<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 											</Button>
 										</PopoverTrigger>
 										<PopoverContent className="p-0">
@@ -297,24 +294,24 @@ export function CheckClockForm({
 				<div className="w-full lg:w-2/3 space-y-6">
 					{/* Work Schedule */}
 					<Card className="border-none shadow-sm">
-						<CardContent>
+						<CardContent className="p-6">
 							<div className="flex items-center gap-2 mb-4">
 								<Clock className="h-5 w-5 text-gray-500" />
-								<h3 className="font-semibold text-lg">
+								<h3 className="font-semibold text-lg text-gray-800">
 									Work Schedule
 								</h3>
 							</div>
 
-							<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+							<div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
 								<div>
-									<Label className="text-sm font-medium">
+									<Label className="block text-sm font-medium text-gray-700 mb-1.5">
 										Work Schedule Type
 									</Label>
 									<Select
 										value={workScheduleType}
 										onValueChange={setWorkScheduleType}
 									>
-										<SelectTrigger className="w-full mt-2">
+										<SelectTrigger className="w-full text-sm font-normal text-gray-700 border-gray-300 hover:border-gray-400">
 											<SelectValue placeholder="Select schedule type" />
 										</SelectTrigger>
 										<SelectContent>
@@ -335,24 +332,24 @@ export function CheckClockForm({
 								</div>
 
 								{/* Read-only fields group */}
-								<div className="md:col-span-2 bg-gray-50 border border-gray-200 rounded-md p-4 mt-2">
-									<div className="mb-2 text-xs text-gray-500 font-medium">
-										Auto-filled by system
+								<div className="md:col-span-2 bg-slate-50 border border-slate-200 rounded-lg p-4 mt-2">
+									<div className="mb-3 text-xs text-gray-500 italic">
+										Schedule details (auto-filled by system)
 									</div>
-									<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+									<div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
 										<div>
-											<Label className="text-sm font-medium">
+											<Label className="block text-sm font-medium text-gray-700 mb-1.5">
 												Work Type
 											</Label>
 											<Input
 												value={workType}
 												readOnly
 												tabIndex={-1}
-												className="bg-gray-100 mt-2 cursor-not-allowed text-gray-500"
+												className="bg-slate-100 mt-0 text-sm text-gray-600 cursor-not-allowed border-slate-300"
 											/>
 										</div>
 										<div>
-											<Label className="text-sm font-medium">
+											<Label className="block text-sm font-medium text-gray-700 mb-1.5">
 												Check In
 											</Label>
 											<Input
@@ -360,11 +357,11 @@ export function CheckClockForm({
 												readOnly
 												tabIndex={-1}
 												placeholder="07:00 - 08:00"
-												className="bg-gray-100 mt-2 cursor-not-allowed text-gray-500"
+												className="bg-slate-100 mt-0 text-sm text-gray-600 cursor-not-allowed border-slate-300"
 											/>
 										</div>
 										<div>
-											<Label className="text-sm font-medium">
+											<Label className="block text-sm font-medium text-gray-700 mb-1.5">
 												Check-out
 											</Label>
 											<Input
@@ -372,11 +369,11 @@ export function CheckClockForm({
 												readOnly
 												tabIndex={-1}
 												placeholder="17:00 - 18:00"
-												className="bg-gray-100 mt-2 cursor-not-allowed text-gray-500"
+												className="bg-slate-100 mt-0 text-sm text-gray-600 cursor-not-allowed border-slate-300"
 											/>
 										</div>
 										<div>
-											<Label className="text-sm font-medium">
+											<Label className="block text-sm font-medium text-gray-700 mb-1.5">
 												Break
 											</Label>
 											<Input
@@ -384,7 +381,7 @@ export function CheckClockForm({
 												readOnly
 												tabIndex={-1}
 												placeholder="12:00 - 13:00"
-												className="bg-gray-100 mt-2 cursor-not-allowed text-gray-500"
+												className="bg-slate-100 mt-0 text-sm text-gray-600 cursor-not-allowed border-slate-300"
 											/>
 										</div>
 									</div>
@@ -395,23 +392,23 @@ export function CheckClockForm({
 
 					{/* Check-Clock Location */}
 					<Card className="border-none shadow-sm">
-						<CardContent>
+						<CardContent className="p-6">
 							<div className="flex items-center gap-2 mb-4">
 								<MapPin className="h-5 w-5 text-gray-500" />
-								<h3 className="font-semibold text-lg">
+								<h3 className="font-semibold text-lg text-gray-800">
 									Check-Clock Location
 								</h3>
 							</div>
 							{/* Select Location at the top */}
 							<div className="mb-4">
-								<Label className="text-sm font-medium">
+								<Label className="block text-sm font-medium text-gray-700 mb-1.5">
 									Location
 								</Label>
 								<Select
 									value={locationId}
 									onValueChange={setLocationId}
 								>
-									<SelectTrigger className="w-full mt-2 z-10">
+									<SelectTrigger className="w-full text-sm font-normal text-gray-700 border-gray-300 hover:border-gray-400 z-10">
 										<SelectValue placeholder="Select Location" />
 									</SelectTrigger>
 									<SelectContent>
@@ -437,11 +434,11 @@ export function CheckClockForm({
 								</Select>
 							</div>
 							{/* System-filled section: map + fields */}
-							<div className="bg-gray-50 border border-gray-200 rounded-md p-4 relative">
-								<div className="mb-2 text-xs text-gray-500 font-medium">
-									Auto-filled by system
+							<div className="bg-slate-50 border border-slate-200 rounded-lg p-4 relative">
+								<div className="mb-3 text-xs text-gray-500 italic">
+									Location details (auto-filled by system)
 								</div>
-								<div className="h-48 rounded-md overflow-hidden border mb-4 z-0">
+								<div className="h-48 rounded-md overflow-hidden border border-slate-300 mb-4 z-0">
 									<MapComponent
 										latitude={
 											latitude
@@ -457,21 +454,21 @@ export function CheckClockForm({
 										interactive={false}
 									/>
 								</div>
-								<div className="grid grid-cols-1 gap-6">
+								<div className="grid grid-cols-1 gap-4">
 									<div>
-										<Label className="text-sm font-medium">
+										<Label className="block text-sm font-medium text-gray-700 mb-1.5">
 											Address Details
 										</Label>
 										<Input
 											value={addressDetails}
 											readOnly
 											tabIndex={-1}
-											className="bg-gray-100 mt-2 cursor-not-allowed text-gray-500"
+											className="bg-slate-100 mt-0 text-sm text-gray-600 cursor-not-allowed border-slate-300"
 										/>
 									</div>
-									<div className="flex justify-between gap-6">
+									<div className="flex flex-col sm:flex-row justify-between gap-4">
 										<div className="w-full">
-											<Label className="text-sm font-medium">
+											<Label className="block text-sm font-medium text-gray-700 mb-1.5">
 												Latitude
 											</Label>
 											<Input
@@ -479,11 +476,11 @@ export function CheckClockForm({
 												readOnly
 												tabIndex={-1}
 												placeholder="Lat Location"
-												className="bg-gray-100 mt-2 cursor-not-allowed text-gray-500"
+												className="bg-slate-100 mt-0 text-sm text-gray-600 cursor-not-allowed border-slate-300"
 											/>
 										</div>
 										<div className="w-full">
-											<Label className="text-sm font-medium">
+											<Label className="block text-sm font-medium text-gray-700 mb-1.5">
 												Longitude
 											</Label>
 											<Input
@@ -491,7 +488,7 @@ export function CheckClockForm({
 												readOnly
 												tabIndex={-1}
 												placeholder="Long Location"
-												className="bg-gray-100 mt-2 cursor-not-allowed text-gray-500"
+												className="bg-slate-100 mt-0 text-sm text-gray-600 cursor-not-allowed border-slate-300"
 											/>
 										</div>
 									</div>
@@ -505,14 +502,14 @@ export function CheckClockForm({
 							type="button"
 							variant="outline"
 							onClick={() => router.back()}
-							className="px-6"
+							className="px-6 py-2 hover:text-gray-700 text-sm border-gray-300 hover:bg-gray-100"
 						>
 							Cancel
 						</Button>
 						<Button
 							type="submit"
 							variant="default"
-							className="px-6 bg-[#6B9AC4] hover:bg-[#5a89b3]"
+							className="px-6 py-2 text-sm bg-[#6B9AC4] hover:bg-[#5a89b3]"
 						>
 							{isEditMode ? "Save Changes" : "Save"}
 						</Button>

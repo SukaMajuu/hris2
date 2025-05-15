@@ -12,7 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { PaginationComponent } from "@/components/pagination";
 import { PageSizeComponent } from "@/components/pageSize";
 import { Button } from "@/components/ui/button";
-import { Edit, Plus, Search } from "lucide-react";
+import { Edit, Plus, Search, Trash } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import React, { useState, useCallback } from "react";
 import {
@@ -56,6 +56,12 @@ export default function WorkSchedulePage() {
 	}, []);
 
 	const handleOpenEdit = useCallback((data: WorkScheduleType) => {
+		setFormData(data);
+		setIsEditing(true);
+		setDialogOpen(true);
+	}, []);
+
+	const handleOpenDelete = useCallback((data: WorkScheduleType) => {
 		setFormData(data);
 		setIsEditing(true);
 		setDialogOpen(true);
@@ -120,7 +126,7 @@ export default function WorkSchedulePage() {
 				header: "Action",
 				id: "action",
 				cell: ({ row }) => (
-					<div className="flex gap-2">
+					<div className="flex justify-center gap-2">
 						<Button
 							size="sm"
 							variant="outline"
@@ -133,13 +139,25 @@ export default function WorkSchedulePage() {
 							<Edit className="h-4 w-4 mr-1" />
 							Edit
 						</Button>
+						<Button
+							size="sm"
+							variant="outline"
+							className="h-9 px-3 bg-destructive text-white hover:bg-destructive/80 border-none hover:cursor-pointer"
+							onClick={(e) => {
+								e.stopPropagation();
+								handleOpenDelete(row.original);
+							}}
+						>
+							<Trash className="h-4 w-4 mr-1" />
+							Delete
+						</Button>
 					</div>
 				),
 				enableSorting: false,
 				enableColumnFilter: false,
 			},
 		],
-		[handleOpenEdit]
+		[handleOpenEdit, handleOpenDelete]
 	);
 
 	const table = useReactTable<WorkScheduleType>({

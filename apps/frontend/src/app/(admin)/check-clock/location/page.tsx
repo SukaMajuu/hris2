@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, Filter, Plus, Edit } from "lucide-react";
+import { Search, Filter, Plus, Edit, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -57,11 +57,14 @@ export default function LocationPage() {
 		setDialogOpen(true);
 	}, []);
 
+	const handleOpenDelete = useCallback((data: Location) => {
+		setFormData(data);
+		setIsEditing(true);
+		setDialogOpen(true);
+	}, []);
+
 	const handleSave = () => {
-		// logika untuk simpan data
 		console.log(isEditing ? "Update" : "Create", formData);
-		// Here you would typically call a function from the hook to save/update `locations`
-		// For now, it just closes the dialog
 		setDialogOpen(false);
 	};
 
@@ -96,7 +99,7 @@ export default function LocationPage() {
 			},
 			{
 				header: "Action",
-				id: "action", // Use id for non-accessor columns
+				id: "action",
 				cell: ({ row }) => (
 					<div className="flex gap-2 justify-center">
 						<Button
@@ -111,6 +114,18 @@ export default function LocationPage() {
 							<Edit className="h-4 w-4 mr-1" />
 							Edit
 						</Button>
+						<Button
+							size="sm"
+							variant="outline"
+							className="h-9 px-3 bg-destructive text-white hover:bg-destructive/80 border-none hover:cursor-pointer"
+							onClick={(e) => {
+								e.stopPropagation();
+								handleOpenDelete(row.original);
+							}}
+						>
+							<Trash className="h-4 w-4 mr-1" />
+							Delete
+						</Button>
 					</div>
 				),
 				meta: { className: "w-[160px]" },
@@ -118,7 +133,7 @@ export default function LocationPage() {
 				enableColumnFilter: false,
 			},
 		],
-		[handleOpenEdit] // Add handleOpenEdit to dependencies
+		[handleOpenEdit, handleOpenDelete]
 	);
 
 	const table = useReactTable<Location>({

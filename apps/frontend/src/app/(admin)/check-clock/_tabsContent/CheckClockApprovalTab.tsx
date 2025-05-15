@@ -262,7 +262,7 @@ export default function CheckClockApprovalTab() {
 						</SheetTitle>
 					</SheetHeader>
 					{selectedDetail && (
-						<div className="space-y-6 text-sm mx-2 sm:mx-4 py-6">
+						<div className="space-y-6 text-sm mx-2 sm:mx-4">
 							<div className="bg-white shadow-md rounded-lg p-6 mb-6">
 								<h3 className="text-lg font-bold text-slate-700 mb-1">
 									{selectedDetail.name}

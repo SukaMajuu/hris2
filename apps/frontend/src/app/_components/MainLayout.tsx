@@ -199,7 +199,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
         <SidebarInset className='flex h-full min-h-0 w-full flex-1 flex-col overflow-y-auto'>
           <header className='flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 py-4 sticky top-0 z-10'>
             <div className='flex items-center gap-3'>
-              <SidebarTrigger className='text-gray-600 hover:bg-[#5A89B3] hover:text-white' />
+              <SidebarTrigger className='text-gray-600 hover:bg-primary hover:text-white hover:cursor-pointer' />
               <h1 className='text-lg font-semibold text-gray-800 md:text-xl whitespace-nowrap'>{getPageTitle()}</h1>
             </div>
             <div className='flex items-center gap-2 md:gap-4'>

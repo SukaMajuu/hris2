@@ -8,7 +8,12 @@ import { PaginationComponent } from "@/components/pagination";
 import { PageSizeComponent } from "@/components/pageSize";
 import { useCheckClockApproval } from "../_hooks/useCheckClockApproval";
 import { ApprovalConfirmationModal } from "../_components/ApprovalConfirmationModal";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+	Sheet,
+	SheetContent,
+	SheetHeader,
+	SheetTitle,
+} from "@/components/ui/sheet";
 import { useState } from "react";
 
 interface ApprovalItem {
@@ -47,7 +52,9 @@ export default function CheckClockApprovalTab() {
 	} = useCheckClockApproval();
 
 	const [openSheet, setOpenSheet] = useState(false);
-	const [selectedDetail, setSelectedDetail] = useState<ApprovalDetail | null>(null);
+	const [selectedDetail, setSelectedDetail] = useState<ApprovalDetail | null>(
+		null
+	);
 
 	function handleSheetViewDetails(id: number) {
 		const item = approvalData.find((d) => d.id === id);
@@ -59,7 +66,8 @@ export default function CheckClockApprovalTab() {
 				status: item.status,
 				permitStart: "2025-05-14",
 				permitEnd: "2025-05-15",
-				attachmentUrl:"https://th.bing.com/th/id/OIP.qrpfU_h0AKkOwdbe-siBCgHaLH?o=7&cb=iwp2rm=3&rs=1&pid=ImgDetMain",
+				attachmentUrl:
+					"https://th.bing.com/th/id/OIP.qrpfU_h0AKkOwdbe-siBCgHaLH?o=7&cb=iwp2rm=3&rs=1&pid=ImgDetMain",
 			});
 			setOpenSheet(true);
 		}
@@ -208,33 +216,59 @@ export default function CheckClockApprovalTab() {
 			/>
 			{/* Sheet for Details */}
 			<Sheet open={openSheet} onOpenChange={setOpenSheet}>
-				<SheetContent className="w-[100%] sm:max-w-2xl overflow-y-auto">
-					<SheetHeader>
-						<SheetTitle>Permit Details</SheetTitle>
+				<SheetContent className="w-[100%] sm:max-w-2xl overflow-y-auto bg-slate-50">
+					<SheetHeader className="pb-4 border-b">
+						<SheetTitle className="text-xl font-semibold text-slate-800">
+							Permit Details
+						</SheetTitle>
 					</SheetHeader>
 					{selectedDetail && (
-						<div className="space-y-6 text-sm mx-6 mt-6">
-							<div className="border p-4 mb-4 rounded-md">
-								<h3 className="text-base font-semibold mb-1">{selectedDetail.name}</h3>
-								<p className="text-muted-foreground">{selectedDetail.position}</p>
+						<div className="space-y-6 text-sm mx-2 sm:mx-4">
+							<div className="bg-white shadow-md rounded-lg p-6 mb-6">
+								<h3 className="text-lg font-bold text-slate-700 mb-1">
+									{selectedDetail.name}
+								</h3>
+								<p className="text-sm text-slate-500">
+									{selectedDetail.position}
+								</p>
 							</div>
-							<div className="border p-4 rounded-md">
-								<h4 className="text-sm font-medium mb-4 border-b pb-1">Permit Information</h4>
-								<div className="grid grid-cols-2 gap-4">
+							<div className="bg-white shadow-md rounded-lg p-6">
+								<h4 className="text-md font-semibold text-slate-700 mb-4 pb-2 border-b">
+									Permit Information
+								</h4>
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
 									<div>
-										<p className="font-semibold border-b mb-1">Status</p>
-										<p>{selectedDetail.status}</p>
+										<p className="text-xs font-medium text-slate-500">
+											Status
+										</p>
+										<p className="text-slate-700">
+											{selectedDetail.status}
+										</p>
 									</div>
 									<div>
-										<p className="font-semibold border-b mb-1">Permit Duration</p>
-										<p>{selectedDetail.permitStart} - {selectedDetail.permitEnd}</p>
+										<p className="text-xs font-medium text-slate-500">
+											Permit Duration
+										</p>
+										<p className="text-slate-700">
+											{selectedDetail.permitStart} -{" "}
+											{selectedDetail.permitEnd}
+										</p>
 									</div>
 								</div>
 							</div>
 							{selectedDetail.attachmentUrl && (
-								<div className="border p-4 rounded-md">
-									<h4 className="text-sm font-medium mb-4 border-b pb-1">Attachment</h4>
-									<a href={selectedDetail.attachmentUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Lihat Bukti</a>
+								<div className="bg-white shadow-md rounded-lg p-6">
+									<h4 className="text-md font-semibold text-slate-700 mb-4 pb-2 border-b">
+										Attachment
+									</h4>
+									<a
+										href={selectedDetail.attachmentUrl}
+										target="_blank"
+										rel="noopener noreferrer"
+										className="text-blue-600 hover:text-blue-700 underline"
+									>
+										Lihat Bukti
+									</a>
 								</div>
 							)}
 						</div>

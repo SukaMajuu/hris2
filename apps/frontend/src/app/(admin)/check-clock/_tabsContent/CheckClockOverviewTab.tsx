@@ -240,123 +240,146 @@ export default function CheckClockOverviewTab() {
 			</Card>
 			{/* Sheet for Detail View */}
 			<Sheet open={openSheet} onOpenChange={setOpenSheet}>
-				<SheetContent className="w-[100%] sm:max-w-2xl overflow-y-auto">
-					<SheetHeader>
-						<SheetTitle>Attendance Details</SheetTitle>
+				<SheetContent className="w-[100%] sm:max-w-2xl overflow-y-auto bg-slate-50">
+					<SheetHeader className="pb-4 border-b">
+						<SheetTitle className="text-xl font-semibold text-slate-800">
+							Attendance Details
+						</SheetTitle>
 					</SheetHeader>
 					{selectedData && (
-						<div className="space-y-6 text-sm mx-6">
-							<div className="border p-4 mb-4">
-								<h3 className="text-base font-semibold">
+						<div className="space-y-6 text-sm mx-2 sm:mx-4 py-6">
+							<div className="bg-white shadow-md rounded-lg p-6 mb-6">
+								<h3 className="text-lg font-bold text-slate-700">
 									{selectedData.name}
 								</h3>
-								<p className="text-muted-foreground">CEO</p>
+								<p className="text-sm text-slate-500">CEO</p>
 							</div>
 
-							<div className="border p-4">
-								<h4 className="text-sm font-medium mb-2">
+							<div className="bg-white shadow-md rounded-lg p-6">
+								<h4 className="text-md font-semibold text-slate-700 mb-4 pb-2 border-b">
 									Attendance Information
 								</h4>
-								<div className="grid grid-cols-2 gap-4">
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
 									<div>
-										<p className="font-semibold">Date</p>
-										<p>{selectedData.date}</p>
+										<p className="text-xs font-medium text-slate-500">
+											Date
+										</p>
+										<p className="text-slate-700">
+											{selectedData.date}
+										</p>
 									</div>
 									<div>
-										<p className="font-semibold">
+										<p className="text-xs font-medium text-slate-500">
 											Check In
 										</p>
-										<p>{selectedData.checkIn}</p>
+										<p className="text-slate-700">
+											{selectedData.checkIn}
+										</p>
 									</div>
 									<div>
-										<p className="font-semibold">
+										<p className="text-xs font-medium text-slate-500">
 											Check Out
 										</p>
-										<p>{selectedData.checkOut}</p>
+										<p className="text-slate-700">
+											{selectedData.checkOut}
+										</p>
 									</div>
 									<div>
-										<p className="font-semibold">
+										<p className="text-xs font-medium text-slate-500">
 											Work Hours
 										</p>
-										<p>{selectedData.workHours}</p>
+										<p className="text-slate-700">
+											{selectedData.workHours}
+										</p>
 									</div>
 									<div>
-										<p className="font-semibold">Status</p>
-										<p>{selectedData.status}</p>
+										<p className="text-xs font-medium text-slate-500">
+											Status
+										</p>
+										<p className="text-slate-700">
+											{selectedData.status}
+										</p>
 									</div>
 								</div>
 							</div>
 
-							<div className="border p-4">
-								<h4 className="text-sm font-medium mb-2">
+							<div className="bg-white shadow-md rounded-lg p-6">
+								<h4 className="text-md font-semibold text-slate-700 mb-4 pb-2 border-b">
 									Location Information
 								</h4>
-								<div className="grid grid-cols-2 gap-4">
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
 									<div>
-										<p className="font-semibold">
+										<p className="text-xs font-medium text-slate-500">
 											Location
 										</p>
-										<p>{selectedData.location}</p>
+										<p className="text-slate-700">
+											{selectedData.location}
+										</p>
 									</div>
 									<div>
-										<p className="font-semibold">
+										<p className="text-xs font-medium text-slate-500">
 											Detail Address
 										</p>
-										<p>
+										<p className="text-slate-700">
 											{selectedData.detailAddress ||
 												"Jl. Veteran No.1, Kota Malang"}
 										</p>
 									</div>
 									<div>
-										<p className="font-semibold">
+										<p className="text-xs font-medium text-slate-500">
 											Latitude
 										</p>
-										<p>
+										<p className="text-slate-700">
 											{selectedData.latitude ||
 												"-7.9783908"}
 										</p>
 									</div>
 									<div>
-										<p className="font-semibold">
+										<p className="text-xs font-medium text-slate-500">
 											Longitude
 										</p>
-										<p>
+										<p className="text-slate-700">
 											{selectedData.longitude ||
 												"112.621381"}
 										</p>
 									</div>
 								</div>
 							</div>
-							<div className="border p-4">
-								<h4 className="text-sm font-medium mb-2">
+							<div className="bg-white shadow-md rounded-lg p-6">
+								<h4 className="text-md font-semibold text-slate-700 mb-4 pb-2 border-b">
 									Support Evidence
 								</h4>
 								{selectedData.status === "Leave" ? (
-									<div className="space-y-2">
-										<div className="text-sm text-muted-foreground">
-											<span className="font-semibold">
+									<div className="space-y-3">
+										<div className="text-sm">
+											<span className="font-medium text-slate-500">
 												Leave Type:{" "}
 											</span>
-											{selectedData.leaveType
-												? selectedData.leaveType.replace(
-														/\b\w/g,
-														(c) => c.toUpperCase()
-												  )
-												: "-"}
+											<span className="text-slate-700">
+												{selectedData.leaveType
+													? selectedData.leaveType.replace(
+															/\b\w/g,
+															(c) =>
+																c.toUpperCase()
+													  )
+													: "-"}
+											</span>
 										</div>
-										<div className="text-sm text-muted-foreground">
-											<span className="font-semibold">
+										<div className="text-sm">
+											<span className="font-medium text-slate-500">
 												Evidence:{" "}
 											</span>
-											<span>-</span>
+											<span className="text-slate-700">
+												-
+											</span>
 										</div>
-										<p className="text-xs text-muted-foreground">
+										<p className="text-xs text-slate-400 mt-2">
 											Support evidence is only required
 											for leave/permit attendance types.
 										</p>
 									</div>
 								) : (
-									<span className="text-xs text-muted-foreground">
+									<span className="text-xs text-slate-500">
 										No support evidence required for this
 										attendance type.
 									</span>

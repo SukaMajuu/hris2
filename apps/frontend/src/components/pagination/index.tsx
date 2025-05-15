@@ -7,134 +7,142 @@ import {
 	PaginationNext,
 	PaginationPrevious,
 } from "@/components/ui/pagination";
+import { cn } from "@/lib/utils";
+import { Table as TanStackTableType } from "@tanstack/react-table";
 
-interface PaginationComponentProps {
-	page: number;
-	setPage: (page: number) => void;
-	totalPages: number;
+interface PaginationComponentProps<TData> {
+	table: TanStackTableType<TData>;
 }
 
-export function PaginationComponent({
-	page,
-	setPage,
-	totalPages,
-}: PaginationComponentProps) {
+export function PaginationComponent<TData>({
+	table,
+}: PaginationComponentProps<TData>) {
+	const pageIndex = table.getState().pagination.pageIndex;
+	const totalPages = table.getPageCount();
+
 	const generatePaginationItems = () => {
 		const items = [];
 		const maxVisiblePages = 5;
-		const ellipsisThreshold = 7;
+		const edgePageCount = 1;
 
-		if (totalPages <= maxVisiblePages) {
+		const createPageLink = (pageNumber: number) => {
+			const zeroIndexedPageNumber = pageNumber - 1;
+			return (
+				<PaginationItem key={pageNumber}>
+					<PaginationLink
+						isActive={pageIndex === zeroIndexedPageNumber}
+						onClick={() =>
+							table.setPageIndex(zeroIndexedPageNumber)
+						}
+						className={cn(
+							"h-9 w-9 p-0 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300",
+							pageIndex === zeroIndexedPageNumber
+								? "bg-[#6B9AC4] text-white dark:text-slate-100 border-[#6B9AC4] dark:border-[#5A89B3] hover:bg-[#5A89B3] hover:border-[#5A89B3]"
+								: "hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-400 dark:hover:border-slate-500"
+						)}
+					>
+						{pageNumber}
+					</PaginationLink>
+				</PaginationItem>
+			);
+		};
+
+		if (totalPages <= 0) return [];
+
+		if (totalPages <= maxVisiblePages + 2 * edgePageCount) {
 			for (let i = 1; i <= totalPages; i++) {
-				items.push(
-					<PaginationItem key={i}>
-						<PaginationLink
-							isActive={page === i}
-							onClick={() => setPage(i)}
-							className={
-								page === i
-									? "bg-[#6B9AC4] text-white border-[#6B9AC4] hover:bg-[#5A89B3] hover:text-white hover:border-[#5A89B3]"
-									: "hover:bg-[#5A89B3] hover:text-white hover:border-[#5A89B3]"
-							}
-						>
-							{i}
-						</PaginationLink>
-					</PaginationItem>
-				);
+				items.push(createPageLink(i));
 			}
 		} else {
-			items.push(
-				<PaginationItem key={1}>
-					<PaginationLink
-						isActive={page === 1}
-						onClick={() => setPage(1)}
-						className={
-							page === 1
-								? "bg-[#6B9AC4] text-white border-[#6B9AC4] hover:bg-[#5A89B3] hover:text-white hover:border-[#5A89B3]"
-								: "hover:bg-[#5A89B3] hover:text-white hover:border-[#5A89B3]"
-						}
-					>
-						1
-					</PaginationLink>
-				</PaginationItem>
+			for (let i = 1; i <= edgePageCount; i++) {
+				items.push(createPageLink(i));
+			}
+
+			let startRange = Math.max(
+				edgePageCount + 1,
+				pageIndex - Math.floor((maxVisiblePages - 1) / 2) + 1
+			);
+			let endRange = Math.min(
+				totalPages - edgePageCount,
+				pageIndex + Math.floor(maxVisiblePages / 2) + 1
 			);
 
-			if (page > 3) {
+			if (endRange - startRange + 1 < maxVisiblePages) {
+				if (pageIndex + 1 < totalPages / 2) {
+					endRange = Math.min(
+						totalPages - edgePageCount,
+						startRange + maxVisiblePages - 1
+					);
+				} else {
+					startRange = Math.max(
+						edgePageCount + 1,
+						endRange - maxVisiblePages + 1
+					);
+				}
+			}
+
+			startRange = Math.max(1, startRange);
+			endRange = Math.min(totalPages, endRange);
+
+			if (startRange > edgePageCount + 1) {
 				items.push(
-					<PaginationItem key="ellipsis-1">
-						<PaginationEllipsis />
+					<PaginationItem key="ellipsis-start">
+						<PaginationEllipsis className="text-slate-500 dark:text-slate-400" />
 					</PaginationItem>
 				);
 			}
 
-			let startPage = Math.max(2, page - 1);
-			let endPage = Math.min(totalPages - 1, page + 1);
-
-			if (page <= 3) {
-				startPage = 2;
-				endPage = Math.min(totalPages - 1, ellipsisThreshold - 2);
+			for (let i = startRange; i <= endRange; i++) {
+				if (i > edgePageCount && i <= totalPages - edgePageCount) {
+					items.push(createPageLink(i));
+				}
 			}
 
-			if (page >= totalPages - 2) {
-				startPage = Math.max(2, totalPages - (ellipsisThreshold - 2));
-				endPage = totalPages - 1;
-			}
-
-			for (let i = startPage; i <= endPage; i++) {
+			if (endRange < totalPages - edgePageCount) {
 				items.push(
-					<PaginationItem key={i}>
-						<PaginationLink
-							isActive={page === i}
-							onClick={() => setPage(i)}
-							className={
-								page === i
-									? "bg-[#6B9AC4] text-white border-[#6B9AC4] hover:bg-[#5A89B3] hover:text-white hover:border-[#5A89B3]"
-									: "hover:bg-[#5A89B3] hover:text-white hover:border-[#5A89B3]"
-							}
-						>
-							{i}
-						</PaginationLink>
+					<PaginationItem key="ellipsis-end">
+						<PaginationEllipsis className="text-slate-500 dark:text-slate-400" />
 					</PaginationItem>
 				);
 			}
 
-			if (page < totalPages - 2) {
-				items.push(
-					<PaginationItem key="ellipsis-2">
-						<PaginationEllipsis />
-					</PaginationItem>
-				);
+			for (
+				let i = Math.max(totalPages - edgePageCount + 1, endRange + 1);
+				i <= totalPages;
+				i++
+			) {
+				items.push(createPageLink(i));
 			}
-
-			items.push(
-				<PaginationItem key={totalPages}>
-					<PaginationLink
-						isActive={page === totalPages}
-						onClick={() => setPage(totalPages)}
-						className={
-							page === totalPages
-								? "bg-[#6B9AC4] text-white border-[#6B9AC4] hover:bg-[#5A89B3] hover:text-white hover:border-[#5A89B3]"
-								: "hover:bg-[#5A89B3] hover:text-white hover:border-[#5A89B3]"
-						}
-					>
-						{totalPages}
-					</PaginationLink>
-				</PaginationItem>
-			);
 		}
 
-		return items;
+		const uniqueItems = [];
+		const keys = new Set();
+		for (const item of items) {
+			if (item && item.key && !keys.has(item.key)) {
+				uniqueItems.push(item);
+				keys.add(item.key);
+			} else if (item && !item.key) {
+				uniqueItems.push(item);
+			}
+		}
+		return uniqueItems;
 	};
+
+	if (totalPages <= 1) return null;
 
 	return (
 		<Pagination>
-			<PaginationContent className="flex items-center gap-2">
+			<PaginationContent className="flex items-center gap-1 sm:gap-2">
 				<PaginationItem>
 					<PaginationPrevious
-						onClick={() => setPage(Math.max(page - 1, 1))}
-						className={`hover:bg-[#5A89B3] hover:text-white hover:border-[#5A89B3] ${
-							page === 1 ? "pointer-events-none opacity-50" : ""
-						}`}
+						onClick={() => table.previousPage()}
+						className={cn(
+							"h-9 p-0 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300",
+							"hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-400 dark:hover:border-slate-500",
+							!table.getCanPreviousPage()
+								? "pointer-events-none opacity-50"
+								: ""
+						)}
 					/>
 				</PaginationItem>
 
@@ -142,12 +150,14 @@ export function PaginationComponent({
 
 				<PaginationItem>
 					<PaginationNext
-						onClick={() => setPage(Math.min(page + 1, totalPages))}
-						className={`hover:bg-[#5A89B3] hover:text-white hover:border-[#5A89B3] ${
-							page === totalPages
+						onClick={() => table.nextPage()}
+						className={cn(
+							"h-9 p-0 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300",
+							"hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-400 dark:hover:border-slate-500",
+							!table.getCanNextPage()
 								? "pointer-events-none opacity-50"
 								: ""
-						}`}
+						)}
 					/>
 				</PaginationItem>
 			</PaginationContent>

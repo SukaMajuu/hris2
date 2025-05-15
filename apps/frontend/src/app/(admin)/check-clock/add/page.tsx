@@ -1,150 +1,68 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/use-toast";
+import {
+	CheckClockForm,
+	type CheckClockFormData,
+	type Employee,
+	type Location,
+} from "@/app/(admin)/check-clock/_components/CheckClockForm";
+
+// Mock data - replace with actual data fetching
+const mockEmployees: Employee[] = [
+	{ value: "employee1", label: "John Doe", position: "Developer" },
+	{ value: "employee2", label: "Jane Smith", position: "Designer" },
+	{ value: "employee3", label: "Peter Jones", position: "Manager" },
+];
+
+const mockLocations: Location[] = [
+	{ value: "location1", label: "Main Office Alpha" },
+	{ value: "location2", label: "Branch Office Beta" },
+	{ value: "location3", label: "Remote Hub Gamma" },
+];
 
 export default function AddCheckclockPage() {
-    const router = useRouter();
+	const router = useRouter();
 
-    const handleSave = () => {
-        // Add your save logic here
-        
-        // Show success toast
-        toast({
-        title: "Success",
-        description: "Add CheckClock successfully",
-        duration: 2000,
-        });
+	const handleSave = (data: CheckClockFormData) => {
+		console.log("Saving new check-clock data:", data);
+		// Add your save logic here (e.g., API call)
 
-        // Redirect after toast
-        setTimeout(() => {
-        router.push("/check-clock");
-        }, 2000);
-    };
+		toast({
+			title: "Success",
+			description: "Add CheckClock successfully",
+			duration: 2000,
+		});
 
-    return (
-        <div className="space-y-4">
-            <Card>
-                <CardHeader>
-                    <CardTitle className="text-lg font-semibold bg-[#6B9AC4] text-white p-4 rounded-lg">
-                        Add Checkclock
-                    </CardTitle>
-                </CardHeader>
-            </Card> 
+		setTimeout(() => {
+			router.push("/check-clock");
+		}, 2000);
+	};
 
-            {/* Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Left Column */}
-                <Card>
-                    <CardContent className="p-4">
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium mb-2">Employee</label>
-                                <Select>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select Employee" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="employee1">John Doe</SelectItem>
-                                        <SelectItem value="employee2">Jane Smith</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
+	return (
+		<div className="space-y-4">
+			<Card className="border-none py-0">
+				<CardHeader className="bg-[#6B9AC4] text-white p-4 rounded-lg">
+					<CardTitle className="text-lg font-semibold">
+						Add Checkclock
+					</CardTitle>
+				</CardHeader>
+			</Card>
 
-                            <div>
-                                <label className="block text-sm font-medium mb-2">Work Schedule</label>
-                                <Select>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Work Schedule Type" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="regular">Regular</SelectItem>
-                                        <SelectItem value="shift">Shift</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium mb-2">Working Hours</label>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium mb-2">Check-in</label>
-                                        <Input type="text" placeholder="07:00 - 08:00" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium mb-2">Check-out</label>
-                                        <Input type="text" placeholder="17:00 - 18:00" />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium mb-2">Break Start</label>
-                                <Input type="text" placeholder="12:00 - 13:00" />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium mb-2">Work Type</label>
-                                <Input type="text" value="WFO (Work From Office)" readOnly />
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Right Column */}
-                <Card>
-                    <CardContent className="p-4">
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium mb-2">Location</label>
-                                <Select>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select Location" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="location1">Office Location 1</SelectItem>
-                                        <SelectItem value="location2">Office Location 2</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium mb-2">Address Details</label>
-                                <Input 
-                                    type="text"
-                                    value="Kota Malang, Jawa Timur"
-                                    readOnly
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium mb-2">Lat</label>
-                                    <Input placeholder="Lat Location" />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium mb-2">Long</label>
-                                    <Input placeholder="Long Location" />
-                                </div>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex justify-end space-x-2">
-                <Button variant="destructive" onClick={() => router.back()}>
-                    Cancel
-                </Button>
-                <Button variant="default" onClick={handleSave}>
-                    Save
-                </Button>
-            </div>
-        </div>
-    );
+			<CheckClockForm
+				onSubmit={handleSave}
+				isEditMode={false}
+				employees={mockEmployees}
+				locations={mockLocations}
+				// initialData can be omitted for add mode or explicitly passed as empty/default
+				initialData={{
+					workType: "WFO (Work From Office)", // Default value
+					addressDetails: "Kota Malang, Jawa Timur", // Default value
+				}}
+				showProfileCard={false}
+			/>
+		</div>
+	);
 }

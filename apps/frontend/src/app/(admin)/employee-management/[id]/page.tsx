@@ -1,371 +1,458 @@
-'use client';
+"use client";
 
-import { useParams } from 'next/navigation';
-import { useEmployeeManagement } from '../_hooks/useEmployeeManagement';
-import Image from 'next/image';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
-import { useState } from 'react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { useParams } from "next/navigation";
+import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Pencil, ArrowLeft } from "lucide-react";
+import DocumentManagement from "./_tabContents/documentManagement";
+import EmployeeInformation from "./_tabContents/employeeInformation";
+import { useDetailEmployee } from "./_hooks/useDetailEmployee";
 
 export default function Page() {
-  const params = useParams();
-  const id = Number(params.id);
+	const params = useParams();
+	const id = Number(params.id);
 
-  const { employees } = useEmployeeManagement();
-  const employee = employees.find((e) => e.id === id);
+	const {
+		initialEmployeeData: employee,
+		isLoading,
+		error,
+		profileImage,
+		name,
+		setName,
+		employeeCode,
+		setEmployeeCode,
+		branch,
+		setBranch,
+		position,
+		setPosition,
+		employmentStatus,
+		setEmploymentStatus,
+		department,
+		setDepartment,
+		grade,
+		setGrade,
+		joinDate,
+		setJoinDate,
+		contractType,
+		setContractType,
+		sp,
+		setSp,
+		editJob,
+		setEditJob,
+		nik,
+		setNik,
+		email,
+		setEmail,
+		gender,
+		setGender,
+		placeOfBirth,
+		setPlaceOfBirth,
+		dateOfBirth,
+		setDateOfBirth,
+		phone,
+		setPhone,
+		address,
+		setAddress,
+		lastEducation,
+		setLastEducation,
+		editPersonal,
+		setEditPersonal,
+		bankName,
+		setBankName,
+		bankAccountHolder,
+		setBankAccountHolder,
+		bankAccountNumber,
+		setBankAccountNumber,
+		editBank,
+		setEditBank,
+		currentDocuments,
+		handleProfileImageChange,
+		handleAddNewDocument,
+		handleDeleteDocument,
+		handleDownloadDocument,
+		handleSaveJob,
+		handleSavePersonal,
+		handleSaveBank,
+		handleResetPassword,
+	} = useDetailEmployee(id);
 
-  const [activeTab, setActiveTab] = useState<'personal' | 'document'>('personal');
-  const [editPersonal, setEditPersonal] = useState(false);
-  const [editAdditional, setEditAdditional] = useState(false);
-  const [editDocument, setEditDocument] = useState(false);
+	const [activeTab, setActiveTab] = useState<"personal" | "document">(
+		"personal"
+	);
 
-  const [nik, setNik] = useState('');
-  const [gender, setGender] = useState(employee?.gender || '');
-  const [placeOfBirth, setPlaceOfBirth] = useState('');
-  const [dateOfBirth, setDateOfBirth] = useState('');
-  const [lastEducation, setLastEducation] = useState('');
-  const [phone, setPhone] = useState(employee?.phone || '');
-  const [contractType, setContractType] = useState('');
-  const [grade, setGrade] = useState('');
-  const [bank, setBank] = useState('');
-  const [accountNumber, setAccountNumber] = useState('');
-  const [accountName, setAccountName] = useState('');
-  const [sp, setSp] = useState('');
-  const [documents, setDocuments] = useState<{ name: string; file: File | null }[]>([]);
-  const [profileImage, setProfileImage] = useState<string | null>(null);
+	if (isLoading) {
+		return (
+			<div className="p-6 text-center text-slate-500 dark:text-slate-400">
+				Loading employee data...
+			</div>
+		);
+	}
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [profileFile, setProfileFile] = useState<File | null>(null);
+	if (error) {
+		return (
+			<div className="p-6 text-center text-red-500 dark:text-red-400">
+				Error: {error}
+			</div>
+		);
+	}
 
-  if (!employee) {
-    return <div className='p-4'>Employee not found.</div>;
-  }
+	if (!employee) {
+		return (
+			<div className="p-6 text-center text-slate-500 dark:text-slate-400">
+				Employee not found.
+			</div>
+		);
+	}
 
-  const handleDeleteDocument = (idx: number) => {
-    setDocuments(documents.filter((_, i) => i !== idx));
-  };
+	return (
+		<div className="space-y-6 min-h-screen p-4 md:p-6 bg-slate-50 dark:bg-slate-950">
+			<div className="mb-6">
+				<Link href="/employee-management">
+					<Button
+						variant="outline"
+						className="border-slate-300 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100"
+					>
+						<ArrowLeft className="h-4 w-4 mr-2" />
+						Back to Employee List
+					</Button>
+				</Link>
+			</div>
 
-  const handleDownloadDocument = (file: File | null) => {
-    if (!file) return;
-    const url = URL.createObjectURL(file);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = file.name;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
+			<Card className="overflow-hidden shadow-lg border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-900">
+				<CardHeader className="flex flex-row items-center justify-between pb-3 border-b dark:border-slate-700 ">
+					<CardTitle className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+						Employee Overview
+					</CardTitle>
+					<Button
+						variant="ghost"
+						size="sm"
+						onClick={() => setEditJob(!editJob)}
+						className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-md px-4 py-2 transition-colors duration-150"
+					>
+						<Pencil className="h-4 w-4 mr-2" />
+						{editJob ? "Cancel Job Edit" : "Edit Job Info"}
+					</Button>
+				</CardHeader>
+				<CardContent className="p-6">
+					<div className="flex flex-col md:flex-row md:items-center items-start gap-6">
+						<div className="relative group flex-shrink-0 mx-auto md:mx-0">
+							<Image
+								src={profileImage || "/logo.png"}
+								alt="Profile Photo"
+								width={120}
+								height={120}
+								className="rounded-full object-cover border-4 border-slate-200 dark:border-slate-700 shadow-md w-[120px] h-[120px]"
+							/>
+							<label className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+								<Pencil className="h-6 w-6 text-white" />
+								<Input
+									type="file"
+									accept="image/*"
+									className="hidden"
+									onChange={handleProfileImageChange}
+								/>
+							</label>
+						</div>
+						<div className="flex-1 space-y-4">
+							<div>
+								<p
+									id="employeeNameTop"
+									className="text-2xl font-bold text-slate-800 dark:text-slate-100"
+								>
+									{name}
+								</p>
+							</div>
+							<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-4 text-sm">
+								<div>
+									<Label
+										htmlFor="employeeCodeTop"
+										className="font-semibold text-slate-600 dark:text-slate-400"
+									>
+										Employee Code:
+									</Label>
+									{editJob ? (
+										<Input
+											id="employeeCodeTop"
+											value={employeeCode}
+											onChange={(e) =>
+												setEmployeeCode(e.target.value)
+											}
+											className="mt-1 h-8 text-sm bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-600 focus:ring-blue-500 focus:border-blue-500"
+										/>
+									) : (
+										<p className="text-slate-700 dark:text-slate-300">
+											{employeeCode}
+										</p>
+									)}
+								</div>
+								<div>
+									<Label
+										htmlFor="positionTop"
+										className="font-semibold text-slate-600 dark:text-slate-400"
+									>
+										Position
+									</Label>
+									{editJob ? (
+										<Input
+											id="positionTop"
+											value={position}
+											onChange={(e) =>
+												setPosition(e.target.value)
+											}
+											className="mt-1 h-8 text-sm bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-600 focus:ring-blue-500 focus:border-blue-500"
+										/>
+									) : (
+										<p className="text-slate-700 dark:text-slate-300">
+											{position}
+										</p>
+									)}
+								</div>
+								<div>
+									<Label
+										htmlFor="branchTop"
+										className="font-semibold text-slate-600 dark:text-slate-400"
+									>
+										Branch
+									</Label>
+									{editJob ? (
+										<Input
+											id="branchTop"
+											value={branch}
+											onChange={(e) =>
+												setBranch(e.target.value)
+											}
+											className="mt-1 h-8 text-sm bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-600 focus:ring-blue-500 focus:border-blue-500"
+										/>
+									) : (
+										<p className="text-slate-700 dark:text-slate-300">
+											{branch}
+										</p>
+									)}
+								</div>
+								<div>
+									<Label
+										htmlFor="employmentStatusTop"
+										className="font-semibold text-slate-600 dark:text-slate-400"
+									>
+										Employment Status
+									</Label>
+									{editJob ? (
+										<Input
+											id="employmentStatusTop"
+											value={employmentStatus}
+											onChange={(e) =>
+												setEmploymentStatus(
+													e.target.value
+												)
+											}
+											className="mt-1 h-8 text-sm bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-600 focus:ring-blue-500 focus:border-blue-500"
+										/>
+									) : (
+										<p className="text-slate-700 dark:text-slate-300">
+											{employmentStatus}
+										</p>
+									)}
+								</div>
+								<div>
+									<Label
+										htmlFor="joinDateTop"
+										className="font-semibold text-slate-600 dark:text-slate-400"
+									>
+										Join Date
+									</Label>
+									{editJob ? (
+										<Input
+											id="joinDateTop"
+											type="date"
+											value={joinDate}
+											onChange={(e) =>
+												setJoinDate(e.target.value)
+											}
+											className="mt-1 h-8 text-sm bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-600 focus:ring-blue-500 focus:border-blue-500"
+										/>
+									) : (
+										<p className="text-slate-700 dark:text-slate-300">
+											{joinDate}
+										</p>
+									)}
+								</div>
+								<div>
+									<Label
+										htmlFor="departmentTop"
+										className="font-semibold text-slate-600 dark:text-slate-400"
+									>
+										Department
+									</Label>
+									{editJob ? (
+										<Input
+											id="departmentTop"
+											value={department}
+											onChange={(e) =>
+												setDepartment(e.target.value)
+											}
+											className="mt-1 h-8 text-sm bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-600 focus:ring-blue-500 focus:border-blue-500"
+										/>
+									) : (
+										<p className="text-slate-700 dark:text-slate-300">
+											{department}
+										</p>
+									)}
+								</div>
+								<div>
+									<Label
+										htmlFor="gradeTop"
+										className="font-semibold text-slate-600 dark:text-slate-400"
+									>
+										Grade
+									</Label>
+									{editJob ? (
+										<Input
+											id="gradeTop"
+											value={grade}
+											onChange={(e) =>
+												setGrade(e.target.value)
+											}
+											className="mt-1 h-8 text-sm bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-600 focus:ring-blue-500 focus:border-blue-500"
+										/>
+									) : (
+										<p className="text-slate-700 dark:text-slate-300">
+											{grade}
+										</p>
+									)}
+								</div>
+								<div>
+									<Label
+										htmlFor="contractTypeTop"
+										className="font-semibold text-slate-600 dark:text-slate-400"
+									>
+										Contract Type
+									</Label>
+									{editJob ? (
+										<Input
+											id="contractTypeTop"
+											value={contractType}
+											onChange={(e) =>
+												setContractType(e.target.value)
+											}
+											className="mt-1 h-8 text-sm bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-600 focus:ring-blue-500 focus:border-blue-500"
+										/>
+									) : (
+										<p className="text-slate-700 dark:text-slate-300">
+											{contractType}
+										</p>
+									)}
+								</div>
+								<div>
+									<Label
+										htmlFor="spTop"
+										className="font-semibold text-slate-600 dark:text-slate-400"
+									>
+										Warning Letter (SP)
+									</Label>
+									{editJob ? (
+										<Input
+											id="spTop"
+											value={sp}
+											onChange={(e) =>
+												setSp(e.target.value)
+											}
+											className="mt-1 h-8 text-sm bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-600 focus:ring-blue-500 focus:border-blue-500"
+										/>
+									) : (
+										<p className="text-slate-700 dark:text-slate-300">
+											{sp}
+										</p>
+									)}
+								</div>
+							</div>
+							{editJob && (
+								<div className="mt-4 text-right">
+									<Button
+										onClick={handleSaveJob}
+										className="bg-blue-600 hover:bg-blue-700 text-white"
+									>
+										Save Job Info
+									</Button>
+								</div>
+							)}
+						</div>
+					</div>
+				</CardContent>
+			</Card>
 
-  return (
-    <div className='space-y-4 p-4'>
-      <div className='flex flex-col items-center gap-4 rounded-lg bg-white p-4 shadow md:flex-row'>
-        <div className='flex flex-col items-center'>
-          <div className='group relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-2'>
-            <Image
-              src={profileImage || '/logo.png'}
-              alt='Profile Photo'
-              width={80}
-              height={80}
-              className='object-fill'
-            />
-            <label className='hover:bg-secondary bg-opacity-80 absolute m-1 cursor-pointer rounded-full bg-white p-1 opacity-0 shadow transition group-hover:opacity-100'>
-              <Input
-                type='file'
-                accept='image/*'
-                className='hidden'
-                onChange={(e) => {
-                  const file = e.target.files?.[0] || null;
-                  if (file) {
-                    setProfileFile(file);
-                    const reader = new FileReader();
-                    reader.onload = (ev) => {
-                      setProfileImage(ev.target?.result as string);
-                    };
-                    reader.readAsDataURL(file);
-                  }
-                }}
-              />
-              <span className='text-lg'>✎</span>
-            </label>
-          </div>
-        </div>
-        <div className='flex-1'>
-          <div className='text-lg font-bold'>{employee.name}</div>
-          <div className='text-gray-500'>{employee.position}</div>
-        </div>
-        <div className='flex flex-row gap-15 text-sm'>
-          <div>
-            <span className='font-semibold'>Employee Code:</span> {employee.id}
-          </div>
-          <div>
-            <span className='font-semibold'>Branch:</span> {employee.branch}
-          </div>
-        </div>
-      </div>
+			<Tabs
+				value={activeTab}
+				onValueChange={(value) =>
+					setActiveTab(value as "personal" | "document")
+				}
+				className="w-full"
+			>
+				<TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 md:w-auto md:inline-flex bg-white dark:bg-slate-800 shadow-md rounded-lg p-1 border border-slate-200 dark:border-slate-700 h-12">
+					<TabsTrigger
+						value="personal"
+						className="data-[state=active]:bg-primary dark:data-[state=active]:bg-primary data-[state=active]:text-white dark:data-[state=active]:text-slate-50 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-md px-4 py-2 transition-colors duration-150"
+					>
+						Employee Information
+					</TabsTrigger>
+					<TabsTrigger
+						value="document"
+						className="data-[state=active]:bg-primary dark:data-[state=active]:bg-primary data-[state=active]:text-white dark:data-[state=active]:text-slate-50 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-md px-4 py-2 transition-colors duration-150"
+					>
+						Employee Document
+					</TabsTrigger>
+				</TabsList>
 
-      <div className='mb-2 flex flex-col items-start gap-2 text-sm text-gray-600 sm:flex-row sm:items-center'>
-        <Button
-          className={`hover:text-gray w-full hover:cursor-pointer hover:bg-gray-200 sm:w-auto ${
-            activeTab === 'personal' ? 'font-bold' : ''
-          }`}
-          variant='ghost'
-          onClick={() => setActiveTab('personal')}
-        >
-          Employee Information
-        </Button>
-        <span className='hidden sm:inline'>|</span>
-        <Button
-          className={`hover:text-gray w-full hover:cursor-pointer hover:bg-gray-200 sm:w-auto ${
-            activeTab === 'document' ? 'font-bold' : ''
-          }`}
-          variant='ghost'
-          onClick={() => setActiveTab('document')}
-        >
-          Employee Document
-        </Button>
-      </div>
+				<TabsContent value="personal" className="mt-6">
+					<EmployeeInformation
+						name={name}
+						setName={setName}
+						nik={nik}
+						setNik={setNik}
+						email={email}
+						setEmail={setEmail}
+						gender={gender}
+						setGender={setGender}
+						placeOfBirth={placeOfBirth}
+						setPlaceOfBirth={setPlaceOfBirth}
+						dateOfBirth={dateOfBirth}
+						setDateOfBirth={setDateOfBirth}
+						phone={phone}
+						setPhone={setPhone}
+						address={address}
+						setAddress={setAddress}
+						lastEducation={lastEducation}
+						setLastEducation={setLastEducation}
+						editPersonal={editPersonal}
+						setEditPersonal={setEditPersonal}
+						handleSavePersonal={handleSavePersonal}
+						bankName={bankName}
+						setBankName={setBankName}
+						bankAccountHolder={bankAccountHolder}
+						setBankAccountHolder={setBankAccountHolder}
+						bankAccountNumber={bankAccountNumber}
+						setBankAccountNumber={setBankAccountNumber}
+						editBank={editBank}
+						setEditBank={setEditBank}
+						handleSaveBank={handleSaveBank}
+						handleResetPassword={handleResetPassword}
+					/>
+				</TabsContent>
 
-      {activeTab === 'personal' && (
-        <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
-          <Card className='border-none bg-white px-4 py-6 shadow'>
-            <CardHeader className='mb-2 flex justify-between border-none font-semibold'>
-              Personal Information
-              <span
-                className='cursor-pointer text-blue-500'
-                onClick={() => setEditPersonal((prev) => !prev)}
-              >
-                Edit ✎
-              </span>
-            </CardHeader>
-            <CardContent className='grid grid-cols-1 gap-x-4 gap-y-6 border-none text-sm sm:grid-cols-2'>
-              <div>
-                <span className='font-semibold'>NIK</span>
-                <Input
-                  disabled={!editPersonal}
-                  type='text'
-                  placeholder='Enter NIK'
-                  value={nik}
-                  onChange={(e) => setNik(e.target.value)}
-                />
-              </div>
-              <div>
-                <span className='font-semibold'>Gender</span>
-                <Input
-                  disabled={!editPersonal}
-                  type='text'
-                  placeholder='Enter Gender'
-                  value={gender}
-                  onChange={(e) => setGender(e.target.value)}
-                />
-              </div>
-              <div>
-                <span className='font-semibold'>Place of Birth</span>
-                <Input
-                  disabled={!editPersonal}
-                  type='text'
-                  placeholder='Enter Place of Birth'
-                  value={placeOfBirth}
-                  onChange={(e) => setPlaceOfBirth(e.target.value)}
-                />
-              </div>
-              <div>
-                <span className='font-semibold'>Date of Birth</span>
-                <Input
-                  disabled={!editPersonal}
-                  type='text'
-                  placeholder='Enter Date of Birth'
-                  value={dateOfBirth}
-                  onChange={(e) => setDateOfBirth(e.target.value)}
-                />
-              </div>
-              <div>
-                <span className='font-semibold'>Last Education</span>
-                <Input
-                  disabled={!editPersonal}
-                  type='text'
-                  placeholder='Enter Last Education'
-                  value={lastEducation}
-                  onChange={(e) => setLastEducation(e.target.value)}
-                  className='border-secondary'
-                />
-              </div>
-              <div>
-                <span className='font-semibold'>Phone Number</span>
-                <Input
-                  disabled={!editPersonal}
-                  type='text'
-                  placeholder='Enter Phone Number'
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                />
-              </div>
-              <div className='col-span-2 flex justify-end'>
-                <Button disabled={!editPersonal} className='hover:cursor-pointer'>
-                  Save
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className='border-none bg-white px-4 py-6 shadow'>
-            <CardHeader className='mb-2 flex justify-between border-none font-semibold'>
-              Additional Information
-              <span
-                className='cursor-pointer text-blue-500'
-                onClick={() => setEditAdditional((prev) => !prev)}
-              >
-                Edit ✎
-              </span>
-            </CardHeader>
-            <CardContent className='grid grid-cols-1 gap-x-4 gap-y-6 border-none text-sm sm:grid-cols-2'>
-              <div>
-                <span className='font-semibold'>Contract Type</span>
-                <Input
-                  disabled={!editAdditional}
-                  type='text'
-                  placeholder='Enter Contract Type'
-                  value={contractType}
-                  onChange={(e) => setContractType(e.target.value)}
-                />
-              </div>
-              <div>
-                <span className='font-semibold'>Grade</span>
-                <Input
-                  disabled={!editAdditional}
-                  type='text'
-                  placeholder='Enter Grade'
-                  value={grade}
-                  onChange={(e) => setGrade(e.target.value)}
-                />
-              </div>
-              <div>
-                <span className='font-semibold'>Bank</span>
-                <Input
-                  disabled={!editAdditional}
-                  type='text'
-                  placeholder='Enter Bank'
-                  value={bank}
-                  onChange={(e) => setBank(e.target.value)}
-                />
-              </div>
-              <div>
-                <span className='font-semibold'>Account Number</span>
-                <Input
-                  disabled={!editAdditional}
-                  type='text'
-                  placeholder='Enter Account Number'
-                  value={accountNumber}
-                  onChange={(e) => setAccountNumber(e.target.value)}
-                />
-              </div>
-              <div>
-                <span className='font-semibold'>Account Name</span>
-                <Input
-                  disabled={!editAdditional}
-                  type='text'
-                  placeholder='Enter Account Name'
-                  value={accountName}
-                  onChange={(e) => setAccountName(e.target.value)}
-                />
-              </div>
-              <div>
-                <span className='font-semibold'>SP</span>
-                <Input
-                  disabled={!editAdditional}
-                  type='text'
-                  placeholder='Enter SP'
-                  value={sp}
-                  onChange={(e) => setSp(e.target.value)}
-                />
-              </div>
-              <div className='col-span-2 flex justify-end'>
-                <Button disabled={!editAdditional} className='hover:cursor-pointer'>
-                  Save
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {activeTab === 'document' && (
-        <Card className='border-none bg-white p-4 shadow'>
-          <CardHeader className='mb-2 flex justify-between font-semibold'>
-            Document Information
-            <span
-              className='cursor-pointer text-blue-500'
-              onClick={() => setEditDocument((prev) => !prev)}
-            >
-              Edit ✎
-            </span>
-          </CardHeader>
-          <CardContent>
-            <div className='mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4'>
-              <div className='flex flex-col gap-2'>
-                <label className='font-semibold'>File</label>
-                <Input
-                  disabled={!editDocument}
-                  type='file'
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] || null;
-                    if (file && editDocument) {
-                      setDocuments((prev) => [...prev, { name: file.name, file }]);
-                      e.target.value = '';
-                    }
-                  }}
-                />
-              </div>
-            </div>
-            {/* Tabel Dokumen */}
-            <div className='overflow-x-auto'>
-              <table className='min-w-full border text-sm'>
-                <thead>
-                  <tr className='bg-gray-100'>
-                    <th className='border px-2 py-1'>No</th>
-                    <th className='border px-2 py-1'>File Name</th>
-                    <th className='border px-2 py-1'>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {documents.length === 0 && (
-                    <tr>
-                      <td colSpan={3} className='py-2 text-center'>
-                        No documents
-                      </td>
-                    </tr>
-                  )}
-                  {documents.map((doc, idx) => (
-                    <tr key={idx}>
-                      <td className='flex justify-center border-none px-2 py-1'>{idx + 1}</td>
-                      <td className='border px-2 py-1'>{doc.file?.name}</td>
-                      <td className='border px-2 py-1'>
-                        <div className='flex flex-row justify-center gap-2'>
-                          <Button variant='destructive' onClick={() => handleDeleteDocument(idx)}>
-                            Delete
-                          </Button>
-                          <Button
-                            onClick={() => handleDownloadDocument(doc.file)}
-                            disabled={!doc.file}
-                            variant='secondary'
-                          >
-                            Download
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      <Link href='/employee-management' className='flex justify-end'>
-        <Button className='bg-secondary rounded px-4 py-1 hover:cursor-pointer'>Close</Button>
-      </Link>
-    </div>
-  );
+				<TabsContent value="document" className="mt-6">
+					<DocumentManagement
+						currentDocuments={currentDocuments}
+						handleAddNewDocument={handleAddNewDocument}
+						handleDeleteDocument={handleDeleteDocument}
+						handleDownloadDocument={handleDownloadDocument}
+					/>
+				</TabsContent>
+			</Tabs>
+		</div>
+	);
 }

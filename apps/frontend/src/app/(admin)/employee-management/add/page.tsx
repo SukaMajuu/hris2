@@ -711,7 +711,6 @@ export default function AddEmployeePage() {
 	);
 }
 
-// Helper component for the Review Step
 const ReviewItem = ({
 	label,
 	value,

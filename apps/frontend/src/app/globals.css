@@ -47,10 +47,10 @@
   --radius: 0.625rem;
   --sidebar: oklch(0.984 0.003 247.858);
   --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.208 0.042 265.755);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.968 0.007 247.896);
-  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
+  --sidebar-primary: hsl(216 100% 19%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);;
+  --sidebar-accent: hsl(216 100% 19%);
+  --sidebar-accent-foreground: hsl(0 0% 100%);
   --sidebar-border: oklch(0.929 0.013 255.508);
   --sidebar-ring: oklch(0.704 0.04 256.788);
 }

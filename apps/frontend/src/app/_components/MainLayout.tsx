@@ -22,6 +22,7 @@ import {
 import { type Role } from '../../const/role';
 import { getMainMenuItemsByRole, getFooterItemsByRole } from '../_config/menuConfig';
 import { useAuthStore } from '@/stores/auth.store';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -61,16 +62,77 @@ export default function MainLayout({ children }: MainLayoutProps) {
             <SidebarMenu>
               {menuItems.map((item) => {
                 const isActive = pathname.startsWith(item.href);
+                const hasSubmenu = (item.items ?? []).length > 0;
+
+                if (hasSubmenu) {
+                  const isAnySubActive = item.items?.some((sub) => pathname.startsWith(sub.href)) ?? false;
+                  return (
+                    <SidebarMenuItem key={item.title}>
+                      <Collapsible defaultOpen={isAnySubActive}>
+                        <CollapsibleTrigger asChild>
+                          <SidebarMenuButton
+                            tooltip={item.title}
+                            className={
+                              isAnySubActive
+                                ? 'bg-[#7CA5BF] text-white hover:bg-[#6B9AC4]'
+                                : 'text-gray-600 hover:bg-[#6B9AC4] hover:text-white'
+                            }
+                          >
+                            <div className='flex items-center justify-between w-full'>
+                              <div className='flex items-center gap-3'>
+                                <item.icon className='h-5 w-5' />
+                                <span>{item.title}</span>
+                              </div>
+                              <svg
+                                xmlns='http://www.w3.org/2000/svg'
+                                className='h-4 w-4 ml-auto text-gray-400'
+                                fill='none'
+                                viewBox='0 0 24 24'
+                                stroke='currentColor'
+                              >
+                                <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M19 9l-7 7-7-7' />
+                              </svg>
+                            </div>
+                          </SidebarMenuButton>
+                        </CollapsibleTrigger>
+
+                        <CollapsibleContent className='ml-4'>
+                          {item.items?.map((sub) => {
+                            const isSubActive = pathname === sub.href;
+                            return (
+                              <div key={sub.title} className="my-1">
+                                <SidebarMenuButton
+                                  asChild
+                                  tooltip={sub.title}
+                                  className={
+                                    isSubActive
+                                      ? 'bg-[#A4BFD1] text-white hover:bg-[#90B3CA]'
+                                      : 'text-gray-500 hover:bg-gray-100'
+                                  }
+                                >
+                                  <Link href={sub.href} className='flex items-center gap-3 pl-6'>
+                                    {sub.icon && <sub.icon className='h-4 w-4' />}
+                                    <span className='text-sm'>{sub.title}</span>
+                                  </Link>
+                                </SidebarMenuButton>
+                              </div>
+                            );
+                          })}
+                        </CollapsibleContent>
+                      </Collapsible>
+                    </SidebarMenuItem>
+                  );
+                }
+
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
                       asChild
-                      isActive={isActive}
                       tooltip={item.title}
                       className={
                         isActive
-                          ? 'bg-[#7CA5BF] text-white hover:bg-[#6B9AC4]'
-                          : 'text-gray-600 hover:bg-gray-100'
+                          ? 'bg-[#7CA5BF] text-white hover:bg-[#6B9AC4] hover:text-white'
+                          : 'text-gray-600 hover:bg-[#6B9AC4] hover:text-white'
                       }
                     >
                       <Link href={item.href} className='flex items-center gap-3'>
@@ -91,7 +153,6 @@ export default function MainLayout({ children }: MainLayoutProps) {
                   <SidebarMenuButton
                     asChild
                     tooltip={item.title}
-                    isActive={pathname === item.href}
                     className={
                       pathname === item.href
                         ? 'bg-[#7CA5BF] text-white hover:bg-[#6B9AC4]'

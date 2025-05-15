@@ -1,8 +1,9 @@
 import { User } from "./api";
 
 export interface LoginCredentials {
-	email: string;
+	identifier: string;
 	password: string;
+	rememberMe: boolean;
 }
 
 export interface RegisterCredentials {
@@ -10,12 +11,12 @@ export interface RegisterCredentials {
 	last_name: string;
 	email: string;
 	password: string;
-	confirmPassword: string;
+	agree_terms: boolean;
 }
 
 export interface AuthResponse {
-	user: User;
 	access_token: string;
+	user: User;
 }
 
 export interface GoogleAuthResponse extends AuthResponse {

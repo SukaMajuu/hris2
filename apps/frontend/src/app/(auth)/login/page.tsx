@@ -14,24 +14,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { LoginFormData, loginSchema } from "@/schemas/auth.schema";
-import { z } from "zod";
+import { useLogin } from "./_hooks/useLogin";
 
 export default function LoginPage() {
-	const loginForm = useForm<LoginFormData>({
-		resolver: zodResolver(loginSchema),
-		defaultValues: {
-			emailOrPhoneNumber: "",
-			password: "",
-			rememberMe: false,
-		},
-	});
-
-	const login = (data: z.infer<typeof loginSchema>) => {
-		console.log(data);
-	};
+	const { loginForm, login, initiateGoogleLogin, isLoading } = useLogin();
 
 	return (
 		<div className="h-full w-full flex flex-col">
@@ -132,21 +118,25 @@ export default function LoginPage() {
 							<Button
 								type="submit"
 								className="w-full h-12 text-base hover:cursor-pointer"
+								disabled={isLoading}
 							>
-								Sign in
+								{isLoading ? "Signing in..." : "Sign in"}
 							</Button>
 							<Button
-								onClick={() => {}}
+								onClick={initiateGoogleLogin}
 								className="w-full h-12 text-base bg-white text-black border border-gray-300 hover:bg-gray-200 hover:cursor-pointer"
+								disabled={isLoading}
 							>
 								Sign in with Google
 							</Button>
-							<Button
-								onClick={() => {}}
-								className="w-full h-12 text-base bg-white text-black border border-gray-300 hover:bg-gray-200 hover:cursor-pointer"
-							>
-								Sign in with ID Employee
-							</Button>
+							<Link href="/login/id-employee">
+								<Button
+									className="w-full h-12 text-base bg-white text-black border border-gray-300 hover:bg-gray-200 hover:cursor-pointer"
+									disabled={isLoading}
+								>
+									Sign in with ID Employee
+								</Button>
+							</Link>
 						</div>
 					</form>
 				</Form>

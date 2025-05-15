@@ -37,6 +37,13 @@ import {
 	getFilteredRowModel,
 	PaginationState,
 } from "@tanstack/react-table";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 
 interface DialogFormData {
 	name: string;
@@ -428,82 +435,116 @@ export default function CheckClockOverviewTab() {
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
 							{/* Left Column - Select Employee, Attendance Type & Permit Duration */}
 							<div className="space-y-4">
-								<div className="space-y-2">
-									<Label htmlFor="name">
-										Select Employee
-									</Label>
-									<select
-										id="name"
-										className="input input-bordered w-full"
-										{...register("name", {
-											required: true,
-										})}
-									>
-										<option value="">
-											Select Employee
-										</option>
-										{/* employeeList.map((emp) => (
-											<option key={emp} value={emp}>
-												{emp}
-											</option>
-										))} */}
-									</select>
-								</div>
-								<div className="space-y-2">
-									<Label htmlFor="attendanceType">
-										Attendance Type
-									</Label>
-									<select
-										id="attendanceType"
-										className="input input-bordered w-full"
-										{...register("attendanceType", {
-											required: true,
-										})}
-									>
-										<option value="check-in">
-											Check-In
-										</option>
-										<option value="check-out">
-											Check-Out
-										</option>
-										<option value="sick leave">
-											Sick Leave
-										</option>
-										<option value="compassionate leave">
-											Compassionate Leave
-										</option>
-										<option value="maternity leave">
-											Maternity Leave
-										</option>
-										<option value="annual leave">
-											Annual Leave
-										</option>
-										<option value="marriage leave">
-											Marriage Leave
-										</option>
-									</select>
-								</div>
-								{/* Permit duration for leave types */}
-								{[
-									"sick leave",
-									"compassionate leave",
-									"maternity leave",
-									"annual leave",
-									"marriage leave",
-								].includes(attendanceType) && (
-									<div className="space-y-2">
-										<Label htmlFor="permitEndDate">
-											Permit Duration (End Date)
-										</Label>
-										<Input
-											id="permitEndDate"
-											type="date"
-											{...register("permitEndDate", {
-												required: true,
-											})}
-										/>
-									</div>
-								)}
+								<Card className="border-none shadow-md">
+									<CardContent className="p-6 space-y-4">
+										<div>
+											<Label
+												htmlFor="name"
+												className="block text-sm font-medium text-gray-700 mb-1.5"
+											>
+												Select Employee
+											</Label>
+											<Select
+												onValueChange={(value) =>
+													setValue("name", value)
+												}
+												value={formData.name}
+											>
+												<SelectTrigger
+													id="name"
+													className="w-full text-sm font-normal text-gray-700 border-gray-300 hover:border-gray-400"
+												>
+													<SelectValue placeholder="Select Employee" />
+												</SelectTrigger>
+												<SelectContent>
+													{/* Placeholder, replace with actual employee list */}
+													<SelectItem value="employee1">
+														Employee 1
+													</SelectItem>
+													<SelectItem value="employee2">
+														Employee 2
+													</SelectItem>
+												</SelectContent>
+											</Select>
+										</div>
+										<div>
+											<Label
+												htmlFor="attendanceType"
+												className="block text-sm font-medium text-gray-700 mb-1.5"
+											>
+												Attendance Type
+											</Label>
+											<Select
+												onValueChange={(value) =>
+													setValue(
+														"attendanceType",
+														value
+													)
+												}
+												value={formData.attendanceType}
+											>
+												<SelectTrigger
+													id="attendanceType"
+													className="w-full text-sm font-normal text-gray-700 border-gray-300 hover:border-gray-400"
+												>
+													<SelectValue placeholder="Select Attendance Type" />
+												</SelectTrigger>
+												<SelectContent>
+													<SelectItem value="check-in">
+														Check-In
+													</SelectItem>
+													<SelectItem value="check-out">
+														Check-Out
+													</SelectItem>
+													<SelectItem value="sick leave">
+														Sick Leave
+													</SelectItem>
+													<SelectItem value="compassionate leave">
+														Compassionate Leave
+													</SelectItem>
+													<SelectItem value="maternity leave">
+														Maternity Leave
+													</SelectItem>
+													<SelectItem value="annual leave">
+														Annual Leave
+													</SelectItem>
+													<SelectItem value="marriage leave">
+														Marriage Leave
+													</SelectItem>
+												</SelectContent>
+											</Select>
+										</div>
+										{/* Permit duration for leave types */}
+										{[
+											"sick leave",
+											"compassionate leave",
+											"maternity leave",
+											"annual leave",
+											"marriage leave",
+										].includes(attendanceType) && (
+											<div>
+												<Label
+													htmlFor="permitEndDate"
+													className="block text-sm font-medium text-gray-700 mb-1.5"
+												>
+													Permit Duration (End Date)
+												</Label>
+												<Input
+													id="permitEndDate"
+													type="date"
+													className="text-sm font-normal text-gray-700 border-gray-300 hover:border-gray-400"
+													{...register(
+														"permitEndDate",
+														{
+															required: true,
+														}
+													)}
+												/>
+											</div>
+										)}
+									</CardContent>
+								</Card>
+
 								{/* Work Schedule Section */}
 								{![
 									"sick leave",
@@ -512,120 +553,69 @@ export default function CheckClockOverviewTab() {
 									"annual leave",
 									"marriage leave",
 								].includes(attendanceType) && (
-									<div className="border rounded-md p-4 mt-4">
-										<Label className="block text-base font-semibold mb-4">
-											Work Schedule
-										</Label>
-										<div className="grid grid-cols-2 gap-4 mb-2">
-											<div className="space-y-2">
-												<Label htmlFor="workType">
-													Work Type
-												</Label>
-												<Input
-													id="workType"
-													placeholder="WFO"
-												/>
+									<Card className="border-none shadow-md">
+										<CardContent className="p-6">
+											<Label className="block text-base font-semibold mb-4 text-gray-800">
+												Work Schedule
+											</Label>
+											<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-2">
+												<div className="space-y-1.5">
+													<Label
+														htmlFor="workType"
+														className="text-sm font-medium text-gray-700"
+													>
+														Work Type
+													</Label>
+													<Input
+														id="workType"
+														placeholder="WFO"
+														className="text-sm font-normal text-gray-700 border-gray-300 hover:border-gray-400"
+													/>
+												</div>
+												<div className="space-y-1.5">
+													<Label
+														htmlFor="checkInSchedule"
+														className="text-sm font-medium text-gray-700"
+													>
+														Check-In
+													</Label>
+													<Input
+														id="checkInSchedule"
+														placeholder="07:00 - 08:00"
+														className="text-sm font-normal text-gray-700 border-gray-300 hover:border-gray-400"
+													/>
+												</div>
 											</div>
-											<div className="space-y-2">
-												<Label htmlFor="checkInSchedule">
-													Check-In
-												</Label>
-												<Input
-													id="checkInSchedule"
-													placeholder="07:00 - 08:00"
-												/>
+											<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+												<div className="space-y-1.5">
+													<Label
+														htmlFor="breakSchedule"
+														className="text-sm font-medium text-gray-700"
+													>
+														Break
+													</Label>
+													<Input
+														id="breakSchedule"
+														placeholder="12:00 - 13:00"
+														className="text-sm font-normal text-gray-700 border-gray-300 hover:border-gray-400"
+													/>
+												</div>
+												<div className="space-y-1.5">
+													<Label
+														htmlFor="checkOutSchedule"
+														className="text-sm font-medium text-gray-700"
+													>
+														Check-Out
+													</Label>
+													<Input
+														id="checkOutSchedule"
+														placeholder="17:00 - 18:00"
+														className="text-sm font-normal text-gray-700 border-gray-300 hover:border-gray-400"
+													/>
+												</div>
 											</div>
-										</div>
-										<div className="grid grid-cols-2 gap-4">
-											<div className="space-y-2">
-												<Label htmlFor="breakSchedule">
-													Break
-												</Label>
-												<Input
-													id="breakSchedule"
-													placeholder="12:00 - 13:00"
-												/>
-											</div>
-											<div className="space-y-2">
-												<Label htmlFor="checkOutSchedule">
-													Check-Out
-												</Label>
-												<Input
-													id="checkOutSchedule"
-													placeholder="17:00 - 18:00"
-												/>
-											</div>
-										</div>
-									</div>
-								)}
-								{/* Location Section */}
-								{![
-									"sick leave",
-									"compassionate leave",
-									"maternity leave",
-									"annual leave",
-									"marriage leave",
-								].includes(attendanceType) && (
-									<div className="space-y-2 mt-4">
-										<div className="flex gap-2 mt-2">
-											<Button
-												variant="outline"
-												type="button"
-												onClick={() => {
-													navigator.geolocation.getCurrentPosition(
-														(position) => {
-															setValue(
-																"latitude",
-																position.coords.latitude.toString()
-															);
-															setValue(
-																"longitude",
-																position.coords.longitude.toString()
-															);
-														},
-														(error) => {
-															console.error(
-																"Error getting current location:",
-																error
-															);
-														}
-													);
-												}}
-												className="flex-1"
-											>
-												<Crosshair className="h-4 w-4 mr-2" />
-												Use Current Location
-											</Button>
-										</div>
-										<div className="grid grid-cols-2 gap-4 mt-2">
-											<div className="space-y-2">
-												<Label htmlFor="latitude">
-													Latitude
-												</Label>
-												<Input
-													id="latitude"
-													value={
-														formData.latitude || ""
-													}
-													disabled
-													className="bg-gray-100 dark:bg-gray-800"
-												/>
-											</div>
-											<div className="space-y-2">
-												<Label htmlFor="longitude">
-													Longitude
-												</Label>
-												<Input
-													id="longitude"
-													value={
-														formData.longitude || ""
-													}
-													disabled
-													className="bg-gray-100 dark:bg-gray-800"
-												/>
-											</div>
-										</div>
-									</div>
+										</CardContent>
+									</Card>
 								)}
 							</div>
 							{/* Right Column - Map & Upload Evidence */}
@@ -637,25 +627,98 @@ export default function CheckClockOverviewTab() {
 									"annual leave",
 									"marriage leave",
 								].includes(attendanceType) && (
-									<div className="space-y-2">
-										<Label>Your Current Location</Label>
-										<div className="min-h-[100px]">
-											<MapComponent
-												latitude={parseFloat(
-													formData.latitude ||
-														"-6.2088"
-												)}
-												longitude={parseFloat(
-													formData.longitude ||
-														"106.8456"
-												)}
-												radius={100}
-												onPositionChange={() => {
-													/* readonly, do nothing */
-												}}
-											/>
-										</div>
-									</div>
+									<Card className="border-none shadow-md">
+										<CardContent className="p-6 space-y-4">
+											<div>
+												<Label className="block text-base font-semibold mb-2 text-gray-800">
+													Your Current Location
+												</Label>
+												<div className="h-48 rounded-md overflow-hidden border border-slate-300 mb-4 z-0">
+													<MapComponent
+														latitude={parseFloat(
+															formData.latitude ||
+																"-6.2088"
+														)}
+														longitude={parseFloat(
+															formData.longitude ||
+																"106.8456"
+														)}
+														radius={100}
+														interactive={true}
+														onPositionChange={() => {
+															/* readonly, do nothing */
+														}}
+													/>
+												</div>
+											</div>
+											<div className="flex gap-2">
+												<Button
+													variant="outline"
+													type="button"
+													onClick={() => {
+														navigator.geolocation.getCurrentPosition(
+															(position) => {
+																setValue(
+																	"latitude",
+																	position.coords.latitude.toString()
+																);
+																setValue(
+																	"longitude",
+																	position.coords.longitude.toString()
+																);
+															},
+															(error) => {
+																console.error(
+																	"Error getting current location:",
+																	error
+																);
+															}
+														);
+													}}
+													className="flex-1 text-sm border-gray-300 hover:bg-gray-100"
+												>
+													<Crosshair className="h-4 w-4 mr-2" />
+													Refresh Current Location
+												</Button>
+											</div>
+											<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
+												<div className="space-y-1.5">
+													<Label
+														htmlFor="latitude"
+														className="text-sm font-medium text-gray-700"
+													>
+														Latitude
+													</Label>
+													<Input
+														id="latitude"
+														value={
+															formData.latitude ||
+															""
+														}
+														disabled
+														className="bg-slate-100 mt-0 text-sm text-gray-600 cursor-not-allowed border-slate-300"
+													/>
+												</div>
+												<div className="space-y-1.5">
+													<Label
+														htmlFor="longitude"
+														className="text-sm font-medium text-gray-700"
+													>
+														Longitude
+													</Label>
+													<Input
+														id="longitude"
+														value={
+															formData.longitude ||
+															""
+														}
+														disabled
+														className="bg-slate-100 mt-0 text-sm text-gray-600 cursor-not-allowed border-slate-300"
+													/>
+												</div>
+											</div>
+										</CardContent>
+									</Card>
 								)}
 								{/* Upload Evidence */}
 								{[
@@ -665,34 +728,49 @@ export default function CheckClockOverviewTab() {
 									"annual leave",
 									"marriage leave",
 								].includes(attendanceType) && (
-									<div className="space-y-2">
-										<Label htmlFor="evidence">
-											Upload Support Evidence
-										</Label>
-										<Input
-											id="evidence"
-											type="file"
-											accept="image/*,application/pdf"
-											{...register("evidence")}
-										/>
-										<p className="text-xs text-muted-foreground">
-											Upload bukti tambahan (foto, PDF,
-											dsb) untuk attendance selain
-											check-in dan check-out.
-										</p>
-									</div>
+									<Card className="border-none shadow-md">
+										<CardContent className="p-6 space-y-2">
+											<Label
+												htmlFor="evidence"
+												className="block text-base font-semibold text-gray-800"
+											>
+												Upload Support Evidence
+											</Label>
+											<Input
+												id="evidence"
+												type="file"
+												accept="image/*,application/pdf"
+												className="text-sm font-normal text-gray-700 border-gray-300 hover:border-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+												{...register("evidence")}
+											/>
+											<p className="text-xs text-muted-foreground">
+												Upload bukti tambahan (foto,
+												PDF, dsb) untuk attendance
+												selain check-in dan check-out.
+											</p>
+										</CardContent>
+									</Card>
 								)}
 							</div>
 						</div>
-						<DialogFooter>
+						<DialogFooter className="pt-4">
 							<Button
 								type="button"
 								variant="outline"
-								onClick={() => setOpenDialog(false)}
+								onClick={() => {
+									setOpenDialog(false);
+									reset(); // Reset form on cancel
+								}}
+								className="px-6 py-2 hover:text-gray-700 text-sm border-gray-300 hover:bg-gray-100"
 							>
 								Cancel
 							</Button>
-							<Button type="submit">Save Attendance</Button>
+							<Button
+								type="submit"
+								className="px-6 py-2 text-sm bg-[#6B9AC4] hover:bg-[#5a89b3] text-white"
+							>
+								Save Attendance
+							</Button>
 						</DialogFooter>
 					</form>
 				</DialogContent>

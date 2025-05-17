@@ -75,11 +75,11 @@ export const menuItems: MenuItemConfig[] = [
     href: "/profile",
     icon: User,
     roles: [ROLES.user],
-    type: "main"
+    type: "footer"
   },
   {
-    title: "Check Clock",
-    href: "/checkclock",
+    title: "Attendance",
+    href: "/attendance",
     icon: Clock,
     roles: [ROLES.user],
     type: "main"

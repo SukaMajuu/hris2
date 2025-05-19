@@ -7,6 +7,7 @@ import (
 	"github.com/SukaMajuu/hris/apps/backend/internal/rest/handler"
 	"github.com/SukaMajuu/hris/apps/backend/internal/rest/middleware"
 	"github.com/SukaMajuu/hris/apps/backend/internal/usecase/auth"
+	"github.com/SukaMajuu/hris/apps/backend/internal/usecase/employee"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -14,12 +15,14 @@ import (
 type Router struct {
 	authHandler    *handler.AuthHandler
 	authMiddleware *middleware.AuthMiddleware
+	employeeHandler *handler.EmployeeHandler
 }
 
-func NewRouter(authUseCase *auth.AuthUseCase) *Router {
+func NewRouter(authUseCase *auth.AuthUseCase, employeeUseCase *employee.EmployeeUseCase) *Router {
 	return &Router{
 		authHandler:    handler.NewAuthHandler(authUseCase),
 		authMiddleware: middleware.NewAuthMiddleware(authUseCase),
+		employeeHandler: handler.NewEmployeeHandler(employeeUseCase),
 	}
 }
 
@@ -86,22 +89,16 @@ func (r *Router) Setup() *gin.Engine {
 
 		// Protected API routes
 		api := v1.Group("/api")
-		api.Use(r.authMiddleware.Authenticate())
+		// api.Use(r.authMiddleware.Authenticate())
 		{
-			// User management
-			// users := api.Group("/users")
-			// {
-			// 	// users.GET("", r.authMiddleware.RequireRole("admin"), r.authHandler.GetUsers)
-			// 	// users.GET("/:id", r.authMiddleware.RequireRole("admin", "user"), r.authHandler.GetUser)
-			// 	// users.PUT("/:id", r.authMiddleware.RequireRole("admin"), r.authHandler.UpdateUser)
-			// 	// users.DELETE("/:id", r.authMiddleware.RequireRole("admin"), r.authHandler.DeleteUser)
-			// }
-
-			// TODO: Add other API resource routes
-			// employees := api.Group("/employees") { ... }
-			// departments := api.Group("/departments") { ... }
-			// positions := api.Group("/positions") { ... }
-			// attendance := api.Group("/attendance") { ... }
+			employee := api.Group("/employee")
+			{
+				employee.GET("", r.employeeHandler.ListEmployees)
+				// employee.GET("/:id", r.employeeHandler.GetEmployee)
+				// employee.POST("", r.employeeHandler.CreateEmployee)
+				// employee.PUT("/:id", r.employeeHandler.UpdateEmployee)
+				// employee.DELETE("/:id", r.employeeHandler.DeleteEmployee)
+			}
 		}
 	}
 

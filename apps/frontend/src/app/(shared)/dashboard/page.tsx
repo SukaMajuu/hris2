@@ -275,7 +275,7 @@ export default function DashboardPage() {
       tooltip: {
         enabled: true,
         callbacks: {
-          // eslint-disable @typescript-eslint/no-explicit-any
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           label: function (context: any) {
             let label = context.dataset.label || '';
             if (label) {
@@ -335,6 +335,7 @@ export default function DashboardPage() {
       tooltip: {
         enabled: true,
         callbacks: {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           label: function (context: any) {
             let label = context.dataset.label || '';
             if (label) {
@@ -409,6 +410,7 @@ export default function DashboardPage() {
       tooltip: {
         enabled: true,
         callbacks: {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           label: function (context: any) {
             let label = context.label || '';
             if (label) {

@@ -21,8 +21,6 @@ import {
   ArcElement,
 } from 'chart.js';
 import { DataTable } from '@/components/dataTable';
-import { PaginationComponent } from '@/components/pagination';
-import { PageSizeComponent } from '@/components/pageSize';
 import {
   ColumnDef,
   useReactTable,
@@ -57,7 +55,7 @@ export default function DashboardPage() {
       return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
     },
   );
-
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [selectedMonthForAttendanceTable, setSelectedMonthForAttendanceTable] = useState(() => {
     const today = new Date();
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
@@ -169,6 +167,7 @@ export default function DashboardPage() {
           }
           const itemMonthYear = `${itemDate.getFullYear()}-${String(itemDate.getMonth() + 1).padStart(2, '0')}`;
           return itemMonthYear === selectedMonthForAttendanceTable;
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (e) {
           return false;
         }
@@ -276,6 +275,7 @@ export default function DashboardPage() {
       tooltip: {
         enabled: true,
         callbacks: {
+          // eslint-disable @typescript-eslint/no-explicit-any
           label: function (context: any) {
             let label = context.dataset.label || '';
             if (label) {

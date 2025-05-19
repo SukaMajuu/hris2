@@ -89,31 +89,28 @@ func (r *Router) Setup() *gin.Engine {
 
 		// Protected API routes
 		api := v1.Group("/api")
-		api.Use(r.authMiddleware.Authenticate())
+		// api.Use(r.authMiddleware.Authenticate())
 		{
-			// User management
-			// users := api.Group("/users")
-			// {
-			// 	// users.GET("", r.authMiddleware.RequireRole("admin"), r.authHandler.GetUsers)
-			// 	// users.GET("/:id", r.authMiddleware.RequireRole("admin", "user"), r.authHandler.GetUser)
-			// 	// users.PUT("/:id", r.authMiddleware.RequireRole("admin"), r.authHandler.UpdateUser)
-			// 	// users.DELETE("/:id", r.authMiddleware.RequireRole("admin"), r.authHandler.DeleteUser)
-			// }
+			// User management routes
+			users := api.Group("/users")
+			{
+				users.GET("", r.authMiddleware.RequireRole("admin"), r.authHandler.GetUsers)
+				users.GET("/:id", r.authMiddleware.RequireRole("admin", "user"), r.authHandler.GetUser)
+				users.PUT("/:id", r.authMiddleware.RequireRole("admin"), r.authHandler.UpdateUser)
+				users.DELETE("/:id", r.authMiddleware.RequireRole("admin"), r.authHandler.DeleteUser)
+			}
 
-			// TODO: Add other API resource routes
-			// employees := api.Group("/employees") { ... }
-			// departments := api.Group("/departments") { ... }
-			// positions := api.Group("/positions") { ... }
-			// attendance := api.Group("/attendance") { ... }
-
+			// Location routes
 			locations := api.Group("/locations")
 			{
 				locations.POST("", r.locationHandler.CreateLocation)
 				locations.GET("", r.locationHandler.GetAllLocations)
-				// locations.GET("/:id", r.locationHandler.GetLocationByID)
-				// locations.PUT("/:id", r.locationHandler.UpdateLocation)
-				// locations.DELETE("/:id", r.locationHandler.DeleteLocation)
+				locations.GET("/:id", r.locationHandler.GetLocationByID)
+				locations.PUT("/:id", r.locationHandler.UpdateLocation)
+				locations.DELETE("/:id", r.locationHandler.DeleteLocation)
 			}
+
+			// TODO: Add other API resource routes as needed
 		}
 	}
 

@@ -10,7 +10,7 @@ import (
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
 	"github.com/SukaMajuu/hris/apps/backend/domain/enums"
-	"github.com/SukaMajuu/hris/apps/backend/internal/usecase/auth/mocks"
+	"github.com/SukaMajuu/hris/apps/backend/internal/usecase/mocks"
 	"github.com/SukaMajuu/hris/apps/backend/pkg/config"
 	"github.com/SukaMajuu/hris/apps/backend/pkg/jwt"
 	"github.com/stretchr/testify/assert"

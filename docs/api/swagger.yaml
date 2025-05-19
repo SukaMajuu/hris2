@@ -255,6 +255,65 @@ components:
                 - created_at
                 - updated_at
 
+        Work schedule:
+            type: object
+            desscription: Represents a work schedule.
+            properties:
+                id:
+                    type: integer
+                    format: uint
+                    description: Unique identifier for the work schedule.
+                    readOnly: true
+                name:
+                    type: string
+                    maxLength: 50
+                    description: The name of the work schedule.
+                check_in_start:
+                    type: string
+                    format: time
+                    description: Start time for check-in.
+                check_in_end:
+                    type: string
+                    format: time
+                    description: End time for check-in.
+                break_start:
+                    type: string
+                    format: time
+                    description: Start time for break.
+                break_end:
+                    type: string
+                    format: time
+                    description: End time for break.
+                check_out_start:
+                    type: string
+                    format: time
+                    description: Start time for check-out.
+                check_out_end:
+                    type: string
+                    format: time
+                    description: End time for check-out.
+                created_at:
+                    type: string
+                    format: date-time
+                    description: Timestamp when the work schedule was created.
+                    readOnly: true
+                updated_at:
+                    type: string
+                    format: date-time
+                    description: Timestamp when the work schedule was last updated.
+                    readOnly: true
+            required:
+                - id
+                - name
+                - check_in_start
+                - check_in_end
+                - break_start
+                - break_end
+                - check_out_start
+                - check_out_end
+                - created_at
+                - updated_at
+
 paths:
     /auth/login:
         post:
@@ -740,6 +799,324 @@ paths:
                                     message:
                                         type: string
                                         example: "Internal Server Error"
+
+    /work_schedules:
+        get:
+            tags: [Work Schedules]
+            summary: Get all work schedules
+            responses:
+                200:
+                    description: List of work schedules retrieved successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "Work schedules retrieved successfully"
+                                    data:
+                                        type: array
+                                        items:
+                                            $ref: "#/components/schemas/Work schedule"
+                500:
+                    description: Internal server error
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 500
+                                    message:
+                                        type: string
+                                        example: "Internal server error"
+                                    error:
+                                        type: string
+                                        example: "Failed to retrieve work schedules"
+        post:
+            tags: [Work Schedules]
+            summary: Create new work schedule
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            required:
+                                - name
+                                - check_in_start
+                                - check_in_end
+                                - break_start
+                                - break_end
+                                - check_out_start
+                                - check_out_end
+                            properties:
+                                name:
+                                    type: string
+                                    example: "Morning Shift"
+                                check_in_start:
+                                    type: string
+                                    format: time
+                                    example: "08:00"
+                                check_in_end:
+                                    type: string
+                                    format: time
+                                    example: "09:00"
+                                break_start:
+                                    type: string
+                                    format: time
+                                    example: "12:00"
+                                break_end:
+                                    type: string
+                                    format: time
+                                    example: "13:00"
+                                check_out_start:
+                                    type: string
+                                    format: time
+                                    example: "17:00"
+                                check_out_end:
+                                    type: string
+                                    format: time
+                                    example: "18:00"
+            response:
+                201:
+                    description: Work schedule created successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 201
+                                    message:
+                                        type: string
+                                        example: "Work schedule created successfully"
+                                    data:
+                                        $ref: "#/components/schemas/Work schedule"
+                400:
+                    description: Bad request
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 400
+                                    message:
+                                        type: string
+                                        example: "Invalid request"
+                                    error:
+                                        type: string
+                                        example: "Missing required fields"
+                500:
+                    description: Internal server error
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 500
+                                    message:
+                                        type: string
+                                        example: "Internal server error"
+                                    error:
+                                        type: string
+                                        example: "Failed to create work schedule"
+    /work_schedules/{id}:
+        get:
+            tags: [Work Schedules]
+            summary: Get work schedule by ID
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: integer
+            responses:
+                200:
+                    description: Work schedule retrieved successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "Work schedule retrieved successfully"
+                                    data:
+                                        $ref: "#/components/schemas/Work schedule"
+                404:
+                    description: Work schedule not found
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 404
+                                    message:
+                                        type: string
+                                        example: "Not found"
+                                    error:
+                                        type: string
+                                        example: "Work schedule not found"
+                500:
+                    description: Internal server error
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 500
+                                    message:
+                                        type: string
+                                        example: "Internal server error"
+                                    error:
+                                        type: string
+                                        example: "Failed to retrieve work schedule"
+        put:
+            tags: [Work Schedules]
+            summary: Update work schedule
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: integer
+            response:
+                200:
+                    description: Work schedule updated successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "Work schedule updated successfully"
+                                    data:
+                                        $ref: "#/components/schemas/Work schedule"
+                400:
+                    description: Bad request
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 400
+                                    message:
+                                        type: string
+                                        example: "Invalid request"
+                                    error:
+                                        type: string
+                                        example: "Invalid data provided"
+                404:
+                    description: Work schedule not found
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 404
+                                    message:
+                                        type: string
+                                        example: "Not found"
+                                    error:
+                                        type: string
+                                        example: "Work schedule not found"
+                500:
+                    description: Internal server error
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 500
+                                    message:
+                                        type: string
+                                        example: "Internal server error"
+                                    error:
+                                        type: string
+                                        example: "Failed to update work schedule"
+        delete:
+            tags: [Work Schedules]
+            summary: Delete work schedule
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: integer
+            responses:
+                200:
+                    description: Work schedule deleted successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "Work schedule deleted successfully"
+                404:
+                    description: Work schedule not found
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 404
+                                    message:
+                                        type: string
+                                        example: "Not found"
+                                    error:
+                                        type: string
+                                        example: "Work schedule not found"
+                500:
+                    description: Internal server error
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 500
+                                    message:
+                                        type: string
+                                        example: "Internal server error"
+                                    error:
+                                        type: string
+                                        example: "Failed to delete work schedule"
 
     /employees:
         get:

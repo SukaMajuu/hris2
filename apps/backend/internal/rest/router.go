@@ -12,14 +12,15 @@ import (
 )
 
 type Router struct {
-	authHandler    *handler.AuthHandler
-	authMiddleware *middleware.AuthMiddleware
+	authHandler         *handler.AuthHandler
+	authMiddleware      *middleware.AuthMiddleware
+	workScheduleHandler *handler.WorkScheduleHandler
 }
-
-func NewRouter(authUseCase *auth.AuthUseCase) *Router {
+func NewRouter(authUseCase *auth.AuthUseCase, workScheduleHandler *handler.WorkScheduleHandler) *Router {
 	return &Router{
-		authHandler:    handler.NewAuthHandler(authUseCase),
-		authMiddleware: middleware.NewAuthMiddleware(authUseCase),
+		authHandler:         handler.NewAuthHandler(authUseCase),
+		authMiddleware:      middleware.NewAuthMiddleware(authUseCase),
+		workScheduleHandler: workScheduleHandler,
 	}
 }
 
@@ -102,6 +103,14 @@ func (r *Router) Setup() *gin.Engine {
 			// departments := api.Group("/departments") { ... }
 			// positions := api.Group("/positions") { ... }
 			// attendance := api.Group("/attendance") { ... }
+		}
+		ws := v1.Group("/work-schedules")
+		{
+			ws.GET("", r.workScheduleHandler.ListWorkSchedules)
+			ws.POST("", r.workScheduleHandler.CreateWorkSchedule)
+			ws.GET("/:id", r.workScheduleHandler.GetWorkScheduleByID)
+			ws.PUT("/:id", r.workScheduleHandler.UpdateWorkSchedule)
+			ws.DELETE("/:id", r.workScheduleHandler.DeleteWorkSchedule)
 		}
 	}
 

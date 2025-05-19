@@ -7,19 +7,22 @@ import (
 	"github.com/SukaMajuu/hris/apps/backend/internal/rest/handler"
 	"github.com/SukaMajuu/hris/apps/backend/internal/rest/middleware"
 	"github.com/SukaMajuu/hris/apps/backend/internal/usecase/auth"
+	"github.com/SukaMajuu/hris/apps/backend/internal/usecase/location"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
 type Router struct {
-	authHandler    *handler.AuthHandler
-	authMiddleware *middleware.AuthMiddleware
+	authHandler     *handler.AuthHandler
+	locationHandler *handler.LocationHandler
+	authMiddleware  *middleware.AuthMiddleware
 }
 
-func NewRouter(authUseCase *auth.AuthUseCase) *Router {
+func NewRouter(authUseCase *auth.AuthUseCase, locationUseCase *location.LocationUseCase) *Router {
 	return &Router{
-		authHandler:    handler.NewAuthHandler(authUseCase),
-		authMiddleware: middleware.NewAuthMiddleware(authUseCase),
+		authHandler:     handler.NewAuthHandler(authUseCase),
+		locationHandler: handler.NewLocationHandler(locationUseCase),
+		authMiddleware:  middleware.NewAuthMiddleware(authUseCase),
 	}
 }
 
@@ -102,8 +105,18 @@ func (r *Router) Setup() *gin.Engine {
 			// departments := api.Group("/departments") { ... }
 			// positions := api.Group("/positions") { ... }
 			// attendance := api.Group("/attendance") { ... }
+
+			locations := api.Group("/locations")
+			{
+				locations.POST("", r.locationHandler.CreateLocation)
+				locations.GET("", r.locationHandler.GetAllLocations)
+				// locations.GET("/:id", r.locationHandler.GetLocationByID)
+				// locations.PUT("/:id", r.locationHandler.UpdateLocation)
+				// locations.DELETE("/:id", r.locationHandler.DeleteLocation)
+			}
 		}
 	}
 
 	return router
+
 }

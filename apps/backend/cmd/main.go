@@ -54,4 +54,10 @@ func main() {
 	if err := ginRouter.Run(":8080"); err != nil {
 		log.Fatal("Failed to start server:", err)
 	}
+
+	locationRepo := location.NewLocationRepository(db)
+	locationUsecase := locationusecase.NewLocationUsecase(locationRepo)
+	locationHandler := handler.NewLocationHandler(locationUsecase)
+	rest.RegisterLocationRoutes(e, locationHandler)
+
 }

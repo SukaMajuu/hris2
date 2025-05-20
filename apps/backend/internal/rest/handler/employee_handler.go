@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
+	domainEmployeeDTO "github.com/SukaMajuu/hris/apps/backend/domain/dto/employee"
 	employeeDTO "github.com/SukaMajuu/hris/apps/backend/internal/rest/dto/employee"
 	employeeUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/employee"
 	"github.com/SukaMajuu/hris/apps/backend/pkg/response"
@@ -56,4 +57,63 @@ func (h *EmployeeHandler) ListEmployees(c *gin.Context) {
 	}
 
 	response.Success(c, http.StatusOK, "Employees retrieved successfully", employeeData)
+}
+
+func (h *EmployeeHandler) CreateEmployee(c *gin.Context) {
+	var reqDTO employeeDTO.CreateEmployeeRequestDTO
+
+	if err := c.ShouldBindJSON(&reqDTO); err != nil {
+		log.Printf("EmployeeHandler: Error binding JSON for CreateEmployee: %v", err)
+		response.BadRequest(c, "Invalid request data. Please check your input.", err)
+		return
+	}
+
+	employeeDomain := &domain.Employee{
+		UserID:       reqDTO.UserID,
+		FirstName:    reqDTO.FirstName,
+		LastName:     reqDTO.LastName,
+		PositionID:   reqDTO.PositionID,
+		EmployeeCode: reqDTO.EmployeeCode,
+		BranchID:     reqDTO.BranchID,
+		Gender:       reqDTO.Gender,
+		NIK:          reqDTO.NIK,
+	}
+
+	if reqDTO.EmploymentStatus != nil {
+		employeeDomain.EmploymentStatus = *reqDTO.EmploymentStatus
+	} else {
+		employeeDomain.EmploymentStatus = true
+	}
+
+	createdEmployee, err := h.employeeUseCase.Create(c.Request.Context(), employeeDomain)
+	if err != nil {
+		log.Printf("EmployeeHandler: Error creating employee from use case: %v", err)
+		response.InternalServerError(c, fmt.Errorf("failed to create employee: %w", err))
+		return
+	}
+
+	var genderStrPointer *string
+	if createdEmployee.Gender != nil {
+		s := string(*createdEmployee.Gender)
+		genderStrPointer = &s
+	}
+
+	var phone *string
+	if createdEmployee.User != (domain.User{}) && createdEmployee.User.Phone != "" {
+		phone = &createdEmployee.User.Phone
+	}
+
+	respDTO := domainEmployeeDTO.EmployeeResponseDTO{
+		ID:               createdEmployee.ID,
+		FirstName:        createdEmployee.FirstName,
+		LastName:         createdEmployee.LastName,
+		Gender:           genderStrPointer,
+		Phone:            phone,
+		BranchID:         createdEmployee.BranchID,
+		PositionID:       createdEmployee.PositionID,
+		Grade:            createdEmployee.Grade,
+		EmploymentStatus: createdEmployee.EmploymentStatus,
+	}
+
+	response.Success(c, http.StatusCreated, "Employee created successfully", respDTO)
 }

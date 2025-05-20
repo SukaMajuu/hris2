@@ -5,20 +5,21 @@ import (
 	"strings"
 
 	"github.com/SukaMajuu/hris/apps/backend/internal/usecase/auth"
+	"github.com/SukaMajuu/hris/apps/backend/internal/usecase/employee"
 	"github.com/gin-gonic/gin"
 )
 
 type AuthMiddleware struct {
 	authUseCase *auth.AuthUseCase
+	employeeUseCase *employee.EmployeeUseCase
 }
 
-func NewAuthMiddleware(authUseCase *auth.AuthUseCase) *AuthMiddleware {
-	return &AuthMiddleware{authUseCase: authUseCase}
+func NewAuthMiddleware(authUseCase *auth.AuthUseCase, employeeUseCase *employee.EmployeeUseCase) *AuthMiddleware {
+	return &AuthMiddleware{authUseCase: authUseCase, employeeUseCase: employeeUseCase}
 }
 
 func (m *AuthMiddleware) Authenticate() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Extract ACCESS token from Authorization header (Bearer <token>)
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is required"})
@@ -35,7 +36,6 @@ func (m *AuthMiddleware) Authenticate() gin.HandlerFunc {
 
 		accessToken := parts[1]
 
-		// Verify access token using the auth use case
 		userID, role, err := m.authUseCase.VerifyAccessToken(c.Request.Context(), accessToken)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
@@ -43,7 +43,6 @@ func (m *AuthMiddleware) Authenticate() gin.HandlerFunc {
 			return
 		}
 
-		// Set verified user details in context
 		c.Set("userID", userID)
 		c.Set("userRole", role)
 
@@ -51,27 +50,38 @@ func (m *AuthMiddleware) Authenticate() gin.HandlerFunc {
 	}
 }
 
-// TODO: Role checking might be out of scope for Sprint 1, focus on Authentication first
-func (m *AuthMiddleware) RequireRole(roles ...string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		// TODO: Implement role-based access control (Post-Sprint 1)
-		// - Get user from context (set by Authenticate middleware)
-		// - Check if user's role (e.g., userDetails.Role) is in the allowed `roles` list
-		// - If not allowed: Return 403 Forbidden
+// func (m *AuthMiddleware) RequireRole(roles ...string) gin.HandlerFunc {
+// 	return func(c *gin.Context) {
+// 		userIDCtx, exists := c.Get("userID")
+// 		if !exists {
+// 			response.Unauthorized(c, "User ID not found in context", domain.ErrInvalidToken)
+// 			return
+// 		}
+// 		userID, ok := userIDCtx.(uint)
+// 		if !ok {
+// 			response.InternalServerError(c, fmt.Errorf("invalid user ID type in context"))
+// 			return
+// 		}
 
-		// Example:
-		// userCtx, exists := c.Get("user")
-		// if !exists { /* ... handle error ... */ }
-		// userDetails := userCtx.(YourUserDetailsStruct)
-		// hasRole := false
-		// for _, requiredRole := range roles {
-		// 	 if userDetails.Role == requiredRole {
-		// 		 hasRole = true
-		// 		 break
-		// 	 }
-		// }
-		// if !hasRole { /* ... return 403 ... */ }
+// 		user, err := m.employeeUseCase.GetEmployeeByID(c.Request.Context(), userID)
+// 		if err != nil {
+// 			response.InternalServerError(c, err)
+// 			return
+// 		}
 
-		c.Next()
-	}
-}
+// 		hasRole := false
+// 		for _, requiredRole := range roles {
+// 			if user.Role == requiredRole {
+// 				hasRole = true
+// 				break
+// 			}
+// 		}
+
+// 		if !hasRole {
+// 			response.Forbidden(c, "User does not have the required role", domain.ErrForbidden)
+// 			return
+// 		}
+
+// 		c.Next()
+// 	}
+// }

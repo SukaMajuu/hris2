@@ -7,7 +7,6 @@ import {
 } from "@/types/auth";
 import { API_ROUTES } from "@/config/api.routes";
 
-// Wrap the backend response in a standard structure if your API does that
 interface ApiResponse<T> {
 	data: T;
 }

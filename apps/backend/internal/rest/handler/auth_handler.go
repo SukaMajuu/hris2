@@ -154,25 +154,23 @@ func (h *AuthHandler) ChangePassword(c *gin.Context) {
 		return
 	}
 
-	// TODO: Implement Change Password
+	userIDCtx, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User ID not found in context", fmt.Errorf("missing userID in context"))
+		return
+	}
+	userID, ok := userIDCtx.(uint)
+	if !ok {
+		response.InternalServerError(c, fmt.Errorf("invalid user ID type in context"))
+		return
+	}
 
-	// userIDCtx, exists := c.Get("userID")
-	// if !exists {
-	// 	response.Unauthorized(c, "User ID not found in context", fmt.Errorf("missing userID in context"))
-	// 	return
-	// }
-	// userID, ok := userIDCtx.(uint)
-	// if !ok {
-	// 	response.InternalServerError(c, fmt.Errorf("invalid user ID type in context"))
-	// 	return
-	// }
+	if err := h.authUseCase.ChangePassword(c.Request.Context(), userID, req.OldPassword, req.NewPassword); err != nil {
+		response.InternalServerError(c, err)
+		return
+	}
 
-	// if err := h.authUseCase.ChangePassword(c.Request.Context(), userID, req.OldPassword, req.NewPassword); err != nil {
-	// 	response.InternalServerError(c, err)
-	// 	return
-	// }
-
-	// response.Success(c, http.StatusOK, "Password changed successfully", nil)
+	response.Success(c, http.StatusOK, "Password changed successfully", nil)
 }
 
 func (h *AuthHandler) ResetPassword(c *gin.Context) {
@@ -181,13 +179,11 @@ func (h *AuthHandler) ResetPassword(c *gin.Context) {
 		return
 	}
 
-	// TODO: Implement Reset Password
+	if err := h.authUseCase.ResetPassword(c.Request.Context(), req.Email); err != nil {
+		fmt.Printf("Error during password reset request for %s: %v\n", req.Email, err)
+	}
 
-	// if err := h.authUseCase.ResetPassword(c.Request.Context(), req.Email); err != nil {
-	// 	fmt.Printf("Error during password reset request for %s: %v\n", req.Email, err)
-	// }
-
-	// response.Success(c, http.StatusOK, "If an account with that email exists, a password reset link has been sent.", nil)
+	response.Success(c, http.StatusOK, "If an account with that email exists, a password reset link has been sent.", nil)
 }
 
 func (h *AuthHandler) RefreshToken(c *gin.Context) {

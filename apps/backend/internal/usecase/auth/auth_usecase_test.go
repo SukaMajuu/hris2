@@ -30,6 +30,7 @@ func createTestConfig() *config.Config {
 
 func TestRegisterAdminWithForm(t *testing.T) {
 	var repoCreateFailedErr = errors.New("repo create failed")
+	dbStoreFailedErr := errors.New("db store failed")
 	lastName := "Doe"
 	now := time.Now()
 	testConfig := createTestConfig()
@@ -117,7 +118,7 @@ func TestRegisterAdminWithForm(t *testing.T) {
 			jwtError: fmt.Errorf("jwt gen failed"),
 			storeTokenError: nil,
 			updateLoginError: nil,
-			expectedErr: fmt.Errorf("failed to generate token: jwt gen failed"),
+			expectedErr: fmt.Errorf("token issuance failed after registration: %w", fmt.Errorf("failed to generate token: %w", errors.New("jwt gen failed"))),
 		},
 		{
 			name: "store refresh token error",
@@ -125,9 +126,9 @@ func TestRegisterAdminWithForm(t *testing.T) {
 			employee: &domain.Employee{FirstName: "John", LastName: &lastName},
 			repoError: nil,
 			jwtError: nil,
-			storeTokenError: fmt.Errorf("db store failed"),
+			storeTokenError: dbStoreFailedErr,
 			updateLoginError: nil,
-			expectedErr: fmt.Errorf("failed to store refresh token: db store failed"),
+			expectedErr: fmt.Errorf("token issuance failed after registration: %w", dbStoreFailedErr),
 		},
 	}
 
@@ -189,6 +190,7 @@ func TestRegisterAdminWithForm(t *testing.T) {
 
 func TestLoginWithIdentifier(t *testing.T) {
 	testConfig := createTestConfig()
+	dbStoreFailedErr := errors.New("db store failed")
 	tests := []struct {
 		name              string
 		identifier        string
@@ -261,7 +263,7 @@ func TestLoginWithIdentifier(t *testing.T) {
 			jwtError:      fmt.Errorf("jwt generation failed"),
 			storeTokenError: nil,
 			updateLoginError: nil,
-			expectedErr:   fmt.Errorf("failed to generate token: jwt generation failed"),
+			expectedErr:   fmt.Errorf("token issuance failed after login: %w", fmt.Errorf("failed to generate token: %w", errors.New("jwt generation failed"))),
 		},
 		{
 			name:          "store refresh token error",
@@ -270,9 +272,9 @@ func TestLoginWithIdentifier(t *testing.T) {
 			expectedUser:  &domain.User{ID: 1, Role: enums.RoleAdmin},
 			repoError:     nil,
 			jwtError:      nil,
-			storeTokenError: fmt.Errorf("db store failed"),
+			storeTokenError: dbStoreFailedErr,
 			updateLoginError: nil,
-			expectedErr:   fmt.Errorf("failed to store refresh token: db store failed"),
+			expectedErr:   fmt.Errorf("token issuance failed after login: %w", dbStoreFailedErr),
 		},
 	}
 
@@ -406,7 +408,7 @@ func TestRefreshToken(t *testing.T) {
 			claims: &jwt.CustomClaims{UserID: 1, Role: enums.RoleAdmin, TokenType: enums.TokenTypeRefresh},
 			validateError: nil,
 			hashError: fmt.Errorf("bcrypt failed"),
-			expectedErr: fmt.Errorf("internal error during token refresh: bcrypt failed"),
+			expectedErr: fmt.Errorf("internal error during token refresh: %w", errors.New("bcrypt failed")),
 		},
 		{
 			name:         "token hash not found in DB",
@@ -426,7 +428,7 @@ func TestRefreshToken(t *testing.T) {
 			hashError: nil,
 			findToken: nil,
 			findError: fmt.Errorf("db connection lost"),
-			expectedErr: fmt.Errorf("internal error during token refresh: db connection lost"),
+			expectedErr: fmt.Errorf("internal error during token refresh: %w", errors.New("db connection lost")),
 		},
 		{
 			name:         "stored token is revoked",
@@ -469,7 +471,7 @@ func TestRefreshToken(t *testing.T) {
 			revokeError: fmt.Errorf("failed to update db"),
 			user: &domain.User{ID: 1, Role: enums.RoleAdmin},
 			userError: nil,
-			expectedErr: fmt.Errorf("internal error during token refresh: failed to update db"),
+			expectedErr: fmt.Errorf("internal error during token refresh: %w", errors.New("failed to update db")),
 		},
 		{
 			name:         "error getting user for new token generation",
@@ -496,7 +498,7 @@ func TestRefreshToken(t *testing.T) {
 			user: &domain.User{ID: 1, Role: enums.RoleAdmin},
 			userError: nil,
 			generateError: fmt.Errorf("signing failed"),
-			expectedErr: fmt.Errorf("failed to generate new tokens: signing failed"),
+			expectedErr: fmt.Errorf("failed to generate new tokens: %w", errors.New("signing failed")),
 		},
 		{
 			name:         "error storing new refresh token",
@@ -513,7 +515,7 @@ func TestRefreshToken(t *testing.T) {
 			expectedRefreshToken: "new-refresh-token",
 			generateError: nil,
 			storeNewTokenError: fmt.Errorf("db unique constraint"),
-			expectedErr: fmt.Errorf("failed to store new refresh token: db unique constraint"),
+			expectedErr: fmt.Errorf("failed to store new refresh token: %w", errors.New("db unique constraint")),
 		},
 	}
 
@@ -589,12 +591,13 @@ func TestRefreshToken(t *testing.T) {
 
 func TestRegisterAdminWithGoogle(t *testing.T) {
 	var (
-		validToken     = "valid-google-token"
-		emptyToken     = ""
-		existingEmail  = "existing@example.com"
+		validToken        = "valid-google-token"
+		emptyToken        = ""
+		existingEmail     = "existing@example.com"
 		registrationError = errors.New("registration failed")
-		loginError     = errors.New("login failed")
-		testConfig     = createTestConfig()
+		loginError        = errors.New("login failed")
+		testConfig        = createTestConfig()
+		dbStoreFailedErr  = errors.New("db store failed")
 	)
 
 	tests := []struct {
@@ -640,7 +643,7 @@ func TestRegisterAdminWithGoogle(t *testing.T) {
 			expectedErr:    fmt.Errorf("failed Google admin registration: %w", registrationError),
 		},
 		{
-			name:           "registration ok, login error on retry",
+			name:           "registration ok (ErrUserAlreadyExists), login error on retry",
 			token:          validToken,
 			regRepoError:   domain.ErrUserAlreadyExists,
 			loginUser:      nil,
@@ -659,7 +662,7 @@ func TestRegisterAdminWithGoogle(t *testing.T) {
 			loginUser:      &domain.User{ID: 1, Email: "new@example.com", Role: enums.RoleAdmin},
 			loginRepoError: nil,
 			jwtError:       fmt.Errorf("jwt gen failed"),
-			expectedErr:    fmt.Errorf("token issuance failed after google registration/login: failed to generate token: jwt gen failed"),
+			expectedErr:    fmt.Errorf("token issuance failed after google registration/login: %w", fmt.Errorf("failed to generate token: %w", errors.New("jwt gen failed"))),
 		},
 		{
 			name:           "login ok, store token error",
@@ -668,8 +671,8 @@ func TestRegisterAdminWithGoogle(t *testing.T) {
 			loginUser:      &domain.User{ID: 1, Email: "new@example.com", Role: enums.RoleAdmin},
 			loginRepoError: nil,
 			jwtError:       nil,
-			storeTokenError: fmt.Errorf("db store failed"),
-			expectedErr:    fmt.Errorf("token issuance failed after google registration/login: failed to store refresh token: db store failed"),
+			storeTokenError: dbStoreFailedErr,
+			expectedErr:    fmt.Errorf("token issuance failed after google registration/login: %w", dbStoreFailedErr),
 		},
 	}
 
@@ -687,44 +690,35 @@ func TestRegisterAdminWithGoogle(t *testing.T) {
 			)
 
 			if tt.token != "" {
-				// Set up mock for RegisterAdminWithGoogle FIRST
 				if tt.regRepoError == nil {
-					// If registration is expected to succeed, mock it to return the expected user
-					if tt.loginUser == nil { // Add safety check for test data
+					if tt.loginUser == nil {
 						t.Fatalf("Test setup error: tt.loginUser cannot be nil when tt.regRepoError is nil for test: %s", tt.name)
 					}
 					mockAuthRepo.On("RegisterAdminWithGoogle", mock.Anything, tt.token).Return(tt.loginUser, &domain.Employee{}, nil).Once()
 				} else {
-					// If registration is expected to fail, mock it to return the error
 					mockAuthRepo.On("RegisterAdminWithGoogle", mock.Anything, tt.token).Return(nil, nil, tt.regRepoError).Once()
 				}
 
-				// Set up mock for LoginWithGoogle ONLY if registration error indicates existing user
 				if errors.Is(tt.regRepoError, domain.ErrEmailAlreadyExists) || errors.Is(tt.regRepoError, domain.ErrUserAlreadyExists) {
 					mockAuthRepo.On("LoginWithGoogle", mock.Anything, tt.token).Return(tt.loginUser, tt.loginRepoError).Maybe()
 				}
 
-				// Determine user for token generation based on expected outcome
 				var userForTokenGen *domain.User = nil
 				if tt.regRepoError == nil {
-					userForTokenGen = tt.loginUser // Use user from successful registration mock return
+					userForTokenGen = tt.loginUser
 				} else if (errors.Is(tt.regRepoError, domain.ErrEmailAlreadyExists) || errors.Is(tt.regRepoError, domain.ErrUserAlreadyExists)) && tt.loginRepoError == nil {
-					userForTokenGen = tt.loginUser // Use user from successful login after existing error
+					userForTokenGen = tt.loginUser
 				}
 
-				// Only set up subsequent mocks if we actually expect a user
 				if userForTokenGen != nil {
-					// Mock GenerateToken
 					mockJWTService.On("GenerateToken", userForTokenGen.ID, userForTokenGen.Role).
 						Return("access-token", "refresh-token", "hashed-token", tt.jwtError).Maybe()
 
 					if tt.jwtError == nil {
-						// Mock StoreRefreshToken
 						mockAuthRepo.On("StoreRefreshToken", mock.Anything, mock.AnythingOfType("*domain.RefreshToken")).
 							Return(tt.storeTokenError).Maybe()
 
 						if tt.storeTokenError == nil {
-							// Mock UpdateLastLogin
 							mockAuthRepo.On("UpdateLastLogin", mock.Anything, userForTokenGen.ID, mock.AnythingOfType("time.Time")).
 								Return(tt.updateLoginError).Maybe()
 						}
@@ -761,10 +755,11 @@ func TestRegisterAdminWithGoogle(t *testing.T) {
 
 func TestLoginWithGoogle(t *testing.T) {
 	var (
-		validToken    = "valid-google-token"
-		emptyToken    = ""
-		loginError    = errors.New("repo login failed")
-		testConfig    = createTestConfig()
+		validToken       = "valid-google-token"
+		emptyToken       = ""
+		loginError       = errors.New("repo login failed")
+		testConfig       = createTestConfig()
+		dbStoreFailedErr = errors.New("db store failed")
 	)
 
 	tests := []struct {
@@ -807,7 +802,7 @@ func TestLoginWithGoogle(t *testing.T) {
 			repoUser:         &domain.User{ID: 1, Email: "test@example.com", Role: enums.RoleAdmin},
 			repoError:        nil,
 			jwtError:         fmt.Errorf("jwt gen failed"),
-			expectedErr:      fmt.Errorf("failed to generate token: jwt gen failed"),
+			expectedErr:      fmt.Errorf("token issuance failed after google login: %w", fmt.Errorf("failed to generate token: %w", errors.New("jwt gen failed"))),
 		},
 		{
 			name:             "login ok, store token error",
@@ -815,8 +810,8 @@ func TestLoginWithGoogle(t *testing.T) {
 			repoUser:         &domain.User{ID: 1, Email: "test@example.com", Role: enums.RoleAdmin},
 			repoError:        nil,
 			jwtError:         nil,
-			storeTokenError:  fmt.Errorf("db store failed"),
-			expectedErr:      fmt.Errorf("failed to store refresh token: db store failed"),
+			storeTokenError:  dbStoreFailedErr,
+			expectedErr:      fmt.Errorf("token issuance failed after google login: %w", dbStoreFailedErr),
 		},
 	}
 

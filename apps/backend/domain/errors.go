@@ -27,3 +27,13 @@ var (
 	ErrTokenExpired  = errors.New("token has expired")
 	ErrTokenMismatch = errors.New("token hash mismatch")
 )
+
+// Employee errors
+var (
+	ErrEmployeeNotFound = errors.New("employee not found")
+)
+
+// common errors
+var (
+	ErrForbidden = errors.New("forbidden")
+)

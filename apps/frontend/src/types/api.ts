@@ -35,7 +35,7 @@ export interface User {
    * Role assigned to the user, determining their permissions.
    * @example "user"
    */
-  role: "admin" | "user" | "manager" | "hr";
+  role: "admin" | "user";
   /**
    * Timestamp of the user's last login (optional).
    * @format date-time
@@ -96,7 +96,7 @@ export interface Employee {
    */
   branch_id?: number | null;
   /** Employee's gender (optional). */
-  gender?: "male" | "female" | "other" | null;
+  gender?: "male" | "female" | null;
   /**
    * Employee's phone number (optional).
    * @maxLength 255
@@ -207,6 +207,25 @@ export interface Position {
    * @format date-time
    */
   updated_at: string;
+}
+
+/** Parameters for pagination in API requests */
+export interface PaginationParams {
+  /**
+   * The page number to retrieve (1-indexed)
+   * @min 1
+   * @default 1
+   * @example 1
+   */
+  page: number;
+  /**
+   * Number of items per page
+   * @min 1
+   * @max 100
+   * @default 10
+   * @example 10
+   */
+  page_size: number;
 }
 
 /** Represents a company branch or location. */
@@ -521,16 +540,8 @@ export class Api<
           data?: {
             /** @example "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." */
             access_token?: string;
-            /** @example "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." */
-            refresh_token?: string;
-            user?: {
-              /** @example 1 */
-              id?: number;
-              /** @example "john.doe@example.com" */
-              email?: string;
-              /** @example "employee" */
-              role?: string;
-            };
+            /** Represents a user account in the system. */
+            user?: User;
           };
         },
         | {
@@ -690,12 +701,6 @@ export class Api<
          * @example "eyJhbGciOiJSUzI1NiIsImtpZCI6Ij..."
          */
         token: string;
-        /**
-         * Required if the Google user is not yet registered and needs to agree to terms.
-         * @default true
-         * @example true
-         */
-        agree_terms?: boolean;
       },
       params: RequestParams = {},
     ) =>
@@ -707,9 +712,15 @@ export class Api<
           message?: string;
           data?: {
             /** @example "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." */
-            token?: string;
-            /** Represents a user account in the system. */
-            user?: User;
+            access_token?: string;
+            user?: {
+              /** @example 1 */
+              id?: number;
+              /** @example "john.doe@example.com" */
+              email?: string;
+              /** @example "employee" */
+              role?: string;
+            };
           };
         },
         | {
@@ -783,7 +794,12 @@ export class Api<
             /** @example "Unauthorized" */
             message?: string;
           }
-        | void
+        | {
+            /** @example 500 */
+            status?: number;
+            /** @example "Internal Server Error" */
+            message?: string;
+          }
       >({
         path: `/auth/password/change`,
         method: "POST",
@@ -819,7 +835,6 @@ export class Api<
           status?: number;
           /** @example "If an account with that email exists, a password reset link has been sent." */
           message?: string;
-          data?: any;
         },
         | {
             /** @example 400 */
@@ -855,8 +870,19 @@ export class Api<
      */
     employeesList: (
       query?: {
-        department_id?: number;
-        status?: string;
+        /**
+         * The page number to retrieve (1-indexed)
+         * @min 1
+         * @default 1
+         */
+        page?: number;
+        /**
+         * Number of items per page
+         * @min 1
+         * @max 100
+         * @default 10
+         */
+        page_size?: number;
       },
       params: RequestParams = {},
     ) =>
@@ -867,30 +893,61 @@ export class Api<
           /** @example "Employees retrieved successfully" */
           message?: string;
           data?: {
-            /** @example 1 */
-            id?: number;
-            /** @example 1 */
-            user_id?: number;
-            /** @example "EMP001" */
-            employee_code?: string;
-            /** @example "John" */
-            first_name?: string;
-            /** @example "Doe" */
-            last_name?: string;
-            /** @example "+6281234567890" */
-            phone?: string;
-            /** @example 1 */
-            department_id?: number;
-            /** @example 1 */
-            position_id?: number;
-            /** @example "active" */
-            employment_status?: "active" | "inactive";
-            /**
-             * @format date
-             * @example "2023-01-01"
-             */
-            hire_date?: string;
-          }[];
+            items?: {
+              /** @example 1 */
+              id?: number;
+              /** @example "John" */
+              first_name?: string;
+              /** @example "Doe" */
+              last_name?: string;
+              /** @example "male" */
+              gender?: "male" | "female";
+              /** @example "+6281234567890" */
+              phone?: string;
+              /** @example 1 */
+              branch_id?: number;
+              /** @example 1 */
+              position_id?: number;
+              /** @example "Management" */
+              grade?: string;
+              /** @example true */
+              employment_status?: boolean;
+            };
+            /** Result of a paginated API response */
+            pagination?: {
+              /**
+               * Total number of items across all pages
+               * @format int64
+               * @example 100
+               */
+              total_items?: number;
+              /**
+               * Total number of pages
+               * @example 10
+               */
+              total_pages?: number;
+              /**
+               * Current page number
+               * @example 1
+               */
+              current_page?: number;
+              /**
+               * Number of items per page
+               * @example 10
+               */
+              page_size?: number;
+              /**
+               * Whether there is a next page
+               * @example true
+               */
+              has_next_page?: boolean;
+              /**
+               * Whether there is a previous page
+               * @example false
+               */
+              has_prev_page?: boolean;
+            };
+          };
         },
         {
           /** @example 500 */

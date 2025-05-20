@@ -35,10 +35,10 @@ export function PaginationComponent<TData>({
 							table.setPageIndex(zeroIndexedPageNumber)
 						}
 						className={cn(
-							"h-9 w-9 p-0 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300",
+							"h-9 w-9 p-0 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:cursor-pointer",
 							pageIndex === zeroIndexedPageNumber
-								? "bg-[#6B9AC4] text-white dark:text-slate-100 border-[#6B9AC4] dark:border-[#5A89B3] hover:bg-[#5A89B3] hover:border-[#5A89B3]"
-								: "hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-400 dark:hover:border-slate-500"
+								? "bg-primary text-white dark:text-slate-100 border-primary dark:border-primary hover:bg-primary/90 hover:border-primary/90"
+								: "hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-400 dark:hover:border-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
 						)}
 					>
 						{pageNumber}
@@ -138,7 +138,7 @@ export function PaginationComponent<TData>({
 						onClick={() => table.previousPage()}
 						className={cn(
 							"h-9 p-0 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300",
-							"hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-400 dark:hover:border-slate-500",
+							"hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-400 dark:hover:border-slate-500 hover:text-slate-900 dark:hover:text-slate-100 hover:cursor-pointer",
 							!table.getCanPreviousPage()
 								? "pointer-events-none opacity-50"
 								: ""
@@ -153,7 +153,7 @@ export function PaginationComponent<TData>({
 						onClick={() => table.nextPage()}
 						className={cn(
 							"h-9 p-0 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300",
-							"hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-400 dark:hover:border-slate-500",
+							"hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-400 dark:hover:border-slate-500 hover:text-slate-900 dark:hover:text-slate-100 hover:cursor-pointer",
 							!table.getCanNextPage()
 								? "pointer-events-none opacity-50"
 								: ""

@@ -109,7 +109,7 @@ components:
                     type: string
                     nullable: true
                     description: Employee's gender (optional).
-                    enum: [male, female, other]
+                    enum: [male, female]
                 phone:
                     type: string
                     maxLength: 255
@@ -935,7 +935,7 @@ paths:
                                 gender:
                                     type: string
                                     nullable: true
-                                    enum: [male, female, other]
+                                    enum: [male, female]
                                     example: "male"
                                 nik:
                                     type: string

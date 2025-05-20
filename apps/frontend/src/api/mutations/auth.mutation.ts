@@ -36,7 +36,8 @@ export const useRegisterMutation = () => {
 export const useGoogleAuthMutation = () => {
 	return useMutation({
 		mutationKey: queryKeys.auth.google,
-		mutationFn: authService.registerWithGoogle,
+		mutationFn: (supabaseAccessToken: string) =>
+			authService.registerWithGoogle(supabaseAccessToken),
 	});
 };
 
@@ -48,8 +49,6 @@ export const useLogoutMutation = () => {
 				await authService.logout();
 			} catch (error) {
 				console.error("Error in logout mutation:", error);
-				// Even if the backend call fails, we consider the logout successful
-				// because we've already cleared the tokens locally
 			}
 			return { success: true };
 		},

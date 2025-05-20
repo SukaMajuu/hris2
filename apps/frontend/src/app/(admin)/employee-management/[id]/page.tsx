@@ -143,7 +143,10 @@ export default function Page() {
 					<div className="flex flex-col md:flex-row md:items-center items-start gap-6">
 						<div className="relative group flex-shrink-0 mx-auto md:mx-0">
 							<Image
-								src={profileImage || "/logo.png"}
+								src={
+									profileImage ||
+									"https://github.com/shadcn.png"
+								}
 								alt="Profile Photo"
 								width={120}
 								height={120}

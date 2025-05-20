@@ -253,7 +253,7 @@ func (r *supabaseRepository) LoginWithEmployeeCredentials(ctx context.Context, e
 	var employee domain.Employee
 	if err := r.db.WithContext(ctx).Where("employee_code = ?", employeeCode).Preload("User").First(&employee).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, domain.ErrInvalidCredentials // Employee code not found
+			return nil, domain.ErrInvalidCredentials
 		}
 		return nil, fmt.Errorf("error finding employee by code: %w", err)
 	}

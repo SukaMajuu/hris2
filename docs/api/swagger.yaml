@@ -1000,7 +1000,7 @@ paths:
                                                 nullable: true
                                                 example: "EMP001"
                 '400':
-                    description: Bad request (validation failed or invalid input)
+                    description: Bad request
                     content:
                         application/json:
                             schema:
@@ -1013,8 +1013,8 @@ paths:
                                         type: string
                                         example: "Invalid request data. Please check your input."
                                     error:
-                                        type: object
-                                        example: {"user_id": "user_id is required"}
+                                        type: string
+                                        example: "Missing required fields"
                 '500':
                     description: Internal server error
                     content:

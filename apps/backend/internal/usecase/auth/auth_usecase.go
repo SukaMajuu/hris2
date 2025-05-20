@@ -173,13 +173,18 @@ func (uc *AuthUseCase) ChangePassword(ctx context.Context, userID uint, oldPassw
 	if userID == 0 || oldPassword == "" || newPassword == "" {
 		return domain.ErrInvalidPassword
 	}
-	// TODO: Add New Password Strength Check
 
-	// TODO: Verify oldPassword FIRST (e.g., by trying a login attempt or similar strategy)
-	// _, err := uc.authRepo.LoginWithEmail(ctx, user.Email, oldPassword) // Example strategy
-	// if err != nil { return domain.ErrInvalidCredentials }
+	user, err := uc.authRepo.GetUserByID(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("failed to get user by ID: %w", err)
+	}
 
-	err := uc.authRepo.ChangePassword(ctx, userID, oldPassword, newPassword)
+	_, err = uc.authRepo.LoginWithEmail(ctx, user.Email, oldPassword)
+	if err != nil {
+		return domain.ErrInvalidCredentials
+	}
+
+	err = uc.authRepo.ChangePassword(ctx, userID, oldPassword, newPassword)
 	if err != nil {
 		return fmt.Errorf("failed to change password in repository: %w", err)
 	}
@@ -289,7 +294,6 @@ func (uc *AuthUseCase) Logout(ctx context.Context, userID uint) error {
 	return nil
 }
 
-// VerifyAccessToken validates an access token and returns the user ID and role
 func (uc *AuthUseCase) VerifyAccessToken(ctx context.Context, accessToken string) (uint, enums.UserRole, error) {
 	if accessToken == "" {
 		return 0, "", domain.ErrInvalidToken

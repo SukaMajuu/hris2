@@ -229,7 +229,6 @@ func (r *supabaseRepository) LoginWithGoogle(ctx context.Context, token string) 
 }
 
 func (r *supabaseRepository) LoginWithPhone(ctx context.Context, phone, password string) (*domain.User, error) {
-	// Verify credentials with Supabase
 	session, err := r.client.Auth.SignInWithPhonePassword(phone, password)
 	if err != nil {
 		return nil, domain.ErrInvalidCredentials
@@ -238,7 +237,6 @@ func (r *supabaseRepository) LoginWithPhone(ctx context.Context, phone, password
 		return nil, domain.ErrInvalidCredentials
 	}
 
-	// Find local user by Supabase UID
 	var user domain.User
 	supaUserIDStr := session.User.ID.String()
 	if err := r.db.WithContext(ctx).Where("supabase_uid = ?", supaUserIDStr).First(&user).Error; err != nil {
@@ -252,7 +250,6 @@ func (r *supabaseRepository) LoginWithPhone(ctx context.Context, phone, password
 }
 
 func (r *supabaseRepository) LoginWithEmployeeCredentials(ctx context.Context, employeeCode, password string) (*domain.User, error) {
-	// Find local employee and associated user
 	var employee domain.Employee
 	if err := r.db.WithContext(ctx).Where("employee_code = ?", employeeCode).Preload("User").First(&employee).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -270,14 +267,11 @@ func (r *supabaseRepository) LoginWithEmployeeCredentials(ctx context.Context, e
 		return nil, fmt.Errorf("cannot verify password, associated user email is missing")
 	}
 
-	// Verify the provided password against the linked Supabase user via SignIn
 	_, err := r.client.Auth.SignInWithEmailPassword(employee.User.Email, password)
 	if err != nil {
-		// Password verification failed in Supabase
 		return nil, domain.ErrInvalidCredentials
 	}
 
-	// Password is correct. Return the local user.
 	return &employee.User, nil
 }
 
@@ -285,17 +279,13 @@ func (r *supabaseRepository) LoginWithEmployeeCredentials(ctx context.Context, e
 // --- Password Management ---
 
 func (r *supabaseRepository) ChangePassword(ctx context.Context, userID uint, oldPassword, newPassword string) error {
-	// 1. Get the local user to find the linked Supabase account UID.
 	localUser, err := r.GetUserByID(ctx, userID)
 	if err != nil {
-		return err // Includes domain.ErrUserNotFound
+		return err
 	}
 	if localUser.SupabaseUID == nil || *localUser.SupabaseUID == "" {
 		return fmt.Errorf("user is not linked to a supabase account")
 	}
-
-	// TODO: Old password verification MUST happen before calling this repository method (similar to Firebase approach).
-
 
 	updateReq := types.AdminUpdateUserRequest{
 		Password: newPassword,
@@ -310,29 +300,21 @@ func (r *supabaseRepository) ChangePassword(ctx context.Context, userID uint, ol
 
 
 func (r *supabaseRepository) ResetPassword(ctx context.Context, email string) error {
-	// Optional: Check if email exists locally first.
 	_, err := r.GetUserByEmail(ctx, email)
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		// Log unexpected DB error, but don't reveal existence
 		fmt.Printf("Error checking local user for password reset %s: %v\n", email, err)
-		// Return nil to prevent email enumeration
 		return nil
 	}
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		// User doesn't exist locally, still return nil for security
 		return nil
 	}
 
-	// Trigger Supabase password reset email
 	req := types.RecoverRequest{Email: email}
 	err = r.client.Auth.Recover(req)
 	if err != nil {
-		// Log the error internally, but return nil to the caller for security.
 		fmt.Printf("Supabase Recover error for %s: %v\n", email, err)
-		// Consider specific Supabase error checks if needed, but be cautious.
 	}
 
-	// Return nil regardless of Supabase outcome to prevent enumeration attacks.
 	return nil
 }
 
@@ -376,22 +358,20 @@ func (r *supabaseRepository) GetUserByEmployeeCode(ctx context.Context, code str
 	var employee domain.Employee
 	if err := r.db.WithContext(ctx).Where("employee_code = ?", code).Preload("User").First(&employee).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, domain.ErrUserNotFound // Employee not found maps to User not found
+			return nil, domain.ErrUserNotFound
 		}
 		return nil, fmt.Errorf("error finding employee by code: %w", err)
 	}
 	if employee.User.ID == 0 {
-		return nil, domain.ErrUserNotFound // Treat as user not found if link is broken
+		return nil, domain.ErrUserNotFound
 	}
 	return &employee.User, nil
 }
 
 // --- Refresh Token Management ---
 
-// StoreRefreshToken saves a new refresh token record to the database.
 func (r *supabaseRepository) StoreRefreshToken(ctx context.Context, token *domain.RefreshToken) error {
 	if err := r.db.WithContext(ctx).Create(token).Error; err != nil {
-		// Handle potential unique constraint violation on TokenHash
 		if strings.Contains(err.Error(), "unique constraint") || strings.Contains(err.Error(), "duplicate key") {
 			return fmt.Errorf("failed to store refresh token due to conflict: %w", err)
 		}
@@ -400,13 +380,10 @@ func (r *supabaseRepository) StoreRefreshToken(ctx context.Context, token *domai
 	return nil
 }
 
-// FindRefreshTokenByHash retrieves a refresh token by its hashed value.
-// It returns ErrRecordNotFound if the token is not found.
 func (r *supabaseRepository) FindRefreshTokenByHash(ctx context.Context, hash string) (*domain.RefreshToken, error) {
 	var token domain.RefreshToken
 	if err := r.db.WithContext(ctx).Where("token_hash = ?", hash).First(&token).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			// Use a specific domain error maybe? For now, return gorm's error.
 			return nil, gorm.ErrRecordNotFound
 		}
 		return nil, fmt.Errorf("error finding refresh token by hash: %w", err)
@@ -414,7 +391,6 @@ func (r *supabaseRepository) FindRefreshTokenByHash(ctx context.Context, hash st
 	return &token, nil
 }
 
-// RevokeRefreshTokenByID marks a specific refresh token as revoked by its ID.
 func (r *supabaseRepository) RevokeRefreshTokenByID(ctx context.Context, tokenID uint) error {
 	result := r.db.WithContext(ctx).Model(&domain.RefreshToken{}).
 		Where("id = ?", tokenID).
@@ -424,8 +400,6 @@ func (r *supabaseRepository) RevokeRefreshTokenByID(ctx context.Context, tokenID
 		return fmt.Errorf("failed to revoke refresh token ID %d: %w", tokenID, result.Error)
 	}
 	if result.RowsAffected == 0 {
-		// Optional: Return an error if the token wasn't found or was already revoked
-		// return fmt.Errorf("refresh token ID %d not found or already revoked", tokenID)
 		log.Printf("Warning: Attempted to revoke non-existent or already revoked refresh token ID %d", tokenID)
 	}
 	return nil
@@ -451,13 +425,7 @@ func (r *supabaseRepository) UpdateLastLogin(ctx context.Context, userID uint, l
 		return fmt.Errorf("failed to update last login time for user %d: %w", userID, result.Error)
 	}
 	if result.RowsAffected == 0 {
-		// This might happen if the user ID doesn't exist, which shouldn't occur
-		// if called right after a successful login/registration, but log it.
 		log.Printf("Warning: UpdateLastLogin found no user with ID %d to update", userID)
 	}
 	return nil
 }
-
-// TODO: Review authentication flows (e.g., Google Sign-In, Password Change) to ensure they align with Supabase client/server interactions and token management.
-// TODO: Implement Supabase user deletion logic in error rollbacks where necessary, likely requiring the Admin API (Service Role Key).
-// Note: Some TODOs regarding user deletion on rollback were addressed in RegisterAdminWithForm.

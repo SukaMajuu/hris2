@@ -1,18 +1,8 @@
-/**
- * Pagination utilities for frontend components
- */
-
-/**
- * Interface for pagination parameters
- */
 export interface PaginationParams {
 	page: number;
 	pageSize: number;
 }
 
-/**
- * Interface for pagination result
- */
 export interface PaginationResult<T> {
 	totalItems: number;
 	totalPages: number;
@@ -23,9 +13,6 @@ export interface PaginationResult<T> {
 	items: T[];
 }
 
-/**
- * Interface for API pagination response
- */
 export interface PaginationResponse {
 	total_items: number;
 	total_pages: number;
@@ -36,9 +23,6 @@ export interface PaginationResponse {
 	[key: string]: unknown;
 }
 
-/**
- * Creates a new pagination params object with default values
- */
 export function createPaginationParams(
 	page = 1,
 	pageSize = 10
@@ -49,9 +33,6 @@ export function createPaginationParams(
 	};
 }
 
-/**
- * Calculates pagination result from API response
- */
 export function calculatePaginationResult<T>(
 	data: PaginationResponse,
 	itemsKey: string = "items"
@@ -75,9 +56,6 @@ export function calculatePaginationResult<T>(
 	};
 }
 
-/**
- * Creates query parameters for pagination
- */
 export function createPaginationQueryParams(
 	params: PaginationParams
 ): Record<string, string> {
@@ -87,9 +65,6 @@ export function createPaginationQueryParams(
 	};
 }
 
-/**
- * Updates URL with pagination parameters
- */
 export function updateUrlWithPagination(
 	url: string,
 	params: PaginationParams
@@ -100,9 +75,6 @@ export function updateUrlWithPagination(
 	return urlObj.toString();
 }
 
-/**
- * Extracts pagination parameters from URL
- */
 export function getPaginationParamsFromUrl(url: string): PaginationParams {
 	const urlObj = new URL(url, window.location.origin);
 	const page = parseInt(urlObj.searchParams.get("page") || "1", 10);

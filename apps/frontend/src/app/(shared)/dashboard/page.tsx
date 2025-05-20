@@ -437,7 +437,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-6 overflow-y-hidden'>
       <h1 className='mb-6 text-2xl font-bold'>{role} Dashboard</h1>
       
       {/* Only show these stats for admin role */}
@@ -493,7 +493,7 @@ export default function DashboardPage() {
                   </select>
                 </div>
                 <div className='flex h-56 items-center justify-center'>
-                  <Bar data={barData} options={barOptions} />
+                  <Bar data={barData} options={barOptions}/>
                 </div>
               </CardContent>
             </Card>

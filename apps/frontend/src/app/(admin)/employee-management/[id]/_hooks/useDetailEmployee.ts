@@ -160,7 +160,6 @@ export function useDetailEmployee(employeeId: number | null) {
 		}
 	}, []);
 
-	// Placeholder save functions
 	const handleSaveJob = useCallback(() => {
 		console.log("Saving job info...", {
 			employeeCode,
@@ -173,10 +172,8 @@ export function useDetailEmployee(employeeId: number | null) {
 			contractType,
 			sp,
 		});
-		// Here you would typically make an API call
-		// For now, we'll just update the initialEmployeeData to simulate a refresh
-		// and reflect changes if the user navigates away and back (or on a real fetch)
 		if (initialEmployeeData) {
+			// TODO: Make API call to update employee data
 			setInitialEmployeeData((prev) =>
 				prev
 					? {
@@ -214,16 +211,7 @@ export function useDetailEmployee(employeeId: number | null) {
 	]);
 
 	const handleSavePersonal = useCallback(() => {
-		console.log("Saving personal info...", {
-			nik,
-			email,
-			gender,
-			placeOfBirth,
-			dateOfBirth,
-			phone,
-			address,
-			lastEducation,
-		});
+		// TODO: Make API call to update employee data
 		if (initialEmployeeData) {
 			setInitialEmployeeData((prev) =>
 				prev
@@ -257,11 +245,7 @@ export function useDetailEmployee(employeeId: number | null) {
 	]);
 
 	const handleSaveBank = useCallback(() => {
-		console.log("Saving bank info...", {
-			bankName,
-			bankAccountHolder,
-			bankAccountNumber,
-		});
+		// TODO: Make API call to update employee data
 		if (initialEmployeeData) {
 			setInitialEmployeeData((prev) =>
 				prev

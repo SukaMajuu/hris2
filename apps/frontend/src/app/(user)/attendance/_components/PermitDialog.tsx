@@ -137,7 +137,7 @@ export function PermitDialog({
 									id="evidence"
 									type="file"
 									accept="image/*,application/pdf"
-									className="w-full text-slate-700 dark:text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 dark:file:bg-blue-900 file:text-blue-700 dark:file:text-blue-300 hover:file:bg-blue-100 dark:hover:file:bg-blue-800"
+									className="mt-1 bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-600 focus:ring-primary focus:border-primary w-full max-w-xs file:mr-4 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary/90"
 									{...register("evidence")}
 								/>
 								<p className="text-xs text-slate-500 dark:text-slate-400 mt-2">

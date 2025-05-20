@@ -10,15 +10,15 @@ import (
 )
 
 type Router struct {
-	authHandler    *handler.AuthHandler
-	authMiddleware *middleware.AuthMiddleware
+	authHandler     *handler.AuthHandler
+	authMiddleware  *middleware.AuthMiddleware
 	employeeHandler *handler.EmployeeHandler
 }
 
 func NewRouter(authUseCase *auth.AuthUseCase, employeeUseCase *employee.EmployeeUseCase) *Router {
 	return &Router{
-		authHandler:    handler.NewAuthHandler(authUseCase),
-		authMiddleware: middleware.NewAuthMiddleware(authUseCase, employeeUseCase),
+		authHandler:     handler.NewAuthHandler(authUseCase),
+		authMiddleware:  middleware.NewAuthMiddleware(authUseCase, employeeUseCase),
 		employeeHandler: handler.NewEmployeeHandler(employeeUseCase),
 	}
 }
@@ -64,7 +64,7 @@ func (r *Router) Setup() *gin.Engine {
 			{
 				employee.GET("", r.employeeHandler.ListEmployees)
 				// employee.GET("/:id", r.employeeHandler.GetEmployee)
-				// employee.POST("", r.employeeHandler.CreateEmployee)
+				employee.POST("", r.employeeHandler.CreateEmployee)
 				// employee.PUT("/:id", r.employeeHandler.UpdateEmployee)
 				// employee.DELETE("/:id", r.employeeHandler.DeleteEmployee)
 			}

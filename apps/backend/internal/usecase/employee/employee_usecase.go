@@ -3,6 +3,7 @@ package employee
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
 	dtoemployee "github.com/SukaMajuu/hris/apps/backend/domain/dto/employee"
@@ -73,28 +74,20 @@ func (uc *EmployeeUseCase) List(ctx context.Context, filters map[string]interfac
 	return response, nil
 }
 
-/*
-// Create creates a new employee record.
-// It would involve validating the input, potentially checking for duplicates,
-// and then calling the repository to save the new employee.
 func (uc *EmployeeUseCase) Create(ctx context.Context, employee *domain.Employee) (*domain.Employee, error) {
-	log.Printf("EmployeeUseCase: Create called for employee: %+v", employee)
-	// TODO: Implement business logic for creating an employee.
-	// Example:
-	// if err := validateEmployeeData(employee); err != nil {
-	// 	return nil, fmt.Errorf("validation failed: %w", err)
-	// }
-	//
-	// createdEmployee, err := uc.employeeRepo.Create(ctx, employee)
-	// if err != nil {
-	//	 log.Printf("EmployeeUseCase: Error creating employee in repository: %v", err)
-	//	 return nil, fmt.Errorf("failed to create employee: %w", err)
-	// }
-	// log.Printf("EmployeeUseCase: Successfully created employee with ID %d", createdEmployee.ID)
-	// return createdEmployee, nil
-	return nil, fmt.Errorf("Create employee not implemented")
+	log.Printf("EmployeeUseCase: Create called for employee with UserID: %d, FirstName: %s", employee.UserID, employee.FirstName)
+
+	err := uc.employeeRepo.Create(ctx, employee)
+	if err != nil {
+		log.Printf("EmployeeUseCase: Error creating employee in repository: %v", err)
+		return nil, fmt.Errorf("failed to create employee: %w", err)
+	}
+
+	log.Printf("EmployeeUseCase: Successfully created employee with ID %d", employee.ID)
+	return employee, nil
 }
 
+/*
 // GetByID retrieves a single employee by their unique ID.
 func (uc *EmployeeUseCase) GetByID(ctx context.Context, id uint) (*domain.Employee, error) {
 	log.Printf("EmployeeUseCase: GetByID called for ID: %d", id)

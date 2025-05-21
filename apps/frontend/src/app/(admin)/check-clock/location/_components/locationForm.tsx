@@ -149,6 +149,26 @@ export function LocationForm({
 								className="w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500"
 							/>
 						</div>
+						<div className="space-y-1.5">
+							<Label
+								htmlFor="addressDetails"
+								className="text-sm font-medium text-gray-700"
+							>
+								Address Details
+							</Label>
+							<Input
+								id="addressDetails"
+								value={formData.addressDetails ?? ""}
+								onChange={(e) =>
+									handleChange(
+										"addressDetails",
+										e.target.value
+									)
+								}
+								placeholder="e.g., Jl. Merdeka No. 1, Jakarta"
+								className="w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+							/>
+						</div>
 
 						<div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
 							<div className="space-y-1.5">

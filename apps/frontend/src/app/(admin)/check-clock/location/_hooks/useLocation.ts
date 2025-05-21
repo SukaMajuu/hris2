@@ -3,6 +3,7 @@ import { useState, useCallback } from "react";
 export interface Location {
 	id: number;
 	nama: string;
+	addressDetails: string;
 	latitude?: number;
 	longitude?: number;
 	radius?: number;
@@ -11,6 +12,7 @@ export interface Location {
 const initialLocations: Location[] = [...Array(5)].map((_, index) => ({
 	id: index + 1,
 	nama: `Location ${index + 1}`,
+	addressDetails: `Address ${index + 1}`,
 	latitude: -7.95 + index * 0.01,
 	longitude: 112.61 + index * 0.01,
 	radius: 100 + index * 10,

@@ -56,15 +56,21 @@ export default function WorkSchedulePage() {
 		setIsDeleteDialogOpen(false);
 	}, [workScheduleToDelete]);
 
+	// Helper function to format time range
+	const formatTimeRange = (start: string, end: string) => {
+		if (!start && !end) return "-";
+		return `${start || '--:--'} - ${end || '--:--'}`;
+	};
+
 	const baseColumns = React.useMemo<ColumnDef<WorkScheduleDetailRow>[]>(
 		() => [
 			{ header: "No.", id: "no-placeholder" },
 			{
-				header: "Nama",
+				header: "Name",
 				accessorKey: "nama",
 			},
 			{
-				header: "Tipe Pekerjaan",
+				header: "Work Type",
 				accessorKey: "workTypeChildren",
 				cell: ({ row }) => (
 					<WorkTypeBadge
@@ -75,7 +81,7 @@ export default function WorkSchedulePage() {
 				),
 			},
 			{
-				header: "Hari kerja",
+				header: "Work Days",
 				accessorKey: "workDays",
 				cell: ({ row }) =>
 					row.original.workDays
@@ -83,28 +89,19 @@ export default function WorkSchedulePage() {
 						: "-",
 			},
 			{
-				header: "Check-in Start",
-				accessorKey: "checkInStart",
+				header: "Check-in",
+				id: "checkIn",
+				cell: ({ row }) => formatTimeRange(row.original.checkInStart, row.original.checkInEnd),
 			},
 			{
-				header: "Check-in End",
-				accessorKey: "checkInEnd",
+				header: "Break",
+				id: "break",
+				cell: ({ row }) => formatTimeRange(row.original.breakStart, row.original.breakEnd),
 			},
 			{
-				header: "Break Start",
-				accessorKey: "breakStart",
-			},
-			{
-				header: "Break End",
-				accessorKey: "breakEnd",
-			},
-			{
-				header: "Check-out Start",
-				accessorKey: "checkOutStart",
-			},
-			{
-				header: "Check-out End",
-				accessorKey: "checkOutEnd",
+				header: "Check-out",
+				id: "checkOut",
+				cell: ({ row }) => formatTimeRange(row.original.checkOutStart, row.original.checkOutEnd),
 			},
 			{
 				header: "Location",

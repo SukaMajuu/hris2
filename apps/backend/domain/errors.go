@@ -27,3 +27,20 @@ var (
 	ErrTokenExpired  = errors.New("token has expired")
 	ErrTokenMismatch = errors.New("token hash mismatch")
 )
+
+// Employee errors
+var (
+	ErrEmployeeNotFound = errors.New("employee not found")
+)
+
+// Location errors
+var (
+	ErrLocationNotFound = errors.New("location not found")
+	ErrLocationExists   = errors.New("location already exists")
+	ErrLocationInvalid  = errors.New("invalid location")
+)
+
+// common errors
+var (
+	ErrForbidden = errors.New("forbidden")
+)

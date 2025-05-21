@@ -61,7 +61,6 @@ components:
                     description: Timestamp when the user account was last updated.
                     readOnly: true
             required:
-                - id
                 - email
                 - role
                 - created_at
@@ -109,7 +108,7 @@ components:
                     type: string
                     nullable: true
                     description: Employee's gender (optional).
-                    enum: [male, female, other]
+                    enum: [male, female]
                 phone:
                     type: string
                     maxLength: 255
@@ -188,7 +187,7 @@ components:
                     description: Timestamp when the record was last updated.
                     readOnly: true
             required:
-                - id
+
                 - user_id
                 - first_name
                 - last_name
@@ -221,10 +220,67 @@ components:
                     description: Timestamp when the position was last updated.
                     readOnly: true
             required:
-                - id
                 - name
                 - created_at
                 - updated_at
+
+        Location:
+            type: object
+            description: Represents a location in the system.
+            properties:
+                id:
+                    type: integer
+                    format: uint
+                    description: Unique identifier for the location.
+                    readOnly: true
+                name:
+                    type: string
+                    maxLength: 255
+                    description: The name of the location.
+                latitude:
+                    type: number
+                    description: The latitude of the location.
+                longitude:
+                    type: number
+                    description: The longitude of the location.
+                radius:
+                    type: number
+                    description: The radius of the location.
+                created_at:
+                    type: string
+                    format: date-time
+                    readOnly: true
+                updated_at:
+                    type: string
+                    format: date-time
+                    readOnly: true
+            required:
+                - name
+                - latitude
+                - longitude
+                - radius
+
+
+        PaginationParams:
+            type: object
+            description: Parameters for pagination in API requests
+            properties:
+                page:
+                    type: integer
+                    minimum: 1
+                    default: 1
+                    description: The page number to retrieve (1-indexed)
+                    example: 1
+                page_size:
+                    type: integer
+                    minimum: 1
+                    maximum: 100
+                    default: 10
+                    description: Number of items per page
+                    example: 10
+            required:
+                - page
+                - page_size
 
         Branch:
             type: object
@@ -250,7 +306,6 @@ components:
                     description: Timestamp when the branch was last updated.
                     readOnly: true
             required:
-                - id
                 - name
                 - created_at
                 - updated_at
@@ -730,14 +785,16 @@ paths:
                 "500":
                     description: Internal Server Error
                     content:
-                        type: object
-                        properties:
-                            status:
-                                type: integer
-                                example: 500
-                            message:
-                                type: string
-                                example: "Internal Server Error"
+                        application/json:
+                          schema:
+                            type: object
+                            properties:
+                                status:
+                                    type: integer
+                                    example: 500
+                                message:
+                                    type: string
+                                    example: "Internal Server Error"
 
     /auth/password/reset:
         post:
@@ -771,8 +828,7 @@ paths:
                                     message:
                                         type: string
                                         example: "If an account with that email exists, a password reset link has been sent."
-                                    data:
-                                        type: null
+
                 "400":
                     description: Bad Request (e.g., invalid email format)
                     content:
@@ -800,340 +856,30 @@ paths:
                                         type: string
                                         example: "Internal Server Error"
 
-    /work_schedules:
-        get:
-            tags: [Work Schedules]
-            summary: Get all work schedules
-            responses:
-                200:
-                    description: List of work schedules retrieved successfully
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    status:
-                                        type: integer
-                                        example: 200
-                                    message:
-                                        type: string
-                                        example: "Work schedules retrieved successfully"
-                                    data:
-                                        type: array
-                                        items:
-                                            $ref: "#/components/schemas/Work schedule"
-                500:
-                    description: Internal server error
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    status:
-                                        type: integer
-                                        example: 500
-                                    message:
-                                        type: string
-                                        example: "Internal server error"
-                                    error:
-                                        type: string
-                                        example: "Failed to retrieve work schedules"
-        post:
-            tags: [Work Schedules]
-            summary: Create new work schedule
-            requestBody:
-                required: true
-                content:
-                    application/json:
-                        schema:
-                            type: object
-                            required:
-                                - name
-                                - check_in_start
-                                - check_in_end
-                                - break_start
-                                - break_end
-                                - check_out_start
-                                - check_out_end
-                            properties:
-                                name:
-                                    type: string
-                                    example: "Morning Shift"
-                                check_in_start:
-                                    type: string
-                                    format: time
-                                    example: "08:00"
-                                check_in_end:
-                                    type: string
-                                    format: time
-                                    example: "09:00"
-                                break_start:
-                                    type: string
-                                    format: time
-                                    example: "12:00"
-                                break_end:
-                                    type: string
-                                    format: time
-                                    example: "13:00"
-                                check_out_start:
-                                    type: string
-                                    format: time
-                                    example: "17:00"
-                                check_out_end:
-                                    type: string
-                                    format: time
-                                    example: "18:00"
-            response:
-                201:
-                    description: Work schedule created successfully
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    status:
-                                        type: integer
-                                        example: 201
-                                    message:
-                                        type: string
-                                        example: "Work schedule created successfully"
-                                    data:
-                                        $ref: "#/components/schemas/Work schedule"
-                400:
-                    description: Bad request
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    status:
-                                        type: integer
-                                        example: 400
-                                    message:
-                                        type: string
-                                        example: "Invalid request"
-                                    error:
-                                        type: string
-                                        example: "Missing required fields"
-                500:
-                    description: Internal server error
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    status:
-                                        type: integer
-                                        example: 500
-                                    message:
-                                        type: string
-                                        example: "Internal server error"
-                                    error:
-                                        type: string
-                                        example: "Failed to create work schedule"
-    /work_schedules/{id}:
-        get:
-            tags: [Work Schedules]
-            summary: Get work schedule by ID
-            parameters:
-                - in: path
-                  name: id
-                  required: true
-                  schema:
-                      type: integer
-            responses:
-                200:
-                    description: Work schedule retrieved successfully
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    status:
-                                        type: integer
-                                        example: 200
-                                    message:
-                                        type: string
-                                        example: "Work schedule retrieved successfully"
-                                    data:
-                                        $ref: "#/components/schemas/Work schedule"
-                404:
-                    description: Work schedule not found
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    status:
-                                        type: integer
-                                        example: 404
-                                    message:
-                                        type: string
-                                        example: "Not found"
-                                    error:
-                                        type: string
-                                        example: "Work schedule not found"
-                500:
-                    description: Internal server error
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    status:
-                                        type: integer
-                                        example: 500
-                                    message:
-                                        type: string
-                                        example: "Internal server error"
-                                    error:
-                                        type: string
-                                        example: "Failed to retrieve work schedule"
-        put:
-            tags: [Work Schedules]
-            summary: Update work schedule
-            parameters:
-                - in: path
-                  name: id
-                  required: true
-                  schema:
-                      type: integer
-            response:
-                200:
-                    description: Work schedule updated successfully
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    status:
-                                        type: integer
-                                        example: 200
-                                    message:
-                                        type: string
-                                        example: "Work schedule updated successfully"
-                                    data:
-                                        $ref: "#/components/schemas/Work schedule"
-                400:
-                    description: Bad request
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    status:
-                                        type: integer
-                                        example: 400
-                                    message:
-                                        type: string
-                                        example: "Invalid request"
-                                    error:
-                                        type: string
-                                        example: "Invalid data provided"
-                404:
-                    description: Work schedule not found
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    status:
-                                        type: integer
-                                        example: 404
-                                    message:
-                                        type: string
-                                        example: "Not found"
-                                    error:
-                                        type: string
-                                        example: "Work schedule not found"
-                500:
-                    description: Internal server error
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    status:
-                                        type: integer
-                                        example: 500
-                                    message:
-                                        type: string
-                                        example: "Internal server error"
-                                    error:
-                                        type: string
-                                        example: "Failed to update work schedule"
-        delete:
-            tags: [Work Schedules]
-            summary: Delete work schedule
-            parameters:
-                - in: path
-                  name: id
-                  required: true
-                  schema:
-                      type: integer
-            responses:
-                200:
-                    description: Work schedule deleted successfully
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    status:
-                                        type: integer
-                                        example: 200
-                                    message:
-                                        type: string
-                                        example: "Work schedule deleted successfully"
-                404:
-                    description: Work schedule not found
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    status:
-                                        type: integer
-                                        example: 404
-                                    message:
-                                        type: string
-                                        example: "Not found"
-                                    error:
-                                        type: string
-                                        example: "Work schedule not found"
-                500:
-                    description: Internal server error
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    status:
-                                        type: integer
-                                        example: 500
-                                    message:
-                                        type: string
-                                        example: "Internal server error"
-                                    error:
-                                        type: string
-                                        example: "Failed to delete work schedule"
-
-    /employees:
+    /api/employee:
         get:
             tags: [Employees]
             summary: Get all employees
+            description: Retrieve a paginated list of employees. Filters can be applied via query parameters.
             parameters:
                 - in: query
-                  name: department_id
+                  name: page
                   schema:
                       type: integer
+                      minimum: 1
+                      default: 1
+                  description: Page number for pagination.
                 - in: query
-                  name: status
+                  name: page_size
                   schema:
-                      type: string
+                      type: integer
+                      minimum: 1
+                      maximum: 100
+                      default: 10
+                  description: Number of items per page.
             responses:
-                200:
-                    description: List of employees retrieved successfully
+                '200':
+                    description: A list of employees retrieved successfully.
                     content:
                         application/json:
                             schema:
@@ -1146,43 +892,76 @@ paths:
                                         type: string
                                         example: "Employees retrieved successfully"
                                     data:
-                                        type: array
-                                        items:
-                                            type: object
-                                            properties:
-                                                id:
-                                                    type: integer
-                                                    example: 1
-                                                user_id:
-                                                    type: integer
-                                                    example: 1
-                                                employee_code:
-                                                    type: string
-                                                    example: "EMP001"
-                                                first_name:
-                                                    type: string
-                                                    example: "John"
-                                                last_name:
-                                                    type: string
-                                                    example: "Doe"
-                                                phone:
-                                                    type: string
-                                                    example: "+6281234567890"
-                                                department_id:
-                                                    type: integer
-                                                    example: 1
-                                                position_id:
-                                                    type: integer
-                                                    example: 1
-                                                employment_status:
-                                                    type: string
-                                                    enum: [active, inactive]
-                                                    example: "active"
-                                                hire_date:
-                                                    type: string
-                                                    format: date
-                                                    example: "2023-01-01"
-                500:
+                                        type: object
+                                        properties:
+                                            items:
+                                                type: array
+                                                items:
+                                                    type: object
+                                                    properties:
+                                                        id:
+                                                            type: integer
+                                                            format: uint
+                                                            example: 1
+                                                        first_name:
+                                                            type: string
+                                                            example: "John"
+                                                        last_name:
+                                                            type: string
+                                                            nullable: true
+                                                            example: "Doe"
+                                                        gender:
+                                                            type: string
+                                                            nullable: true
+                                                            enum: [male, female]
+                                                            example: "male"
+                                                        phone:
+                                                            type: string
+                                                            nullable: true
+                                                            example: "+6281234567890"
+                                                        branch_id:
+                                                            type: integer
+                                                            format: uint
+                                                            nullable: true
+                                                            example: 1
+                                                        position_id:
+                                                            type: integer
+                                                            format: uint
+                                                            example: 1
+                                                        grade:
+                                                            type: string
+                                                            nullable: true
+                                                            example: "Staff"
+                                                        employment_status:
+                                                            type: boolean
+                                                            example: true
+                                                        employee_code:
+                                                            type: string
+                                                            nullable: true
+                                                            example: "EMP001"
+                                            pagination:
+                                                type: object
+                                                properties:
+                                                    total_items:
+                                                        type: integer
+                                                        format: int64
+                                                        example: 100
+                                                    total_pages:
+                                                        type: integer
+                                                        example: 10
+                                                    current_page:
+                                                        type: integer
+                                                        example: 1
+                                                    page_size:
+                                                        type: integer
+                                                        example: 10
+                                                    has_next_page:
+                                                        type: boolean
+                                                        example: true
+                                                    has_prev_page:
+                                                        type: boolean
+                                                        example: false
+                '500': # Menggunakan kutip
                     description: Internal server error
                     content:
                         application/json:
@@ -1197,8 +976,7 @@ paths:
                                         example: "Internal server error"
                                     error:
                                         type: string
-                                        example: "Failed to retrieve employees"
-
+                                        example: "Failed to retrieve employees list"
         post:
             tags: [Employees]
             summary: Create new employee
@@ -1209,36 +987,56 @@ paths:
                         schema:
                             type: object
                             required:
+                                - user_id
                                 - first_name
-                                - last_name
-                                - department_id
                                 - position_id
                             properties:
+                                user_id:
+                                    type: integer
+                                    format: uint
+                                    description: "ID of the existing user to associate with this employee."
+                                    example: 1
                                 first_name:
                                     type: string
+                                    maxLength: 255
                                     example: "John"
                                 last_name:
                                     type: string
+                                    maxLength: 255
+                                    nullable: true
                                     example: "Doe"
-                                phone:
-                                    type: string
-                                    example: "+6281234567890"
-                                department_id:
-                                    type: integer
-                                    example: 1
                                 position_id:
                                     type: integer
+                                    format: uint
                                     example: 1
                                 employment_status:
+                                    type: boolean
+                                    nullable: true
+                                    description: "Employee's employment status. Defaults to true if not provided."
+                                    example: true
+                                employee_code:
                                     type: string
-                                    enum: [active, inactive]
-                                    example: "active"
-                                hire_date:
+                                    maxLength: 50
+                                    nullable: true
+                                    pattern: '^[a-zA-Z0-9]*$'
+                                    example: "EMP001"
+                                branch_id:
+                                    type: integer
+                                    format: uint
+                                    nullable: true
+                                    example: 1
+                                gender:
                                     type: string
-                                    format: date
-                                    example: "2023-01-01"
+                                    nullable: true
+                                    enum: [male, female]
+                                    example: "male"
+                                nik:
+                                    type: string
+                                    nullable: true
+                                    pattern: '^[0-9]*$'
+                                    example: "1234567890123456"
             responses:
-                201:
+                '201':
                     description: Employee created successfully
                     content:
                         application/json:
@@ -1256,33 +1054,45 @@ paths:
                                         properties:
                                             id:
                                                 type: integer
+                                                format: uint
                                                 example: 1
-                                            employee_code:
-                                                type: string
-                                                example: "EMP001"
                                             first_name:
                                                 type: string
                                                 example: "John"
                                             last_name:
                                                 type: string
+                                                nullable: true
                                                 example: "Doe"
+                                            gender:
+                                                type: string
+                                                nullable: true
+                                                enum: [male, female, other]
+                                                example: "male"
                                             phone:
                                                 type: string
+                                                nullable: true
                                                 example: "+6281234567890"
-                                            department_id:
+                                            branch_id:
                                                 type: integer
+                                                format: uint
+                                                nullable: true
                                                 example: 1
                                             position_id:
                                                 type: integer
+                                                format: uint
                                                 example: 1
+                                            grade:
+                                                type: string
+                                                nullable: true
+                                                example: "Staff"
                                             employment_status:
+                                                type: boolean
+                                                example: true
+                                            employee_code:
                                                 type: string
-                                                example: "active"
-                                            hire_date:
-                                                type: string
-                                                format: date
-                                                example: "2023-01-01"
-                400:
+                                                nullable: true
+                                                example: "EMP001"
+                '400':
                     description: Bad request
                     content:
                         application/json:
@@ -1294,11 +1104,11 @@ paths:
                                         example: 400
                                     message:
                                         type: string
-                                        example: "Invalid request"
+                                        example: "Invalid request data. Please check your input."
                                     error:
                                         type: string
                                         example: "Missing required fields"
-                500:
+                '500':
                     description: Internal server error
                     content:
                         application/json:
@@ -1313,7 +1123,7 @@ paths:
                                         example: "Internal server error"
                                     error:
                                         type: string
-                                        example: "Failed to create employee"
+                                        example: "failed to create employee: ..."
 
     /employees/{id}:
         get:
@@ -2409,6 +2219,520 @@ paths:
                     description: Position deleted successfully
                 404:
                     description: Position not found
+
+    /api/locations:
+        get:
+            tags: [Locations]
+            summary: Get all locations
+            responses:
+                200:
+                    description: List of locations
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "Locations retrieved successfully"
+                                    data:
+                                        type: object
+                                        properties:
+                                            items:
+                                                type: array
+                                                items:
+                                                    type: object
+                                                    properties:
+                                                        id:
+                                                            type: integer
+                                                            format: uint
+                                                            example: 1
+                                                        name:
+                                                            type: string
+                                                            example: "Jakarta"
+                                                        latitude:
+                                                            type: number
+                                                            example: -6.20876
+                                                        longitude:
+                                                            type: number
+                                                            example: 106.84559
+                                                        radius:
+                                                            type: number
+                                                            example: 100
+                                            pagination:
+                                                type: object
+                                                properties:
+                                                    total_items:
+                                                        type: integer
+                                                        format: int64
+                                                        example: 100
+                                                    total_pages:
+                                                        type: integer
+                                                        example: 10
+                                                    current_page:
+                                                        type: integer
+                                                        example: 1
+                                                    page_size:
+                                                        type: integer
+                                                        example: 10
+                                                    has_next_page:
+                                                        type: boolean
+                                                        example: true
+                                                    has_prev_page:
+                                                        type: boolean
+                                                        example: false
+        post:
+            tags: [Locations]
+            summary: Create a new location
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                name:
+                                    type: string
+                                latitude:
+                                    type: number
+                                longitude:
+                                    type: number
+                                radius:
+                                    type: number
+
+            responses:
+                201:
+                    description: Location created successfully
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/Location"
+
+    /api/locations/{id}:
+        get:
+            tags: [Locations]
+            summary: Get a location by ID
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: integer
+            responses:
+                200:
+                    description: Location details
+                    content:
+                        application/json:
+                            type: object
+                            properties:
+                                status:
+                                    type: integer
+                                    example: 200
+                                message:
+                                    type: string
+                                    example: "Location retrieved successfully"
+                                data:
+                                    type: object
+                                    properties:
+                                        id:
+                                            type: integer
+                                            example: 1
+                                        name:
+                                            type: string
+                                            example: "Jakarta"
+                                        latitude:
+                                            type: number
+                                            example: -6.20876
+                                        longitude:
+                                            type: number
+                                            example: 106.84559
+                                        radius:
+                                            type: number
+                                            example: 100
+                404:
+                    description: Location not found
+
+        put:
+            tags: [Locations]
+            summary: Update a location by ID
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: integer
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                name:
+                                    type: string
+                                latitude:
+                                    type: number
+                                longitude:
+                                    type: number
+                                radius:
+                                    type: number
+            responses:
+                200:
+                    description: Location updated successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "Location updated successfully"
+                                    data:
+                                        type: object
+                                        properties:
+                                            id:
+                                                type: integer
+                                                example: 1
+                                            name:
+                                                type: string
+                                                example: "Jakarta"
+                                            latitude:
+                                                type: number
+                                                example: -6.20876
+                                            longitude:
+                                                type: number
+                                                example: 106.84559
+                                            radius:
+                                                type: number
+                                                example: 100
+                404:
+                    description: Location not found
+
+
+
+    /work_schedules:
+      get:
+        tags: [Work Schedules]
+        summary: Get all work schedules
+        responses:
+          200:
+            description: List of work schedules retrieved successfully
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    status:
+                      type: integer
+                      example: 200
+                    message:
+                      type: string
+                      example: "Work schedules retrieved successfully"
+                    data:
+                      type: array
+                      items:
+                        $ref: "#/components/schemas/Work schedule"
+          500:
+            description: Internal server error
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    status:
+                      type: integer
+                      example: 500
+                    message:
+                      type: string
+                      example: "Internal server error"
+                    error:
+                      type: string
+                      example: "Failed to retrieve work schedules"
+      post:
+        tags: [Work Schedules]
+        summary: Create new work schedule
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - name
+                  - check_in_start
+                  - check_in_end
+                  - break_start
+                  - break_end
+                  - check_out_start
+                  - check_out_end
+                properties:
+                  name:
+                    type: string
+                    example: "Morning Shift"
+                  check_in_start:
+                    type: string
+                    format: time
+                    example: "08:00"
+                  check_in_end:
+                    type: string
+                    format: time
+                    example: "09:00"
+                  break_start:
+                    type: string
+                    format: time
+                    example: "12:00"
+                  break_end:
+                    type: string
+                    format: time
+                    example: "13:00"
+                  check_out_start:
+                    type: string
+                    format: time
+                    example: "17:00"
+                  check_out_end:
+                    type: string
+                    format: time
+                    example: "18:00"
+        response:
+          201:
+            description: Work schedule created successfully
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    status:
+                      type: integer
+                      example: 201
+                    message:
+                      type: string
+                      example: "Work schedule created successfully"
+                    data:
+                      $ref: "#/components/schemas/Work schedule"
+          400:
+            description: Bad request
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    status:
+                      type: integer
+                      example: 400
+                    message:
+                      type: string
+                      example: "Invalid request"
+                    error:
+                      type: string
+                      example: "Missing required fields"
+          500:
+            description: Internal server error
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    status:
+                      type: integer
+                      example: 500
+                    message:
+                      type: string
+                      example: "Internal server error"
+                    error:
+                      type: string
+                      example: "Failed to create work schedule"
+    /work_schedules/{id}:
+      get:
+        tags: [Work Schedules]
+        summary: Get work schedule by ID
+        parameters:
+          - in: path
+            name: id
+            required: true
+            schema:
+              type: integer
+        responses:
+          200:
+            description: Work schedule retrieved successfully
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    status:
+                      type: integer
+                      example: 200
+                    message:
+                      type: string
+                      example: "Work schedule retrieved successfully"
+                    data:
+                      $ref: "#/components/schemas/Work schedule"
+          404:
+            description: Work schedule not found
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    status:
+                      type: integer
+                      example: 404
+                    message:
+                      type: string
+                      example: "Not found"
+                    error:
+                      type: string
+                      example: "Work schedule not found"
+          500:
+            description: Internal server error
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    status:
+                      type: integer
+                      example: 500
+                    message:
+                      type: string
+                      example: "Internal server error"
+                    error:
+                      type: string
+                      example: "Failed to retrieve work schedule"
+      put:
+        tags: [Work Schedules]
+        summary: Update work schedule
+        parameters:
+          - in: path
+            name: id
+            required: true
+            schema:
+              type: integer
+        response:
+          200:
+            description: Work schedule updated successfully
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    status:
+                      type: integer
+                      example: 200
+                    message:
+                      type: string
+                      example: "Work schedule updated successfully"
+                    data:
+                      $ref: "#/components/schemas/Work schedule"
+          400:
+            description: Bad request
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    status:
+                      type: integer
+                      example: 400
+                    message:
+                      type: string
+                      example: "Invalid request"
+                    error:
+                      type: string
+                      example: "Invalid data provided"
+          404:
+            description: Work schedule not found
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    status:
+                      type: integer
+                      example: 404
+                    message:
+                      type: string
+                      example: "Not found"
+                    error:
+                      type: string
+                      example: "Work schedule not found"
+          500:
+            description: Internal server error
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    status:
+                      type: integer
+                      example: 500
+                    message:
+                      type: string
+                      example: "Internal server error"
+                    error:
+                      type: string
+                      example: "Failed to update work schedule"
+      delete:
+        tags: [Work Schedules]
+        summary: Delete work schedule
+        parameters:
+          - in: path
+            name: id
+            required: true
+            schema:
+              type: integer
+        responses:
+          200:
+            description: Work schedule deleted successfully
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    status:
+                      type: integer
+                      example: 200
+                    message:
+                      type: string
+                      example: "Work schedule deleted successfully"
+          404:
+            description: Work schedule not found
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    status:
+                      type: integer
+                      example: 404
+                    message:
+                      type: string
+                      example: "Not found"
+                    error:
+                      type: string
+                      example: "Work schedule not found"
+          500:
+            description: Internal server error
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    status:
+                      type: integer
+                      example: 500
+                    message:
+                      type: string
+                      example: "Internal server error"
+                    error:
+                      type: string
+                      example: "Failed to delete work schedule"
 
     /work-arrangements:
         get:

@@ -7,11 +7,11 @@ import {
 	Upload,
 	Plus,
 	BookUser,
-	Trash2Icon,
 	CalendarIcon,
 	UsersIcon,
 	UserPlusIcon,
 	BriefcaseIcon,
+	UserMinusIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -57,7 +57,7 @@ export default function EmployeeManagementPage() {
 
 	const [nameSearch, setNameSearch] = useState("");
 
-	const handleDeleteEmployee = useCallback(
+	const handleResignEmployee = useCallback(
 		(id: number) => {
 			setEmployees((prev: Employee[]) =>
 				prev.filter((emp) => emp.id !== id)
@@ -114,6 +114,20 @@ export default function EmployeeManagementPage() {
 				accessorKey: "grade",
 			},
 			{
+				header: "Status",
+				accessorKey: "employmentStatus",
+				cell: ({ row }) =>
+					row.original.employmentStatus === "Active" ? (
+						<Badge className="bg-green-100 text-green-800">
+							{row.original.employmentStatus}
+						</Badge>
+					) : (
+						<Badge className="bg-red-100 text-red-800">
+							{row.original.employmentStatus}
+						</Badge>
+					),
+			},
+			{
 				header: "Action",
 				id: "action",
 				cell: ({ row }) => (
@@ -135,33 +149,34 @@ export default function EmployeeManagementPage() {
 									variant="destructive"
 									className="hover:cursor-pointer hover:bg-red-800"
 								>
-									<Trash2Icon className="mr-1 h-4 w-4" />
-									Delete
+									<UserMinusIcon className="mr-1 h-4 w-4" />
+									Resign
 								</Button>
 							</AlertDialogTrigger>
 							<AlertDialogContent>
 								<AlertDialogHeader>
 									<AlertDialogTitle>
-										Are you sure want to delete this data?
+										Are you sure this employee is resigning?
 									</AlertDialogTitle>
 									<AlertDialogDescription>
 										This action cannot be undone. This will
-										permanently delete the employee data.
+										change the employee&apos;s status to
+										Inactive.
 									</AlertDialogDescription>
 								</AlertDialogHeader>
 								<AlertDialogFooter>
-									<AlertDialogCancel className="bg-white hover:bg-secondary">
+									<AlertDialogCancel className="hover:bg-secondary bg-white">
 										Cancel
 									</AlertDialogCancel>
 									<AlertDialogAction
 										className="bg-destructive hover:bg-red-600"
 										onClick={() =>
-											handleDeleteEmployee(
+											handleResignEmployee(
 												row.original.id
 											)
 										}
 									>
-										Delete
+										Confirm Resignation
 									</AlertDialogAction>
 								</AlertDialogFooter>
 							</AlertDialogContent>
@@ -172,7 +187,7 @@ export default function EmployeeManagementPage() {
 				enableColumnFilter: false,
 			},
 		],
-		[handleDeleteEmployee]
+		[handleResignEmployee]
 	);
 
 	const table = useReactTable<Employee>({

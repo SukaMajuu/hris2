@@ -1,26 +1,29 @@
 package rest
 
 import (
-	"fmt"
-	"net/http"
-
 	"github.com/SukaMajuu/hris/apps/backend/internal/rest/handler"
 	"github.com/SukaMajuu/hris/apps/backend/internal/rest/middleware"
 	"github.com/SukaMajuu/hris/apps/backend/internal/usecase/auth"
+	"github.com/SukaMajuu/hris/apps/backend/internal/usecase/employee"
+	"github.com/SukaMajuu/hris/apps/backend/internal/usecase/location"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
 type Router struct {
-	authHandler         *handler.AuthHandler
-	authMiddleware      *middleware.AuthMiddleware
+	authHandler     *handler.AuthHandler
+	locationHandler *handler.LocationHandler
+	authMiddleware  *middleware.AuthMiddleware
+	employeeHandler *handler.EmployeeHandler
 	workScheduleHandler *handler.WorkScheduleHandler
 }
-func NewRouter(authUseCase *auth.AuthUseCase, workScheduleHandler *handler.WorkScheduleHandler) *Router {
+
+func NewRouter(authUseCase *auth.AuthUseCase, employeeUseCase *employee.EmployeeUseCase, locationUseCase *location.LocationUseCase) *Router {
 	return &Router{
-		authHandler:         handler.NewAuthHandler(authUseCase),
-		authMiddleware:      middleware.NewAuthMiddleware(authUseCase),
-		workScheduleHandler: workScheduleHandler,
+		authHandler:     handler.NewAuthHandler(authUseCase),
+		authMiddleware:  middleware.NewAuthMiddleware(authUseCase, employeeUseCase),
+		employeeHandler: handler.NewEmployeeHandler(employeeUseCase),
+		locationHandler: handler.NewLocationHandler(locationUseCase),
 	}
 }
 
@@ -29,7 +32,6 @@ func (r *Router) Setup() *gin.Engine {
 
 	router := gin.Default()
 
-	// Configure CORS
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:3000"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
@@ -37,33 +39,6 @@ func (r *Router) Setup() *gin.Engine {
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 		MaxAge:           12 * 60 * 60,
-	}))
-
-	// Custom recovery middleware to log errors
-	router.Use(gin.CustomRecovery(func(c *gin.Context, recovered interface{}) {
-		if err, ok := recovered.(error); ok {
-			fmt.Printf("Panic recovered: %v\n", err)
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-				"error": err.Error(),
-			})
-		}
-	}))
-
-	// Global middleware
-	router.Use(gin.Recovery())
-	router.Use(gin.LoggerWithConfig(gin.LoggerConfig{
-		SkipPaths: []string{},
-		Formatter: func(param gin.LogFormatterParams) string {
-			return fmt.Sprintf("[GIN] %v | %3d | %13v | %15s | %-7s %s\n%s",
-				param.TimeStamp.Format("2006/01/02 - 15:04:05"),
-				param.StatusCode,
-				param.Latency,
-				param.ClientIP,
-				param.Method,
-				param.Path,
-				param.ErrorMessage,
-			)
-		},
 	}))
 
 	// API v1 routes
@@ -87,32 +62,28 @@ func (r *Router) Setup() *gin.Engine {
 
 		// Protected API routes
 		api := v1.Group("/api")
-		api.Use(r.authMiddleware.Authenticate())
+		// api.Use(r.authMiddleware.Authenticate())
 		{
-			// User management
-			// users := api.Group("/users")
-			// {
-			// 	// users.GET("", r.authMiddleware.RequireRole("admin"), r.authHandler.GetUsers)
-			// 	// users.GET("/:id", r.authMiddleware.RequireRole("admin", "user"), r.authHandler.GetUser)
-			// 	// users.PUT("/:id", r.authMiddleware.RequireRole("admin"), r.authHandler.UpdateUser)
-			// 	// users.DELETE("/:id", r.authMiddleware.RequireRole("admin"), r.authHandler.DeleteUser)
-			// }
+			employee := api.Group("/employee")
+			{
+				employee.GET("", r.employeeHandler.ListEmployees)
+				// employee.GET("/:id", r.employeeHandler.GetEmployee)
+				employee.POST("", r.employeeHandler.CreateEmployee)
+				// employee.PUT("/:id", r.employeeHandler.UpdateEmployee)
+				// employee.DELETE("/:id", r.employeeHandler.DeleteEmployee)
+			}
 
-			// TODO: Add other API resource routes
-			// employees := api.Group("/employees") { ... }
-			// departments := api.Group("/departments") { ... }
-			// positions := api.Group("/positions") { ... }
-			// attendance := api.Group("/attendance") { ... }
-		}
-		ws := v1.Group("/work-schedules")
-		{
-			ws.GET("", r.workScheduleHandler.ListWorkSchedules)
-			ws.POST("", r.workScheduleHandler.CreateWorkSchedule)
-			ws.GET("/:id", r.workScheduleHandler.GetWorkScheduleByID)
-			ws.PUT("/:id", r.workScheduleHandler.UpdateWorkSchedule)
-			ws.DELETE("/:id", r.workScheduleHandler.DeleteWorkSchedule)
+			locations := api.Group("/locations")
+			{
+				locations.POST("", r.locationHandler.CreateLocation)
+				locations.GET("", r.locationHandler.ListLocations)
+				locations.GET("/:id", r.locationHandler.GetLocationByID)
+				locations.PUT("/:id", r.locationHandler.UpdateLocation)
+				locations.DELETE("/:id", r.locationHandler.DeleteLocation)
+			}
 		}
 	}
 
 	return router
+
 }

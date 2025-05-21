@@ -5,8 +5,11 @@ import (
 
 	"github.com/SukaMajuu/hris/apps/backend/internal/repository/auth"
 	"github.com/SukaMajuu/hris/apps/backend/internal/repository/employee"
+	"github.com/SukaMajuu/hris/apps/backend/internal/repository/location"
 	"github.com/SukaMajuu/hris/apps/backend/internal/rest"
 	authUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/auth"
+	employeeUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/employee"
+	locationUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/location"
 	"github.com/SukaMajuu/hris/apps/backend/pkg/config"
 	"github.com/SukaMajuu/hris/apps/backend/pkg/database"
 	"github.com/SukaMajuu/hris/apps/backend/pkg/jwt"
@@ -25,13 +28,13 @@ func main() {
 		log.Fatal("Failed to connect to database:", err)
 	}
 
-	// Initialize Supabase Auth Repository with URL and Key from config
 	authRepo, err := auth.NewSupabaseRepository(db, cfg.Supabase.URL, cfg.Supabase.Key)
 	if err != nil {
 		log.Fatalf("Failed to initialize Supabase auth repository: %v", err)
 	}
 
 	employeeRepo := employee.NewPostgresRepository(db)
+	locationRepo := location.NewLocationRepository(db)
 
 	jwtService := jwt.NewJWTService(cfg)
 
@@ -42,7 +45,13 @@ func main() {
 		cfg,
 	)
 
-	router := rest.NewRouter(authUseCase)
+	employeeUseCase := employeeUseCase.NewEmployeeUseCase(
+		employeeRepo,
+	)
+
+	locationUseCase := locationUseCase.NewLocationUseCase(locationRepo)
+
+	router := rest.NewRouter(authUseCase, employeeUseCase, locationUseCase)
 
 	ginRouter := router.Setup()
 

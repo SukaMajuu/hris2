@@ -2235,12 +2235,15 @@ paths:
                         schema:
                             type: object
                             properties:
-                                status:
-                                    type: integer
-                                    example: 201
-                                message:
+                                name:
                                     type: string
-                                    example: "Location created successfully"
+                                latitude:
+                                    type: number
+                                longitude:
+                                    type: number
+                                radius:
+                                    type: number
+
             responses:
                 201:
                     description: Location created successfully
@@ -2307,7 +2310,16 @@ paths:
                 content:
                     application/json:
                         schema:
-                            $ref: "#/components/schemas/Location"
+                            type: object
+                            properties:
+                                name:
+                                    type: string
+                                latitude:
+                                    type: number
+                                longitude:
+                                    type: number
+                                radius:
+                                    type: number
             responses:
                 200:
                     description: Location updated successfully

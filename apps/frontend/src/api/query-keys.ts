@@ -6,6 +6,7 @@ export const queryKeys = {
 		register: ["auth", "register"] as const,
 		google: ["auth", "google"] as const,
 		logout: ["auth", "logout"] as const,
+		passwordResetRequest: ["auth", "passwordResetRequest"] as const,
 	},
 	users: {
 		list: ["users", "list"] as const,

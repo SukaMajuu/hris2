@@ -36,7 +36,6 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend,
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
-  //ganti role di bawah ini
   const role = (user?.role as Role) || 'user';
 
   const isAdminDashboard = role === 'admin';

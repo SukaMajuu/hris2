@@ -10,7 +10,7 @@ type JWTService struct {
 	mock.Mock
 }
 
-func (_m *JWTService) GenerateToken(userID uint, role enums.UserRole) (string, string, string, error) {
+func (_m *JWTService) GenerateToken(userID uint, userEmail string, role enums.UserRole) (string, string, string, error) {
 	ret := _m.Called(userID, role)
 
 	var r0 string

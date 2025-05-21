@@ -1,37 +1,35 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useLogout } from "./useLogout";
-import { useRouter } from "next/navigation";
 
 export default function LogoutPage() {
 	const { logout, isLoading } = useLogout();
-	const [error, setError] = useState(false);
-	const [logoutAttempted, setLogoutAttempted] = useState(false);
-	const router = useRouter();
+	const [uiError, setUiError] = useState(false);
+	const logoutEffectCalled = useRef(false);
 
 	useEffect(() => {
-		// Only attempt logout once
-		if (!logoutAttempted) {
-			setLogoutAttempted(true);
+		if (!logoutEffectCalled.current) {
+			logoutEffectCalled.current = true;
 
-			const performLogout = async () => {
+			const initiateLogout = async () => {
 				try {
+					console.log(
+						"[LogoutPage] Calling logout from useLogout hook..."
+					);
 					await logout();
 				} catch (err) {
-					console.error("Error during logout:", err);
-					setError(true);
-
-					// Even if there's an error, redirect to login after a short delay
-					setTimeout(() => {
-						router.push("/login");
-					}, 2000);
+					console.error(
+						"[LogoutPage] An unexpected error occurred after calling logout():",
+						err
+					);
+					setUiError(true);
 				}
 			};
 
-			performLogout();
+			initiateLogout();
 		}
-	}, [logout, logoutAttempted, router]);
+	}, [logout]);
 
 	return (
 		<div className="h-full w-full flex flex-col items-center justify-center">
@@ -39,16 +37,16 @@ export default function LogoutPage() {
 				<h1 className="typography-h5 font-bold text-gray-900 mb-4">
 					{isLoading
 						? "Logging out..."
-						: error
+						: uiError
 						? "Logout Error"
-						: "Logged out"}
+						: "Logout Process Initiated"}
 				</h1>
 				<p className="typography-body2 text-gray-600">
 					{isLoading
-						? "Please wait while we log you out."
-						: error
-						? "There was an error during logout, but you have been logged out locally. Redirecting to login page..."
-						: "You have been successfully logged out. Redirecting to login page..."}
+						? "Please wait while we process your logout."
+						: uiError
+						? "An unexpected error occurred. You are being logged out and redirected."
+						: "Logout has been initiated. You will be redirected shortly."}
 				</p>
 			</div>
 		</div>

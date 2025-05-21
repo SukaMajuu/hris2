@@ -51,7 +51,7 @@ export default function LoginPage() {
 					>
 						<FormField
 							control={loginForm.control}
-							name="emailOrPhoneNumber"
+							name="identifier"
 							render={({ field }) => (
 								<FormItem className="min-h-20 relative">
 									<FormLabel>Email or Phone Number</FormLabel>

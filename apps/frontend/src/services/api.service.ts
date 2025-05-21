@@ -58,11 +58,6 @@ export class ApiService {
 					headers["Authorization"] = `Bearer ${accessToken}`;
 				}
 
-				console.log(
-					`Making ${currentConfig.method} request to:`,
-					currentConfig.url
-				);
-
 				const response = await axios.request<T>({
 					...currentConfig,
 					headers,
@@ -75,10 +70,28 @@ export class ApiService {
 					error instanceof AxiosError &&
 					error.response?.status === 401
 				) {
-					console.log("Caught 401 error");
+					const originalRequestUrl = error.config?.url || "";
+					const isLoginAttempt = originalRequestUrl.includes(
+						"/auth/login"
+					);
+					const isRefreshAttempt = originalRequestUrl.includes(
+						"/auth/refresh"
+					);
+					const isLogoutAttempt = originalRequestUrl.includes(
+						"/auth/logout"
+					);
+
+					if (isLoginAttempt || isRefreshAttempt || isLogoutAttempt) {
+						if (isLogoutAttempt) {
+							console.warn(
+								"[ApiService] Received 401 during a logout attempt. Error will be re-thrown. Ensure calling function handles local token/state cleanup."
+							);
+						}
+						throw error;
+					}
+
 					if (!this.isRefreshing) {
 						this.isRefreshing = true;
-						console.log("Initiating token refresh...");
 
 						try {
 							const refreshResponse = await axios.post<
@@ -96,11 +109,7 @@ export class ApiService {
 								);
 							}
 
-							console.log(
-								"Token refresh successful, got new access token."
-							);
 							tokenService.setAccessToken(access_token);
-
 							this.processQueue(null);
 
 							const newConfig = { ...currentConfig };
@@ -111,41 +120,19 @@ export class ApiService {
 								>),
 								Authorization: `Bearer ${access_token}`,
 							};
-							console.log(
-								"Retrying original request with new token."
-							);
+							this.isRefreshing = false;
 							return makeRequest(newConfig);
 						} catch (refreshError) {
 							console.error(
-								"Token refresh failed:",
+								"[ApiService] Token refresh failed:",
 								refreshError
 							);
 							this.processQueue(refreshError as Error);
-							try {
-								await axios.post(
-									`${this.baseURL}/auth/logout`,
-									{},
-									{ withCredentials: true }
-								);
-							} catch (logoutErr) {
-								console.error(
-									"Logout call after refresh failure also failed:",
-									logoutErr
-								);
-							}
 							tokenService.clearTokens();
-							if (typeof window !== "undefined") {
-								window.location.href = "/login";
-							}
-							throw refreshError;
-						} finally {
 							this.isRefreshing = false;
-							console.log("Finished token refresh attempt.");
+							throw refreshError;
 						}
 					} else {
-						console.log(
-							"Token refresh already in progress, queueing request."
-						);
 						return new Promise<AxiosResponse<T>>(
 							(resolve, reject) => {
 								this.failedQueue.push({
@@ -166,9 +153,6 @@ export class ApiService {
 									Authorization: `Bearer ${newAccessToken}`,
 								};
 							}
-							console.log(
-								"Retrying queued request after refresh."
-							);
 							return makeRequest(newConfig);
 						});
 					}

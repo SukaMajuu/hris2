@@ -2,7 +2,7 @@ import {
   BarChart2,
   Users,
   Clock,
-  Calendar,
+  // Calendar,
   User,
   HelpCircle,
   Settings,
@@ -63,13 +63,13 @@ export const menuItems: MenuItemConfig[] = [
       }
     ]
   },
-  {
-    title: "Overtime",
-    href: "/overtime",
-    icon: Calendar,
-    roles: [ROLES.admin],
-    type: "main"
-  },
+  // {
+  //   title: "Overtime",
+  //   href: "/overtime",
+  //   icon: Calendar,
+  //   roles: [ROLES.admin],
+  //   type: "main"
+  // },
   {
     title: "Profile",
     href: "/profile",

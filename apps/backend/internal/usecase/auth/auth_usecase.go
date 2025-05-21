@@ -55,7 +55,7 @@ func (uc *AuthUseCase) issueTokensAndStoreRefresh(ctx context.Context, user *dom
 		}
 
 		var genErr error
-		accessToken, refreshToken, refreshTokenHash, genErr = uc.jwtService.GenerateToken(user.ID, user.Role)
+		accessToken, refreshToken, refreshTokenHash, genErr = uc.jwtService.GenerateToken(user.ID, user.Email, user.Role)
 		if genErr != nil {
 			log.Printf("JWT generation failed for user ID %d (attempt %d/%d): %v", user.ID, i+1, 3, genErr)
 			err = fmt.Errorf("failed to generate token: %w", genErr)
@@ -300,7 +300,7 @@ func (uc *AuthUseCase) RefreshToken(ctx context.Context, rawRefreshToken string)
 		return "", "", fmt.Errorf("failed to retrieve user details for refresh: %w", err)
 	}
 
-	newAccessToken, newRefreshToken, newRefreshTokenHash, err := uc.jwtService.GenerateToken(user.ID, user.Role)
+	newAccessToken, newRefreshToken, newRefreshTokenHash, err := uc.jwtService.GenerateToken(user.ID, user.Email, user.Role)
 	if err != nil {
 		log.Printf("Failed to generate new tokens for user %d: %v", user.ID, err)
 		return "", "", fmt.Errorf("failed to generate new tokens: %w", err)

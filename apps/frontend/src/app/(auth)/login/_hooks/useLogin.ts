@@ -18,7 +18,7 @@ export const useLogin = () => {
 	const loginForm = useForm<LoginFormData>({
 		resolver: zodResolver(loginSchema),
 		defaultValues: {
-			emailOrPhoneNumber: "",
+			identifier: "",
 			password: "",
 			rememberMe: false,
 		},
@@ -50,7 +50,17 @@ export const useLogin = () => {
 				errorMessage = error.message;
 			}
 
-			toast.error(errorMessage);
+			console.log(
+				"[useLogin] Attempting to show toast with message:",
+				errorMessage
+			);
+			toast.error("LOGIN ERROR: " + errorMessage, {
+				duration: 10000, // Increased duration for visibility
+				description:
+					error instanceof AxiosError
+						? `Status: ${error.response?.status}`
+						: "Unexpected error",
+			});
 		} finally {
 			setIsLoading(false);
 		}

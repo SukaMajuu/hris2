@@ -2,8 +2,9 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Metadata } from "next";
 import { AuthProvider } from "./_components/AuthProvider";
-import { Toaster } from "../components/ui/toaster";
+import { Toaster } from "sonner";
 import AppQueryProvider from "./_components/AppQueryProvider";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 
 const inter = Inter({
 	variable: "--font-inter",
@@ -25,7 +26,7 @@ export default function RootLayout({
 			<body className={inter.variable}>
 				<AppQueryProvider>
 					<AuthProvider>
-						{children}
+						<AuthGuard>{children}</AuthGuard>
 						<Toaster />
 					</AuthProvider>
 				</AppQueryProvider>

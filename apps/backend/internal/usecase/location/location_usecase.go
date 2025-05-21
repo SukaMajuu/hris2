@@ -2,8 +2,11 @@ package location
 
 import (
 	"context"
+	"fmt"
+	"math"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
+	dtolocation "github.com/SukaMajuu/hris/apps/backend/domain/dto/location"
 	"github.com/SukaMajuu/hris/apps/backend/domain/interfaces"
 )
 
@@ -21,10 +24,44 @@ func (uc *LocationUseCase) CreateLocation(ctx context.Context, location *domain.
 	return uc.locationRepo.CreateLocation(ctx, location)
 }
 
-func (uc *LocationUseCase) GetAllLocations(ctx context.Context) ([]*domain.Location, error) {
-	locations, err := uc.locationRepo.GetAllLocations(ctx)
+func (uc *LocationUseCase) List(ctx context.Context, paginationParams domain.PaginationParams) (*domain.LocationListResponseData, error) {
+	domainLocations, totalItems, err := uc.locationRepo.List(ctx, paginationParams)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to list locations from repository: %w", err)
 	}
-	return locations, nil
+
+	locationDTOs := make([]*dtolocation.LocationResponseDTO, len(domainLocations))
+	for i, loc := range domainLocations {
+		locationDTOs[i] = &dtolocation.LocationResponseDTO{
+			ID:        loc.ID,
+			Name:      loc.Name,
+			Latitude:  loc.Latitude,
+			Longitude: loc.Longitude,
+			Radius:    float64(loc.RadiusM),
+		}
+	}
+
+	totalPages := 0
+	if paginationParams.PageSize > 0 {
+		totalPages = int(math.Ceil(float64(totalItems) / float64(paginationParams.PageSize)))
+	}
+	if totalPages < 1 && totalItems > 0 {
+		totalPages = 1
+	} else if totalItems == 0 {
+		totalPages = 0
+	}
+
+	response := &domain.LocationListResponseData{
+		Items: locationDTOs,
+		Pagination: domain.Pagination{
+			TotalItems:  totalItems,
+			TotalPages:  totalPages,
+			CurrentPage: paginationParams.Page,
+			PageSize:    paginationParams.PageSize,
+			HasNextPage: paginationParams.Page < totalPages,
+			HasPrevPage: paginationParams.Page > 1 && paginationParams.Page <= totalPages,
+		},
+	}
+
+	return response, nil
 }

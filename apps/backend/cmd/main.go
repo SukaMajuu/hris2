@@ -5,9 +5,11 @@ import (
 
 	"github.com/SukaMajuu/hris/apps/backend/internal/repository/auth"
 	"github.com/SukaMajuu/hris/apps/backend/internal/repository/employee"
+	"github.com/SukaMajuu/hris/apps/backend/internal/repository/location"
 	"github.com/SukaMajuu/hris/apps/backend/internal/rest"
 	authUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/auth"
 	employeeUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/employee"
+	locationUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/location"
 	"github.com/SukaMajuu/hris/apps/backend/pkg/config"
 	"github.com/SukaMajuu/hris/apps/backend/pkg/database"
 	"github.com/SukaMajuu/hris/apps/backend/pkg/jwt"
@@ -32,6 +34,7 @@ func main() {
 	}
 
 	employeeRepo := employee.NewPostgresRepository(db)
+	locationRepo := location.NewLocationRepository(db)
 
 	jwtService := jwt.NewJWTService(cfg)
 
@@ -46,7 +49,9 @@ func main() {
 		employeeRepo,
 	)
 
-	router := rest.NewRouter(authUseCase, employeeUseCase)
+	locationUseCase := locationUseCase.NewLocationUseCase(locationRepo)
+
+	router := rest.NewRouter(authUseCase, employeeUseCase, locationUseCase)
 
 	ginRouter := router.Setup()
 
@@ -58,10 +63,4 @@ func main() {
 	if err := ginRouter.Run(":8080"); err != nil {
 		log.Fatal("Failed to start server:", err)
 	}
-
-	locationRepo := location.NewLocationRepository(db)
-	locationUsecase := locationusecase.NewLocationUsecase(locationRepo)
-	locationHandler := handler.NewLocationHandler(locationUsecase)
-	rest.RegisterLocationRoutes(e, locationHandler)
-
 }

@@ -40,13 +40,13 @@ func NewJWTService(config *config.Config) Service {
 }
 
 // GenerateToken creates new access and refresh tokens, and the hash of the refresh token.
-func (s *jwtService) GenerateToken(userID uint, role enums.UserRole) (string, string, string, error) {
-	accessToken, err := s.generateToken(userID, role, s.accessDuration, enums.TokenTypeAccess)
+func (s *jwtService) GenerateToken(userID uint, userEmail string, role enums.UserRole) (string, string, string, error) {
+	accessToken, err := s.generateToken(userID, userEmail, role, s.accessDuration, enums.TokenTypeAccess)
 	if err != nil {
 		return "", "", "", fmt.Errorf("failed to generate access token: %w", err)
 	}
 
-	refreshToken, err := s.generateToken(userID, role, s.refreshDuration, enums.TokenTypeRefresh)
+	refreshToken, err := s.generateToken(userID, userEmail, role, s.refreshDuration, enums.TokenTypeRefresh)
 	if err != nil {
 		return "", "", "", fmt.Errorf("failed to generate refresh token: %w", err)
 	}
@@ -61,10 +61,11 @@ func (s *jwtService) GenerateToken(userID uint, role enums.UserRole) (string, st
 }
 
 // generateToken is an internal helper
-func (s *jwtService) generateToken(userID uint, role enums.UserRole, duration time.Duration, tokenType enums.TokenType) (string, error) {
+func (s *jwtService) generateToken(userID uint, userEmail string, role enums.UserRole, duration time.Duration, tokenType enums.TokenType) (string, error) {
 	expirationTime := time.Now().Add(duration)
 	claims := &CustomClaims{
 		UserID:    userID,
+		Email:     userEmail,
 		Role:      role,
 		TokenType: tokenType,
 		RegisteredClaims: jwt.RegisteredClaims{

@@ -3,53 +3,48 @@ import { useAuthStore } from "@/stores/auth.store";
 import { toast } from "sonner";
 import { useLogoutMutation } from "@/api/mutations/auth.mutation";
 import { AxiosError } from "axios";
-import { useRef } from "react";
+import { useRef, useCallback } from "react";
 
 export const useLogout = () => {
 	const router = useRouter();
 	const logoutFromStore = useAuthStore((state) => state.logout);
 	const logoutMutation = useLogoutMutation();
-	const logoutAttempted = useRef(false);
+	const isLoggingOut = useRef(false);
 
-	const logout = async () => {
-		// Prevent multiple logout attempts
-		if (logoutAttempted.current) {
+	const performLogout = useCallback(async () => {
+		if (isLoggingOut.current) {
 			return;
 		}
-
-		logoutAttempted.current = true;
+		isLoggingOut.current = true;
 
 		try {
-			// Clear user from store first to ensure local logout works
+			await logoutMutation.mutateAsync();
+		} catch (error) {
+			console.error(
+				"[useLogout] Error during backend logout call:",
+				error
+			);
+			if (error instanceof AxiosError && error.response?.status === 401) {
+			} else {
+				toast.error(
+					"Logout request to server failed, but logging out locally."
+				);
+			}
+		} finally {
 			logoutFromStore();
 
-			// Then try to call the backend
-			await logoutMutation.mutateAsync();
+			toast.success("You have been logged out.");
 
-			// Show success message
-			toast.success("Logged out successfully");
+			router.replace("/login");
 
-			// Redirect to login page
-			router.push("/login");
-		} catch (error) {
-			console.error("Logout error:", error);
-
-			// Check if it's a 401 error (unauthorized)
-			if (error instanceof AxiosError && error.response?.status === 401) {
-				// Even if the backend logout fails, we should still clear the local state
-				// (but we already did that above)
-				toast.success("Logged out successfully");
-				router.push("/login");
-			} else {
-				toast.error("Failed to logout. Please try again.");
-				// Reset the flag to allow another attempt
-				logoutAttempted.current = false;
-			}
+			setTimeout(() => {
+				isLoggingOut.current = false;
+			}, 500);
 		}
-	};
+	}, [logoutFromStore, logoutMutation, router]);
 
 	return {
-		logout,
-		isLoading: logoutMutation.isPending,
+		logout: performLogout,
+		isLoading: logoutMutation.isPending || isLoggingOut.current,
 	};
 };

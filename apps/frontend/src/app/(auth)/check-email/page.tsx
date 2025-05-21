@@ -3,10 +3,16 @@
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Mail } from "lucide-react";
+import { useSearchParams, useRouter } from "next/navigation";
 
 export default function CheckEmailPage() {
-	// TODO: Replace with actual email from props or state
-	const userEmail = "user@email.com";
+	const searchParams = useSearchParams();
+	const router = useRouter();
+	const userEmail = searchParams.get("email") || "your email address";
+
+	const handleResend = () => {
+		router.push("/forgot-password");
+	};
 
 	return (
 		<div className="h-full w-full flex flex-col justify-center items-center gap-10 text-center">
@@ -25,7 +31,7 @@ export default function CheckEmailPage() {
 
 			<div className="w-full max-w-md flex flex-col gap-4">
 				<Button
-					onClick={() => {}}
+					onClick={handleResend}
 					className="w-full h-12 text-base bg-white text-black border border-gray-300 hover:bg-gray-200 hover:cursor-pointer"
 				>
 					Click here to Resend

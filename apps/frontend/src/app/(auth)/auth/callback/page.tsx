@@ -60,35 +60,21 @@ export default function AuthCallbackPage() {
 				}
 
 				setUser(authResponse.user);
-
 				toast.success("Successfully logged in with Google!");
 				setMessage(
 					"Authentication successful! Redirecting to dashboard..."
 				);
 				router.push("/dashboard");
 			} catch (error) {
-				console.error(
-					"[AuthCallback] Error during Google auth callback process:",
-					error
-				);
 				let errorMessage =
 					"An unknown error occurred during Google sign-in.";
 
 				if (error instanceof AxiosError) {
-					console.error(
-						"[AuthCallback] AxiosError details:",
-						error.response?.data,
-						error.response?.status
-					);
 					errorMessage =
 						error.response?.data?.message ||
 						error.message ||
 						"Failed to communicate with the server.";
 				} else if (error instanceof Error) {
-					console.error(
-						"[AuthCallback] Generic error details:",
-						error.message
-					);
 					errorMessage = error.message;
 				}
 
@@ -96,10 +82,11 @@ export default function AuthCallbackPage() {
 				setMessage(
 					`Authentication error: ${errorMessage}. Redirecting to login...`
 				);
-				console.log(
-					"[AuthCallback] Redirecting to /login due to an exception."
-				);
-				if (window.location.pathname !== "/login") {
+
+				if (
+					typeof window !== "undefined" &&
+					window.location.pathname !== "/login"
+				) {
 					router.push("/login");
 				}
 			}
@@ -120,6 +107,10 @@ export default function AuthCallbackPage() {
 		>
 			<p>{message}</p>
 			{googleAuthMutation.isPending && <p>Processing with server...</p>}
+			{!googleAuthMutation.isPending &&
+				message.startsWith("Auth Callback:") && (
+					<p>Waiting for session or server response...</p>
+				)}
 		</div>
 	);
 }

@@ -16,6 +16,7 @@ import { getMainMenuItemsByRole, getFooterItemsByRole } from '../_config/menuCon
 import { useAuthStore } from '@/stores/auth.store';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Bell, ChevronDown } from 'lucide-react';
+import { useProactiveTokenRefresh } from '@/hooks/useProactiveTokenRefresh';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -159,6 +160,7 @@ function NavContent({ menuItems, footerItems, pathname }: NavContentProps) {
 export default function MainLayout({ children }: MainLayoutProps) {
   const pathname = usePathname();
   const { user } = useAuthStore();
+  useProactiveTokenRefresh();
   const role = (user?.role as Role) || 'admin';
 
   const getPageTitle = () => {

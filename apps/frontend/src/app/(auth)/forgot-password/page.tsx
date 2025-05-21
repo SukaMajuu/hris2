@@ -13,12 +13,15 @@ import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
 import {
 	forgotPasswordSchema,
 	ForgotPasswordFormData,
 } from "@/schemas/auth.schema";
+import { useRequestPasswordResetMutation } from "@/api/mutations/auth.mutation";
 
 export default function ForgotPasswordPage() {
+	const router = useRouter();
 	const forgotPasswordForm = useForm<ForgotPasswordFormData>({
 		resolver: zodResolver(forgotPasswordSchema),
 		defaultValues: {
@@ -26,8 +29,19 @@ export default function ForgotPasswordPage() {
 		},
 	});
 
+	const {
+		mutate: requestPasswordReset,
+		isPending: isLoading,
+	} = useRequestPasswordResetMutation();
+
 	const onSubmit = (values: ForgotPasswordFormData) => {
-		console.log(values);
+		requestPasswordReset(values.email, {
+			onSuccess: () => {
+				router.push(
+					`/check-email?email=${encodeURIComponent(values.email)}`
+				);
+			},
+		});
 	};
 
 	return (
@@ -67,8 +81,9 @@ export default function ForgotPasswordPage() {
 					<Button
 						type="submit"
 						className="w-full h-12 text-base hover:cursor-pointer"
+						disabled={isLoading}
 					>
-						Reset Password
+						{isLoading ? "Sending..." : "Reset Password"}
 					</Button>
 				</form>
 			</Form>

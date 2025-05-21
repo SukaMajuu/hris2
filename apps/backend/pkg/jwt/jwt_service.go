@@ -7,13 +7,14 @@ import (
 
 type CustomClaims struct {
 	UserID    uint           `json:"user_id"`
+	Email     string         `json:"email"`
 	Role      enums.UserRole `json:"role"`
 	TokenType enums.TokenType `json:"token_type"`
 	jwt.RegisteredClaims
 }
 
 type Service interface {
-	GenerateToken(userID uint, role enums.UserRole) (accessToken string, refreshToken string, refreshTokenHash string, err error)
+	GenerateToken(userID uint, userEmail string, role enums.UserRole) (accessToken string, refreshToken string, refreshTokenHash string, err error)
 	ValidateToken(tokenString string) (*CustomClaims, error)
 	HashToken(token string) (string, error)
 	CompareTokenHash(token, hash string) error

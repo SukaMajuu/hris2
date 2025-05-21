@@ -8,7 +8,7 @@ export const useLoginMutation = () => {
 		mutationKey: queryKeys.auth.login,
 		mutationFn: (data: LoginFormData) => {
 			const credentials = {
-				identifier: data.emailOrPhoneNumber,
+				identifier: data.identifier,
 				password: data.password,
 				rememberMe: data.rememberMe || false,
 			};
@@ -38,6 +38,13 @@ export const useGoogleAuthMutation = () => {
 		mutationKey: queryKeys.auth.google,
 		mutationFn: (supabaseAccessToken: string) =>
 			authService.registerWithGoogle(supabaseAccessToken),
+	});
+};
+
+export const useRequestPasswordResetMutation = () => {
+	return useMutation({
+		mutationKey: queryKeys.auth.passwordResetRequest,
+		mutationFn: (email: string) => authService.requestPasswordReset(email),
 	});
 };
 

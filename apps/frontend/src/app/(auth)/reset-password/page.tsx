@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
 	Form,
@@ -17,8 +19,15 @@ import {
 	resetPasswordSchema,
 	ResetPasswordFormData,
 } from "@/schemas/auth.schema";
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
 
 export default function ResetPasswordPage() {
+	const router = useRouter();
+	const [isLoading, setIsLoading] = useState(false);
+	const [message, setMessage] = useState("");
+	const [error, setError] = useState("");
+
 	const resetPasswordForm = useForm<ResetPasswordFormData>({
 		resolver: zodResolver(resetPasswordSchema),
 		defaultValues: {
@@ -27,9 +36,62 @@ export default function ResetPasswordPage() {
 		},
 	});
 
-	const onSubmit = (values: ResetPasswordFormData) => {
-		console.log(values);
-		// TODO: Implement password reset logic
+	useEffect(() => {
+		const { data: authListener } = supabase.auth.onAuthStateChange(
+			async (event, session) => {
+				if (event === "PASSWORD_RECOVERY") {
+					setMessage("You can now set your new password.");
+					setError("");
+				} else if (!session) {
+					if (window.location.hash.includes("#error")) {
+						const params = new URLSearchParams(
+							window.location.hash.substring(1)
+						);
+						const errorDescription = params.get(
+							"error_description"
+						);
+						toast.error(
+							errorDescription ||
+								"Invalid or expired password reset link."
+						);
+						setError(
+							errorDescription ||
+								"Invalid or expired password reset link."
+						);
+						router.push("/link-expired");
+					}
+				}
+			}
+		);
+
+		return () => {
+			authListener?.subscription?.unsubscribe();
+		};
+	}, [router]);
+
+	const onSubmit = async (values: ResetPasswordFormData) => {
+		setIsLoading(true);
+		setMessage("");
+		setError("");
+
+		const { error: updateError } = await supabase.auth.updateUser({
+			password: values.newPassword,
+		});
+
+		setIsLoading(false);
+
+		if (updateError) {
+			console.error("Error updating password:", updateError);
+			toast.error(updateError.message || "Failed to reset password.");
+			setError(updateError.message || "Failed to reset password.");
+		} else {
+			toast.success(
+				"Password reset successfully! You can now log in with your new password."
+			);
+			setMessage("Password reset successfully! Redirecting to login...");
+			await supabase.auth.signOut();
+			router.push("/login");
+		}
 	};
 
 	return (
@@ -40,6 +102,8 @@ export default function ResetPasswordPage() {
 					Create a new password for your account. Make sure it&apos;s
 					strong and memorable.
 				</p>
+				{message && <p className="text-green-600">{message}</p>}
+				{error && <p className="text-red-600">{error}</p>}
 			</div>
 
 			<Form {...resetPasswordForm}>
@@ -59,6 +123,7 @@ export default function ResetPasswordPage() {
 										type="password"
 										placeholder="Enter your new password"
 										{...field}
+										disabled={isLoading}
 									/>
 								</FormControl>
 								<FormMessage className="absolute -bottom-4" />
@@ -77,6 +142,7 @@ export default function ResetPasswordPage() {
 										type="password"
 										placeholder="Confirm your new password"
 										{...field}
+										disabled={isLoading}
 									/>
 								</FormControl>
 								<FormMessage className="absolute -bottom-4" />
@@ -86,8 +152,9 @@ export default function ResetPasswordPage() {
 					<Button
 						type="submit"
 						className="w-full h-12 text-base hover:cursor-pointer"
+						disabled={isLoading}
 					>
-						Reset Password
+						{isLoading ? "Resetting..." : "Reset Password"}
 					</Button>
 				</form>
 			</Form>

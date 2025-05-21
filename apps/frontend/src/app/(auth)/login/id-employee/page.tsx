@@ -16,11 +16,11 @@ import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useLogin } from "../_hooks/useLogin";
 import {
 	LoginIdEmployeeFormData,
 	loginIdEmployeeSchema,
 } from "@/schemas/auth.schema";
-import { z } from "zod";
 
 export default function LoginIdEmployeePage() {
 	const loginForm = useForm<LoginIdEmployeeFormData>({
@@ -28,11 +28,18 @@ export default function LoginIdEmployeePage() {
 		defaultValues: {
 			employeeId: "",
 			password: "",
+			rememberMe: false,
 		},
 	});
 
-	const login = (data: z.infer<typeof loginIdEmployeeSchema>) => {
-		console.log(data);
+	const { login: performApiLogin, isLoading } = useLogin();
+
+	const onSubmit = async (data: LoginIdEmployeeFormData) => {
+		await performApiLogin({
+			identifier: data.employeeId,
+			password: data.password,
+			rememberMe: data.rememberMe,
+		});
 	};
 
 	return (
@@ -62,7 +69,7 @@ export default function LoginIdEmployeePage() {
 				{/* Form */}
 				<Form {...loginForm}>
 					<form
-						onSubmit={loginForm.handleSubmit(login)}
+						onSubmit={loginForm.handleSubmit(onSubmit)}
 						className="space-y-4"
 					>
 						<FormField
@@ -134,8 +141,9 @@ export default function LoginIdEmployeePage() {
 							<Button
 								type="submit"
 								className="w-full h-12 text-base hover:cursor-pointer"
+								disabled={isLoading}
 							>
-								Sign in
+								{isLoading ? "Signing in..." : "Sign in"}
 							</Button>
 							<Link href="/login">
 								<Button className="w-full h-12 text-base bg-white text-black border border-gray-300 hover:bg-gray-200 hover:cursor-pointer">

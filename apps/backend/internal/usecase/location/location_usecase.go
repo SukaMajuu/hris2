@@ -20,8 +20,8 @@ func NewLocationUseCase(repo interfaces.LocationRepository) *LocationUseCase {
 	}
 }
 
-func (uc *LocationUseCase) CreateLocation(ctx context.Context, location *domain.Location) error {
-	return uc.locationRepo.CreateLocation(ctx, location)
+func (uc *LocationUseCase) Create(ctx context.Context, location *domain.Location) error {
+	return uc.locationRepo.Create(ctx, location)
 }
 
 func (uc *LocationUseCase) List(ctx context.Context, paginationParams domain.PaginationParams) (*domain.LocationListResponseData, error) {
@@ -64,4 +64,16 @@ func (uc *LocationUseCase) List(ctx context.Context, paginationParams domain.Pag
 	}
 
 	return response, nil
+}
+
+func (uc *LocationUseCase) GetByID(ctx context.Context, id string) (*domain.Location, error) {
+	return uc.locationRepo.GetByID(ctx, id)
+}
+
+func (uc *LocationUseCase) Update(ctx context.Context, id string, location *domain.Location) error {
+	return uc.locationRepo.Update(ctx, id, location)
+}
+
+func (uc *LocationUseCase) Delete(ctx context.Context, id string) error {
+	return uc.locationRepo.Delete(ctx, id)
 }

@@ -15,7 +15,7 @@ func NewLocationRepository(db *gorm.DB) *locationRepository {
 	return &locationRepository{db}
 }
 
-func (r *locationRepository) CreateLocation(ctx context.Context, location *domain.Location) error {
+func (r *locationRepository) Create(ctx context.Context, location *domain.Location) error {
 	return r.db.WithContext(ctx).Create(location).Error
 }
 
@@ -35,4 +35,20 @@ func (r *locationRepository) List(ctx context.Context, paginationParams domain.P
 	}
 
 	return locations, totalItems, nil
+}
+
+func (r *locationRepository) GetByID(ctx context.Context, id string) (*domain.Location, error) {
+	var location domain.Location
+	if err := r.db.WithContext(ctx).Where("id = ?", id).First(&location).Error; err != nil {
+		return nil, err
+	}
+	return &location, nil
+}
+
+func (r *locationRepository) Update(ctx context.Context, id string, location *domain.Location) error {
+	return r.db.WithContext(ctx).Where("id = ?", id).Updates(location).Error
+}
+
+func (r *locationRepository) Delete(ctx context.Context, id string) error {
+	return r.db.WithContext(ctx).Where("id = ?", id).Delete(&domain.Location{}).Error
 }

@@ -7,15 +7,9 @@ import (
 )
 
 type LocationRepository interface {
-    // Create creates a new location
-    CreateLocation(ctx context.Context, location *domain.Location) error
-
-    // Read operations
+    Create(ctx context.Context, location *domain.Location) error
     List(ctx context.Context, paginationParams domain.PaginationParams) ([]*domain.Location, int64, error)
-
-    // Update updates an existing location
-    // UpdateLocation(ctx context.Context, id string, location *domain.Location) error
-
-    // Delete removes a location
-    // DeleteLocation(ctx context.Context, id string) error
+    GetByID(ctx context.Context, id string) (*domain.Location, error)
+    Update(ctx context.Context, id string, location *domain.Location) error
+    Delete(ctx context.Context, id string) error
 }

@@ -6,7 +6,7 @@ import { DataTable } from "@/components/dataTable";
 
 import {
 	useWorkSchedule,
-	WorkSchedule as WorkScheduleType,
+	WorkScheduleDetailRow,
 } from "./_hooks/useWorkSchedule";
 import { Card, CardContent } from "@/components/ui/card";
 import { PaginationComponent } from "@/components/pagination";
@@ -27,13 +27,13 @@ import ConfirmationDelete from "./_components/ConfirmationDelete";
 import Link from "next/link";
 
 export default function WorkSchedulePage() {
-	const { workSchedules, handleEdit } = useWorkSchedule();
+	const { workScheduleDetailsFlat, handleEdit } = useWorkSchedule();
 
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 	const [
 		workScheduleToDelete,
 		setWorkScheduleToDelete,
-	] = useState<WorkScheduleType | null>(null);
+	] = useState<WorkScheduleDetailRow | null>(null);
 
 	const [scheduleNameFilter, setScheduleNameFilter] = React.useState("");
 	const [pagination, setPagination] = React.useState<PaginationState>({
@@ -41,11 +41,7 @@ export default function WorkSchedulePage() {
 		pageSize: 10,
 	});
 
-	// const handleChange = (key: keyof WorkScheduleType, value: string | string[]) => {
-	// 	setFormData((prev) => ({ ...prev, [key]: value }));
-	// };
-
-	const handleOpenDelete = useCallback((data: WorkScheduleType) => {
+	const handleOpenDelete = useCallback((data: WorkScheduleDetailRow) => {
 		setWorkScheduleToDelete(data);
 		setIsDeleteDialogOpen(true);
 	}, []);
@@ -60,7 +56,7 @@ export default function WorkSchedulePage() {
 		setIsDeleteDialogOpen(false);
 	}, [workScheduleToDelete]);
 
-	const baseColumns = React.useMemo<ColumnDef<WorkScheduleType>[]>(
+	const baseColumns = React.useMemo<ColumnDef<WorkScheduleDetailRow>[]>(
 		() => [
 			{ header: "No.", id: "no-placeholder" },
 			{
@@ -69,12 +65,22 @@ export default function WorkSchedulePage() {
 			},
 			{
 				header: "Tipe Pekerjaan",
-				accessorKey: "workType",
+				accessorKey: "workTypeChildren",
 				cell: ({ row }) => (
 					<WorkTypeBadge
-						workType={row.original.workType as WorkType}
+						workType={
+							row.original.workTypeChildren as WorkType
+						}
 					/>
 				),
+			},
+			{
+				header: "Hari kerja",
+				accessorKey: "workDays",
+				cell: ({ row }) =>
+					row.original.workDays
+						? row.original.workDays.join(", ")
+						: "-",
 			},
 			{
 				header: "Check-in Start",
@@ -99,6 +105,10 @@ export default function WorkSchedulePage() {
 			{
 				header: "Check-out End",
 				accessorKey: "checkOutEnd",
+			},
+			{
+				header: "Location",
+				accessorKey: "locationName",
 			},
 			{
 				header: "Action",
@@ -138,7 +148,7 @@ export default function WorkSchedulePage() {
 		[handleEdit, handleOpenDelete]
 	);
 
-	const finalColumns = React.useMemo<ColumnDef<WorkScheduleType>[]>(
+	const finalColumns = React.useMemo<ColumnDef<WorkScheduleDetailRow>[]>(
 		() => [
 			{
 				header: "No.",
@@ -156,8 +166,8 @@ export default function WorkSchedulePage() {
 		[baseColumns]
 	);
 
-	const table = useReactTable<WorkScheduleType>({
-		data: workSchedules,
+	const table = useReactTable<WorkScheduleDetailRow>({
+		data: workScheduleDetailsFlat,
 		columns: finalColumns,
 		state: {
 			columnFilters: [{ id: "nama", value: scheduleNameFilter }],

@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import type { WorkSchedule } from "../_hooks/useWorkSchedule";
+import type { WorkSchedule, WorkScheduleDetail } from "../_hooks/useWorkSchedule";
 import { CalendarClock, CalendarCog, MapPin } from "lucide-react";
 import { MultiSelect } from "@/components/multiSelect";
 
@@ -24,22 +24,6 @@ interface WorkScheduleFormProps {
 	locations?: { value: string; label: string; latitude?: string; longitude?: string }[];
 	MapComponent?: React.ComponentType<{ latitude?: number; longitude?: number; radius?: number; interactive?: boolean }>;
 }
-
-// Tambahkan tipe detail agar lebih aman
-type WorkScheduleDetail = {
-	workTypeChildren: string;
-	workDays?: string[];
-	checkInStart: string;
-	checkInEnd: string;
-	breakStart: string;
-	breakEnd: string;
-	checkOutStart: string;
-	checkOutEnd: string;
-	locationId?: string;
-	latitude?: string;
-	longitude?: string;
-	addressDetails?: string;
-};
 
 export function WorkScheduleForm({
 	initialData = {},

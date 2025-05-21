@@ -1,6 +1,22 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+// Tambahkan type untuk detail agar typescript mengenali property workScheduleDetails
+export type WorkScheduleDetail = {
+	workTypeChildren: string;
+	workDays?: string[];
+	checkInStart: string;
+	checkInEnd: string;
+	breakStart: string;
+	breakEnd: string;
+	checkOutStart: string;
+	checkOutEnd: string;
+	locationId?: string;
+	latitude?: string;
+	longitude?: string;
+	addressDetails?: string;
+};
+
 export interface WorkSchedule {
 	id: number;
 	nama: string;
@@ -18,6 +34,7 @@ export interface WorkSchedule {
 	latitude?: string;
 	longitude?: string;
 	addressDetails?: string;
+	workScheduleDetails?: WorkScheduleDetail[];
 }
 
 export function useWorkSchedule() {

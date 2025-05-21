@@ -2,12 +2,12 @@
 
 import React, {useMemo} from "react";
 import {
-	ColumnDef,
-	getCoreRowModel,
-	getFilteredRowModel,
-	getPaginationRowModel,
-	PaginationState,
-	useReactTable,
+    ColumnDef,
+    getCoreRowModel,
+    getFilteredRowModel,
+    getPaginationRowModel,
+    PaginationState,
+    useReactTable,
 } from "@tanstack/react-table";
 import {Input} from "@/components/ui/input";
 import {Button} from "@/components/ui/button";
@@ -136,7 +136,7 @@ export default function LocationPage() {
                     <header className="flex flex-col justify-between items-start gap-4 mb-6">
                         <div className="flex flex-row flex-wrap gap-4 justify-between items-center w-full">
                             <h2 className="text-xl font-semibold">
-                                Daftar Lokasi
+                                Location
                             </h2>
                             <div className="flex gap-2 flex-wrap">
                                 <Button

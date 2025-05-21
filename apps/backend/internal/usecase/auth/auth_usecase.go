@@ -38,36 +38,71 @@ func NewAuthUseCase(
 }
 
 func (uc *AuthUseCase) issueTokensAndStoreRefresh(ctx context.Context, user *domain.User) (string, string, error) {
-	accessToken, refreshToken, refreshTokenHash, err := uc.jwtService.GenerateToken(user.ID, user.Role)
-	if err != nil {
-		log.Printf("JWT generation failed for user ID %d: %v", user.ID, err)
-		return "", "", fmt.Errorf("failed to generate token: %w", err)
-	}
+	var accessToken, refreshToken string
+	var refreshTokenHash string
+	var err error
 
-	refreshDuration, err := time.ParseDuration(uc.config.JWT.RefreshDuration)
-	if err != nil {
-		log.Printf("Error parsing refresh duration from config: %v", err)
+	refreshDuration, errParseDur := time.ParseDuration(uc.config.JWT.RefreshDuration)
+	if errParseDur != nil {
+		log.Printf("Error parsing refresh duration from config: %v", errParseDur)
 		return "", "", fmt.Errorf("invalid refresh token duration configuration")
 	}
 
-	refreshTokenRecord := &domain.RefreshToken{
-		UserID:    user.ID,
-		TokenHash: refreshTokenHash,
-		ExpiresAt: time.Now().Add(refreshDuration),
-	}
-	if err := uc.authRepo.StoreRefreshToken(ctx, refreshTokenRecord); err != nil {
-		log.Printf("Failed to store refresh token for user ID %d: %v", user.ID, err)
-		return "", "", fmt.Errorf("failed to store refresh token: %w", err)
+	for i := 0; i < 3; i++ {
+		if i > 0 {
+			time.Sleep(time.Duration(50*(i)) * time.Millisecond)
+			log.Printf("Retrying token generation for user ID %d, attempt %d/%d after delay.", user.ID, i+1, 3)
+		}
+
+		var genErr error
+		accessToken, refreshToken, refreshTokenHash, genErr = uc.jwtService.GenerateToken(user.ID, user.Role)
+		if genErr != nil {
+			log.Printf("JWT generation failed for user ID %d (attempt %d/%d): %v", user.ID, i+1, 3, genErr)
+			err = fmt.Errorf("failed to generate token: %w", genErr)
+			if i < 2 {
+				continue
+			} else {
+				return "", "", err
+			}
+		}
+
+		refreshTokenRecord := &domain.RefreshToken{
+			UserID:    user.ID,
+			TokenHash: refreshTokenHash,
+			ExpiresAt: time.Now().Add(refreshDuration),
+		}
+
+		storeErr := uc.authRepo.StoreRefreshToken(ctx, refreshTokenRecord)
+		if storeErr == nil {
+			now := time.Now()
+			user.LastLoginAt = &now
+			if errUpdateLogin := uc.authRepo.UpdateLastLogin(ctx, user.ID, now); errUpdateLogin != nil {
+				log.Printf("Warning: Failed to update LastLoginAt in DB for user %d after token issuance: %v", user.ID, errUpdateLogin)
+			}
+			return accessToken, refreshToken, nil
+		}
+
+		err = storeErr
+
+		if strings.Contains(storeErr.Error(), "failed to store refresh token due to conflict") {
+			var hashPrefix string
+			if len(refreshTokenHash) > 0 {
+				hashPrefix = refreshTokenHash[:min(10, len(refreshTokenHash))] + "..."
+			}
+			log.Printf("StoreRefreshToken conflict for user ID %d, hash %s (attempt %d/%d). Retrying. Error: %v", user.ID, hashPrefix, i+1, 3, storeErr)
+			if i < 2 {
+				continue
+			}
+			log.Printf("Persistent StoreRefreshToken conflict for user ID %d after %d attempts. Last hash prefix: %s", user.ID, 3, hashPrefix)
+			break
+		} else {
+			log.Printf("Failed to store refresh token for user ID %d (attempt %d/%d) due to non-conflict error: %v", user.ID, i+1, 3, storeErr)
+			return "", "", err
+		}
 	}
 
-	now := time.Now()
-	user.LastLoginAt = &now
-
-	if err := uc.authRepo.UpdateLastLogin(ctx, user.ID, now); err != nil {
-		log.Printf("Warning: Failed to update LastLoginAt in DB for user %d: %v", user.ID, err)
-	}
-
-	return accessToken, refreshToken, nil
+	log.Printf("Failed to issue tokens and store refresh for user ID %d after multiple attempts. Last error: %v", user.ID, err)
+	return "", "", err
 }
 
 // --- Registration (Admin Only) ---
@@ -173,13 +208,18 @@ func (uc *AuthUseCase) ChangePassword(ctx context.Context, userID uint, oldPassw
 	if userID == 0 || oldPassword == "" || newPassword == "" {
 		return domain.ErrInvalidPassword
 	}
-	// TODO: Add New Password Strength Check
 
-	// TODO: Verify oldPassword FIRST (e.g., by trying a login attempt or similar strategy)
-	// _, err := uc.authRepo.LoginWithEmail(ctx, user.Email, oldPassword) // Example strategy
-	// if err != nil { return domain.ErrInvalidCredentials }
+	user, err := uc.authRepo.GetUserByID(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("failed to get user by ID: %w", err)
+	}
 
-	err := uc.authRepo.ChangePassword(ctx, userID, oldPassword, newPassword)
+	_, err = uc.authRepo.LoginWithEmail(ctx, user.Email, oldPassword)
+	if err != nil {
+		return domain.ErrInvalidCredentials
+	}
+
+	err = uc.authRepo.ChangePassword(ctx, userID, oldPassword, newPassword)
 	if err != nil {
 		return fmt.Errorf("failed to change password in repository: %w", err)
 	}
@@ -289,7 +329,6 @@ func (uc *AuthUseCase) Logout(ctx context.Context, userID uint) error {
 	return nil
 }
 
-// VerifyAccessToken validates an access token and returns the user ID and role
 func (uc *AuthUseCase) VerifyAccessToken(ctx context.Context, accessToken string) (uint, enums.UserRole, error) {
 	if accessToken == "" {
 		return 0, "", domain.ErrInvalidToken

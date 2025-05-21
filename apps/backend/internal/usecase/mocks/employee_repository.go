@@ -50,10 +50,19 @@ func (m *EmployeeRepository) Delete(ctx context.Context, id uint) error {
 	return args.Error(0)
 }
 
-func (m *EmployeeRepository) List(ctx context.Context, filters map[string]interface{}) ([]*domain.Employee, error) {
-	args := m.Called(ctx, filters)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
+func (m *EmployeeRepository) List(ctx context.Context, filters map[string]interface{}, pagination domain.PaginationParams) ([]*domain.Employee, int64, error) {
+	args := m.Called(ctx, filters, pagination)
+	var employees []*domain.Employee
+	if args.Get(0) != nil {
+		employees = args.Get(0).([]*domain.Employee)
 	}
-	return args.Get(0).([]*domain.Employee), args.Error(1)
+	var totalItems int64
+	if args.Get(1) != nil {
+		if val, ok := args.Get(1).(int64); ok {
+			totalItems = val
+		} else if valInt, ok := args.Get(1).(int); ok {
+			totalItems = int64(valInt)
+		}
+	}
+	return employees, totalItems, args.Error(2)
 }

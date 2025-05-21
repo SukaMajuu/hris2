@@ -23,11 +23,50 @@ export async function getSupabaseGoogleToken(): Promise<string> {
 	}
 }
 
-export async function getAccessTokenFromSession(): Promise<string | null> {
+const MAX_RETRIES = 5;
+const RETRY_DELAY_MS = 300;
+
+export async function getAccessTokenFromSession(
+	retryCount = 0
+): Promise<string | null> {
+	console.log(
+		`[getAccessTokenFromSession] Attempting to get session, try #${
+			retryCount + 1
+		}`
+	);
 	const { data, error } = await supabase.auth.getSession();
+
 	if (error) {
-		console.error("Error getting Supabase session:", error.message);
+		console.error(
+			`[getAccessTokenFromSession] Error getting Supabase session (try #${
+				retryCount + 1
+			}):`,
+			error.message
+		);
 		return null;
 	}
-	return data.session?.access_token ?? null;
+
+	if (data.session?.access_token) {
+		console.log(
+			`[getAccessTokenFromSession] Session and access token found (try #${
+				retryCount + 1
+			}).`
+		);
+		return data.session.access_token;
+	}
+
+	if (retryCount < MAX_RETRIES - 1) {
+		console.log(
+			`[getAccessTokenFromSession] Session not found yet (try #${
+				retryCount + 1
+			}). Retrying in ${RETRY_DELAY_MS}ms...`
+		);
+		await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+		return getAccessTokenFromSession(retryCount + 1);
+	}
+
+	console.warn(
+		`[getAccessTokenFromSession] Session not found after ${MAX_RETRIES} retries.`
+	);
+	return null;
 }

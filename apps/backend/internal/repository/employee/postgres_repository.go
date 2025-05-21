@@ -55,17 +55,24 @@ func (r *PostgresRepository) Delete(ctx context.Context, id uint) error {
 	return r.db.WithContext(ctx).Delete(&domain.Employee{}, id).Error
 }
 
-func (r *PostgresRepository) List(ctx context.Context, filters map[string]interface{}) ([]*domain.Employee, error) {
+func (r *PostgresRepository) List(ctx context.Context, filters map[string]interface{}, pagination domain.PaginationParams) ([]*domain.Employee, int64, error) {
 	var employees []*domain.Employee
-	query := r.db.WithContext(ctx)
+	var totalItems int64
+
+	query := r.db.WithContext(ctx).Model(&domain.Employee{})
 
 	for key, value := range filters {
 		query = query.Where(key, value)
 	}
 
-	err := query.Find(&employees).Error
-	if err != nil {
-		return nil, err
+	if err := query.Count(&totalItems).Error; err != nil {
+		return nil, 0, err
 	}
-	return employees, nil
+
+	offset := (pagination.Page - 1) * pagination.PageSize
+	if err := query.Offset(offset).Limit(pagination.PageSize).Preload("User").Find(&employees).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return employees, totalItems, nil
 }

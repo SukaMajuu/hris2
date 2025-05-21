@@ -382,7 +382,7 @@ export default function AddEmployeePage() {
 											type="file"
 											name="profilePhoto"
 											accept="image/*"
-											className="mt-1 bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-600 focus:ring-primary focus:border-primary w-full max-w-xs file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary/90"
+											className="mt-1 bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-600 focus:ring-primary focus:border-primary w-full max-w-xs file:mr-4 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary/90"
 											onChange={handleInputChange}
 											ref={profilePhotoInputRef}
 										/>

@@ -109,7 +109,7 @@ components:
                     type: string
                     nullable: true
                     description: Employee's gender (optional).
-                    enum: [male, female, other]
+                    enum: [male, female]
                 phone:
                     type: string
                     maxLength: 255
@@ -225,6 +225,27 @@ components:
                 - name
                 - created_at
                 - updated_at
+
+        PaginationParams:
+            type: object
+            description: Parameters for pagination in API requests
+            properties:
+                page:
+                    type: integer
+                    minimum: 1
+                    default: 1
+                    description: The page number to retrieve (1-indexed)
+                    example: 1
+                page_size:
+                    type: integer
+                    minimum: 1
+                    maximum: 100
+                    default: 10
+                    description: Number of items per page
+                    example: 10
+            required:
+                - page
+                - page_size
 
         Branch:
             type: object
@@ -671,14 +692,16 @@ paths:
                 "500":
                     description: Internal Server Error
                     content:
-                        type: object
-                        properties:
-                            status:
-                                type: integer
-                                example: 500
-                            message:
-                                type: string
-                                example: "Internal Server Error"
+                        application/json:
+                          schema:
+                            type: object
+                            properties:
+                                status:
+                                    type: integer
+                                    example: 500
+                                message:
+                                    type: string
+                                    example: "Internal Server Error"
 
     /auth/password/reset:
         post:
@@ -712,8 +735,7 @@ paths:
                                     message:
                                         type: string
                                         example: "If an account with that email exists, a password reset link has been sent."
-                                    data:
-                                        type: null
+
                 "400":
                     description: Bad Request (e.g., invalid email format)
                     content:
@@ -741,22 +763,30 @@ paths:
                                         type: string
                                         example: "Internal Server Error"
 
-    /employees:
+    /api/employee:
         get:
             tags: [Employees]
             summary: Get all employees
+            description: Retrieve a paginated list of employees. Filters can be applied via query parameters.
             parameters:
                 - in: query
-                  name: department_id
+                  name: page
                   schema:
                       type: integer
+                      minimum: 1
+                      default: 1
+                  description: Page number for pagination.
                 - in: query
-                  name: status
+                  name: page_size
                   schema:
-                      type: string
+                      type: integer
+                      minimum: 1
+                      maximum: 100
+                      default: 10
+                  description: Number of items per page.
             responses:
-                200:
-                    description: List of employees retrieved successfully
+                '200':
+                    description: A list of employees retrieved successfully.
                     content:
                         application/json:
                             schema:
@@ -769,43 +799,76 @@ paths:
                                         type: string
                                         example: "Employees retrieved successfully"
                                     data:
-                                        type: array
-                                        items:
-                                            type: object
-                                            properties:
-                                                id:
-                                                    type: integer
-                                                    example: 1
-                                                user_id:
-                                                    type: integer
-                                                    example: 1
-                                                employee_code:
-                                                    type: string
-                                                    example: "EMP001"
-                                                first_name:
-                                                    type: string
-                                                    example: "John"
-                                                last_name:
-                                                    type: string
-                                                    example: "Doe"
-                                                phone:
-                                                    type: string
-                                                    example: "+6281234567890"
-                                                department_id:
-                                                    type: integer
-                                                    example: 1
-                                                position_id:
-                                                    type: integer
-                                                    example: 1
-                                                employment_status:
-                                                    type: string
-                                                    enum: [active, inactive]
-                                                    example: "active"
-                                                hire_date:
-                                                    type: string
-                                                    format: date
-                                                    example: "2023-01-01"
-                500:
+                                        type: object
+                                        properties:
+                                            items:
+                                                type: array
+                                                items:
+                                                    type: object
+                                                    properties:
+                                                        id:
+                                                            type: integer
+                                                            format: uint
+                                                            example: 1
+                                                        first_name:
+                                                            type: string
+                                                            example: "John"
+                                                        last_name:
+                                                            type: string
+                                                            nullable: true
+                                                            example: "Doe"
+                                                        gender:
+                                                            type: string
+                                                            nullable: true
+                                                            enum: [male, female]
+                                                            example: "male"
+                                                        phone:
+                                                            type: string
+                                                            nullable: true
+                                                            example: "+6281234567890"
+                                                        branch_id:
+                                                            type: integer
+                                                            format: uint
+                                                            nullable: true
+                                                            example: 1
+                                                        position_id:
+                                                            type: integer
+                                                            format: uint
+                                                            example: 1
+                                                        grade:
+                                                            type: string
+                                                            nullable: true
+                                                            example: "Staff"
+                                                        employment_status:
+                                                            type: boolean
+                                                            example: true
+                                                        employee_code:
+                                                            type: string
+                                                            nullable: true
+                                                            example: "EMP001"
+                                            pagination:
+                                                type: object
+                                                properties:
+                                                    total_items:
+                                                        type: integer
+                                                        format: int64
+                                                        example: 100
+                                                    total_pages:
+                                                        type: integer
+                                                        example: 10
+                                                    current_page:
+                                                        type: integer
+                                                        example: 1
+                                                    page_size:
+                                                        type: integer
+                                                        example: 10
+                                                    has_next_page:
+                                                        type: boolean
+                                                        example: true
+                                                    has_prev_page:
+                                                        type: boolean
+                                                        example: false
+                '500': # Menggunakan kutip
                     description: Internal server error
                     content:
                         application/json:
@@ -820,8 +883,7 @@ paths:
                                         example: "Internal server error"
                                     error:
                                         type: string
-                                        example: "Failed to retrieve employees"
-
+                                        example: "Failed to retrieve employees list"
         post:
             tags: [Employees]
             summary: Create new employee
@@ -832,36 +894,56 @@ paths:
                         schema:
                             type: object
                             required:
+                                - user_id
                                 - first_name
-                                - last_name
-                                - department_id
                                 - position_id
                             properties:
+                                user_id:
+                                    type: integer
+                                    format: uint
+                                    description: "ID of the existing user to associate with this employee."
+                                    example: 1
                                 first_name:
                                     type: string
+                                    maxLength: 255
                                     example: "John"
                                 last_name:
                                     type: string
+                                    maxLength: 255
+                                    nullable: true
                                     example: "Doe"
-                                phone:
-                                    type: string
-                                    example: "+6281234567890"
-                                department_id:
-                                    type: integer
-                                    example: 1
                                 position_id:
                                     type: integer
+                                    format: uint
                                     example: 1
                                 employment_status:
+                                    type: boolean
+                                    nullable: true
+                                    description: "Employee's employment status. Defaults to true if not provided."
+                                    example: true
+                                employee_code:
                                     type: string
-                                    enum: [active, inactive]
-                                    example: "active"
-                                hire_date:
+                                    maxLength: 50 
+                                    nullable: true
+                                    pattern: '^[a-zA-Z0-9]*$'
+                                    example: "EMP001"
+                                branch_id:
+                                    type: integer
+                                    format: uint
+                                    nullable: true
+                                    example: 1
+                                gender:
                                     type: string
-                                    format: date
-                                    example: "2023-01-01"
+                                    nullable: true
+                                    enum: [male, female]
+                                    example: "male"
+                                nik:
+                                    type: string
+                                    nullable: true
+                                    pattern: '^[0-9]*$'
+                                    example: "1234567890123456"
             responses:
-                201:
+                '201':
                     description: Employee created successfully
                     content:
                         application/json:
@@ -879,33 +961,45 @@ paths:
                                         properties:
                                             id:
                                                 type: integer
+                                                format: uint
                                                 example: 1
-                                            employee_code:
-                                                type: string
-                                                example: "EMP001"
                                             first_name:
                                                 type: string
                                                 example: "John"
                                             last_name:
                                                 type: string
+                                                nullable: true
                                                 example: "Doe"
+                                            gender:
+                                                type: string
+                                                nullable: true
+                                                enum: [male, female, other]
+                                                example: "male"
                                             phone:
                                                 type: string
+                                                nullable: true
                                                 example: "+6281234567890"
-                                            department_id:
+                                            branch_id:
                                                 type: integer
+                                                format: uint
+                                                nullable: true
                                                 example: 1
                                             position_id:
                                                 type: integer
+                                                format: uint
                                                 example: 1
+                                            grade:
+                                                type: string
+                                                nullable: true
+                                                example: "Staff"
                                             employment_status:
+                                                type: boolean
+                                                example: true
+                                            employee_code:
                                                 type: string
-                                                example: "active"
-                                            hire_date:
-                                                type: string
-                                                format: date
-                                                example: "2023-01-01"
-                400:
+                                                nullable: true
+                                                example: "EMP001"
+                '400':
                     description: Bad request
                     content:
                         application/json:
@@ -917,11 +1011,11 @@ paths:
                                         example: 400
                                     message:
                                         type: string
-                                        example: "Invalid request"
+                                        example: "Invalid request data. Please check your input."
                                     error:
                                         type: string
                                         example: "Missing required fields"
-                500:
+                '500':
                     description: Internal server error
                     content:
                         application/json:
@@ -936,7 +1030,7 @@ paths:
                                         example: "Internal server error"
                                     error:
                                         type: string
-                                        example: "Failed to create employee"
+                                        example: "failed to create employee: ..."
 
     /employees/{id}:
         get:

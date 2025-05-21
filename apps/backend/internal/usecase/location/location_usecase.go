@@ -7,18 +7,24 @@ import (
 	"github.com/SukaMajuu/hris/apps/backend/domain/interfaces"
 )
 
-type locationUsecase struct {
+type LocationUseCase struct {
 	locationRepo interfaces.LocationRepository
 }
 
-func NewLocationUsecase(repo interfaces.LocationRepository) *locationUsecase {
-	return &locationUsecase{repo}
+func NewLocationUseCase(repo interfaces.LocationRepository) *LocationUseCase {
+	return &LocationUseCase{
+		locationRepo: repo,
+	}
 }
 
-func (uc *locationUsecase) CreateLocation(ctx context.Context, location *domain.Location) error {
-	return uc.locationRepo.Create(ctx, location)
+func (uc *LocationUseCase) CreateLocation(ctx context.Context, location *domain.Location) error {
+	return uc.locationRepo.CreateLocation(ctx, location)
 }
 
-func (uc *locationUsecase) GetAllLocations(ctx context.Context) ([]domain.Location, error) {
-	return uc.locationRepo.GetAll(ctx)
+func (uc *LocationUseCase) GetAllLocations(ctx context.Context) ([]*domain.Location, error) {
+	locations, err := uc.locationRepo.GetAllLocations(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return locations, nil
 }

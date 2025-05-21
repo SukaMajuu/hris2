@@ -2,7 +2,8 @@ package location
 
 import (
 	"context"
-	"yourapp/domain"
+
+	"github.com/SukaMajuu/hris/apps/backend/domain"
 	"gorm.io/gorm"
 )
 
@@ -14,11 +15,11 @@ func NewLocationRepository(db *gorm.DB) *locationRepository {
 	return &locationRepository{db}
 }
 
-func (r *locationRepository) Create(ctx context.Context, location *domain.Location) error {
+func (r *locationRepository) CreateLocation(ctx context.Context, location *domain.Location) error {
 	return r.db.WithContext(ctx).Create(location).Error
 }
 
-func (r *locationRepository) GetAll(ctx context.Context) ([]domain.Location, error) {
+func (r *locationRepository) GetAllLocations(ctx context.Context) ([]domain.Location, error) {
 	var locations []domain.Location
 	err := r.db.WithContext(ctx).Find(&locations).Error
 	return locations, err

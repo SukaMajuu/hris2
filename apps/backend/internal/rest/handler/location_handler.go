@@ -9,11 +9,13 @@ import (
 )
 
 type LocationHandler struct {
-	Usecase *location.LocationUsecase
+	locationUseCase *location.LocationUseCase
 }
 
-func NewLocationHandler(u *location.LocationUsecase) *LocationHandler {
-	return &LocationHandler{u}
+func NewLocationHandler(u *location.LocationUseCase) *LocationHandler {
+	return &LocationHandler{
+		locationUseCase: u,
+	}
 }
 
 func (h *LocationHandler) CreateLocation(c *gin.Context) {

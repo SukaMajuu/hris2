@@ -19,8 +19,20 @@ func (r *locationRepository) CreateLocation(ctx context.Context, location *domai
 	return r.db.WithContext(ctx).Create(location).Error
 }
 
-func (r *locationRepository) GetAllLocations(ctx context.Context) ([]domain.Location, error) {
-	var locations []domain.Location
-	err := r.db.WithContext(ctx).Find(&locations).Error
-	return locations, err
+func (r *locationRepository) List(ctx context.Context, paginationParams domain.PaginationParams) ([]*domain.Location, int64, error) {
+	var locations []*domain.Location
+	var totalItems int64
+
+	query := r.db.WithContext(ctx).Model(&domain.Location{})
+
+	if err := query.Count(&totalItems).Error; err != nil {
+		return nil, 0, err
+	}
+
+	offset := (paginationParams.Page - 1) * paginationParams.PageSize
+	if err := query.Offset(offset).Limit(paginationParams.PageSize).Find(&locations).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return locations, totalItems, nil
 }

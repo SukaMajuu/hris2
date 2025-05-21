@@ -1,9 +1,9 @@
 package interfaces
 
 import (
-    "context"
+	"context"
 
-    "github.com/SukaMajuu/hris/apps/backend/domain"
+	"github.com/SukaMajuu/hris/apps/backend/domain"
 )
 
 type LocationRepository interface {
@@ -11,7 +11,7 @@ type LocationRepository interface {
     CreateLocation(ctx context.Context, location *domain.Location) error
 
     // Read operations
-    GetAllLocations(ctx context.Context) ([]*domain.Location, error)
+    List(ctx context.Context, paginationParams domain.PaginationParams) ([]*domain.Location, int64, error)
 
     // Update updates an existing location
     // UpdateLocation(ctx context.Context, id string, location *domain.Location) error

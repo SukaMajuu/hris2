@@ -81,13 +81,18 @@ func (h *LocationHandler) GetLocationByID(c *gin.Context) {
 
 func (h *LocationHandler) UpdateLocation(c *gin.Context) {
 	id := c.Param("id")
-	var req domain.Location
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, domain.ErrInvalidRequestBody.Error(), err)
+	var req locationDTO.UpdateLocationRequest
+	if bindAndValidate(c, &req) {
 		return
 	}
 
-	err := h.locationUseCase.Update(c.Request.Context(), id, &req)
+	err := h.locationUseCase.Update(c.Request.Context(), id, &domain.Location{
+		Name:      req.Name,
+		Latitude:  req.Latitude,
+		Longitude: req.Longitude,
+		RadiusM:   req.RadiusM,
+	})
+
 	if err != nil {
 		response.InternalServerError(c, err)
 		return

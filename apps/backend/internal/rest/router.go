@@ -76,9 +76,9 @@ func (r *Router) Setup() *gin.Engine {
 			{
 				locations.POST("", r.locationHandler.CreateLocation)
 				locations.GET("", r.locationHandler.ListLocations)
-				// locations.GET("/:id", r.locationHandler.GetLocationByID)
-				// locations.PUT("/:id", r.locationHandler.UpdateLocation)
-				// locations.DELETE("/:id", r.locationHandler.DeleteLocation)
+				locations.GET("/:id", r.locationHandler.GetLocationByID)
+				locations.PUT("/:id", r.locationHandler.UpdateLocation)
+				locations.DELETE("/:id", r.locationHandler.DeleteLocation)
 			}
 		}
 	}

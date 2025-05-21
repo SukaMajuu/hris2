@@ -15,8 +15,12 @@ func NewLocationRepository(db *gorm.DB) *locationRepository {
 	return &locationRepository{db}
 }
 
-func (r *locationRepository) Create(ctx context.Context, location *domain.Location) error {
-	return r.db.WithContext(ctx).Create(location).Error
+func (r *locationRepository) Create(ctx context.Context, location *domain.Location) (*domain.Location, error) {
+	err := r.db.WithContext(ctx).Create(location).Error
+	if err != nil {
+		return nil, err
+	}
+	return location, nil
 }
 
 func (r *locationRepository) List(ctx context.Context, paginationParams domain.PaginationParams) ([]*domain.Location, int64, error) {
@@ -45,8 +49,15 @@ func (r *locationRepository) GetByID(ctx context.Context, id string) (*domain.Lo
 	return &location, nil
 }
 
-func (r *locationRepository) Update(ctx context.Context, id string, location *domain.Location) error {
-	return r.db.WithContext(ctx).Where("id = ?", id).Updates(location).Error
+func (r *locationRepository) Update(ctx context.Context, id string, location *domain.Location) (*domain.Location, error) {
+	if err := r.db.WithContext(ctx).Where("id = ?", id).Updates(location).Error; err != nil {
+		return nil, err
+	}
+	var updatedLocation domain.Location
+	if err := r.db.WithContext(ctx).Where("id = ?", id).First(&updatedLocation).Error; err != nil {
+		return nil, err
+	}
+	return &updatedLocation, nil
 }
 
 func (r *locationRepository) Delete(ctx context.Context, id string) error {

@@ -20,8 +20,12 @@ func NewLocationUseCase(repo interfaces.LocationRepository) *LocationUseCase {
 	}
 }
 
-func (uc *LocationUseCase) Create(ctx context.Context, location *domain.Location) error {
-	return uc.locationRepo.Create(ctx, location)
+func (uc *LocationUseCase) Create(ctx context.Context, location *domain.Location) (*domain.Location, error) {
+	createdLocation, err := uc.locationRepo.Create(ctx, location)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create location: %w", err)
+	}
+	return createdLocation, nil
 }
 
 func (uc *LocationUseCase) List(ctx context.Context, paginationParams domain.PaginationParams) (*domain.LocationListResponseData, error) {
@@ -70,8 +74,12 @@ func (uc *LocationUseCase) GetByID(ctx context.Context, id string) (*domain.Loca
 	return uc.locationRepo.GetByID(ctx, id)
 }
 
-func (uc *LocationUseCase) Update(ctx context.Context, id string, location *domain.Location) error {
-	return uc.locationRepo.Update(ctx, id, location)
+func (uc *LocationUseCase) Update(ctx context.Context, id string, location *domain.Location) (*domain.Location, error) {
+	updatedLocation, err := uc.locationRepo.Update(ctx, id, location)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update location: %w", err)
+	}
+	return updatedLocation, nil
 }
 
 func (uc *LocationUseCase) Delete(ctx context.Context, id string) error {

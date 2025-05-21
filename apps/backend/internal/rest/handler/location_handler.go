@@ -24,7 +24,7 @@ func (h *LocationHandler) CreateLocation(c *gin.Context) {
 		return
 	}
 
-	err := h.locationUseCase.Create(c.Request.Context(), &domain.Location{
+	createdLocation, err := h.locationUseCase.Create(c.Request.Context(), &domain.Location{
 		Name:      req.Name,
 		Latitude:  req.Latitude,
 		Longitude: req.Longitude,
@@ -36,7 +36,7 @@ func (h *LocationHandler) CreateLocation(c *gin.Context) {
 		return
 	}
 
-	response.Created(c, "Location created successfully", req)
+	response.Created(c, "Location created successfully", createdLocation)
 }
 
 func (h *LocationHandler) ListLocations(c *gin.Context) {
@@ -86,7 +86,7 @@ func (h *LocationHandler) UpdateLocation(c *gin.Context) {
 		return
 	}
 
-	err := h.locationUseCase.Update(c.Request.Context(), id, &domain.Location{
+	updatedLocation, err := h.locationUseCase.Update(c.Request.Context(), id, &domain.Location{
 		Name:      req.Name,
 		Latitude:  req.Latitude,
 		Longitude: req.Longitude,
@@ -98,7 +98,7 @@ func (h *LocationHandler) UpdateLocation(c *gin.Context) {
 		return
 	}
 
-	response.OK(c, "Successfully updated location", req)
+	response.OK(c, "Successfully updated location", updatedLocation)
 }
 
 func (h *LocationHandler) DeleteLocation(c *gin.Context) {

@@ -12,17 +12,17 @@ type LocationRepository struct {
 	mock.Mock
 }
 
-func (_m *LocationRepository) Create(ctx context.Context, location *domain.Location) error {
+func (_m *LocationRepository) Create(ctx context.Context, location *domain.Location) (*domain.Location, error) {
 	ret := _m.Called(ctx, location)
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *domain.Location) error); ok {
+	var r0 *domain.Location
+	if rf, ok := ret.Get(0).(func(context.Context, *domain.Location) *domain.Location); ok {
 		r0 = rf(ctx, location)
 	} else {
-		r0 = ret.Error(0)
+		r0 = ret.Get(0).(*domain.Location)
 	}
 
-	return r0
+	return r0, ret.Error(1)
 }
 
 func (_m *LocationRepository) List(ctx context.Context, paginationParams domain.PaginationParams) ([]*domain.Location, int64, error) {
@@ -76,17 +76,17 @@ func (_m *LocationRepository) GetByID(ctx context.Context, id string) (*domain.L
 	return r0, r1
 }
 
-func (_m *LocationRepository) Update(ctx context.Context, id string, location *domain.Location) error {
+func (_m *LocationRepository) Update(ctx context.Context, id string, location *domain.Location) (*domain.Location, error) {
 	ret := _m.Called(ctx, id, location)
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, *domain.Location) error); ok {
+	var r0 *domain.Location
+	if rf, ok := ret.Get(0).(func(context.Context, string, *domain.Location) *domain.Location); ok {
 		r0 = rf(ctx, id, location)
 	} else {
-		r0 = ret.Error(0)
+		r0 = ret.Get(0).(*domain.Location)
 	}
 
-	return r0
+	return r0, ret.Error(1)
 }
 
 func (_m *LocationRepository) Delete(ctx context.Context, id string) error {

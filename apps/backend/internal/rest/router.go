@@ -5,21 +5,24 @@ import (
 	"github.com/SukaMajuu/hris/apps/backend/internal/rest/middleware"
 	"github.com/SukaMajuu/hris/apps/backend/internal/usecase/auth"
 	"github.com/SukaMajuu/hris/apps/backend/internal/usecase/employee"
+	"github.com/SukaMajuu/hris/apps/backend/internal/usecase/location"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
 type Router struct {
 	authHandler     *handler.AuthHandler
+	locationHandler *handler.LocationHandler
 	authMiddleware  *middleware.AuthMiddleware
 	employeeHandler *handler.EmployeeHandler
 }
 
-func NewRouter(authUseCase *auth.AuthUseCase, employeeUseCase *employee.EmployeeUseCase) *Router {
+func NewRouter(authUseCase *auth.AuthUseCase, employeeUseCase *employee.EmployeeUseCase, locationUseCase *location.LocationUseCase) *Router {
 	return &Router{
 		authHandler:     handler.NewAuthHandler(authUseCase),
 		authMiddleware:  middleware.NewAuthMiddleware(authUseCase, employeeUseCase),
 		employeeHandler: handler.NewEmployeeHandler(employeeUseCase),
+		locationHandler: handler.NewLocationHandler(locationUseCase),
 	}
 }
 
@@ -68,8 +71,18 @@ func (r *Router) Setup() *gin.Engine {
 				// employee.PUT("/:id", r.employeeHandler.UpdateEmployee)
 				// employee.DELETE("/:id", r.employeeHandler.DeleteEmployee)
 			}
+
+			locations := api.Group("/locations")
+			{
+				locations.POST("", r.locationHandler.CreateLocation)
+				locations.GET("", r.locationHandler.ListLocations)
+				locations.GET("/:id", r.locationHandler.GetLocationByID)
+				locations.PUT("/:id", r.locationHandler.UpdateLocation)
+				locations.DELETE("/:id", r.locationHandler.DeleteLocation)
+			}
 		}
 	}
 
 	return router
+
 }

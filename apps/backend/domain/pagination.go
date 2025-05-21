@@ -1,6 +1,9 @@
 package domain
 
-import "github.com/SukaMajuu/hris/apps/backend/domain/dto/employee"
+import (
+	"github.com/SukaMajuu/hris/apps/backend/domain/dto/employee"
+	"github.com/SukaMajuu/hris/apps/backend/domain/dto/location"
+)
 
 type Pagination struct {
 	TotalItems  int64 `json:"total_items"`
@@ -19,4 +22,9 @@ type PaginationParams struct {
 type EmployeeListResponseData struct {
 	Items      []*employee.EmployeeResponseDTO `json:"items"`
 	Pagination Pagination                    `json:"pagination"`
+}
+
+type LocationListResponseData struct {
+	Items      []*location.LocationResponseDTO `json:"items"`
+	Pagination Pagination                      `json:"pagination"`
 }

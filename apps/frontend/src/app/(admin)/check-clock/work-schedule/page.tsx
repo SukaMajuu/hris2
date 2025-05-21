@@ -6,7 +6,7 @@ import { DataTable } from "@/components/dataTable";
 
 import {
 	useWorkSchedule,
-	WorkSchedule as WorkScheduleType,
+	WorkScheduleDetailRow,
 } from "./_hooks/useWorkSchedule";
 import { Card, CardContent } from "@/components/ui/card";
 import { PaginationComponent } from "@/components/pagination";
@@ -23,21 +23,17 @@ import {
 	getFilteredRowModel,
 	PaginationState,
 } from "@tanstack/react-table";
-import { WorkScheduleForm } from "./_components/WorkScheduleForm";
 import ConfirmationDelete from "./_components/ConfirmationDelete";
+import Link from "next/link";
 
 export default function WorkSchedulePage() {
-	const { workSchedules } = useWorkSchedule();
-
-	const [dialogOpen, setDialogOpen] = useState(false);
-	const [formData, setFormData] = useState<Partial<WorkScheduleType>>({});
-	const [isEditing, setIsEditing] = useState(false);
+	const { workScheduleDetailsFlat, handleEdit } = useWorkSchedule();
 
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 	const [
 		workScheduleToDelete,
 		setWorkScheduleToDelete,
-	] = useState<WorkScheduleType | null>(null);
+	] = useState<WorkScheduleDetailRow | null>(null);
 
 	const [scheduleNameFilter, setScheduleNameFilter] = React.useState("");
 	const [pagination, setPagination] = React.useState<PaginationState>({
@@ -45,23 +41,7 @@ export default function WorkSchedulePage() {
 		pageSize: 10,
 	});
 
-	const handleChange = (key: keyof WorkScheduleType, value: string) => {
-		setFormData((prev) => ({ ...prev, [key]: value }));
-	};
-
-	const handleOpenAdd = useCallback(() => {
-		setFormData({});
-		setIsEditing(false);
-		setDialogOpen(true);
-	}, []);
-
-	const handleOpenEdit = useCallback((data: WorkScheduleType) => {
-		setFormData(data);
-		setIsEditing(true);
-		setDialogOpen(true);
-	}, []);
-
-	const handleOpenDelete = useCallback((data: WorkScheduleType) => {
+	const handleOpenDelete = useCallback((data: WorkScheduleDetailRow) => {
 		setWorkScheduleToDelete(data);
 		setIsDeleteDialogOpen(true);
 	}, []);
@@ -76,60 +56,56 @@ export default function WorkSchedulePage() {
 		setIsDeleteDialogOpen(false);
 	}, [workScheduleToDelete]);
 
-	const handleSave = () => {
-		console.log(isEditing ? "Update" : "Create", formData);
-		setDialogOpen(false);
+	// Helper function to format time range
+	const formatTimeRange = (start: string, end: string) => {
+		if (!start && !end) return "-";
+		return `${start || '--:--'} - ${end || '--:--'}`;
 	};
 
-	const columns = React.useMemo<ColumnDef<WorkScheduleType>[]>(
+	const baseColumns = React.useMemo<ColumnDef<WorkScheduleDetailRow>[]>(
 		() => [
+			{ header: "No.", id: "no-placeholder" },
 			{
-				header: "No.",
-				id: "no",
-				cell: ({ row, table }) => {
-					const { pageIndex, pageSize } = table.getState().pagination;
-					return pageIndex * pageSize + row.index + 1;
-				},
-				meta: { className: "max-w-[80px]" },
-				enableSorting: false,
-				enableColumnFilter: false,
-			},
-			{
-				header: "Nama",
+				header: "Name",
 				accessorKey: "nama",
 			},
 			{
-				header: "Tipe Pekerjaan",
-				accessorKey: "workType",
+				header: "Work Type",
+				accessorKey: "workTypeChildren",
 				cell: ({ row }) => (
 					<WorkTypeBadge
-						workType={row.original.workType as WorkType}
+						workType={
+							row.original.workTypeChildren as WorkType
+						}
 					/>
 				),
 			},
 			{
-				header: "Check-in Start",
-				accessorKey: "checkInStart",
+				header: "Work Days",
+				accessorKey: "workDays",
+				cell: ({ row }) =>
+					row.original.workDays
+						? row.original.workDays.join(", ")
+						: "-",
 			},
 			{
-				header: "Check-in End",
-				accessorKey: "checkInEnd",
+				header: "Check-in",
+				id: "checkIn",
+				cell: ({ row }) => formatTimeRange(row.original.checkInStart, row.original.checkInEnd),
 			},
 			{
-				header: "Break Start",
-				accessorKey: "breakStart",
+				header: "Break",
+				id: "break",
+				cell: ({ row }) => formatTimeRange(row.original.breakStart, row.original.breakEnd),
 			},
 			{
-				header: "Break End",
-				accessorKey: "breakEnd",
+				header: "Check-out",
+				id: "checkOut",
+				cell: ({ row }) => formatTimeRange(row.original.checkOutStart, row.original.checkOutEnd),
 			},
 			{
-				header: "Check-out Start",
-				accessorKey: "checkOutStart",
-			},
-			{
-				header: "Check-out End",
-				accessorKey: "checkOutEnd",
+				header: "Location",
+				accessorKey: "locationName",
 			},
 			{
 				header: "Action",
@@ -142,7 +118,7 @@ export default function WorkSchedulePage() {
 							className="h-9 px-3 bg-[#FFA500] text-white hover:bg-[#E69500] border-none hover:cursor-pointer"
 							onClick={(e) => {
 								e.stopPropagation();
-								handleOpenEdit(row.original);
+								handleEdit(row.original.id);
 							}}
 						>
 							<Edit className="h-4 w-4 mr-1" />
@@ -166,12 +142,30 @@ export default function WorkSchedulePage() {
 				enableColumnFilter: false,
 			},
 		],
-		[handleOpenEdit, handleOpenDelete]
+		[handleEdit, handleOpenDelete]
 	);
 
-	const table = useReactTable<WorkScheduleType>({
-		data: workSchedules,
-		columns,
+	const finalColumns = React.useMemo<ColumnDef<WorkScheduleDetailRow>[]>(
+		() => [
+			{
+				header: "No.",
+				id: "no",
+				cell: ({ row, table }) => {
+					const { pageIndex, pageSize } = table.getState().pagination;
+					return pageIndex * pageSize + row.index + 1;
+				},
+				meta: { className: "max-w-[80px]" },
+				enableSorting: false,
+				enableColumnFilter: false,
+			},
+			...baseColumns.slice(1),
+		],
+		[baseColumns]
+	);
+
+	const table = useReactTable<WorkScheduleDetailRow>({
+		data: workScheduleDetailsFlat,
+		columns: finalColumns,
 		state: {
 			columnFilters: [{ id: "nama", value: scheduleNameFilter }],
 			pagination,
@@ -192,7 +186,7 @@ export default function WorkSchedulePage() {
 	});
 
 	return (
-		<div>
+		<>
 			<Card className="border border-gray-100 dark:border-gray-800">
 				<CardContent>
 					<header className="flex flex-col gap-4 mb-6">
@@ -200,15 +194,12 @@ export default function WorkSchedulePage() {
 							<h2 className="text-xl font-semibold">
 								Work Schedule
 							</h2>
-							<div className="flex gap-2 flex-wrap">
-								<Button
-									onClick={handleOpenAdd}
-									className="gap-2 bg-[#6B9AC4] hover:bg-[#5A89B3]"
-								>
+							<Link href="/check-clock/work-schedule/add">
+								<Button className="gap-2 bg-[#6B9AC4] hover:bg-[#5A89B3] text-white dark:text-slate-100 hover:cursor-pointer px-4 py-2 rounded-md">
 									<Plus className="h-4 w-4" />
 									Add Data
 								</Button>
-							</div>
+							</Link>
 						</div>
 						<div className="flex flex-wrap items-center gap-4 md:w-[400px]">
 							<div className="relative flex-[1]">
@@ -229,22 +220,15 @@ export default function WorkSchedulePage() {
 							</div>
 						</div>
 					</header>
+
 					<DataTable table={table} />
-					<div className="flex flex-col md:flex-row items-center justify-between mt-4 gap-4">
+
+					<footer className="flex flex-col md:flex-row items-center justify-between mt-4 gap-4">
 						<PageSizeComponent table={table} />
 						<PaginationComponent table={table} />
-					</div>
+					</footer>
 				</CardContent>
 			</Card>
-
-			<WorkScheduleForm
-				dialogOpen={dialogOpen}
-				setDialogOpen={setDialogOpen}
-				isEditing={isEditing}
-				formData={formData}
-				handleChange={handleChange}
-				handleSave={handleSave}
-			/>
 
 			<ConfirmationDelete
 				isDeleteDialogOpen={isDeleteDialogOpen}
@@ -252,6 +236,6 @@ export default function WorkSchedulePage() {
 				handleConfirmDelete={handleConfirmDelete}
 				workScheduleToDelete={workScheduleToDelete}
 			/>
-		</div>
+		</>
 	);
 }

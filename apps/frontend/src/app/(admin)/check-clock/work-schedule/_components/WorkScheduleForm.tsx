@@ -77,7 +77,36 @@ export function WorkScheduleForm({
 	const handleDetailChange = (idx: number, key: keyof WorkScheduleDetail, value: string | string[]) => {
 		setFormData((prev) => {
 			const details = [...(prev.workScheduleDetails || [])];
-			details[idx] = { ...details[idx], [key]: value };
+			const currentDetail = details[idx] ?? {
+				workTypeChildren: "",
+				workDays: [],
+				checkInStart: "",
+				checkInEnd: "",
+				breakStart: "",
+				breakEnd: "",
+				checkOutStart: "",
+				checkOutEnd: "",
+				locationId: "",
+				latitude: "",
+				longitude: "",
+				addressDetails: "",
+			};
+			details[idx] = {
+				...currentDetail,
+				[key]: value,
+				workTypeChildren: (key === "workTypeChildren" ? (typeof value === "string" ? value : "") : currentDetail.workTypeChildren) ?? "",
+				checkInStart: (key === "checkInStart" ? (typeof value === "string" ? value : currentDetail.checkInStart) : currentDetail.checkInStart) ?? "",
+				checkInEnd: (key === "checkInEnd" ? (typeof value === "string" ? value : currentDetail.checkInEnd) : currentDetail.checkInEnd) ?? "",
+				breakStart: (key === "breakStart" ? (typeof value === "string" ? value : currentDetail.breakStart) : currentDetail.breakStart) ?? "",
+				breakEnd: (key === "breakEnd" ? (typeof value === "string" ? value : currentDetail.breakEnd) : currentDetail.breakEnd) ?? "",
+				checkOutStart: (key === "checkOutStart" ? (typeof value === "string" ? value : currentDetail.checkOutStart) : currentDetail.checkOutStart) ?? "",
+				checkOutEnd: (key === "checkOutEnd" ? (typeof value === "string" ? value : currentDetail.checkOutEnd) : currentDetail.checkOutEnd) ?? "",
+				locationId: (key === "locationId" ? (typeof value === "string" ? value : currentDetail.locationId) : currentDetail.locationId) ?? "",
+				latitude: (key === "latitude" ? (typeof value === "string" ? value : currentDetail.latitude) : currentDetail.latitude) ?? "",
+				longitude: (key === "longitude" ? (typeof value === "string" ? value : currentDetail.longitude) : currentDetail.longitude) ?? "",
+				addressDetails: (key === "addressDetails" ? (typeof value === "string" ? value : currentDetail.addressDetails) : currentDetail.addressDetails) ?? "",
+				workDays: (key === "workDays" ? (Array.isArray(value) ? value : currentDetail.workDays) : currentDetail.workDays) ?? [],
+			};
 			return { ...prev, workScheduleDetails: details };
 		});
 	};
@@ -91,6 +120,14 @@ export function WorkScheduleForm({
 				latitude: loc?.latitude || "",
 				longitude: loc?.longitude || "",
 				addressDetails: loc?.label || "",
+				workTypeChildren: details[idx]?.workTypeChildren ?? "",
+				workDays: details[idx]?.workDays ?? [],
+				checkInStart: details[idx]?.checkInStart ?? "",
+				checkInEnd: details[idx]?.checkInEnd ?? "",
+				breakStart: details[idx]?.breakStart ?? "",
+				breakEnd: details[idx]?.breakEnd ?? "",
+				checkOutStart: details[idx]?.checkOutStart ?? "",
+				checkOutEnd: details[idx]?.checkOutEnd ?? "",
 			};
 			return { ...prev, workScheduleDetails: details };
 		});
@@ -125,9 +162,9 @@ export function WorkScheduleForm({
 		});
 	};
 
-	const handleChange = (key: keyof WorkSchedule, value: string | string[]) => {
-		setFormData((prev) => ({ ...prev, [key]: value }));
-	};
+	// const handleChange = (key: keyof WorkSchedule, value: string | string[]) => {
+	// 	setFormData((prev) => ({ ...prev, [key]: value }));
+	// };
 
 	const handleSave = (e: React.FormEvent) => {
 		e.preventDefault();

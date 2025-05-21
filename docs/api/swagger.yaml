@@ -61,7 +61,6 @@ components:
                     description: Timestamp when the user account was last updated.
                     readOnly: true
             required:
-                - id
                 - email
                 - role
                 - created_at
@@ -188,7 +187,7 @@ components:
                     description: Timestamp when the record was last updated.
                     readOnly: true
             required:
-                - id
+
                 - user_id
                 - first_name
                 - last_name
@@ -221,7 +220,6 @@ components:
                     description: Timestamp when the position was last updated.
                     readOnly: true
             required:
-                - id
                 - name
                 - created_at
                 - updated_at
@@ -257,7 +255,6 @@ components:
                     format: date-time
                     readOnly: true
             required:
-                - id
                 - name
                 - latitude
                 - longitude
@@ -309,7 +306,6 @@ components:
                     description: Timestamp when the branch was last updated.
                     readOnly: true
             required:
-                - id
                 - name
                 - created_at
                 - updated_at

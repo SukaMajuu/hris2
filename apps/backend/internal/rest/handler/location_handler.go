@@ -25,10 +25,11 @@ func (h *LocationHandler) CreateLocation(c *gin.Context) {
 	}
 
 	createdLocation, err := h.locationUseCase.Create(c.Request.Context(), &domain.Location{
-		Name:      req.Name,
-		Latitude:  req.Latitude,
-		Longitude: req.Longitude,
-		RadiusM:   req.RadiusM,
+		Name:          req.Name,
+		AddressDetail: req.AddressDetail,
+		Latitude:      req.Latitude,
+		Longitude:     req.Longitude,
+		RadiusM:       req.RadiusM,
 	})
 
 	if err != nil {
@@ -87,10 +88,11 @@ func (h *LocationHandler) UpdateLocation(c *gin.Context) {
 	}
 
 	updatedLocation, err := h.locationUseCase.Update(c.Request.Context(), id, &domain.Location{
-		Name:      req.Name,
-		Latitude:  req.Latitude,
-		Longitude: req.Longitude,
-		RadiusM:   req.RadiusM,
+		Name:          req.Name,
+		AddressDetail: req.AddressDetail,
+		Latitude:      req.Latitude,
+		Longitude:     req.Longitude,
+		RadiusM:       req.RadiusM,
 	})
 
 	if err != nil {

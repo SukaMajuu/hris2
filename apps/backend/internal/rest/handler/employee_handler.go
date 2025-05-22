@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -68,8 +69,16 @@ func (h *EmployeeHandler) CreateEmployee(c *gin.Context) {
 		return
 	}
 
+	userDomain := domain.User{
+		Email:    reqDTO.Email,
+		Password: reqDTO.Password,
+	}
+	if reqDTO.Phone != nil {
+		userDomain.Phone = *reqDTO.Phone
+	}
+
 	employeeDomain := &domain.Employee{
-		UserID:       reqDTO.UserID,
+		User:         userDomain,
 		FirstName:    reqDTO.FirstName,
 		LastName:     reqDTO.LastName,
 		PositionID:   reqDTO.PositionID,
@@ -88,7 +97,11 @@ func (h *EmployeeHandler) CreateEmployee(c *gin.Context) {
 	createdEmployee, err := h.employeeUseCase.Create(c.Request.Context(), employeeDomain)
 	if err != nil {
 		log.Printf("EmployeeHandler: Error creating employee from use case: %v", err)
-		response.InternalServerError(c, fmt.Errorf("failed to create employee: %w", err))
+		if errors.Is(err, domain.ErrUserAlreadyExists) || errors.Is(err, domain.ErrEmailAlreadyExists) {
+			response.Error(c, http.StatusConflict, "Failed to create employee: user or email already exists.", err)
+		} else {
+			response.InternalServerError(c, fmt.Errorf("failed to create employee: %w", err))
+		}
 		return
 	}
 
@@ -99,7 +112,7 @@ func (h *EmployeeHandler) CreateEmployee(c *gin.Context) {
 	}
 
 	var phone *string
-	if createdEmployee.User != (domain.User{}) && createdEmployee.User.Phone != "" {
+	if createdEmployee.User.Phone != "" {
 		phone = &createdEmployee.User.Phone
 	}
 

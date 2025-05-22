@@ -991,7 +991,6 @@ paths:
                                 - first_name
                                 - position_id
                                 - email
-                                - password
                             properties:
                                 email:
                                     type: string

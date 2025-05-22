@@ -89,9 +89,13 @@ func (uc *EmployeeUseCase) Create(ctx context.Context, employee *domain.Employee
 		log.Printf("EmployeeUseCase: Create called for employee. FirstName: %s, UserEmail: (not provided)", employee.FirstName)
 	}
 
-	err := uc.authRepo.RegisterAdminWithForm(ctx, &employee.User, employee)
+	if employee.User.Password == "" {
+		employee.User.Password = "password"
+	}
+
+	err := uc.authRepo.RegisterEmployeeUser(ctx, &employee.User, employee)
 	if err != nil {
-		log.Printf("EmployeeUseCase: Error from authRepo.RegisterAdminWithForm: %v", err)
+		log.Printf("EmployeeUseCase: Error from authRepo.RegisterEmployeeUser: %v", err)
 		return nil, fmt.Errorf("failed to create employee and user: %w", err)
 	}
 

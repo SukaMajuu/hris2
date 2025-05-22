@@ -11,7 +11,7 @@ type ListEmployeesRequestQuery struct {
 type CreateEmployeeRequestDTO struct {
 	// User related fields for new user creation
 	Email    string  `json:"email" binding:"required,email"`
-	Password string  `json:"password" binding:"required,min=8"`
+	Password string  `json:"password" binding:"omitempty,min=8"`
 	Phone    *string `json:"phone,omitempty" binding:"omitempty,e164"` // For User domain
 
 	// Employee specific fields

@@ -15,6 +15,7 @@ type Router struct {
 	locationHandler *handler.LocationHandler
 	authMiddleware  *middleware.AuthMiddleware
 	employeeHandler *handler.EmployeeHandler
+	//workScheduleHandler *handler.WorkScheduleHandler
 }
 
 func NewRouter(authUseCase *auth.AuthUseCase, employeeUseCase *employee.EmployeeUseCase, locationUseCase *location.LocationUseCase) *Router {

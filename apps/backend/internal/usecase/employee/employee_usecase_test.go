@@ -32,14 +32,14 @@ func TestEmployeeUseCase_List(t *testing.T) {
 	}
 
 	expectedEmployeeDTO := &dtoemployee.EmployeeResponseDTO{
-		ID:        mockDomainEmp.ID,
-		FirstName: mockDomainEmp.FirstName,
-		LastName:  mockDomainEmp.LastName,
-		Gender:    expectedGenderDTO,
-		Phone:     &mockDomainEmp.User.Phone,
-		BranchID:  mockDomainEmp.BranchID,
-		PositionID: mockDomainEmp.PositionID,
-		Grade:      mockDomainEmp.Grade,
+		ID:               mockDomainEmp.ID,
+		FirstName:        mockDomainEmp.FirstName,
+		LastName:         mockDomainEmp.LastName,
+		Gender:           expectedGenderDTO,
+		Phone:            &mockDomainEmp.User.Phone,
+		BranchID:         mockDomainEmp.BranchID,
+		PositionID:       mockDomainEmp.PositionID,
+		Grade:            mockDomainEmp.Grade,
 		EmploymentStatus: mockDomainEmp.EmploymentStatus,
 	}
 
@@ -58,14 +58,14 @@ func TestEmployeeUseCase_List(t *testing.T) {
 	repoError := errors.New("repository database error")
 
 	tests := []struct {
-		name                 string
-		mockRepoEmployees    []*domain.Employee
-		mockRepoTotalItems   int64
-		mockRepoError        error
-		expectedResponse     *domain.EmployeeListResponseData
-		expectedErrorMsg     string
-		checkErrorIs         error
-		checkErrorContains   string
+		name               string
+		mockRepoEmployees  []*domain.Employee
+		mockRepoTotalItems int64
+		mockRepoError      error
+		expectedResponse   *domain.EmployeeListResponseData
+		expectedErrorMsg   string
+		checkErrorIs       error
+		checkErrorContains string
 	}{
 		{
 			name:               "successful retrieval",
@@ -107,7 +107,8 @@ func TestEmployeeUseCase_List(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockEmployeeRepo := new(mocks.EmployeeRepository)
-			uc := NewEmployeeUseCase(mockEmployeeRepo)
+			mockAuthRepo := new(mocks.AuthRepository)
+			uc := NewEmployeeUseCase(mockEmployeeRepo, mockAuthRepo)
 
 			mockEmployeeRepo.On("List", ctx, filters, paginationParams).
 				Return(tt.mockRepoEmployees, tt.mockRepoTotalItems, tt.mockRepoError).Once()

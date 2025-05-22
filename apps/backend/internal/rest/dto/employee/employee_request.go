@@ -9,13 +9,19 @@ type ListEmployeesRequestQuery struct {
 }
 
 type CreateEmployeeRequestDTO struct {
-	UserID           uint          `json:"user_id" binding:"required"`
+	// User related fields for new user creation
+	Email    string  `json:"email" binding:"required,email"`
+	Password string  `json:"password" binding:"required,min=8"`
+	Phone    *string `json:"phone,omitempty" binding:"omitempty,e164"` // For User domain
+
+	// Employee specific fields
+	UserID           uint          `json:"user_id,omitempty" binding:"omitempty"` // Made optional as User is created.
 	FirstName        string        `json:"first_name" binding:"required"`
-	LastName         *string       `json:"last_name"`
+	LastName         *string       `json:"last_name,omitempty"`
 	PositionID       uint          `json:"position_id" binding:"required"`
-	EmploymentStatus *bool         `json:"employment_status"`
-	EmployeeCode     *string       `json:"employee_code" binding:"omitempty,alphanum,max=50"`
-	BranchID         *uint         `json:"branch_id"`
-	Gender           *enums.Gender `json:"gender" binding:"omitempty"`
-	NIK              *string       `json:"nik" binding:"omitempty,numeric"`
+	EmploymentStatus *bool         `json:"employment_status,omitempty"`
+	EmployeeCode     *string       `json:"employee_code,omitempty" binding:"omitempty,alphanum,max=50"`
+	BranchID         *uint         `json:"branch_id,omitempty"`
+	Gender           *enums.Gender `json:"gender,omitempty" binding:"omitempty"`
+	NIK              *string       `json:"nik,omitempty" binding:"omitempty,numeric"`
 }

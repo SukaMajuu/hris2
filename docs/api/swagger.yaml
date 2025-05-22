@@ -108,7 +108,7 @@ components:
                     type: string
                     nullable: true
                     description: Employee's gender (optional).
-                    enum: [male, female]
+                    enum: [Male, Female]
                 phone:
                     type: string
                     maxLength: 255
@@ -928,15 +928,35 @@ paths:
                         schema:
                             type: object
                             required:
-                                - user_id
                                 - first_name
                                 - position_id
+                                - email
+                                - password
                             properties:
+                                email:
+                                    type: string
+                                    format: email
+                                    description: "User's email address for the new account."
+                                    example: "new.employee@example.com"
+                                password:
+                                    type: string
+                                    format: password
+                                    minLength: 8
+                                    description: "Password for the new user account."
+                                    example: "strongpassword123"
+                                phone:
+                                    type: string
+                                    nullable: true
+                                    pattern: '^\\+?[1-9]\\d{1,14}$'
+                                    description: "User's phone number for the new account (optional)."
+                                    example: "+6281234567891"
                                 user_id:
                                     type: integer
                                     format: uint
-                                    description: "ID of the existing user to associate with this employee."
+                                    nullable: true
+                                    description: "(Read-only for creation as user is auto-created) Foreign key referencing the associated User ID."
                                     example: 1
+                                    readOnly: true
                                 first_name:
                                     type: string
                                     maxLength: 255
@@ -969,13 +989,75 @@ paths:
                                 gender:
                                     type: string
                                     nullable: true
-                                    enum: [male, female]
-                                    example: "male"
+                                    enum: [Male, Female]
+                                    example: "Male"
                                 nik:
                                     type: string
                                     nullable: true
                                     pattern: '^[0-9]*$'
+                                    maxLength: 255
                                     example: "1234567890123456"
+                                place_of_birth:
+                                    type: string
+                                    maxLength: 255
+                                    nullable: true
+                                    description: "Place where the employee was born (optional)."
+                                    example: "Jakarta"
+                                last_education:
+                                    type: string
+                                    nullable: true
+                                    enum: [high_school, diploma, bachelor, master, doctorate]
+                                    description: "Employee's highest level of education (optional)."
+                                    example: "bachelor"
+                                grade:
+                                    type: string
+                                    maxLength: 50
+                                    nullable: true
+                                    description: "Employee's job grade or level (optional)."
+                                    example: "Senior Staff"
+                                contract_type:
+                                    type: string
+                                    nullable: true
+                                    enum: [permanent, contract, freelance]
+                                    description: "Type of employment contract (optional)."
+                                    example: "permanent"
+                                hire_date:
+                                    type: string
+                                    format: date
+                                    nullable: true
+                                    description: "Date the employee was hired (optional)."
+                                    example: "2024-01-15"
+                                bank_name:
+                                    type: string
+                                    maxLength: 100
+                                    nullable: true
+                                    description: "Name of the employee's bank (optional)."
+                                    example: "Bank Central Asia"
+                                bank_account_number:
+                                    type: string
+                                    maxLength: 100
+                                    nullable: true
+                                    description: "Employee's bank account number (optional)."
+                                    example: "1234567890"
+                                bank_account_holder_name:
+                                    type: string
+                                    maxLength: 255
+                                    nullable: true
+                                    description: "Name on the employee's bank account (optional)."
+                                    example: "John Doe"
+                                tax_status:
+                                    type: string
+                                    nullable: true
+                                    enum: [tk0, tk1, tk2, tk3, k0, k1, k2, k3, ki0, ki1, ki2, ki3]
+                                    description: "Employee's tax status (optional)."
+                                    example: "k0"
+                                profile_photo_url:
+                                    type: string
+                                    maxLength: 255
+                                    format: url
+                                    nullable: true
+                                    description: "URL to the employee's profile photo (optional)."
+                                    example: "https://example.com/profile.jpg"
             responses:
                 '201':
                     description: Employee created successfully
@@ -997,6 +1079,11 @@ paths:
                                                 type: integer
                                                 format: uint
                                                 example: 1
+                                            user_id:
+                                                type: integer
+                                                format: uint
+                                                description: "ID of the associated user account."
+                                                example: 123
                                             first_name:
                                                 type: string
                                                 example: "John"
@@ -1007,7 +1094,7 @@ paths:
                                             gender:
                                                 type: string
                                                 nullable: true
-                                                enum: [male, female, other]
+                                                enum: [male, female]
                                                 example: "male"
                                             phone:
                                                 type: string
@@ -1025,7 +1112,7 @@ paths:
                                             grade:
                                                 type: string
                                                 nullable: true
-                                                example: "Staff"
+                                                example: "Senior Staff"
                                             employment_status:
                                                 type: boolean
                                                 example: true
@@ -1033,6 +1120,65 @@ paths:
                                                 type: string
                                                 nullable: true
                                                 example: "EMP001"
+                                            nik:
+                                                type: string
+                                                nullable: true
+                                                maxLength: 255
+                                                example: "1234567890123456"
+                                            place_of_birth:
+                                                type: string
+                                                maxLength: 255
+                                                nullable: true
+                                                example: "Jakarta"
+                                            last_education:
+                                                type: string
+                                                nullable: true
+                                                enum: [high_school, diploma, bachelor, master, doctorate]
+                                                example: "bachelor"
+                                            contract_type:
+                                                type: string
+                                                nullable: true
+                                                enum: [permanent, contract, freelance]
+                                                example: "permanent"
+                                            hire_date:
+                                                type: string
+                                                format: date
+                                                nullable: true
+                                                example: "2024-01-15"
+                                            bank_name:
+                                                type: string
+                                                maxLength: 100
+                                                nullable: true
+                                                example: "Bank Central Asia"
+                                            bank_account_number:
+                                                type: string
+                                                maxLength: 100
+                                                nullable: true
+                                                example: "1234567890"
+                                            bank_account_holder_name:
+                                                type: string
+                                                maxLength: 255
+                                                nullable: true
+                                                example: "John Doe"
+                                            tax_status:
+                                                type: string
+                                                nullable: true
+                                                enum: [tk0, tk1, tk2, tk3, k0, k1, k2, k3, ki0, ki1, ki2, ki3]
+                                                example: "k0"
+                                            profile_photo_url:
+                                                type: string
+                                                maxLength: 255
+                                                format: url
+                                                nullable: true
+                                                example: "https://example.com/profile.jpg"
+                                            created_at:
+                                                type: string
+                                                format: date-time
+                                                readOnly: true
+                                            updated_at:
+                                                type: string
+                                                format: date-time
+                                                readOnly: true
                 '400':
                     description: Bad request
                     content:

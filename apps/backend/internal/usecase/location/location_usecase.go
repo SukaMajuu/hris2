@@ -89,7 +89,7 @@ func (uc *LocationUseCase) GetByID(ctx context.Context, id string) (*dtolocation
 func (uc *LocationUseCase) Update(ctx context.Context, id string, locationUpdates *domain.Location) (*dtolocation.LocationResponseDTO, error) {
 	updatedLocationDomain, err := uc.locationRepo.Update(ctx, id, locationUpdates)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to update location: %w", err)
 	}
 	return toLocationResponseDTO(updatedLocationDomain), nil
 }

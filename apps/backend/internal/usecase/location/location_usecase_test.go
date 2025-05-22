@@ -126,16 +126,20 @@ func TestLocationUseCase_List(t *testing.T) {
 func TestLocationUseCase_Create(t *testing.T) {
 	ctx := context.Background()
 	mockLocation := &domain.Location{Name: "New Location"}
+	mockLocationDTO := &dtolocation.LocationResponseDTO{
+		Name: mockLocation.Name,
+	}
 	repoError := errors.New("create error")
 
 	tests := []struct {
-		name          string
-		mockRepoError error
-		expectedError error
-		checkErrorIs  error
+		name             string
+		mockRepoError    error
+		expectedResponse *dtolocation.LocationResponseDTO
+		expectedError    error
+		checkErrorIs     error
 	}{
-		{"successful creation", nil, nil, nil},
-		{"repository returns an error", repoError, fmt.Errorf("failed to create location: %w", repoError), repoError},
+		{"successful creation", nil, mockLocationDTO, nil, nil},
+		{"repository returns an error", repoError, nil, fmt.Errorf("failed to create location in repository: %w", repoError), repoError},
 	}
 
 	for _, tt := range tests {
@@ -144,7 +148,7 @@ func TestLocationUseCase_Create(t *testing.T) {
 			uc := NewLocationUseCase(mockLocationRepo)
 			mockLocationRepo.On("Create", ctx, mockLocation).Return(mockLocation, tt.mockRepoError).Once()
 
-			createdLocation, err := uc.Create(ctx, mockLocation)
+			createdLocationDTO, err := uc.Create(ctx, mockLocation)
 
 			if tt.expectedError != nil {
 				assert.Error(t, err)
@@ -154,7 +158,7 @@ func TestLocationUseCase_Create(t *testing.T) {
 				}
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, mockLocation, createdLocation)
+				assert.Equal(t, tt.expectedResponse, createdLocationDTO)
 			}
 			mockLocationRepo.AssertExpectations(t)
 		})
@@ -165,16 +169,20 @@ func TestLocationUseCase_GetByID(t *testing.T) {
 	ctx := context.Background()
 	locationID := "1"
 	mockLocation := &domain.Location{ID: 1, Name: "Found Location"}
+	mockLocationDTO := &dtolocation.LocationResponseDTO{
+		ID:   mockLocation.ID,
+		Name: mockLocation.Name,
+	}
 	repoError := errors.New("find error")
 
 	tests := []struct {
 		name             string
 		mockRepoResponse *domain.Location
 		mockRepoError    error
-		expectedResponse *domain.Location
+		expectedResponse *dtolocation.LocationResponseDTO
 		expectedError    error
 	}{
-		{"successful retrieval", mockLocation, nil, mockLocation, nil},
+		{"successful retrieval", mockLocation, nil, mockLocationDTO, nil},
 		{"repository returns an error", nil, repoError, nil, repoError},
 		{"location not found", nil, domain.ErrLocationNotFound, nil, domain.ErrLocationNotFound},
 	}
@@ -203,17 +211,21 @@ func TestLocationUseCase_Update(t *testing.T) {
 	ctx := context.Background()
 	locationID := "1"
 	mockLocationUpdate := &domain.Location{ID: 1, Name: "Updated Location"}
+	mockLocationDTO := &dtolocation.LocationResponseDTO{
+		ID:   mockLocationUpdate.ID,
+		Name: mockLocationUpdate.Name,
+	}
 	repoError := errors.New("update error")
 
 	tests := []struct {
 		name             string
 		mockRepoResponse *domain.Location
 		mockRepoError    error
-		expectedResponse *domain.Location
+		expectedResponse *dtolocation.LocationResponseDTO
 		expectedError    error
 		checkErrorIs     error
 	}{
-		{"successful update", mockLocationUpdate, nil, mockLocationUpdate, nil, nil},
+		{"successful update", mockLocationUpdate, nil, mockLocationDTO, nil, nil},
 		{"repository returns an error", nil, repoError, nil, fmt.Errorf("failed to update location: %w", repoError), repoError},
 	}
 

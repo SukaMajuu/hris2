@@ -116,7 +116,7 @@ components:
                     description: Employee's phone number (optional).
                 nik:
                     type: string
-                    maxLength: 255
+                    maxLength: 16
                     nullable: true
                     description: Employee's National Identity Number (KTP number in Indonesia) (optional).
                 place_of_birth:
@@ -1055,7 +1055,7 @@ paths:
                                     type: string
                                     nullable: true
                                     pattern: '^[0-9]*$'
-                                    maxLength: 255
+                                    maxLength: 16
                                     example: "1234567890123456"
                                 place_of_birth:
                                     type: string
@@ -1183,7 +1183,7 @@ paths:
                                             nik:
                                                 type: string
                                                 nullable: true
-                                                maxLength: 255
+                                                maxLength: 16
                                                 example: "1234567890123456"
                                             place_of_birth:
                                                 type: string

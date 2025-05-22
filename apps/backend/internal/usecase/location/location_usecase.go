@@ -20,12 +20,26 @@ func NewLocationUseCase(repo interfaces.LocationRepository) *LocationUseCase {
 	}
 }
 
-func (uc *LocationUseCase) Create(ctx context.Context, location *domain.Location) (*domain.Location, error) {
-	createdLocation, err := uc.locationRepo.Create(ctx, location)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create location: %w", err)
+func toLocationResponseDTO(loc *domain.Location) *dtolocation.LocationResponseDTO {
+	if loc == nil {
+		return nil
 	}
-	return createdLocation, nil
+	return &dtolocation.LocationResponseDTO{
+		ID:            loc.ID,
+		Name:          loc.Name,
+		AddressDetail: loc.AddressDetail,
+		Latitude:      loc.Latitude,
+		Longitude:     loc.Longitude,
+		Radius:        float64(loc.RadiusM),
+	}
+}
+
+func (uc *LocationUseCase) Create(ctx context.Context, location *domain.Location) (*dtolocation.LocationResponseDTO, error) {
+	createdLocationDomain, err := uc.locationRepo.Create(ctx, location)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create location in repository: %w", err)
+	}
+	return toLocationResponseDTO(createdLocationDomain), nil
 }
 
 func (uc *LocationUseCase) List(ctx context.Context, paginationParams domain.PaginationParams) (*domain.LocationListResponseData, error) {
@@ -36,13 +50,7 @@ func (uc *LocationUseCase) List(ctx context.Context, paginationParams domain.Pag
 
 	locationDTOs := make([]*dtolocation.LocationResponseDTO, len(domainLocations))
 	for i, loc := range domainLocations {
-		locationDTOs[i] = &dtolocation.LocationResponseDTO{
-			ID:        loc.ID,
-			Name:      loc.Name,
-			Latitude:  loc.Latitude,
-			Longitude: loc.Longitude,
-			Radius:    float64(loc.RadiusM),
-		}
+		locationDTOs[i] = toLocationResponseDTO(loc)
 	}
 
 	totalPages := 0
@@ -70,18 +78,26 @@ func (uc *LocationUseCase) List(ctx context.Context, paginationParams domain.Pag
 	return response, nil
 }
 
-func (uc *LocationUseCase) GetByID(ctx context.Context, id string) (*domain.Location, error) {
-	return uc.locationRepo.GetByID(ctx, id)
+func (uc *LocationUseCase) GetByID(ctx context.Context, id string) (*dtolocation.LocationResponseDTO, error) {
+	locationDomain, err := uc.locationRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return toLocationResponseDTO(locationDomain), nil
 }
 
-func (uc *LocationUseCase) Update(ctx context.Context, id string, location *domain.Location) (*domain.Location, error) {
-	updatedLocation, err := uc.locationRepo.Update(ctx, id, location)
+func (uc *LocationUseCase) Update(ctx context.Context, id string, locationUpdates *domain.Location) (*dtolocation.LocationResponseDTO, error) {
+	updatedLocationDomain, err := uc.locationRepo.Update(ctx, id, locationUpdates)
 	if err != nil {
-		return nil, fmt.Errorf("failed to update location: %w", err)
+		return nil, err
 	}
-	return updatedLocation, nil
+	return toLocationResponseDTO(updatedLocationDomain), nil
 }
 
 func (uc *LocationUseCase) Delete(ctx context.Context, id string) error {
-	return uc.locationRepo.Delete(ctx, id)
+	err := uc.locationRepo.Delete(ctx, id)
+	if err != nil {
+		return err
+	}
+	return nil
 }

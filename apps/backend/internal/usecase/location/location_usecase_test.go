@@ -17,21 +17,23 @@ func TestLocationUseCase_List(t *testing.T) {
 	paginationParams := domain.PaginationParams{Page: 1, PageSize: 10}
 
 	mockDomainLoc := &domain.Location{
-		ID:        1,
-		Name:      "Test Location",
-		Latitude:  -6.200000,
-		Longitude: 106.800000,
-		RadiusM:   100,
+		ID:            1,
+		Name:          "Test Location",
+		AddressDetail: "Jl. Jend. Sudirman No. 10, Kota Jakarta Barat, Daerah Khusus Ibukota Jakarta 11111, Indonesia",
+		Latitude:      -6.200000,
+		Longitude:     106.800000,
+		RadiusM:       100,
 	}
 	mockDomainLocations := []*domain.Location{mockDomainLoc}
 	var mockTotalItems int64 = 1
 
 	expectedLocationDTO := &dtolocation.LocationResponseDTO{
-		ID:        mockDomainLoc.ID,
-		Name:      mockDomainLoc.Name,
-		Latitude:  mockDomainLoc.Latitude,
-		Longitude: mockDomainLoc.Longitude,
-		Radius:    float64(mockDomainLoc.RadiusM),
+		ID:            mockDomainLoc.ID,
+		Name:          mockDomainLoc.Name,
+		AddressDetail: mockDomainLoc.AddressDetail,
+		Latitude:      mockDomainLoc.Latitude,
+		Longitude:     mockDomainLoc.Longitude,
+		Radius:        float64(mockDomainLoc.RadiusM),
 	}
 
 	expectedSuccessResponseData := &domain.LocationListResponseData{
@@ -49,13 +51,13 @@ func TestLocationUseCase_List(t *testing.T) {
 	repoError := errors.New("repository database error")
 
 	tests := []struct {
-		name                 string
-		mockRepoLocations    []*domain.Location
-		mockRepoTotalItems   int64
-		mockRepoError        error
-		expectedResponse     *domain.LocationListResponseData
-		expectedErrorMsg     string
-		checkErrorIs         error
+		name               string
+		mockRepoLocations  []*domain.Location
+		mockRepoTotalItems int64
+		mockRepoError      error
+		expectedResponse   *domain.LocationListResponseData
+		expectedErrorMsg   string
+		checkErrorIs       error
 	}{
 		{
 			name:               "successful retrieval",
@@ -204,12 +206,12 @@ func TestLocationUseCase_Update(t *testing.T) {
 	repoError := errors.New("update error")
 
 	tests := []struct {
-		name               string
-		mockRepoResponse   *domain.Location
-		mockRepoError      error
-		expectedResponse   *domain.Location
-		expectedError      error
-		checkErrorIs       error
+		name             string
+		mockRepoResponse *domain.Location
+		mockRepoError    error
+		expectedResponse *domain.Location
+		expectedError    error
+		checkErrorIs     error
 	}{
 		{"successful update", mockLocationUpdate, nil, mockLocationUpdate, nil, nil},
 		{"repository returns an error", nil, repoError, nil, fmt.Errorf("failed to update location: %w", repoError), repoError},

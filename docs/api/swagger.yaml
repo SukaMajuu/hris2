@@ -914,8 +914,8 @@ paths:
                                                         gender:
                                                             type: string
                                                             nullable: true
-                                                            enum: [ male, female ]
-                                                            example: "male"
+                                                            enum: [ Male, Female ]
+                                                            example: "Male"
                                                         phone:
                                                             type: string
                                                             nullable: true
@@ -962,7 +962,7 @@ paths:
                                                     has_prev_page:
                                                         type: boolean
                                                         example: false
-                "500": # Menggunakan kutip
+                "500":
                     description: Internal server error
                     content:
                         application/json:
@@ -1065,9 +1065,9 @@ paths:
                                 last_education:
                                     type: string
                                     nullable: true
-                                    enum: [high_school, diploma, bachelor, master, doctorate]
+                                    enum: [SD, SMP, SMA/SMK, D1, D2, D3, S1/D4, S2, S3, Other]
                                     description: "Employee's highest level of education (optional)."
-                                    example: "bachelor"
+                                    example: "SMA/SMK"
                                 grade:
                                     type: string
                                     maxLength: 50
@@ -1107,9 +1107,9 @@ paths:
                                 tax_status:
                                     type: string
                                     nullable: true
-                                    enum: [tk0, tk1, tk2, tk3, k0, k1, k2, k3, ki0, ki1, ki2, ki3]
+                                    enum: [TK/0, TK/1, TK/2, TK/3, K/0, K/1, K/2, K/3, K/I/0, K/I/1, K/I/2, K/I/3]
                                     description: "Employee's tax status (optional)."
-                                    example: "k0"
+                                    example: "K/0"
                                 profile_photo_url:
                                     type: string
                                     maxLength: 255
@@ -1153,8 +1153,8 @@ paths:
                                             gender:
                                                 type: string
                                                 nullable: true
-                                                enum: [male, female]
-                                                example: "male"
+                                                enum: [Male, Female]
+                                                example: "Male"
                                             phone:
                                                 type: string
                                                 nullable: true
@@ -1192,8 +1192,8 @@ paths:
                                             last_education:
                                                 type: string
                                                 nullable: true
-                                                enum: [high_school, diploma, bachelor, master, doctorate]
-                                                example: "bachelor"
+                                                enum: [SD, SMP, SMA/SMK, D1, D2, D3, S1/D4, S2, S3, Other]
+                                                example: "SMA/SMK"
                                             contract_type:
                                                 type: string
                                                 nullable: true
@@ -1222,8 +1222,8 @@ paths:
                                             tax_status:
                                                 type: string
                                                 nullable: true
-                                                enum: [tk0, tk1, tk2, tk3, k0, k1, k2, k3, ki0, ki1, ki2, ki3]
-                                                example: "k0"
+                                                enum: [TK/0, TK/1, TK/2, TK/3, K/0, K/1, K/2, K/3, K/I/0, K/I/1, K/I/2, K/I/3]
+                                                example: "K/0"
                                             profile_photo_url:
                                                 type: string
                                                 maxLength: 255
@@ -1271,19 +1271,25 @@ paths:
                                         type: string
                                         example: "failed to create employee: ..."
 
-    /employees/{id}:
+    /api/employee/{id}:
         get:
             tags: [ Employees ]
             summary: Get employee by ID
+            description: Retrieve a specific employee by their unique ID.
+            security:
+                - bearerAuth: []
             parameters:
                 -   in: path
                     name: id
                     required: true
+                    description: Numeric ID of the employee to get.
                     schema:
                         type: integer
+                        format: uint
+                        example: 1
             responses:
-                200:
-                    description: Employee details retrieved successfully
+                "200":
+                    description: Employee retrieved successfully
                     content:
                         application/json:
                             schema:
@@ -1300,33 +1306,57 @@ paths:
                                         properties:
                                             id:
                                                 type: integer
+                                                format: uint
                                                 example: 1
-                                            employee_code:
-                                                type: string
-                                                example: "EMP001"
                                             first_name:
                                                 type: string
                                                 example: "John"
                                             last_name:
                                                 type: string
+                                                nullable: true
                                                 example: "Doe"
+                                            gender:
+                                                type: string
+                                                nullable: true
+                                                enum: [Male, Female]
+                                                example: "Male"
                                             phone:
                                                 type: string
+                                                nullable: true
                                                 example: "+6281234567890"
-                                            department_id:
+                                            branch_id:
                                                 type: integer
+                                                format: uint
+                                                nullable: true
                                                 example: 1
                                             position_id:
                                                 type: integer
+                                                format: uint
                                                 example: 1
+                                            grade:
+                                                type: string
+                                                nullable: true
+                                                example: "Senior Staff"
                                             employment_status:
-                                                type: string
-                                                example: "active"
-                                            hire_date:
-                                                type: string
-                                                format: date
-                                                example: "2023-01-01"
-                404:
+                                                type: boolean
+                                                example: true
+                "400":
+                    description: Invalid ID supplied
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 400
+                                    message:
+                                        type: string
+                                        example: "Invalid employee ID format"
+                                    error:
+                                        type: string
+                                        example: "strconv.ParseUint: parsing \"abc\": invalid syntax"
+                "404":
                     description: Employee not found
                     content:
                         application/json:
@@ -1338,11 +1368,11 @@ paths:
                                         example: 404
                                     message:
                                         type: string
-                                        example: "Not found"
-                                    error:
-                                        type: string
                                         example: "Employee not found"
-                500:
+                                    error:
+                                        type: string # Or removed if message is sufficient
+                                        example: "Employee not found"
+                "500":
                     description: Internal server error
                     content:
                         application/json:
@@ -1357,7 +1387,7 @@ paths:
                                         example: "Internal server error"
                                     error:
                                         type: string
-                                        example: "Failed to retrieve employee"
+                                        example: "failed to retrieve employee"
 
         patch:
             tags: [ Employees ]

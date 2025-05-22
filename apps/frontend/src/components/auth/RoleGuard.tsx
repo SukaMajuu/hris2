@@ -34,19 +34,11 @@ export function RoleGuard({
 		}
 
 		if (!isAuthenticated) {
-			console.warn(
-				"[RoleGuard] User not authenticated. This should have been caught by AuthGuard. Redirecting to login."
-			);
 			router.replace("/login");
 			return;
 		}
 
-		if (isAuthenticated && !isAuthStoreLoading && !isAuthorized) {
-			console.warn(
-				`[RoleGuard] User with role '${userRole}' is not authorized. Allowed: ${allowedRoles.join(
-					", "
-				)}. Redirecting to ${fallbackPath}.`
-			);
+		if (isAuthenticated && !isAuthorized) {
 			toast.error("You are not authorized to view this page.");
 			router.replace(fallbackPath);
 		}

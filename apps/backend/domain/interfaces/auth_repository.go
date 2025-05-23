@@ -13,6 +13,9 @@ type AuthRepository interface {
 	RegisterAdminWithForm(ctx context.Context, user *domain.User, employee *domain.Employee) error
 	RegisterAdminWithGoogle(ctx context.Context, token string) (*domain.User, *domain.Employee, error)
 
+	// Method for creating account for employee
+	RegisterEmployeeUser(ctx context.Context, user *domain.User, employee *domain.Employee) error
+
 	// Login Methods
 	LoginWithEmail(ctx context.Context, email, password string) (*domain.User, error)
 	LoginWithGoogle(ctx context.Context, token string) (*domain.User, error)

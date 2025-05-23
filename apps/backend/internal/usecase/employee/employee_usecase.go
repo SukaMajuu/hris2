@@ -12,13 +12,16 @@ import (
 
 type EmployeeUseCase struct {
 	employeeRepo interfaces.EmployeeRepository
+	authRepo     interfaces.AuthRepository
 }
 
 func NewEmployeeUseCase(
 	employeeRepo interfaces.EmployeeRepository,
+	authRepo interfaces.AuthRepository,
 ) *EmployeeUseCase {
 	return &EmployeeUseCase{
 		employeeRepo: employeeRepo,
+		authRepo:     authRepo,
 	}
 }
 
@@ -36,12 +39,17 @@ func (uc *EmployeeUseCase) List(ctx context.Context, filters map[string]interfac
 			genderDTO = &genderStr
 		}
 
+		var phoneDTO *string
+		if emp.User.Phone != "" {
+			phoneDTO = &emp.User.Phone
+		}
+
 		employeeDTOs[i] = &dtoemployee.EmployeeResponseDTO{
 			ID:               emp.ID,
 			FirstName:        emp.FirstName,
 			LastName:         emp.LastName,
 			Gender:           genderDTO,
-			Phone:            &emp.User.Phone,
+			Phone:            phoneDTO,
 			BranchID:         emp.BranchID,
 			PositionID:       emp.PositionID,
 			Grade:            emp.Grade,
@@ -75,15 +83,23 @@ func (uc *EmployeeUseCase) List(ctx context.Context, filters map[string]interfac
 }
 
 func (uc *EmployeeUseCase) Create(ctx context.Context, employee *domain.Employee) (*domain.Employee, error) {
-	log.Printf("EmployeeUseCase: Create called for employee with UserID: %d, FirstName: %s", employee.UserID, employee.FirstName)
-
-	err := uc.employeeRepo.Create(ctx, employee)
-	if err != nil {
-		log.Printf("EmployeeUseCase: Error creating employee in repository: %v", err)
-		return nil, fmt.Errorf("failed to create employee: %w", err)
+	if employee.User.Email != "" {
+		log.Printf("EmployeeUseCase: Create called for employee. FirstName: %s, UserEmail: %s", employee.FirstName, employee.User.Email)
+	} else {
+		log.Printf("EmployeeUseCase: Create called for employee. FirstName: %s, UserEmail: (not provided)", employee.FirstName)
 	}
 
-	log.Printf("EmployeeUseCase: Successfully created employee with ID %d", employee.ID)
+	if employee.User.Password == "" {
+		employee.User.Password = "password"
+	}
+
+	err := uc.authRepo.RegisterEmployeeUser(ctx, &employee.User, employee)
+	if err != nil {
+		log.Printf("EmployeeUseCase: Error from authRepo.RegisterEmployeeUser: %v", err)
+		return nil, fmt.Errorf("failed to create employee and user: %w", err)
+	}
+
+	log.Printf("EmployeeUseCase: Successfully created employee with ID %d and User ID %d", employee.ID, employee.User.ID)
 	return employee, nil
 }
 

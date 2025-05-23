@@ -108,7 +108,7 @@ components:
                     type: string
                     nullable: true
                     description: Employee's gender (optional).
-                    enum: [ male, female ]
+                    enum: [Male, Female]
                 phone:
                     type: string
                     maxLength: 255
@@ -116,7 +116,7 @@ components:
                     description: Employee's phone number (optional).
                 nik:
                     type: string
-                    maxLength: 255
+                    maxLength: 16
                     nullable: true
                     description: Employee's National Identity Number (KTP number in Indonesia) (optional).
                 place_of_birth:
@@ -914,8 +914,8 @@ paths:
                                                         gender:
                                                             type: string
                                                             nullable: true
-                                                            enum: [ male, female ]
-                                                            example: "male"
+                                                            enum: [ Male, Female ]
+                                                            example: "Male"
                                                         phone:
                                                             type: string
                                                             nullable: true
@@ -962,7 +962,7 @@ paths:
                                                     has_prev_page:
                                                         type: boolean
                                                         example: false
-                "500": # Menggunakan kutip
+                "500":
                     description: Internal server error
                     content:
                         application/json:
@@ -988,15 +988,34 @@ paths:
                         schema:
                             type: object
                             required:
-                                - user_id
                                 - first_name
                                 - position_id
+                                - email
                             properties:
+                                email:
+                                    type: string
+                                    format: email
+                                    description: "User's email address for the new account."
+                                    example: "new.employee@example.com"
+                                password:
+                                    type: string
+                                    format: password
+                                    minLength: 8
+                                    description: "Password for the new user account."
+                                    example: "strongpassword123"
+                                phone:
+                                    type: string
+                                    nullable: true
+                                    pattern: '^\\+?[1-9]\\d{1,14}$'
+                                    description: "User's phone number for the new account (optional)."
+                                    example: "+6281234567891"
                                 user_id:
                                     type: integer
                                     format: uint
-                                    description: "ID of the existing user to associate with this employee."
+                                    nullable: true
+                                    description: "(Read-only for creation as user is auto-created) Foreign key referencing the associated User ID."
                                     example: 1
+                                    readOnly: true
                                 first_name:
                                     type: string
                                     maxLength: 255
@@ -1029,13 +1048,75 @@ paths:
                                 gender:
                                     type: string
                                     nullable: true
-                                    enum: [ male, female ]
-                                    example: "male"
+                                    enum: [Male, Female]
+                                    example: "Male"
                                 nik:
                                     type: string
                                     nullable: true
-                                    pattern: "^[0-9]*$"
+                                    pattern: '^[0-9]*$'
+                                    maxLength: 16
                                     example: "1234567890123456"
+                                place_of_birth:
+                                    type: string
+                                    maxLength: 255
+                                    nullable: true
+                                    description: "Place where the employee was born (optional)."
+                                    example: "Jakarta"
+                                last_education:
+                                    type: string
+                                    nullable: true
+                                    enum: [SD, SMP, SMA/SMK, D1, D2, D3, S1/D4, S2, S3, Other]
+                                    description: "Employee's highest level of education (optional)."
+                                    example: "SMA/SMK"
+                                grade:
+                                    type: string
+                                    maxLength: 50
+                                    nullable: true
+                                    description: "Employee's job grade or level (optional)."
+                                    example: "Senior Staff"
+                                contract_type:
+                                    type: string
+                                    nullable: true
+                                    enum: [permanent, contract, freelance]
+                                    description: "Type of employment contract (optional)."
+                                    example: "permanent"
+                                hire_date:
+                                    type: string
+                                    format: date
+                                    nullable: true
+                                    description: "Date the employee was hired (optional)."
+                                    example: "2024-01-15"
+                                bank_name:
+                                    type: string
+                                    maxLength: 100
+                                    nullable: true
+                                    description: "Name of the employee's bank (optional)."
+                                    example: "Bank Central Asia"
+                                bank_account_number:
+                                    type: string
+                                    maxLength: 100
+                                    nullable: true
+                                    description: "Employee's bank account number (optional)."
+                                    example: "1234567890"
+                                bank_account_holder_name:
+                                    type: string
+                                    maxLength: 255
+                                    nullable: true
+                                    description: "Name on the employee's bank account (optional)."
+                                    example: "John Doe"
+                                tax_status:
+                                    type: string
+                                    nullable: true
+                                    enum: [TK/0, TK/1, TK/2, TK/3, K/0, K/1, K/2, K/3, K/I/0, K/I/1, K/I/2, K/I/3]
+                                    description: "Employee's tax status (optional)."
+                                    example: "K/0"
+                                profile_photo_url:
+                                    type: string
+                                    maxLength: 255
+                                    format: url
+                                    nullable: true
+                                    description: "URL to the employee's profile photo (optional)."
+                                    example: "https://example.com/profile.jpg"
             responses:
                 "201":
                     description: Employee created successfully
@@ -1057,6 +1138,11 @@ paths:
                                                 type: integer
                                                 format: uint
                                                 example: 1
+                                            user_id:
+                                                type: integer
+                                                format: uint
+                                                description: "ID of the associated user account."
+                                                example: 123
                                             first_name:
                                                 type: string
                                                 example: "John"
@@ -1067,8 +1153,8 @@ paths:
                                             gender:
                                                 type: string
                                                 nullable: true
-                                                enum: [ male, female, other ]
-                                                example: "male"
+                                                enum: [Male, Female]
+                                                example: "Male"
                                             phone:
                                                 type: string
                                                 nullable: true
@@ -1085,7 +1171,7 @@ paths:
                                             grade:
                                                 type: string
                                                 nullable: true
-                                                example: "Staff"
+                                                example: "Senior Staff"
                                             employment_status:
                                                 type: boolean
                                                 example: true
@@ -1093,7 +1179,66 @@ paths:
                                                 type: string
                                                 nullable: true
                                                 example: "EMP001"
-                "400":
+                                            nik:
+                                                type: string
+                                                nullable: true
+                                                maxLength: 16
+                                                example: "1234567890123456"
+                                            place_of_birth:
+                                                type: string
+                                                maxLength: 255
+                                                nullable: true
+                                                example: "Jakarta"
+                                            last_education:
+                                                type: string
+                                                nullable: true
+                                                enum: [SD, SMP, SMA/SMK, D1, D2, D3, S1/D4, S2, S3, Other]
+                                                example: "SMA/SMK"
+                                            contract_type:
+                                                type: string
+                                                nullable: true
+                                                enum: [permanent, contract, freelance]
+                                                example: "permanent"
+                                            hire_date:
+                                                type: string
+                                                format: date
+                                                nullable: true
+                                                example: "2024-01-15"
+                                            bank_name:
+                                                type: string
+                                                maxLength: 100
+                                                nullable: true
+                                                example: "Bank Central Asia"
+                                            bank_account_number:
+                                                type: string
+                                                maxLength: 100
+                                                nullable: true
+                                                example: "1234567890"
+                                            bank_account_holder_name:
+                                                type: string
+                                                maxLength: 255
+                                                nullable: true
+                                                example: "John Doe"
+                                            tax_status:
+                                                type: string
+                                                nullable: true
+                                                enum: [TK/0, TK/1, TK/2, TK/3, K/0, K/1, K/2, K/3, K/I/0, K/I/1, K/I/2, K/I/3]
+                                                example: "K/0"
+                                            profile_photo_url:
+                                                type: string
+                                                maxLength: 255
+                                                format: url
+                                                nullable: true
+                                                example: "https://example.com/profile.jpg"
+                                            created_at:
+                                                type: string
+                                                format: date-time
+                                                readOnly: true
+                                            updated_at:
+                                                type: string
+                                                format: date-time
+                                                readOnly: true
+                '400':
                     description: Bad request
                     content:
                         application/json:
@@ -1126,19 +1271,25 @@ paths:
                                         type: string
                                         example: "failed to create employee: ..."
 
-    /employees/{id}:
+    /api/employee/{id}:
         get:
             tags: [ Employees ]
             summary: Get employee by ID
+            description: Retrieve a specific employee by their unique ID.
+            security:
+                - bearerAuth: []
             parameters:
                 -   in: path
                     name: id
                     required: true
+                    description: Numeric ID of the employee to get.
                     schema:
                         type: integer
+                        format: uint
+                        example: 1
             responses:
-                200:
-                    description: Employee details retrieved successfully
+                "200":
+                    description: Employee retrieved successfully
                     content:
                         application/json:
                             schema:
@@ -1155,33 +1306,57 @@ paths:
                                         properties:
                                             id:
                                                 type: integer
+                                                format: uint
                                                 example: 1
-                                            employee_code:
-                                                type: string
-                                                example: "EMP001"
                                             first_name:
                                                 type: string
                                                 example: "John"
                                             last_name:
                                                 type: string
+                                                nullable: true
                                                 example: "Doe"
+                                            gender:
+                                                type: string
+                                                nullable: true
+                                                enum: [Male, Female]
+                                                example: "Male"
                                             phone:
                                                 type: string
+                                                nullable: true
                                                 example: "+6281234567890"
-                                            department_id:
+                                            branch_id:
                                                 type: integer
+                                                format: uint
+                                                nullable: true
                                                 example: 1
                                             position_id:
                                                 type: integer
+                                                format: uint
                                                 example: 1
+                                            grade:
+                                                type: string
+                                                nullable: true
+                                                example: "Senior Staff"
                                             employment_status:
-                                                type: string
-                                                example: "active"
-                                            hire_date:
-                                                type: string
-                                                format: date
-                                                example: "2023-01-01"
-                404:
+                                                type: boolean
+                                                example: true
+                "400":
+                    description: Invalid ID supplied
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 400
+                                    message:
+                                        type: string
+                                        example: "Invalid employee ID format"
+                                    error:
+                                        type: string
+                                        example: "strconv.ParseUint: parsing \"abc\": invalid syntax"
+                "404":
                     description: Employee not found
                     content:
                         application/json:
@@ -1193,11 +1368,11 @@ paths:
                                         example: 404
                                     message:
                                         type: string
-                                        example: "Not found"
-                                    error:
-                                        type: string
                                         example: "Employee not found"
-                500:
+                                    error:
+                                        type: string # Or removed if message is sufficient
+                                        example: "Employee not found"
+                "500":
                     description: Internal server error
                     content:
                         application/json:
@@ -1212,7 +1387,7 @@ paths:
                                         example: "Internal server error"
                                     error:
                                         type: string
-                                        example: "Failed to retrieve employee"
+                                        example: "failed to retrieve employee"
 
         patch:
             tags: [ Employees ]

@@ -47,6 +47,7 @@ func main() {
 
 	employeeUseCase := employeeUseCase.NewEmployeeUseCase(
 		employeeRepo,
+		authRepo,
 	)
 
 	locationUseCase := locationUseCase.NewLocationUseCase(locationRepo)

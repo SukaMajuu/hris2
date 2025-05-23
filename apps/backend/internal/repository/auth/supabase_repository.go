@@ -60,7 +60,7 @@ func (r *supabaseRepository) RegisterAdminWithForm(ctx context.Context, user *do
 	tx := r.db.WithContext(ctx).Begin()
 	if tx.Error != nil {
 		deleteReq := types.AdminDeleteUserRequest{
-			UserID:               supaUserResponse.ID,
+			UserID: supaUserResponse.ID,
 		}
 		_ = r.client.Auth.AdminDeleteUser(deleteReq)
 		return fmt.Errorf("error starting transaction: %w", tx.Error)
@@ -100,6 +100,58 @@ func (r *supabaseRepository) RegisterAdminWithForm(ctx context.Context, user *do
 		_ = r.client.Auth.AdminDeleteUser(types.AdminDeleteUserRequest{
 			UserID: supaUserResponse.ID,
 		})
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nil
+}
+
+// RegisterEmployeeUser creates a new user and associated employee in the database.
+// ini method biar role defaultnya user mas peem, soalnya sebelumnya manfaatin method registerAdminWithForm tapi sudah di set role admin
+func (r *supabaseRepository) RegisterEmployeeUser(ctx context.Context, user *domain.User, employee *domain.Employee) error {
+	signUpOpts := types.SignupRequest{
+		Email:    user.Email,
+		Password: user.Password,
+	}
+
+	supaUserResponse, err := r.client.Auth.Signup(signUpOpts)
+	if err != nil {
+		return fmt.Errorf("error creating user in Supabase: %w", err)
+	}
+
+	if supaUserResponse == nil || supaUserResponse.ID == uuid.Nil {
+		return fmt.Errorf("supabase SignUp returned nil user or empty ID")
+	}
+
+	supaUserIDStr := supaUserResponse.ID.String()
+	user.SupabaseUID = &supaUserIDStr
+
+	tx := r.db.WithContext(ctx).Begin()
+	if tx.Error != nil {
+		_ = r.client.Auth.AdminDeleteUser(types.AdminDeleteUserRequest{UserID: supaUserResponse.ID})
+		return fmt.Errorf("error starting transaction: %w", tx.Error)
+	}
+
+	if err := tx.Create(user).Error; err != nil {
+		tx.Rollback()
+		_ = r.client.Auth.AdminDeleteUser(types.AdminDeleteUserRequest{UserID: supaUserResponse.ID})
+		errStr := err.Error()
+		if strings.Contains(errStr, "23505") && (strings.Contains(errStr, "uni_users_supabase_uid") || strings.Contains(errStr, "uni_users_email")) {
+			return domain.ErrUserAlreadyExists
+		}
+		return fmt.Errorf("error storing user in database: %w", err)
+	}
+
+	employee.UserID = user.ID
+	if err := tx.Create(employee).Error; err != nil {
+		tx.Rollback()
+		_ = r.client.Auth.AdminDeleteUser(types.AdminDeleteUserRequest{UserID: supaUserResponse.ID})
+		_ = r.db.WithContext(ctx).Delete(user)
+		return fmt.Errorf("error storing employee in database: %w", err)
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		_ = r.client.Auth.AdminDeleteUser(types.AdminDeleteUserRequest{UserID: supaUserResponse.ID})
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
@@ -182,7 +234,6 @@ func (r *supabaseRepository) RegisterAdminWithGoogle(ctx context.Context, token 
 	return user, employee, nil
 }
 
-
 // --- Login Methods ---
 
 func (r *supabaseRepository) LoginWithEmail(ctx context.Context, email, password string) (*domain.User, error) {
@@ -207,25 +258,25 @@ func (r *supabaseRepository) LoginWithEmail(ctx context.Context, email, password
 }
 
 func (r *supabaseRepository) LoginWithGoogle(ctx context.Context, token string) (*domain.User, error) {
-    authedClient := r.client.Auth.WithToken(token)
-    supaUser, err := authedClient.GetUser()
-    if err != nil {
-        return nil, domain.ErrInvalidCredentials
-    }
-    if supaUser == nil || supaUser.ID == uuid.Nil {
-        return nil, domain.ErrInvalidCredentials
-    }
+	authedClient := r.client.Auth.WithToken(token)
+	supaUser, err := authedClient.GetUser()
+	if err != nil {
+		return nil, domain.ErrInvalidCredentials
+	}
+	if supaUser == nil || supaUser.ID == uuid.Nil {
+		return nil, domain.ErrInvalidCredentials
+	}
 
-    var user domain.User
-    supaUserIDStr := supaUser.ID.String()
-    if err := r.db.WithContext(ctx).Where("supabase_uid = ?", supaUserIDStr).First(&user).Error; err != nil {
-        if errors.Is(err, gorm.ErrRecordNotFound) {
-            return nil, domain.ErrUserNotFound
-        }
-        return nil, fmt.Errorf("error retrieving local user during Google login: %w", err)
-    }
+	var user domain.User
+	supaUserIDStr := supaUser.ID.String()
+	if err := r.db.WithContext(ctx).Where("supabase_uid = ?", supaUserIDStr).First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, domain.ErrUserNotFound
+		}
+		return nil, fmt.Errorf("error retrieving local user during Google login: %w", err)
+	}
 
-    return &user, nil
+	return &user, nil
 }
 
 func (r *supabaseRepository) LoginWithPhone(ctx context.Context, phone, password string) (*domain.User, error) {
@@ -275,7 +326,6 @@ func (r *supabaseRepository) LoginWithEmployeeCredentials(ctx context.Context, e
 	return &employee.User, nil
 }
 
-
 // --- Password Management ---
 
 func (r *supabaseRepository) ChangePassword(ctx context.Context, userID uint, oldPassword, newPassword string) error {
@@ -298,7 +348,6 @@ func (r *supabaseRepository) ChangePassword(ctx context.Context, userID uint, ol
 	return nil
 }
 
-
 func (r *supabaseRepository) ResetPassword(ctx context.Context, email string) error {
 	_, err := r.GetUserByEmail(ctx, email)
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -317,7 +366,6 @@ func (r *supabaseRepository) ResetPassword(ctx context.Context, email string) er
 
 	return nil
 }
-
 
 // --- Common Operations ---
 

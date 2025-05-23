@@ -9,13 +9,30 @@ type ListEmployeesRequestQuery struct {
 }
 
 type CreateEmployeeRequestDTO struct {
-	UserID           uint          `json:"user_id" binding:"required"`
-	FirstName        string        `json:"first_name" binding:"required"`
-	LastName         *string       `json:"last_name"`
-	PositionID       uint          `json:"position_id" binding:"required"`
-	EmploymentStatus *bool         `json:"employment_status"`
-	EmployeeCode     *string       `json:"employee_code" binding:"omitempty,alphanum,max=50"`
-	BranchID         *uint         `json:"branch_id"`
-	Gender           *enums.Gender `json:"gender" binding:"omitempty"`
-	NIK              *string       `json:"nik" binding:"omitempty,numeric"`
+	// User related fields for new user creation
+	Email    string  `json:"email" binding:"required,email"`
+	Password string  `json:"password" binding:"omitempty,min=8"`
+	Phone    *string `json:"phone,omitempty" binding:"omitempty,e164"` // For User domain
+
+	// Employee specific fields
+	UserID                uint                  `json:"user_id,omitempty" binding:"omitempty"` // Made optional as User is created.
+	FirstName             string                `json:"first_name" binding:"required"`
+	LastName              *string               `json:"last_name,omitempty"`
+	PositionID            uint                  `json:"position_id" binding:"required"`
+	EmploymentStatus      *bool                 `json:"employment_status,omitempty"`
+	EmployeeCode          *string               `json:"employee_code,omitempty" binding:"omitempty,alphanum,max=50"`
+	BranchID              *uint                 `json:"branch_id,omitempty"`
+	Gender                *enums.Gender         `json:"gender,omitempty" binding:"omitempty"`
+	NIK                   *string               `json:"nik,omitempty" binding:"omitempty,numeric"`
+	PlaceOfBirth          *string               `json:"place_of_birth,omitempty"`
+	LastEducation         *enums.EducationLevel `json:"last_education,omitempty"`
+	Grade                 *string               `json:"grade,omitempty"`
+	ContractType          *enums.ContractType   `json:"contract_type,omitempty"`
+	ResignationDate       *string               `json:"resignation_date,omitempty"`
+	HireDate              *string               `json:"hire_date,omitempty"`
+	BankName              *string               `json:"bank_name,omitempty"`
+	BankAccountNumber     *string               `json:"bank_account_number,omitempty"`
+	BankAccountHolderName *string               `json:"bank_account_holder_name,omitempty"`
+	TaxStatus             *enums.TaxStatus      `json:"tax_status,omitempty"`
+	ProfilePhotoURL       *string               `json:"profile_photo_url,omitempty"`
 }

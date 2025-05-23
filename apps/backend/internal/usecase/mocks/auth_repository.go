@@ -126,3 +126,8 @@ func (m *AuthRepository) UpdateLastLogin(ctx context.Context, userID uint, login
 	args := m.Called(ctx, userID, loginTime)
 	return args.Error(0)
 }
+
+func (m *AuthRepository) RegisterEmployeeUser(ctx context.Context, user *domain.User, employee *domain.Employee) error {
+	args := m.Called(ctx, user, employee)
+	return args.Error(0)
+}

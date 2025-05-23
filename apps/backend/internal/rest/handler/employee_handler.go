@@ -1,9 +1,11 @@
 package handler
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
 	domainEmployeeDTO "github.com/SukaMajuu/hris/apps/backend/domain/dto/employee"
@@ -62,21 +64,56 @@ func (h *EmployeeHandler) ListEmployees(c *gin.Context) {
 func (h *EmployeeHandler) CreateEmployee(c *gin.Context) {
 	var reqDTO employeeDTO.CreateEmployeeRequestDTO
 
-	if err := c.ShouldBindJSON(&reqDTO); err != nil {
-		log.Printf("EmployeeHandler: Error binding JSON for CreateEmployee: %v", err)
-		response.BadRequest(c, "Invalid request data. Please check your input.", err)
+	if bindAndValidate(c, &reqDTO) {
 		return
 	}
 
+	userDomain := domain.User{
+		Email:    reqDTO.Email,
+		Password: reqDTO.Password,
+	}
+	if reqDTO.Phone != nil {
+		userDomain.Phone = *reqDTO.Phone
+	}
+
 	employeeDomain := &domain.Employee{
-		UserID:       reqDTO.UserID,
-		FirstName:    reqDTO.FirstName,
-		LastName:     reqDTO.LastName,
-		PositionID:   reqDTO.PositionID,
-		EmployeeCode: reqDTO.EmployeeCode,
-		BranchID:     reqDTO.BranchID,
-		Gender:       reqDTO.Gender,
-		NIK:          reqDTO.NIK,
+		User:                  userDomain,
+		FirstName:             reqDTO.FirstName,
+		LastName:              reqDTO.LastName,
+		PositionID:            reqDTO.PositionID,
+		EmployeeCode:          reqDTO.EmployeeCode,
+		BranchID:              reqDTO.BranchID,
+		Gender:                reqDTO.Gender,
+		NIK:                   reqDTO.NIK,
+		PlaceOfBirth:          reqDTO.PlaceOfBirth,
+		LastEducation:         reqDTO.LastEducation,
+		Grade:                 reqDTO.Grade,
+		ContractType:          reqDTO.ContractType,
+		BankName:              reqDTO.BankName,
+		BankAccountNumber:     reqDTO.BankAccountNumber,
+		BankAccountHolderName: reqDTO.BankAccountHolderName,
+		TaxStatus:             reqDTO.TaxStatus,
+		ProfilePhotoURL:       reqDTO.ProfilePhotoURL,
+	}
+
+	if reqDTO.ResignationDate != nil && *reqDTO.ResignationDate != "" {
+		parsedDate, err := time.Parse("2006-01-02", *reqDTO.ResignationDate)
+		if err != nil {
+			log.Printf("EmployeeHandler: Error parsing ResignationDate '%s': %v", *reqDTO.ResignationDate, err)
+			response.BadRequest(c, fmt.Sprintf("Invalid ResignationDate format. Please use YYYY-MM-DD. Value: %s", *reqDTO.ResignationDate), err)
+			return
+		}
+		employeeDomain.ResignationDate = &parsedDate
+	}
+
+	if reqDTO.HireDate != nil && *reqDTO.HireDate != "" {
+		parsedDate, err := time.Parse("2006-01-02", *reqDTO.HireDate)
+		if err != nil {
+			log.Printf("EmployeeHandler: Error parsing HireDate '%s': %v", *reqDTO.HireDate, err)
+			response.BadRequest(c, fmt.Sprintf("Invalid HireDate format. Please use YYYY-MM-DD. Value: %s", *reqDTO.HireDate), err)
+			return
+		}
+		employeeDomain.HireDate = &parsedDate
 	}
 
 	if reqDTO.EmploymentStatus != nil {
@@ -88,7 +125,11 @@ func (h *EmployeeHandler) CreateEmployee(c *gin.Context) {
 	createdEmployee, err := h.employeeUseCase.Create(c.Request.Context(), employeeDomain)
 	if err != nil {
 		log.Printf("EmployeeHandler: Error creating employee from use case: %v", err)
-		response.InternalServerError(c, fmt.Errorf("failed to create employee: %w", err))
+		if errors.Is(err, domain.ErrUserAlreadyExists) || errors.Is(err, domain.ErrEmailAlreadyExists) {
+			response.Error(c, http.StatusConflict, "Failed to create employee: user or email already exists.", err)
+		} else {
+			response.InternalServerError(c, fmt.Errorf("failed to create employee: %w", err))
+		}
 		return
 	}
 
@@ -99,7 +140,7 @@ func (h *EmployeeHandler) CreateEmployee(c *gin.Context) {
 	}
 
 	var phone *string
-	if createdEmployee.User != (domain.User{}) && createdEmployee.User.Phone != "" {
+	if createdEmployee.User.Phone != "" {
 		phone = &createdEmployee.User.Phone
 	}
 

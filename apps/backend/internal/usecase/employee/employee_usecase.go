@@ -2,12 +2,14 @@ package employee
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
 	dtoemployee "github.com/SukaMajuu/hris/apps/backend/domain/dto/employee"
 	"github.com/SukaMajuu/hris/apps/backend/domain/interfaces"
+	"gorm.io/gorm"
 )
 
 type EmployeeUseCase struct {
@@ -103,26 +105,46 @@ func (uc *EmployeeUseCase) Create(ctx context.Context, employee *domain.Employee
 	return employee, nil
 }
 
-/*
-// GetByID retrieves a single employee by their unique ID.
-func (uc *EmployeeUseCase) GetByID(ctx context.Context, id uint) (*domain.Employee, error) {
+func (uc *EmployeeUseCase) GetByID(ctx context.Context, id uint) (*dtoemployee.EmployeeResponseDTO, error) {
 	log.Printf("EmployeeUseCase: GetByID called for ID: %d", id)
-	// TODO: Implement business logic for retrieving an employee by ID.
-	// employee, err := uc.employeeRepo.GetByID(ctx, id)
-	// if err != nil {
-	//	 log.Printf("EmployeeUseCase: Error getting employee by ID %d from repository: %v", id, err)
-	//	 return nil, fmt.Errorf("failed to get employee by ID %d: %w", id, err)
-	// }
-	// if employee == nil {
-	// 	log.Printf("EmployeeUseCase: No employee found with ID %d", id)
-	//   // Consider returning a domain-specific error like domain.ErrEmployeeNotFound
-	//	 return nil, fmt.Errorf("employee with ID %d not found", id)
-	// }
-	// log.Printf("EmployeeUseCase: Successfully retrieved employee with ID %d", id)
-	// return employee, nil
-	return nil, fmt.Errorf("GetByID employee not implemented")
+	employee, err := uc.employeeRepo.GetByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			log.Printf("EmployeeUseCase: No employee found with ID %d", id)
+			return nil, domain.ErrEmployeeNotFound
+		}
+		log.Printf("EmployeeUseCase: Error getting employee by ID %d from repository: %v", id, err)
+		return nil, fmt.Errorf("failed to get employee by ID %d: %w", id, err)
+	}
+
+	var genderDTO *string
+	if employee.Gender != nil {
+		genderStr := string(*employee.Gender)
+		genderDTO = &genderStr
+	}
+
+	var phoneDTO *string
+	if employee.User.Phone != "" {
+		phoneDTO = &employee.User.Phone
+	}
+
+	employeeDTO := &dtoemployee.EmployeeResponseDTO{
+		ID:               employee.ID,
+		FirstName:        employee.FirstName,
+		LastName:         employee.LastName,
+		Gender:           genderDTO,
+		Phone:            phoneDTO,
+		BranchID:         employee.BranchID,
+		PositionID:       employee.PositionID,
+		Grade:            employee.Grade,
+		EmploymentStatus: employee.EmploymentStatus,
+	}
+
+	log.Printf("EmployeeUseCase: Successfully retrieved employee with ID %d", id)
+	return employeeDTO, nil
 }
 
+/*
 // Update modifies an existing employee's details.
 // This would typically involve retrieving the employee, validating changes,
 // applying updates, and saving them via the repository.

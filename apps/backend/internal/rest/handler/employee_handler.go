@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
@@ -157,4 +158,26 @@ func (h *EmployeeHandler) CreateEmployee(c *gin.Context) {
 	}
 
 	response.Success(c, http.StatusCreated, "Employee created successfully", respDTO)
+}
+
+func (h *EmployeeHandler) GetEmployeeByID(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		response.BadRequest(c, "Invalid employee ID format", err)
+		return
+	}
+
+	employeeDTO, err := h.employeeUseCase.GetByID(c.Request.Context(), uint(id))
+	if err != nil {
+		if errors.Is(err, domain.ErrEmployeeNotFound) {
+			response.NotFound(c, "Employee not found", err)
+			return
+		}
+		log.Printf("EmployeeHandler: Error getting employee by ID %d from use case: %v", id, err)
+		response.InternalServerError(c, fmt.Errorf("failed to retrieve employee"))
+		return
+	}
+
+	response.Success(c, http.StatusOK, "Employee retrieved successfully", employeeDTO)
 }

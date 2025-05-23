@@ -22,7 +22,7 @@ func (r *PostgresRepository) Create(ctx context.Context, employee *domain.Employ
 
 func (r *PostgresRepository) GetByID(ctx context.Context, id uint) (*domain.Employee, error) {
 	var employee domain.Employee
-	err := r.db.WithContext(ctx).First(&employee, id).Error
+	err := r.db.WithContext(ctx).Preload("User").First(&employee, id).Error
 	if err != nil {
 		return nil, err
 	}

@@ -181,3 +181,128 @@ func (h *EmployeeHandler) GetEmployeeByID(c *gin.Context) {
 
 	response.Success(c, http.StatusOK, "Employee retrieved successfully", employeeDTO)
 }
+
+func (h *EmployeeHandler) UpdateEmployee(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		response.BadRequest(c, "Invalid employee ID format", err)
+		return
+	}
+
+	var reqDTO employeeDTO.UpdateEmployeeRequestDTO
+	if err := c.ShouldBindJSON(&reqDTO); err != nil {
+		log.Printf("EmployeeHandler: Error binding JSON for update: %v", err)
+		response.BadRequest(c, "Invalid request payload", err)
+		return
+	}
+
+	employeeUpdatePayload := &domain.Employee{
+		ID: uint(id),
+	}
+
+	if reqDTO.FirstName != nil {
+		employeeUpdatePayload.FirstName = *reqDTO.FirstName
+	}
+	if reqDTO.LastName != nil {
+		employeeUpdatePayload.LastName = reqDTO.LastName
+	}
+	if reqDTO.PositionID != nil {
+		employeeUpdatePayload.PositionID = *reqDTO.PositionID
+	}
+	if reqDTO.EmploymentStatus != nil {
+		employeeUpdatePayload.EmploymentStatus = *reqDTO.EmploymentStatus
+	}
+	if reqDTO.EmployeeCode != nil {
+		employeeUpdatePayload.EmployeeCode = reqDTO.EmployeeCode
+	}
+	if reqDTO.BranchID != nil {
+		employeeUpdatePayload.BranchID = reqDTO.BranchID
+	}
+	if reqDTO.Gender != nil {
+		employeeUpdatePayload.Gender = reqDTO.Gender
+	}
+	if reqDTO.NIK != nil {
+		employeeUpdatePayload.NIK = reqDTO.NIK
+	}
+	if reqDTO.PlaceOfBirth != nil {
+		employeeUpdatePayload.PlaceOfBirth = reqDTO.PlaceOfBirth
+	}
+	if reqDTO.LastEducation != nil {
+		employeeUpdatePayload.LastEducation = reqDTO.LastEducation
+	}
+	if reqDTO.Grade != nil {
+		employeeUpdatePayload.Grade = reqDTO.Grade
+	}
+	if reqDTO.ContractType != nil {
+		employeeUpdatePayload.ContractType = reqDTO.ContractType
+	}
+	if reqDTO.ResignationDate != nil && *reqDTO.ResignationDate != "" {
+		parsedDate, err := time.Parse("2006-01-02", *reqDTO.ResignationDate)
+		if err != nil {
+			log.Printf("EmployeeHandler: Error parsing ResignationDate '%s': %v", *reqDTO.ResignationDate, err)
+			response.BadRequest(c, fmt.Sprintf("Invalid ResignationDate format. Please use YYYY-MM-DD. Value: %s", *reqDTO.ResignationDate), err)
+			return
+		}
+		employeeUpdatePayload.ResignationDate = &parsedDate
+	}
+	if reqDTO.HireDate != nil && *reqDTO.HireDate != "" {
+		parsedDate, err := time.Parse("2006-01-02", *reqDTO.HireDate)
+		if err != nil {
+			log.Printf("EmployeeHandler: Error parsing HireDate '%s': %v", *reqDTO.HireDate, err)
+			response.BadRequest(c, fmt.Sprintf("Invalid HireDate format. Please use YYYY-MM-DD. Value: %s", *reqDTO.HireDate), err)
+			return
+		}
+		employeeUpdatePayload.HireDate = &parsedDate
+	}
+	if reqDTO.BankName != nil {
+		employeeUpdatePayload.BankName = reqDTO.BankName
+	}
+	if reqDTO.BankAccountNumber != nil {
+		employeeUpdatePayload.BankAccountNumber = reqDTO.BankAccountNumber
+	}
+	if reqDTO.BankAccountHolderName != nil {
+		employeeUpdatePayload.BankAccountHolderName = reqDTO.BankAccountHolderName
+	}
+	if reqDTO.TaxStatus != nil {
+		employeeUpdatePayload.TaxStatus = reqDTO.TaxStatus
+	}
+	if reqDTO.ProfilePhotoURL != nil {
+		employeeUpdatePayload.ProfilePhotoURL = reqDTO.ProfilePhotoURL
+	}
+
+	updatedEmployee, err := h.employeeUseCase.Update(c.Request.Context(), employeeUpdatePayload)
+	if err != nil {
+		if errors.Is(err, domain.ErrEmployeeNotFound) {
+			response.NotFound(c, "Employee not found for update", err)
+			return
+		}
+		log.Printf("EmployeeHandler: Error updating employee from use case: %v", err)
+		response.InternalServerError(c, fmt.Errorf("failed to update employee: %w", err))
+		return
+	}
+
+	var genderDTO *string
+	if updatedEmployee.Gender != nil {
+		genderStr := string(*updatedEmployee.Gender)
+		genderDTO = &genderStr
+	}
+	var phoneDTO *string
+	if updatedEmployee.User.Phone != "" {
+		phoneDTO = &updatedEmployee.User.Phone
+	}
+
+	respDTO := domainEmployeeDTO.EmployeeResponseDTO{
+		ID:               updatedEmployee.ID,
+		FirstName:        updatedEmployee.FirstName,
+		LastName:         updatedEmployee.LastName,
+		Gender:           genderDTO,
+		Phone:            phoneDTO,
+		BranchID:         updatedEmployee.BranchID,
+		PositionID:       updatedEmployee.PositionID,
+		Grade:            updatedEmployee.Grade,
+		EmploymentStatus: updatedEmployee.EmploymentStatus,
+	}
+
+	response.Success(c, http.StatusOK, "Employee updated successfully", respDTO)
+}

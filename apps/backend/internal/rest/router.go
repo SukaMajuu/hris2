@@ -69,7 +69,7 @@ func (r *Router) Setup() *gin.Engine {
 				employee.GET("", r.employeeHandler.ListEmployees)
 				employee.GET("/:id", r.employeeHandler.GetEmployeeByID)
 				employee.POST("", r.employeeHandler.CreateEmployee)
-				// employee.PUT("/:id", r.employeeHandler.UpdateEmployee)
+				employee.PATCH("/:id", r.employeeHandler.UpdateEmployee)
 				// employee.DELETE("/:id", r.employeeHandler.DeleteEmployee)
 			}
 

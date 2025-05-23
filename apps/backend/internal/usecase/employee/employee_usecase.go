@@ -144,7 +144,6 @@ func (uc *EmployeeUseCase) GetByID(ctx context.Context, id uint) (*dtoemployee.E
 	return employeeDTO, nil
 }
 
-/*
 // Update modifies an existing employee's details.
 // This would typically involve retrieving the employee, validating changes,
 // applying updates, and saving them via the repository.
@@ -152,27 +151,94 @@ func (uc *EmployeeUseCase) Update(ctx context.Context, employee *domain.Employee
 	log.Printf("EmployeeUseCase: Update called for employee ID %d: %+v", employee.ID, employee)
 	// TODO: Implement business logic for updating an employee.
 	// Example:
-	// existingEmployee, err := uc.employeeRepo.GetByID(ctx, employee.ID)
-	// if err != nil {
-	//	 return nil, fmt.Errorf("failed to retrieve existing employee for update: %w", err)
-	// }
-	// if existingEmployee == nil {
-	//	 return nil, fmt.Errorf("employee with ID %d not found for update", employee.ID)
-	// }
-	//
-	// // Apply updates from 'employee' to 'existingEmployee' here, after validation.
-	// // For example: existingEmployee.FirstName = employee.FirstName if employee.FirstName is valid and provided.
-	//
-	// updatedEmployee, err := uc.employeeRepo.Update(ctx, existingEmployee)
-	// if err != nil {
-	//	log.Printf("EmployeeUseCase: Error updating employee ID %d in repository: %v", employee.ID, err)
-	//	return nil, fmt.Errorf("failed to update employee ID %d: %w", employee.ID, err)
-	// }
-	// log.Printf("EmployeeUseCase: Successfully updated employee with ID %d", updatedEmployee.ID)
-	// return updatedEmployee, nil
-	return nil, fmt.Errorf("Update employee not implemented")
+	existingEmployee, err := uc.employeeRepo.GetByID(ctx, employee.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve existing employee for update: %w", err)
+	}
+	if existingEmployee == nil {
+		return nil, fmt.Errorf("employee with ID %d not found for update", employee.ID)
+	}
+
+	// Apply updates from 'employee' to 'existingEmployee'
+	// We should only update fields that are actually provided in the 'employee' input
+	// and are not zero-valued, to avoid unintentional overwrites.
+
+	if employee.FirstName != "" {
+		existingEmployee.FirstName = employee.FirstName
+	}
+	if employee.LastName != nil {
+		existingEmployee.LastName = employee.LastName
+	}
+	if employee.EmployeeCode != nil {
+		existingEmployee.EmployeeCode = employee.EmployeeCode
+	}
+	if employee.BranchID != nil {
+		existingEmployee.BranchID = employee.BranchID
+	}
+	if employee.Gender != nil {
+		existingEmployee.Gender = employee.Gender
+	}
+	if employee.NIK != nil {
+		existingEmployee.NIK = employee.NIK
+	}
+	if employee.PlaceOfBirth != nil {
+		existingEmployee.PlaceOfBirth = employee.PlaceOfBirth
+	}
+	if employee.LastEducation != nil {
+		existingEmployee.LastEducation = employee.LastEducation
+	}
+	if employee.Grade != nil {
+		existingEmployee.Grade = employee.Grade
+	}
+	if employee.ContractType != nil {
+		existingEmployee.ContractType = employee.ContractType
+	}
+	if employee.ResignationDate != nil {
+		existingEmployee.ResignationDate = employee.ResignationDate
+	}
+	if employee.HireDate != nil {
+		existingEmployee.HireDate = employee.HireDate
+	}
+	if employee.BankName != nil {
+		existingEmployee.BankName = employee.BankName
+	}
+	if employee.BankAccountNumber != nil {
+		existingEmployee.BankAccountNumber = employee.BankAccountNumber
+	}
+	if employee.BankAccountHolderName != nil {
+		existingEmployee.BankAccountHolderName = employee.BankAccountHolderName
+	}
+	if employee.TaxStatus != nil {
+		existingEmployee.TaxStatus = employee.TaxStatus
+	}
+	if employee.ProfilePhotoURL != nil {
+		existingEmployee.ProfilePhotoURL = employee.ProfilePhotoURL
+	}
+
+	// If employee.PositionID is provided (not zero), update it.
+	// Note: This assumes 0 is not a valid PositionID. If it is,
+	// the input DTO for updates should use *uint for PositionID.
+	if employee.PositionID != 0 {
+		existingEmployee.PositionID = employee.PositionID
+	}
+
+	// Note: User field and its sub-fields (Email, Phone, Password) updates
+	// might need special handling, potentially in a separate auth use case or method.
+	// For now, we are not updating User details here to avoid complexity.
+	// EmploymentStatus is a boolean, so we update it directly if provided in the request.
+	// Assuming the request `employee` struct will have `EmploymentStatus` set if it's intended to be changed.
+	existingEmployee.EmploymentStatus = employee.EmploymentStatus
+
+	err = uc.employeeRepo.Update(ctx, existingEmployee)
+	if err != nil {
+		log.Printf("EmployeeUseCase: Error updating employee ID %d in repository: %v", employee.ID, err)
+		return nil, fmt.Errorf("failed to update employee ID %d: %w", employee.ID, err)
+	}
+	log.Printf("EmployeeUseCase: Successfully updated employee with ID %d", existingEmployee.ID)
+	return existingEmployee, nil
 }
 
+/*
 // Delete removes an employee record by their ID.
 // Business logic might include checks (e.g., cannot delete if user has active responsibilities).
 func (uc *EmployeeUseCase) Delete(ctx context.Context, id uint) error {

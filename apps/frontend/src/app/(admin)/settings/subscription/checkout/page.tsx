@@ -53,6 +53,7 @@ const MOCK_CHECKOUT_DATA: Record<string, PlanCheckoutDetails> = {
 		sizeTiers: [
 			{ id: "std-tier1-50", label: "1-50", maxEmployees: 50 },
 			{ id: "std-tier51-100", label: "51-100", maxEmployees: 100 },
+			{ id: "std-tier101-250", label: "101-250", maxEmployees: 250 },
 		],
 	},
 	premium: {
@@ -76,8 +77,9 @@ const MOCK_CHECKOUT_DATA: Record<string, PlanCheckoutDetails> = {
 			},
 		],
 		sizeTiers: [
-			{ id: "prem-tier1-50", label: "1-50", maxEmployees: 50 },
-			{ id: "prem-tier51-100", label: "51-100", maxEmployees: 100 },
+			{ id: "pre-tier1-50", label: "1-50", maxEmployees: 50 },
+			{ id: "pre-tier51-100", label: "51-100", maxEmployees: 100 },
+			{ id: "pre-tier101-250", label: "101-250", maxEmployees: 250 },
 		],
 	},
 	ultra: {
@@ -101,8 +103,9 @@ const MOCK_CHECKOUT_DATA: Record<string, PlanCheckoutDetails> = {
 			},
 		],
 		sizeTiers: [
-			{ id: "ultra-tier1-50", label: "1-50", maxEmployees: 50 },
-			{ id: "ultra-tier51-100", label: "51-100", maxEmployees: 100 },
+			{ id: "ult-tier1-50", label: "1-50", maxEmployees: 50 },
+			{ id: "ult-tier51-100", label: "51-100", maxEmployees: 100 },
+			{ id: "ult-tier101-250", label: "101-250", maxEmployees: 250 },
 		],
 	},
 };
@@ -114,6 +117,7 @@ const formatCurrency = (value: number) => {
 function CheckoutPageContent() {
 	const searchParams = useSearchParams();
 	const planId = searchParams.get("planId");
+	const sizeTierIdFromQuery = searchParams.get("sizeTierId");
 
 	const [planDetails, setPlanDetails] = useState<PlanCheckoutDetails | null>(
 		null
@@ -133,13 +137,18 @@ function CheckoutPageContent() {
 			if (details.billingOptions && details.billingOptions.length > 0) {
 				setSelectedBillingOptionId(details?.billingOptions[0]?.id);
 			}
-			if (details.sizeTiers && details.sizeTiers.length > 0) {
+			if (
+				sizeTierIdFromQuery &&
+				details.sizeTiers.find((st) => st.id === sizeTierIdFromQuery)
+			) {
+				setSelectedSizeTierId(sizeTierIdFromQuery);
+			} else if (details.sizeTiers && details.sizeTiers.length > 0) {
 				setSelectedSizeTierId(details?.sizeTiers[0]?.id);
 			}
 		} else {
 			setPlanDetails(null);
 		}
-	}, [planId]);
+	}, [planId, sizeTierIdFromQuery]);
 
 	const selectedBillingOption = planDetails?.billingOptions?.find(
 		(bo) => bo.id === selectedBillingOptionId
@@ -362,7 +371,6 @@ function CheckoutPageContent() {
 	);
 }
 
-// Wrap CheckoutPageContent with Suspense because useSearchParams() needs it
 export default function CheckoutPage() {
 	return (
 		<Suspense

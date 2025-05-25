@@ -1,0 +1,284 @@
+"use client";
+
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CheckIcon, ArrowRightIcon } from "lucide-react"; // Using CheckIcon and ArrowRightIcon
+
+interface PricingPlan {
+	id: string;
+	name: string;
+	description: string; // e.g., "Small businesses & startups"
+	features: string[];
+	isCurrentPlan?: boolean;
+	isMostPopular?: boolean;
+}
+
+interface SeatTier {
+	id: string;
+	packageName: string; // e.g., STANDARD, PREMIUM, ULTRA
+	price: string; // e.g., "Rp 15.000"
+	priceFrequency: string; // e.g., "/user/month"
+	employeeRangeDescription: string; // e.g., "This package for 1 until 50 employee"
+	isCurrent?: boolean; // To mark if this specific seat tier is active for the user
+	// We can add more specific fields if needed, like min/max employees numerically
+}
+
+// Assume currentPlanId would be fetched or passed from a context/prop in a real app
+const ADMIN_CURRENT_PLAN_ID = "premium"; // Example: Admin's current plan is Premium
+
+const plansData: PricingPlan[] = [
+	{
+		id: "standard",
+		name: "Standard",
+		description: "Best for small business",
+		features: [
+			"Employee database view & export",
+			"Manual admin attendance",
+			"Clock-in/out (manual + approval)",
+			"Attendance status (on-time/late)",
+			"Leave requests (sick, permit, annual)",
+			"Employee dashboard (working hours, leave, status)",
+		],
+		isCurrentPlan: false,
+	},
+	{
+		id: "premium",
+		name: "Premium",
+		description: "Best for growing business",
+		features: [
+			"Admin dashboard & employee analytics",
+			"GPS-based attendance",
+			"Work schedule & shift management",
+			"Tax & overtime calculation",
+			"Fingerprint integration",
+			"Detailed attendance reports",
+		],
+		isCurrentPlan: ADMIN_CURRENT_PLAN_ID === "premium",
+	},
+	{
+		id: "ultra",
+		name: "Ultra",
+		description: "Small businesses & startups",
+		features: [
+			"Face recognition attendance",
+			"Auto check-out",
+			"Turnover analytics",
+			"Custom HR dashboards",
+			"Custom overtime rules",
+			"HR letters/contracts",
+			"Manage subscription & seat plans",
+		],
+		isMostPopular: true,
+		isCurrentPlan: false,
+	},
+];
+
+const seatTiersData: SeatTier[] = [
+	{
+		id: "standard-50",
+		packageName: "STANDARD",
+		price: "Rp 15.000",
+		priceFrequency: "/user/month",
+		employeeRangeDescription: "This package for 1 until 50 employee",
+		isCurrent: false, // Example
+	},
+	{
+		id: "premium-100",
+		packageName: "PREMIUM",
+		price: "Rp 12.000", // Note: Price from image is different from previous Premium plan
+		priceFrequency: "/user/month",
+		employeeRangeDescription: "This package for 51 until 100 employee",
+		isCurrent: true, // Example: This is the admin's current seat tier
+	},
+	{
+		id: "ultra-50",
+		packageName: "ULTRA",
+		price: "Rp 19.000", // Note: Price from image is different
+		priceFrequency: "/user/month",
+		employeeRangeDescription: "This package for 1 until 50 employee", // Image shows same range for ultra and standard
+		isCurrent: false,
+	},
+	// The top row in the image seems to be a template/placeholder, so I'm focusing on the bottom 3 concrete examples.
+	// If the top row represents distinct, selectable options, we can add them too.
+];
+
+const PlanCardComponent: React.FC<{ plan: PricingPlan }> = ({ plan }) => {
+	const cardClasses = `
+    rounded-xl p-6 flex flex-col h-full shadow-lg
+    ${
+		plan.isCurrentPlan
+			? "border-2 border-pink-500"
+			: "border border-slate-200 dark:border-slate-700"
+	}
+  `;
+	const textColor = "text-slate-700 dark:text-slate-300";
+
+	return (
+		<Card className={cardClasses}>
+			{plan.isMostPopular && (
+				<div
+					className={`absolute top-0 right-6 -mt-3 bg-red-500 text-white text-xs font-semibold px-3 py-1 rounded-full shadow-md`}
+				>
+					MOST POPULAR
+				</div>
+			)}
+			<CardHeader className="p-0">
+				<CardTitle
+					className={`text-4xl font-bold text-slate-900 dark:text-slate-100`}
+				>
+					{plan.name}
+				</CardTitle>
+				<p className={`text-sm ${textColor}`}>{plan.description}</p>
+			</CardHeader>
+			<CardContent className="p-0 flex-grow">
+				<ul className="space-y-4 border-t border-slate-200 dark:border-slate-700 pt-4">
+					{plan.features.map((feature, index) => (
+						<li
+							key={index}
+							className={`flex items-center justify-between gap-2 ${textColor}`}
+						>
+							<span>{feature}</span>
+							<CheckIcon className="w-4 h-4 bg-green-500 text-white rounded-full mr-2 flex-shrink-0 mt-0.5" />
+						</li>
+					))}
+				</ul>
+			</CardContent>
+			<div className="mt-6">
+				<Button
+					className={`w-full font-semibold py-3 text-white ${
+						plan.isCurrentPlan
+							? "opacity-50 cursor-not-allowed bg-slate-400 hover:bg-slate-400"
+							: "bg-pink-600 hover:bg-pink-700"
+					}`}
+				>
+					{plan.isCurrentPlan ? "Current Plan" : "Select a Package"}
+					{!plan.isCurrentPlan && (
+						<ArrowRightIcon className="ml-2 w-4 h-4" />
+					)}
+				</Button>
+			</div>
+		</Card>
+	);
+};
+
+const SeatTierCardComponent: React.FC<{ tier: SeatTier }> = ({ tier }) => {
+	const cardClasses = `
+    rounded-lg p-6 flex flex-col h-full shadow-md bg-slate-50 dark:bg-slate-800
+    border border-slate-200 dark:border-slate-700
+    ${tier.isCurrent ? "ring-2 ring-pink-500" : ""}
+  `;
+
+	return (
+		<Card className={cardClasses}>
+			<CardHeader className="p-0 mb-3">
+				<p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+					{tier.packageName}
+				</p>
+				<div className="mt-1 mb-1">
+					<span className="text-3xl font-bold text-slate-700 dark:text-slate-200">
+						{tier.price}
+					</span>
+					<span className="text-xs ml-1 text-slate-500 dark:text-slate-400">
+						{tier.priceFrequency}
+					</span>
+				</div>
+				<p className="text-sm text-slate-600 dark:text-slate-300">
+					{tier.employeeRangeDescription}
+				</p>
+			</CardHeader>
+			{/* CardContent is not explicitly shown in the wireframe for seat tiers, but can be added if needed */}
+			<div className="mt-auto">
+				<Button
+					className={`w-full font-semibold py-2.5 text-sm
+                    ${
+						tier.isCurrent
+							? "bg-slate-300 dark:bg-slate-600 text-slate-500 dark:text-slate-400 cursor-not-allowed"
+							: "bg-slate-600 hover:bg-slate-700 dark:bg-slate-500 dark:hover:bg-slate-600 text-white"
+					}`}
+					disabled={tier.isCurrent}
+				>
+					{tier.isCurrent ? "Current Paket" : "Upgrade Paket"}
+					{!tier.isCurrent && (
+						<ArrowRightIcon className="ml-1.5 w-4 h-4" />
+					)}
+				</Button>
+			</div>
+		</Card>
+	);
+};
+
+export default function SubscriptionPage() {
+	const [activeView, setActiveView] = useState<"package" | "seat">("package");
+
+	return (
+		<div className="max-w-5xl mx-auto">
+			<header className="text-center mb-12">
+				<h1 className="text-4xl font-extrabold text-slate-900 dark:text-slate-100 sm:text-5xl">
+					HRIS Pricing Plans
+				</h1>
+				<p className="mt-4 text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
+					Choose the plan that best suits your business! This HRIS
+					offers both subscription and pay-as-you-go payment options,
+					available in the following packages:
+				</p>
+			</header>
+
+			<div className="flex justify-center mb-10">
+				<div className="inline-flex bg-slate-200 dark:bg-slate-700 rounded-lg p-1">
+					<Button
+						variant={activeView === "package" ? "default" : "ghost"}
+						onClick={() => setActiveView("package")}
+						className={`px-6 py-2 rounded-md text-sm font-medium
+                        ${
+							activeView === "package"
+								? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow"
+								: "text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600"
+						}`}
+					>
+						Package
+					</Button>
+					<Button
+						variant={activeView === "seat" ? "default" : "ghost"}
+						onClick={() => setActiveView("seat")}
+						className={`px-6 py-2 rounded-md text-sm font-medium
+                        ${
+							activeView === "seat"
+								? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow"
+								: "text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600"
+						}`}
+					>
+						Seat
+					</Button>
+				</div>
+			</div>
+
+			{activeView === "package" && (
+				<div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
+					{plansData.map((plan) => (
+						<div
+							key={plan.id}
+							className={
+								plan.isMostPopular
+									? "md:col-span-1"
+									: "md:col-span-1"
+							}
+						>
+							{" "}
+							{/* Adjust span for layout if needed */}
+							<PlanCardComponent plan={plan} />
+						</div>
+					))}
+				</div>
+			)}
+
+			{activeView === "seat" && (
+				<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+					{seatTiersData.map((tier) => (
+						<SeatTierCardComponent key={tier.id} tier={tier} />
+					))}
+				</div>
+			)}
+		</div>
+	);
+}

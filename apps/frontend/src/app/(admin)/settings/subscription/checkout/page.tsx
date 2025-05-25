@@ -38,14 +38,14 @@ const MOCK_CHECKOUT_DATA: Record<string, PlanCheckoutDetails> = {
 			{
 				id: "std-single",
 				label: "Single Payment",
-				pricePerUser: 15000,
+				pricePerUser: 16000,
 				type: "single",
 				suffix: "/ User",
 			},
 			{
 				id: "std-monthly",
 				label: "Monthly",
-				pricePerUser: 16000,
+				pricePerUser: 15000,
 				type: "monthly",
 				suffix: "/ User",
 			},
@@ -63,14 +63,14 @@ const MOCK_CHECKOUT_DATA: Record<string, PlanCheckoutDetails> = {
 			{
 				id: "prem-single",
 				label: "Single Payment",
-				pricePerUser: 17000,
+				pricePerUser: 18000,
 				type: "single",
 				suffix: "/ User",
 			},
 			{
 				id: "prem-monthly",
 				label: "Monthly",
-				pricePerUser: 18000,
+				pricePerUser: 17000,
 				type: "monthly",
 				suffix: "/ User",
 			},
@@ -88,14 +88,14 @@ const MOCK_CHECKOUT_DATA: Record<string, PlanCheckoutDetails> = {
 			{
 				id: "ultra-single",
 				label: "Single Payment",
-				pricePerUser: 20000,
+				pricePerUser: 22000,
 				type: "single",
 				suffix: "/ User",
 			},
 			{
 				id: "ultra-monthly",
 				label: "Monthly",
-				pricePerUser: 22000,
+				pricePerUser: 20000,
 				type: "monthly",
 				suffix: "/ User",
 			},
@@ -135,8 +135,6 @@ function CheckoutPageContent() {
 			}
 			if (details.sizeTiers && details.sizeTiers.length > 0) {
 				setSelectedSizeTierId(details?.sizeTiers[0]?.id);
-				// Optionally, set initial numberOfEmployees based on the first size tier if needed
-				// setNumberOfEmployees(1); // Or a min value for that tier
 			}
 		} else {
 			setPlanDetails(null);

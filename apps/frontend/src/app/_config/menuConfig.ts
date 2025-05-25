@@ -4,7 +4,6 @@ import {
   Clock,
   // Calendar,
   User,
-  HelpCircle,
   Settings,
   type LucideIcon,
   LogOut,
@@ -85,15 +84,8 @@ export const menuItems: MenuItemConfig[] = [
     type: "main"
   },
   {
-    title: "Support",
-    href: "#",
-    icon: HelpCircle,
-    roles: [ROLES.admin, ROLES.user],
-    type: "footer"
-  },
-  {
     title: "Settings",
-    href: "#",
+    href: "/settings",
     icon: Settings,
     roles: [ROLES.admin, ROLES.user],
     type: "footer"

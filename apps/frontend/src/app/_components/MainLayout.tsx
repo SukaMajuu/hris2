@@ -17,6 +17,7 @@ import { useAuthStore } from '@/stores/auth.store';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Bell, ChevronDown } from 'lucide-react';
 import { useProactiveTokenRefresh } from '@/hooks/useProactiveTokenRefresh';
+import { cn } from '@/lib/utils';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -157,16 +158,17 @@ function NavContent({ menuItems, footerItems, pathname }: NavContentProps) {
   );
 }
 
+const hideSidebarForPaths = [
+    "/settings/subscription",
+    "/settings/subscription/checkout",
+  ];
+
 export default function MainLayout({ children }: MainLayoutProps) {
   const pathname = usePathname();
   const { user } = useAuthStore();
   useProactiveTokenRefresh();
   const role = (user?.role as Role) || 'admin';
 
-  const hideSidebarForPaths = [
-    "/settings/subscription",
-    "/settings/subscription/checkout",
-  ];
   const shouldHideSidebar = hideSidebarForPaths.includes(pathname);
 
   const getPageTitle = () => {
@@ -206,7 +208,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
           </>
         )}
 
-        <SidebarInset className={`flex h-full min-h-0 w-full flex-1 flex-col overflow-y-auto ${shouldHideSidebar ? 'ml-0' : ''}`}>
+        <SidebarInset className={cn('flex h-full min-h-0 w-full flex-1 flex-col overflow-y-auto', { 'ml-0': shouldHideSidebar })}>
           <header className='flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 py-4 sticky top-0 z-10'>
             <div className='flex items-center gap-3'>
               <SidebarTrigger className='text-gray-600 hover:bg-primary hover:text-white hover:cursor-pointer' />

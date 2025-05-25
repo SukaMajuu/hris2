@@ -153,7 +153,6 @@ function CheckoutPageContent() {
 	const taxAmount = subtotal * taxRate;
 	const totalAtRenewal = subtotal + taxAmount;
 
-	// Robust check for loading/error states
 	if (!planId) {
 		return (
 			<div className="container mx-auto p-8 text-center">
@@ -169,7 +168,6 @@ function CheckoutPageContent() {
 		);
 	}
 	if (!planDetails && planId && MOCK_CHECKOUT_DATA[planId]) {
-		// Plan ID is valid, but details are not yet loaded (initial render or after planId change)
 		return (
 			<div className="container mx-auto p-8 text-center">
 				Loading plan details...
@@ -177,7 +175,6 @@ function CheckoutPageContent() {
 		);
 	}
 	if (!planDetails) {
-		// Plan ID is invalid and details could not be set
 		return (
 			<div className="container mx-auto p-8 text-center">
 				Invalid plan selected.{" "}
@@ -192,7 +189,6 @@ function CheckoutPageContent() {
 		);
 	}
 
-	// At this point, planDetails is guaranteed to be non-null
 	return (
 		<div className="min-h-screen bg-slate-100 dark:bg-slate-950 p-4 md:p-8">
 			<div className="max-w-5xl mx-auto grid md:grid-cols-3 gap-8 items-start">

@@ -3,29 +3,27 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckIcon, ArrowRightIcon, ArrowLeftIcon } from "lucide-react"; // Using CheckIcon and ArrowRightIcon
-import Link from "next/link"; // Import Link
+import { CheckIcon, ArrowRightIcon, ArrowLeftIcon } from "lucide-react";
+import Link from "next/link";
 
 interface PricingPlan {
 	id: string;
 	name: string;
-	description: string; // e.g., "Small businesses & startups"
+	description: string;
 	features: string[];
 	isCurrentPlan?: boolean;
 }
 
 interface SeatTier {
 	id: string;
-	packageName: string; // e.g., STANDARD, PREMIUM, ULTRA
-	price: string; // e.g., "Rp 15.000"
-	priceFrequency: string; // e.g., "/user/month"
-	employeeRangeDescription: string; // e.g., "This package for 1 until 50 employee"
-	isCurrent?: boolean; // To mark if this specific seat tier is active for the user
-	// We can add more specific fields if needed, like min/max employees numerically
+	packageName: string;
+	price: string;
+	priceFrequency: string;
+	employeeRangeDescription: string;
+	isCurrent?: boolean;
 }
 
-// Assume currentPlanId would be fetched or passed from a context/prop in a real app
-const ADMIN_CURRENT_PLAN_ID = "premium"; // Example: Admin's current plan is Premium
+const ADMIN_CURRENT_PLAN_ID = "premium";
 
 const plansData: PricingPlan[] = [
 	{
@@ -80,26 +78,24 @@ const seatTiersData: SeatTier[] = [
 		price: "Rp 15.000",
 		priceFrequency: "/user/month",
 		employeeRangeDescription: "This package for 1 until 50 employee",
-		isCurrent: false, // Example
+		isCurrent: false,
 	},
 	{
 		id: "premium-100",
 		packageName: "PREMIUM",
-		price: "Rp 12.000", // Note: Price from image is different from previous Premium plan
+		price: "Rp 12.000",
 		priceFrequency: "/user/month",
 		employeeRangeDescription: "This package for 51 until 100 employee",
-		isCurrent: true, // Example: This is the admin's current seat tier
+		isCurrent: true,
 	},
 	{
 		id: "ultra-50",
 		packageName: "ULTRA",
-		price: "Rp 19.000", // Note: Price from image is different
+		price: "Rp 19.000",
 		priceFrequency: "/user/month",
-		employeeRangeDescription: "This package for 1 until 50 employee", // Image shows same range for ultra and standard
+		employeeRangeDescription: "This package for 1 until 50 employee",
 		isCurrent: false,
 	},
-	// The top row in the image seems to be a template/placeholder, so I'm focusing on the bottom 3 concrete examples.
-	// If the top row represents distinct, selectable options, we can add them too.
 ];
 
 const PlanCardComponent: React.FC<{ plan: PricingPlan }> = ({ plan }) => {
@@ -186,7 +182,6 @@ const SeatTierCardComponent: React.FC<{ tier: SeatTier }> = ({ tier }) => {
 					{tier.employeeRangeDescription}
 				</p>
 			</CardHeader>
-			{/* CardContent is not explicitly shown in the wireframe for seat tiers, but can be added if needed */}
 			<div className="mt-auto">
 				<Button
 					className={`w-full font-semibold py-2.5 text-sm

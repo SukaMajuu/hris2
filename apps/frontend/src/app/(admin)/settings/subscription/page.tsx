@@ -3,7 +3,8 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckIcon, ArrowRightIcon } from "lucide-react"; // Using CheckIcon and ArrowRightIcon
+import { CheckIcon, ArrowRightIcon, ArrowLeftIcon } from "lucide-react"; // Using CheckIcon and ArrowRightIcon
+import Link from "next/link"; // Import Link
 
 interface PricingPlan {
 	id: string;
@@ -11,7 +12,6 @@ interface PricingPlan {
 	description: string; // e.g., "Small businesses & startups"
 	features: string[];
 	isCurrentPlan?: boolean;
-	isMostPopular?: boolean;
 }
 
 interface SeatTier {
@@ -69,7 +69,6 @@ const plansData: PricingPlan[] = [
 			"HR letters/contracts",
 			"Manage subscription & seat plans",
 		],
-		isMostPopular: true,
 		isCurrentPlan: false,
 	},
 ];
@@ -105,7 +104,7 @@ const seatTiersData: SeatTier[] = [
 
 const PlanCardComponent: React.FC<{ plan: PricingPlan }> = ({ plan }) => {
 	const cardClasses = `
-    rounded-xl p-6 flex flex-col h-full shadow-lg
+    rounded-xl p-6 flex flex-col h-full shadow-lg relative
     ${
 		plan.isCurrentPlan
 			? "border-2 border-pink-500"
@@ -116,13 +115,6 @@ const PlanCardComponent: React.FC<{ plan: PricingPlan }> = ({ plan }) => {
 
 	return (
 		<Card className={cardClasses}>
-			{plan.isMostPopular && (
-				<div
-					className={`absolute top-0 right-6 -mt-3 bg-red-500 text-white text-xs font-semibold px-3 py-1 rounded-full shadow-md`}
-				>
-					MOST POPULAR
-				</div>
-			)}
 			<CardHeader className="p-0">
 				<CardTitle
 					className={`text-4xl font-bold text-slate-900 dark:text-slate-100`}
@@ -132,31 +124,38 @@ const PlanCardComponent: React.FC<{ plan: PricingPlan }> = ({ plan }) => {
 				<p className={`text-sm ${textColor}`}>{plan.description}</p>
 			</CardHeader>
 			<CardContent className="p-0 flex-grow">
-				<ul className="space-y-4 border-t border-slate-200 dark:border-slate-700 pt-4">
+				<ul className="space-y-4 border-t border-slate-200 dark:border-slate-700 pt-4 mt-4">
 					{plan.features.map((feature, index) => (
 						<li
 							key={index}
 							className={`flex items-center justify-between gap-2 ${textColor}`}
 						>
 							<span>{feature}</span>
-							<CheckIcon className="w-4 h-4 bg-green-500 text-white rounded-full mr-2 flex-shrink-0 mt-0.5" />
+							<CheckIcon className="w-4 h-4 bg-green-500 text-white rounded-full p-0.5 flex-shrink-0" />
 						</li>
 					))}
 				</ul>
 			</CardContent>
 			<div className="mt-6">
-				<Button
-					className={`w-full font-semibold py-3 text-white ${
-						plan.isCurrentPlan
-							? "opacity-50 cursor-not-allowed bg-slate-400 hover:bg-slate-400"
-							: "bg-pink-600 hover:bg-pink-700"
-					}`}
-				>
-					{plan.isCurrentPlan ? "Current Plan" : "Select a Package"}
-					{!plan.isCurrentPlan && (
-						<ArrowRightIcon className="ml-2 w-4 h-4" />
-					)}
-				</Button>
+				{plan.isCurrentPlan ? (
+					<Button
+						disabled
+						className={`w-full font-semibold py-3 text-white opacity-50 cursor-not-allowed bg-slate-400 hover:bg-slate-400`}
+					>
+						Current Plan
+					</Button>
+				) : (
+					<Link
+						href={`/settings/subscription/checkout?planId=${plan.id}`}
+					>
+						<Button
+							className={`w-full font-semibold py-3 text-white bg-pink-600 hover:bg-pink-700`}
+						>
+							Select a Package
+							<ArrowRightIcon className="ml-2 w-4 h-4" />
+						</Button>
+					</Link>
+				)}
 			</div>
 		</Card>
 	);
@@ -213,6 +212,15 @@ export default function SubscriptionPage() {
 
 	return (
 		<div className="max-w-5xl mx-auto">
+			<div className="mb-8">
+				<Link
+					href="/settings"
+					className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center"
+				>
+					<ArrowLeftIcon className="w-4 h-4 mr-1" />
+					Back to Settings
+				</Link>
+			</div>
 			<header className="text-center mb-12">
 				<h1 className="text-4xl font-extrabold text-slate-900 dark:text-slate-100 sm:text-5xl">
 					HRIS Pricing Plans
@@ -230,11 +238,11 @@ export default function SubscriptionPage() {
 						variant={activeView === "package" ? "default" : "ghost"}
 						onClick={() => setActiveView("package")}
 						className={`px-6 py-2 rounded-md text-sm font-medium
-                        ${
-							activeView === "package"
-								? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow"
-								: "text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600"
-						}`}
+							${
+								activeView === "package"
+									? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow"
+									: "text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600"
+							}`}
 					>
 						Package
 					</Button>
@@ -242,11 +250,11 @@ export default function SubscriptionPage() {
 						variant={activeView === "seat" ? "default" : "ghost"}
 						onClick={() => setActiveView("seat")}
 						className={`px-6 py-2 rounded-md text-sm font-medium
-                        ${
-							activeView === "seat"
-								? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow"
-								: "text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600"
-						}`}
+							${
+								activeView === "seat"
+									? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow"
+									: "text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600"
+							}`}
 					>
 						Seat
 					</Button>
@@ -256,16 +264,7 @@ export default function SubscriptionPage() {
 			{activeView === "package" && (
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
 					{plansData.map((plan) => (
-						<div
-							key={plan.id}
-							className={
-								plan.isMostPopular
-									? "md:col-span-1"
-									: "md:col-span-1"
-							}
-						>
-							{" "}
-							{/* Adjust span for layout if needed */}
+						<div key={plan.id} className="md:col-span-1">
 							<PlanCardComponent plan={plan} />
 						</div>
 					))}

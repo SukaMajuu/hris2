@@ -1,18 +1,50 @@
-"use client";
+'use client';
 
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import React, { useEffect } from 'react';
+import Header from '../components/landingPage/header';
+import Hero from '../components/landingPage/hero';
+import Features from '../components/landingPage/features';
+import Benefits from '../components/landingPage/benefits';
+import Testimonials from '../components/landingPage/testimoni';
+import Pricing from '../components/landingPage/pricing';
+import Contact from '../components/landingPage/contact';
+import Footer from '../components/landingPage/footer';
 
-export default function Home() {
-	const router = useRouter();
+const LandingPage: React.FC = () => {
+  useEffect(() => {
+    document.title = 'HRFlow | Modern HR Management System';
+    const handler = (e: Event) => {
+      e.preventDefault();
+      const anchor = e.currentTarget as HTMLAnchorElement;
+      const target = document.querySelector(anchor.getAttribute('href') || '');
+      if (target) {
+        window.scrollTo({
+          top: target.getBoundingClientRect().top + window.scrollY - 80,
+          behavior: 'smooth',
+        });
+      }
+    };
+    const anchors = document.querySelectorAll('a[href^="#"]');
+    anchors.forEach((anchor) => anchor.addEventListener('click', handler));
+    return () => {
+      anchors.forEach((anchor) => anchor.removeEventListener('click', handler));
+    };
+  }, []);
 
-	useEffect(() => {
-		router.replace("/login");
-	}, [router]);
+  return (
+    <div className='min-h-screen bg-white font-sans'>
+      <Header />
+      <main>
+        <Hero />
+        <Features />
+        <Benefits />
+        <Testimonials />
+        <Pricing />
+        <Contact />
+      </main>
+      <Footer />
+    </div>
+  );
+};
 
-	return (
-		<div className="flex flex-col items-center justify-center h-screen">
-			<h1 className="typography-h1 text-accent">Hello, World!</h1>
-		</div>
-	);
-}
+export default LandingPage;

@@ -4,32 +4,18 @@ import (
 	"log"
 
 	"github.com/SukaMajuu/hris/apps/backend/internal/repository/auth"
+	"github.com/SukaMajuu/hris/apps/backend/internal/repository/employee"
+	"github.com/SukaMajuu/hris/apps/backend/internal/repository/location"
 	"github.com/SukaMajuu/hris/apps/backend/internal/rest"
 	authUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/auth"
+	employeeUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/employee"
+	locationUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/location"
 	"github.com/SukaMajuu/hris/apps/backend/pkg/config"
 	"github.com/SukaMajuu/hris/apps/backend/pkg/database"
+	"github.com/SukaMajuu/hris/apps/backend/pkg/jwt"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
-
-// @title           HRIS API
-// @version         1.0
-// @description     Human Resource Information System API
-// @termsOfService  http://swagger.io/terms/
-
-// @contact.name   API Support
-// @contact.url    http://www.swagger.io/support
-// @contact.email  support@swagger.io
-
-// @license.name  Apache 2.0
-// @license.url   http://www.apache.org/licenses/LICENSE-2.0.html
-
-// @host      localhost:8080
-// @BasePath  /v1
-
-// @securityDefinitions.apikey ApiKeyAuth
-// @in header
-// @name Authorization
 
 func main() {
 	cfg, err := config.Load()
@@ -42,18 +28,35 @@ func main() {
 		log.Fatal("Failed to connect to database:", err)
 	}
 
-	authRepo, err := auth.NewFirebaseRepository(db, cfg.Firebase.CredentialsFile)
+	authRepo, err := auth.NewSupabaseRepository(db, cfg.Supabase.URL, cfg.Supabase.Key)
 	if err != nil {
-		log.Fatal("Failed to initialize Firebase:", err)
+		log.Fatalf("Failed to initialize Supabase auth repository: %v", err)
 	}
 
-	authUseCase := authUseCase.NewAuthUseCase(authRepo)
+	employeeRepo := employee.NewPostgresRepository(db)
+	locationRepo := location.NewLocationRepository(db)
 
-	router := rest.NewRouter(authUseCase)
+	jwtService := jwt.NewJWTService(cfg)
+
+	authUseCase := authUseCase.NewAuthUseCase(
+		authRepo,
+		employeeRepo,
+		jwtService,
+		cfg,
+	)
+
+	employeeUseCase := employeeUseCase.NewEmployeeUseCase(
+		employeeRepo,
+		authRepo,
+	)
+
+	locationUseCase := locationUseCase.NewLocationUseCase(locationRepo)
+
+	router := rest.NewRouter(authUseCase, employeeUseCase, locationUseCase)
 
 	ginRouter := router.Setup()
 
-	ginRouter.StaticFile("/swagger.yaml", "./docs/swagger.yaml")
+	ginRouter.StaticFile("/swagger.yaml", "../../docs/api/swagger.yaml")
 
 	url := ginSwagger.URL("/swagger.yaml")
 	ginRouter.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, url))

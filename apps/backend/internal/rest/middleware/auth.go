@@ -5,24 +5,21 @@ import (
 	"strings"
 
 	"github.com/SukaMajuu/hris/apps/backend/internal/usecase/auth"
+	"github.com/SukaMajuu/hris/apps/backend/internal/usecase/employee"
 	"github.com/gin-gonic/gin"
 )
 
 type AuthMiddleware struct {
 	authUseCase *auth.AuthUseCase
+	employeeUseCase *employee.EmployeeUseCase
 }
 
-func NewAuthMiddleware(authUseCase *auth.AuthUseCase) *AuthMiddleware {
-	return &AuthMiddleware{authUseCase: authUseCase}
+func NewAuthMiddleware(authUseCase *auth.AuthUseCase, employeeUseCase *employee.EmployeeUseCase) *AuthMiddleware {
+	return &AuthMiddleware{authUseCase: authUseCase, employeeUseCase: employeeUseCase}
 }
 
 func (m *AuthMiddleware) Authenticate() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// TODO: Implement authentication middleware
-		// - Extract token from Authorization header
-		// - Verify token
-		// - Get user from token
-		// - Set user in context
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is required"})
@@ -30,7 +27,6 @@ func (m *AuthMiddleware) Authenticate() gin.HandlerFunc {
 			return
 		}
 
-		// Extract token from "Bearer <token>"
 		parts := strings.Split(authHeader, " ")
 		if len(parts) != 2 || parts[0] != "Bearer" {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authorization header format"})
@@ -38,40 +34,54 @@ func (m *AuthMiddleware) Authenticate() gin.HandlerFunc {
 			return
 		}
 
-		// token := parts[1]
-		// TODO: Verify token and get user
-		// user, err := m.authUseCase.VerifyToken(c.Request.Context(), token)
-		// if err != nil {
-		//     c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
-		//     c.Abort()
-		//     return
-		// }
+		accessToken := parts[1]
 
-		// Set user in context
-		// c.Set("user", user)
-		c.Next()
-	}
-}
+		userID, role, err := m.authUseCase.VerifyAccessToken(c.Request.Context(), accessToken)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
+			c.Abort()
+			return
+		}
 
-func (m *AuthMiddleware) RequireRole(roles ...string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		// TODO: Implement role-based access control
-		// - Get user from context
-		// - Check if user has required role
-		// user, exists := c.Get("user")
-		// if !exists {
-		//     c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found in context"})
-		//     c.Abort()
-		//     return
-		// }
-
-		// TODO: Check user roles
-		// if !hasRequiredRole(user, roles...) {
-		//     c.JSON(http.StatusForbidden, gin.H{"error": "Insufficient permissions"})
-		//     c.Abort()
-		//     return
-		// }
+		c.Set("userID", userID)
+		c.Set("userRole", role)
 
 		c.Next()
 	}
 }
+
+// func (m *AuthMiddleware) RequireRole(roles ...string) gin.HandlerFunc {
+// 	return func(c *gin.Context) {
+// 		userIDCtx, exists := c.Get("userID")
+// 		if !exists {
+// 			response.Unauthorized(c, "User ID not found in context", domain.ErrInvalidToken)
+// 			return
+// 		}
+// 		userID, ok := userIDCtx.(uint)
+// 		if !ok {
+// 			response.InternalServerError(c, fmt.Errorf("invalid user ID type in context"))
+// 			return
+// 		}
+
+// 		user, err := m.employeeUseCase.GetEmployeeByID(c.Request.Context(), userID)
+// 		if err != nil {
+// 			response.InternalServerError(c, err)
+// 			return
+// 		}
+
+// 		hasRole := false
+// 		for _, requiredRole := range roles {
+// 			if user.Role == requiredRole {
+// 				hasRole = true
+// 				break
+// 			}
+// 		}
+
+// 		if !hasRole {
+// 			response.Forbidden(c, "User does not have the required role", domain.ErrForbidden)
+// 			return
+// 		}
+
+// 		c.Next()
+// 	}
+// }

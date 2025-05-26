@@ -4,7 +4,28 @@ A modern, full-stack human resource management system built with Next.js and Go,
 
 ## Overview
 
-(soon)
+HRIS (Human Resource Information System) is a web-based application designed to streamline HR team activities and tasks. The application focuses on core features including employee data management, document handling, attendance tracking, overtime management, and a subscription-based payment system.
+
+### Project Description
+
+The project involves developing a web application to facilitate HR team operations. The system will manage:
+
+-   Employee data and employment records
+-   Legal document management
+-   Attendance and time tracking
+-   Overtime management
+-   Subscription-based features with Xendit payment gateway integration
+
+### Purpose and Objectives
+
+The application aims to:
+
+-   Provide a comprehensive web-based HR management solution
+-   Implement specified technical requirements
+-   Offer efficient employee data management
+-   Handle legal document processing
+-   Manage attendance and overtime tracking
+-   Integrate subscription-based features with secure payment processing
 
 ## Technology Stack
 
@@ -26,7 +47,7 @@ A modern, full-stack human resource management system built with Next.js and Go,
 
 -   **Containerization**: Docker, Docker Compose
 -   **CI/CD**: GitHub Actions
--   **Cloud**: Microsoft Azure (App Service, Container Registry)
+-   **Cloud**: Microsoft Azure (Container Apps for frontend, App Service for backend, Container Registry)
 -   **Infrastructure as Code**: Azure CLI, ARM templates
 
 ## Getting Started
@@ -65,5 +86,9 @@ hris/
 
 The API documentation is available in Swagger format at swagger.yaml. When the application is running, you can access the interactive API documentation at:
 
--   Development: http://localhost:8080/api/documentation
--   Production: https://hris-backend-sukamaju123.azurewebsites.net/api/documentation
+-   Development: http://localhost:8080/swagger/index.html
+-   Production: (soon)
+
+## Architecture System Diagram
+
+![Architecture System Diagram](./docs/assets/arsitektur-diagram.png)

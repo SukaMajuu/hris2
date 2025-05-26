@@ -7,15 +7,17 @@ import (
 )
 
 type User struct {
-	ID            uint         `gorm:"primaryKey"`
-	FirebaseUID   string       `gorm:"type:varchar(128);unique;not null"`
-	Email         string       `gorm:"type:varchar(255);unique"`
-	Password      string       `gorm:"-"`
-	GoogleID      *string      `gorm:"type:varchar(255);unique"`
-	EmployeeID    *string      `gorm:"type:varchar(50);unique"`
-	Phone         string       `gorm:"type:varchar(20);unique"`
-	Role          enums.UserRole    `gorm:"type:user_role;not null"`
-	LastLoginAt   *time.Time   `gorm:"type:timestamp"`
-	CreatedAt     time.Time    `gorm:"autoCreateTime"`
-	UpdatedAt     time.Time    `gorm:"autoUpdateTime"`
+	ID          uint           `gorm:"primaryKey"`
+	SupabaseUID *string        `gorm:"column:supabase_uid;type:varchar(36);unique"`
+	Email       string         `gorm:"type:varchar(255);unique"`
+	Password    string         `gorm:"-"`
+	Phone       string         `gorm:"type:varchar(20);unique;default:null"`
+	Role        enums.UserRole `gorm:"type:user_role;not null;default:user"`
+	LastLoginAt *time.Time     `gorm:"type:timestamp"`
+	CreatedAt   time.Time      `gorm:"autoCreateTime"`
+	UpdatedAt   time.Time      `gorm:"autoUpdateTime"`
+}
+
+func (a *User) TableName() string {
+	return "users"
 }

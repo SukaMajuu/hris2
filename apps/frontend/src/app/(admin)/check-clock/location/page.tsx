@@ -59,7 +59,7 @@ export default function LocationPage() {
             },
             {
                 header: "Location Name",
-                accessorKey: "nama",
+                accessorKey: "locationName",
             },
             {
                 header: "Address Details",
@@ -111,7 +111,7 @@ export default function LocationPage() {
         data: locations,
         columns,
         state: {
-            columnFilters: [{id: "nama", value: locationNameFilter}],
+            columnFilters: [{id: "locationName", value: locationNameFilter}],
             pagination,
         },
         onColumnFiltersChange: (updater) => {
@@ -119,7 +119,7 @@ export default function LocationPage() {
                 typeof updater === "function"
                     ? updater(table.getState().columnFilters)
                     : updater;
-            const nameFilterUpdate = newFilters.find((f) => f.id === "nama");
+            const nameFilterUpdate = newFilters.find((f) => f.id === "locationName");
             setLocationNameFilter((nameFilterUpdate?.value as string) || "");
         },
         onPaginationChange: setPagination,
@@ -159,7 +159,7 @@ export default function LocationPage() {
                                             event.target.value;
                                         setLocationNameFilter(newNameFilter);
                                         table
-                                            .getColumn("nama")
+                                            .getColumn("locationName")
                                             ?.setFilterValue(newNameFilter);
                                     }}
                                     className="pl-10 w-full bg-white border-gray-200"
@@ -187,13 +187,13 @@ export default function LocationPage() {
             </Card>
             <LocationForm
                 dialogOpen={dialogOpen}
-                setDialogOpen={setDialogOpen}
+                setDialogOpenAction={setDialogOpen}
                 isEditing={isEditing}
                 formData={formData}
-                handleChange={handleChange}
-                setFormData={setFormData}
-                handleSave={handleSaveLocation}
-                onMapPositionChange={handleMapPositionChange}
+                handleChangeAction={handleChange}
+                setFormDataAction={setFormData}
+                handleSaveAction={handleSaveLocation}
+                onMapPositionChangeAction={handleMapPositionChange}
             />
             <ConfirmationDelete
                 isDeleteDialogOpen={isDeleteDialogOpen}

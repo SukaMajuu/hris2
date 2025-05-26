@@ -44,9 +44,6 @@ ENV JWT_REFRESH_DURATION=$JWT_REFRESH_DURATION
 # Copy the binary from builder
 COPY --from=builder /app/main .
 
-# Copy Firebase credentials
-COPY apps/backend/firebase-credentials.json .
-
 # Expose port
 EXPOSE 8080
 

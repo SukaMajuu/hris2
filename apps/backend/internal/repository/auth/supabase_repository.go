@@ -478,8 +478,6 @@ func (r *supabaseRepository) UpdateLastLogin(ctx context.Context, userID uint, l
 	return nil
 }
 
-// UpdateUser updates user details in the database.
-// Currently, it only updates Email and Phone locally. Supabase user update might be needed separately.
 func (r *supabaseRepository) UpdateUser(ctx context.Context, user *domain.User) error {
 	if user.ID == 0 {
 		return errors.New("cannot update user without ID")
@@ -488,28 +486,31 @@ func (r *supabaseRepository) UpdateUser(ctx context.Context, user *domain.User) 
 	updates := make(map[string]interface{})
 	changed := false
 
-	// Check if email needs to be updated
-	// We might want to fetch the existing user to compare, but for now, if an email is provided, we attempt to update.
 	if user.Email != "" {
-		// Optional: Add validation to ensure email is not already taken by another user if it's being changed.
-		// existingUser, err := r.GetUserByEmail(ctx, user.Email)
-		// if err == nil && existingUser.ID != user.ID {
-		// 	 return domain.ErrEmailAlreadyExists
-		// }
+		existingUser, err := r.GetUserByEmail(ctx, user.Email)
+		if err == nil && existingUser.ID != user.ID {
+			return domain.ErrEmailAlreadyExists
+		}
 		updates["email"] = user.Email
 		changed = true
 	}
 
-	// Check if phone needs to be updated
 	if user.Phone != "" {
-		// Optional: Add validation for phone uniqueness if required.
+		existingUserWithPhone, err := r.GetUserByPhone(ctx, user.Phone)
+		if err == nil && existingUserWithPhone != nil && existingUserWithPhone.ID != user.ID {
+			log.Printf("SupabaseRepository: UpdateUser failed for UserID %d. Phone number %s already exists for UserID %d", user.ID, user.Phone, existingUserWithPhone.ID)
+			return domain.ErrPhoneAlreadyExists
+		} else if err != nil && !errors.Is(err, domain.ErrUserNotFound) {
+			log.Printf("SupabaseRepository: Error checking phone uniqueness for UserID %d, Phone %s: %v", user.ID, user.Phone, err)
+			return fmt.Errorf("error checking phone uniqueness for UserID %d: %w", user.ID, err)
+		}
 		updates["phone"] = user.Phone
 		changed = true
 	}
 
 	if !changed {
 		log.Printf("SupabaseRepository: UpdateUser called for UserID %d, but no email or phone provided for update.", user.ID)
-		return nil // Nothing to update
+		return nil
 	}
 
 	updates["updated_at"] = time.Now()
@@ -522,32 +523,8 @@ func (r *supabaseRepository) UpdateUser(ctx context.Context, user *domain.User) 
 
 	if result.RowsAffected == 0 {
 		log.Printf("SupabaseRepository: No user found with ID %d to update, or no changes made.", user.ID)
-		// This could also mean the provided email/phone are the same as current values.
-		// Depending on requirements, this might not be an error.
-		// For now, we don't treat it as a hard error if RowsAffected is 0 after an update attempt if 'changed' was true.
 	}
 
 	log.Printf("SupabaseRepository: Successfully updated user details (locally) for UserID %d.", user.ID)
-
-	// TODO: Implement Supabase user update if email/phone are managed there
-	// if user.SupabaseUID != nil && *user.SupabaseUID != "" {
-	// 	 supabaseUpdates := types.AdminUpdateUserRequest{}
-	// 	 if _, ok := updates["email"]; ok {
-	// 		 supabaseUpdates.Email = user.Email
-	// 	 }
-	// 	 // Supabase might handle phone updates differently, check their API
-	// 	 // if _, ok := updates["phone"]; ok {
-	// 	 // 	 supabaseUpdates.Phone = user.Phone
-	// 	 // }
-	// 	 if supabaseUpdates.Email != "" /* || supabaseUpdates.Phone != "" */ {
-	// 		 _, err := r.client.Auth.AdminUpdateUser(*user.SupabaseUID, supabaseUpdates)
-	// 		 if err != nil {
-	// 			 log.Printf("SupabaseRepository: Error updating user details in Supabase for UserID %d (SupabaseUID %s): %v", user.ID, *user.SupabaseUID, err)
-	// 			 // Decide on error handling: return error, or just log?
-	// 			 // return fmt.Errorf("failed to update user in Supabase for UserID %d: %w", user.ID, err)
-	// 		 }
-	// 	 }
-	// }
-
 	return nil
 }

@@ -4,8 +4,8 @@ import "errors"
 
 // Authentication errors
 var (
-	ErrInvalidCredentials   = errors.New("invalid credentials")
-	ErrInvalidPhoneNumber  = errors.New("invalid phone number")
+	ErrInvalidCredentials = errors.New("invalid credentials")
+	ErrInvalidPhoneNumber = errors.New("invalid phone number")
 	ErrInvalidPassword    = errors.New("invalid password")
 	ErrInvalidEmail       = errors.New("invalid email")
 	ErrInvalidUserID      = errors.New("invalid user ID")
@@ -13,6 +13,7 @@ var (
 	ErrEmailAlreadyExists = errors.New("email already registered")
 	ErrUserAlreadyExists  = errors.New("user already exists")
 	ErrUserNotFound       = errors.New("user not found")
+	ErrPhoneAlreadyExists = errors.New("phone number already registered")
 )
 
 // Request validation errors

@@ -2,14 +2,6 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-ARG NEXT_PUBLIC_API_URL_VALUE
-ARG NEXT_PUBLIC_SUPABASE_URL_VALUE
-ARG NEXT_PUBLIC_SUPABASE_ANON_KEY_VALUE
-
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL_VALUE
-ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL_VALUE
-ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY_VALUE
-
 # Copy package files and install dependencies
 COPY ./apps/frontend/package*.json ./
 
@@ -19,12 +11,6 @@ RUN npm ci
 
 # Copy application code
 COPY ./apps/frontend .
-
-RUN echo "--- DEBUG: Environment Variables before npm run build ---"
-RUN echo "NEXT_PUBLIC_API_URL: [${NEXT_PUBLIC_API_URL}]"
-RUN echo "NEXT_PUBLIC_SUPABASE_URL: [${NEXT_PUBLIC_SUPABASE_URL}]"
-RUN echo "NEXT_PUBLIC_SUPABASE_ANON_KEY: [${NEXT_PUBLIC_SUPABASE_ANON_KEY}]"
-RUN echo "---------------------------------------------------------"
 
 # Build the Next.js application
 RUN npm run build

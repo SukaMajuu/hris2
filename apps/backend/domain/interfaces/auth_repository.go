@@ -40,4 +40,7 @@ type AuthRepository interface {
 
 	// Last Login Update (New)
 	UpdateLastLogin(ctx context.Context, userID uint, loginTime time.Time) error
+
+	// Method for updating user details
+	UpdateUser(ctx context.Context, user *domain.User) error
 }

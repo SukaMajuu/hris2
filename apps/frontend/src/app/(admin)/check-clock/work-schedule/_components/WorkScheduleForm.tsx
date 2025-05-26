@@ -11,11 +11,20 @@ import type {WorkSchedule, WorkScheduleDetail} from "../_hooks/useWorkSchedule";
 import {CalendarClock, CalendarCog, MapPin} from "lucide-react";
 import {MultiSelect} from "@/components/multiSelect";
 
+// import {WorkTypeChildrenEnum} from "@/schemas/checkclock.schema";
+
+interface Location {
+    value: string;
+    label: string;
+    latitude?: string;
+    longitude?: string;
+}
+
 interface WorkScheduleFormProps {
     initialData?: Partial<WorkSchedule>;
     onSubmit: (data: Partial<WorkSchedule>) => void;
     isEditMode?: boolean;
-    locations?: { value: string; label: string; latitude?: string; longitude?: string }[];
+    locations?: Location[];
     MapComponent?: React.ComponentType<{
         latitude?: number;
         longitude?: number;
@@ -23,6 +32,40 @@ interface WorkScheduleFormProps {
         interactive?: boolean
     }>;
 }
+
+// Default empty work schedule detail untuk inisialisasi
+const emptyWorkScheduleDetail: WorkScheduleDetail = {
+    workTypeChildren: "",
+    workDays: [],
+    checkInStart: "",
+    checkInEnd: "",
+    breakStart: "",
+    breakEnd: "",
+    checkOutStart: "",
+    checkOutEnd: "",
+    locationId: "",
+    locationName: "",
+    latitude: "",
+    longitude: "",
+    addressDetails: "",
+};
+
+// Pilihan hari kerja
+const daysOfWeek = [
+    {label: "Monday", value: "Monday"},
+    {label: "Tuesday", value: "Tuesday"},
+    {label: "Wednesday", value: "Wednesday"},
+    {label: "Thursday", value: "Thursday"},
+    {label: "Friday", value: "Friday"},
+    {label: "Saturday", value: "Saturday"},
+    {label: "Sunday", value: "Sunday"},
+];
+
+// Default locations jika tidak ada props
+const defaultLocations: Location[] = [
+    {value: "malang", label: "Kota Malang", latitude: "-7.983908", longitude: "112.621391"},
+    {value: "jakarta", label: "Jakarta", latitude: "-6.2088", longitude: "106.8456"},
+];
 
 export function WorkScheduleForm({
                                      initialData = {},
@@ -32,142 +75,87 @@ export function WorkScheduleForm({
                                      MapComponent,
                                  }: WorkScheduleFormProps) {
     const router = useRouter();
-    // Referensi untuk setiap form detail
     const formRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-    // State utama untuk form basic
+    // Inisialisasi state form dengan data awal atau detail kosong
     const [formData, setFormData] = useState<Partial<WorkSchedule>>({
         ...initialData,
         workScheduleDetails: (initialData.workScheduleDetails && initialData.workScheduleDetails.length > 0)
             ? initialData.workScheduleDetails
-            : [
-                {
-                    workTypeChildren: "",
-                    workDays: [],
-                    checkInStart: "",
-                    checkInEnd: "",
-                    breakStart: "",
-                    breakEnd: "",
-                    checkOutStart: "",
-                    checkOutEnd: "",
-                    locationId: "",
-                    latitude: "",
-                    longitude: "",
-                    addressDetails: "",
-                },
-            ],
+            : [{...emptyWorkScheduleDetail}], // Gunakan shallow copy
     });
 
-    // Days of the week options
-    const daysOfWeek = [
-        {label: "Monday", value: "Monday"},
-        {label: "Tuesday", value: "Tuesday"},
-        {label: "Wednesday", value: "Wednesday"},
-        {label: "Thursday", value: "Thursday"},
-        {label: "Friday", value: "Friday"},
-        {label: "Saturday", value: "Saturday"},
-        {label: "Sunday", value: "Sunday"},
-    ];
-
-    // Menginisialisasi array referensi saat jumlah detail berubah
+    // Update referensi DOM saat jumlah detail berubah
     useEffect(() => {
         formRefs.current = formRefs.current.slice(0, formData.workScheduleDetails?.length || 0);
     }, [formData.workScheduleDetails?.length]);
 
-    // Simulasi locations jika tidak ada props
-    const locationsList = locations.length ? locations : [
-        {value: "malang", label: "Kota Malang", latitude: "-7.983908", longitude: "112.621391"},
-        {value: "jakarta", label: "Jakarta", latitude: "-6.2088", longitude: "106.8456"},
-    ];
+    // Gunakan locations dari props atau default
+    const locationsList = locations.length ? locations : defaultLocations;
 
-    // Handler untuk detail
+    /**
+     * Handler untuk mengubah satu field dari detail jadwal kerja
+     */
     const handleDetailChange = (idx: number, key: keyof WorkScheduleDetail, value: string | string[]) => {
         setFormData((prev) => {
             const details = [...(prev.workScheduleDetails || [])];
-            const currentDetail = details[idx] ?? {
-                workTypeChildren: "",
-                workDays: [],
-                checkInStart: "",
-                checkInEnd: "",
-                breakStart: "",
-                breakEnd: "",
-                checkOutStart: "",
-                checkOutEnd: "",
-                locationId: "",
-                latitude: "",
-                longitude: "",
-                addressDetails: "",
-            };
+
+            // Gunakan nilai yang sudah ada atau default kosong
+            const currentDetail = details[idx] || {...emptyWorkScheduleDetail};
+
+            // Update field yang spesifik
             details[idx] = {
                 ...currentDetail,
-                [key]: value,
-                workTypeChildren: (key === "workTypeChildren" ? (typeof value === "string" ? value : "") : currentDetail.workTypeChildren) ?? "",
-                checkInStart: (key === "checkInStart" ? (typeof value === "string" ? value : currentDetail.checkInStart) : currentDetail.checkInStart) ?? "",
-                checkInEnd: (key === "checkInEnd" ? (typeof value === "string" ? value : currentDetail.checkInEnd) : currentDetail.checkInEnd) ?? "",
-                breakStart: (key === "breakStart" ? (typeof value === "string" ? value : currentDetail.breakStart) : currentDetail.breakStart) ?? "",
-                breakEnd: (key === "breakEnd" ? (typeof value === "string" ? value : currentDetail.breakEnd) : currentDetail.breakEnd) ?? "",
-                checkOutStart: (key === "checkOutStart" ? (typeof value === "string" ? value : currentDetail.checkOutStart) : currentDetail.checkOutStart) ?? "",
-                checkOutEnd: (key === "checkOutEnd" ? (typeof value === "string" ? value : currentDetail.checkOutEnd) : currentDetail.checkOutEnd) ?? "",
-                locationId: (key === "locationId" ? (typeof value === "string" ? value : currentDetail.locationId) : currentDetail.locationId) ?? "",
-                latitude: (key === "latitude" ? (typeof value === "string" ? value : currentDetail.latitude) : currentDetail.latitude) ?? "",
-                longitude: (key === "longitude" ? (typeof value === "string" ? value : currentDetail.longitude) : currentDetail.longitude) ?? "",
-                addressDetails: (key === "addressDetails" ? (typeof value === "string" ? value : currentDetail.addressDetails) : currentDetail.addressDetails) ?? "",
-                workDays: (key === "workDays" ? (Array.isArray(value) ? value : currentDetail.workDays) : currentDetail.workDays) ?? [],
+                [key]: value
             };
+
             return {...prev, workScheduleDetails: details};
         });
     };
-    const handleLocationChange = (idx: number, val: string) => {
-        const loc = locationsList.find((l) => l.value === val);
+
+    /**
+     * Handler khusus untuk perubahan lokasi
+     * Akan mengisi otomatis data lokasi (lat, long, address) berdasarkan pilihan
+     */
+    const handleLocationChange = (idx: number, locationId: string) => {
+        const selectedLocation = locationsList.find((loc) => loc.value === locationId);
+
+        if (!selectedLocation) return;
+
         setFormData((prev) => {
             const details = [...(prev.workScheduleDetails || [])];
+            const currentDetail = details[idx] || {...emptyWorkScheduleDetail};
+
             details[idx] = {
-                ...details[idx],
-                locationId: val,
-                latitude: loc?.latitude || "",
-                longitude: loc?.longitude || "",
-                addressDetails: loc?.label || "",
-                workTypeChildren: details[idx]?.workTypeChildren ?? "",
-                workDays: details[idx]?.workDays ?? [],
-                checkInStart: details[idx]?.checkInStart ?? "",
-                checkInEnd: details[idx]?.checkInEnd ?? "",
-                breakStart: details[idx]?.breakStart ?? "",
-                breakEnd: details[idx]?.breakEnd ?? "",
-                checkOutStart: details[idx]?.checkOutStart ?? "",
-                checkOutEnd: details[idx]?.checkOutEnd ?? "",
+                ...currentDetail,
+                locationId,
+                locationName: selectedLocation.label,
+                latitude: selectedLocation.latitude || "",
+                longitude: selectedLocation.longitude || "",
+                addressDetails: selectedLocation.label || "",
             };
+
             return {...prev, workScheduleDetails: details};
         });
     };
+
+    /**
+     * Menambahkan detail jadwal baru
+     */
     const handleAddDetail = () => {
         setFormData((prev) => {
             const newDetails = [
                 ...(prev.workScheduleDetails || []),
-                {
-                    workTypeChildren: "",
-                    workDays: [],
-                    checkInStart: "",
-                    checkInEnd: "",
-                    breakStart: "",
-                    breakEnd: "",
-                    checkOutStart: "",
-                    checkOutEnd: "",
-                    locationId: "",
-                    latitude: "",
-                    longitude: "",
-                    addressDetails: "",
-                },
+                {...emptyWorkScheduleDetail}
             ];
 
             // Scroll ke form baru setelah render
             setTimeout(() => {
                 const newIndex = newDetails.length - 1;
-                if (formRefs.current[newIndex]) {
-                    formRefs.current[newIndex]?.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-                }
+                formRefs.current[newIndex]?.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
             }, 100);
 
             return {
@@ -176,6 +164,10 @@ export function WorkScheduleForm({
             };
         });
     };
+
+    /**
+     * Menghapus detail jadwal
+     */
     const handleRemoveDetail = (idx: number) => {
         setFormData((prev) => {
             const details = [...(prev.workScheduleDetails || [])];
@@ -184,10 +176,9 @@ export function WorkScheduleForm({
         });
     };
 
-    // const handleChange = (key: keyof WorkSchedule, value: string | string[]) => {
-    // 	setFormData((prev) => ({ ...prev, [key]: value }));
-    // };
-
+    /**
+     * Mengirim form
+     */
     const handleSave = (e: React.FormEvent) => {
         e.preventDefault();
         onSubmit(formData);

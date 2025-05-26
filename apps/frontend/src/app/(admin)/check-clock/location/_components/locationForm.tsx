@@ -102,30 +102,30 @@ export function LocationForm({
         // Kumpulkan semua error untuk ditampilkan sekaligus
         const errors: { path: string[]; message: string }[] = [];
 
-        // Validasi field yang diperlukan sebelum memanggil Zod
+        // Validate required fields before calling Zod
         if (!formData.locationName?.trim()) {
             errors.push({
                 path: ["locationName"],
-                message: "Nama lokasi wajib diisi."
+                message: "Location name is required."
             });
         }
 
         if (!latlngFromMapOrGeo(formData.latitude, formData.longitude)) {
             errors.push({
                 path: ["latitude"],
-                message: 'Silakan pilih titik di peta atau tekan tombol "Use Current Location".'
+                message: 'Please select a point on the map or click the "Use Current Location" button.'
             });
         }
 
         if (formData.radius === undefined || formData.radius === null || String(formData.radius).trim() === "") {
             errors.push({
                 path: ["radius"],
-                message: "Radius wajib diisi."
+                message: "Radius is required."
             });
         } else if (formData.radius <= 0) {
             errors.push({
                 path: ["radius"],
-                message: "Radius harus bernilai positif."
+                message: "Radius must be a positive value."
             });
         }
 
@@ -224,10 +224,10 @@ export function LocationForm({
                     </DialogDescription>
                 </DialogHeader>
 
-                {/* Tampilkan error secara umum jika ada */}
+                {/* Display errors if any */}
                 {validationErrors.length > 0 && (
                     <div className="px-6 py-2 text-red-600 bg-red-50 rounded-md border border-red-200">
-                        <p className="font-medium">Terdapat beberapa kesalahan:</p>
+                        <p className="font-medium">There are several errors:</p>
                         <ul className="list-disc ml-5 mt-1">
                             {validationErrors.map((error, index) => (
                                 <li key={index}>{error.message}</li>

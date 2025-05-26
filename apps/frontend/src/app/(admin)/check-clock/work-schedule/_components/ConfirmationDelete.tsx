@@ -8,13 +8,13 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import type { WorkSchedule } from "../_hooks/useWorkSchedule";
+import type { WorkSchedule, WorkScheduleDetailRow } from "../_hooks/useWorkSchedule";
 
 interface ConfirmationDeleteProps {
 	isDeleteDialogOpen: boolean;
 	handleCloseDeleteDialog: () => void;
 	handleConfirmDelete: () => void;
-	workScheduleToDelete: WorkSchedule | null;
+	workScheduleToDelete: WorkScheduleDetailRow | null;
 }
 const ConfirmationDelete = ({
 	isDeleteDialogOpen,

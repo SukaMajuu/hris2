@@ -4,16 +4,24 @@
     "private": true,
     "scripts": {
         "setup": "npm install && npm run install:all && npm run setup:backend && npm run setup:frontend",
-        "setup:frontend": "cd apps/frontend && cp .env.example .env",
-        "setup:backend": "cd apps/backend && go mod download && go mod tidy",
+        "setup:frontend": "cd apps/frontend && copy .env.example .env",
+        "setup:backend": "cd apps/backend && go mod download && go mod tidy && copy .env.example .env",
         "setup:db": "cd infrastructure/docker && docker-compose up -d db && cd ../../apps/backend && go run cmd/migrate/main.go",
         "install:all": "concurrently \"cd apps/frontend && npm install\" \"cd apps/backend && go mod download\"",
         "start:frontend": "cd apps/frontend && npm run dev",
-        "start:backend": "cd apps/backend && go run cmd/server/main.go",
+        "start:backend": "cd apps/backend && air",
         "start:db": "cd infrastructure/docker && docker-compose up db",
         "dev": "concurrently \"npm run start:db\" \"npm run start:backend\" \"npm run start:frontend\""
     },
     "devDependencies": {
-        "concurrently": "^8.2.2"
+        "concurrently": "^8.2.2",
+        "prettier": "^3.5.3",
+        "prettier-plugin-tailwindcss": "^0.6.11"
+    },
+    "dependencies": {
+        "chart.js": "^4.4.9",
+        "jwt-decode": "^4.0.0",
+        "react-chartjs-2": "^5.3.0",
+        "recharts": "^2.15.3"
     }
 }

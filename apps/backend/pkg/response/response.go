@@ -22,11 +22,14 @@ func Success(c *gin.Context, status int, message string, data interface{}) {
 }
 
 func Error(c *gin.Context, status int, message string, err error) {
-	c.JSON(status, Response{
+	response := Response{
 		Status:  status,
 		Message: message,
-		Error:   err.Error(),
-	})
+	}
+	if err != nil {
+		response.Error = err.Error()
+	}
+	c.JSON(status, response)
 }
 
 // Common response helpers
@@ -56,4 +59,8 @@ func NotFound(c *gin.Context, message string, err error) {
 
 func InternalServerError(c *gin.Context, err error) {
 	Error(c, http.StatusInternalServerError, "Internal server error", err)
+}
+
+func Conflict(c *gin.Context, message string, err error) {
+	Error(c, http.StatusConflict, message, err)
 }

@@ -1,191 +1,244 @@
 package handler
 
 import (
+	"errors"
+	"fmt"
+	"log"
 	"net/http"
+	"time"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
-	"github.com/SukaMajuu/hris/apps/backend/domain/enums"
 	authDTO "github.com/SukaMajuu/hris/apps/backend/internal/rest/dto/auth"
 	authUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/auth"
+
 	"github.com/SukaMajuu/hris/apps/backend/pkg/response"
 	"github.com/gin-gonic/gin"
 )
 
 type AuthHandler struct {
 	authUseCase *authUseCase.AuthUseCase
+	refreshTokenCookieDuration time.Duration
 }
 
 func NewAuthHandler(authUseCase *authUseCase.AuthUseCase) *AuthHandler {
-	return &AuthHandler{authUseCase: authUseCase}
+	cookieDuration := 7 * 24 * time.Hour
+	return &AuthHandler{
+		authUseCase:              authUseCase,
+		refreshTokenCookieDuration: cookieDuration,
+	}
+}
+
+func (h *AuthHandler) setRefreshTokenCookie(c *gin.Context, token string) {
+	c.SetCookie(
+		"refresh_token",
+		token,
+		int(h.refreshTokenCookieDuration.Seconds()),
+		"/v1/auth",
+		"",
+		true,
+		true,
+	)
+}
+
+func (h *AuthHandler) clearRefreshTokenCookie(c *gin.Context) {
+	c.SetCookie(
+		"refresh_token",
+		"",
+		-1,
+		"/v1/auth",
+		"",
+		true,
+		true,
+	)
 }
 
 func (h *AuthHandler) Register(c *gin.Context) {
-	var req authDTO.RegisterRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, "Invalid request body", err)
+	var req authDTO.AdminRegisterRequest
+	if bindAndValidate(c, &req) {
 		return
 	}
 
-	if err := req.Validate(); err != nil {
-		response.BadRequest(c, "Validation failed", err)
-		return
-	}
-
-	// Create user
-	user := domain.User{
+	user := &domain.User{
 		Email:    req.Email,
 		Password: req.Password,
-		Phone:    req.Phone,
-		Role:     enums.UserRole(req.Role),
+	}
+	employee := &domain.Employee{
+		FirstName: req.FirstName,
+		LastName:  req.LastName,
 	}
 
-	if err := h.authUseCase.RegisterWithForm(c.Request.Context(), &user); err != nil {
-		response.InternalServerError(c, err)
+	registeredUser, accessToken, refreshToken, err := h.authUseCase.RegisterAdminWithForm(c.Request.Context(), user, employee)
+	if err != nil {
+		if errors.Is(err, domain.ErrUserAlreadyExists) || errors.Is(err, domain.ErrEmailAlreadyExists) {
+			response.Conflict(c, "User with this email or identity already exists", err)
+		} else {
+			log.Printf("Internal server error during registration: %v", err)
+			response.InternalServerError(c, fmt.Errorf("failed to complete registration"))
+		}
 		return
 	}
 
-	// Create employee
-	employee := domain.Employee{
-		UserID:          user.ID,
-		EmployeeCode:    req.EmployeeCode,
-		FirstName:       req.FirstName,
-		LastName:        req.LastName,
-		Phone:           req.Phone,
-		DepartmentID:    req.DepartmentID,
-		PositionID:      req.PositionID,
-		EmploymentStatus: enums.EmploymentStatus(req.EmploymentStatus),
-		HireDate:        req.HireDate,
-	}
+	h.setRefreshTokenCookie(c, refreshToken)
 
-	if err := h.authUseCase.CreateEmployee(c.Request.Context(), &employee); err != nil {
-		// If employee creation fails, we should rollback the user creation
-		// TODO: Implement rollback mechanism
-		response.InternalServerError(c, err)
-		return
-	}
-
-	responseData := gin.H{
+	response.Success(c, http.StatusCreated, "User registered and logged in successfully", gin.H{
+		"access_token": accessToken,
 		"user": gin.H{
-			"id":    user.ID,
-			"email": user.Email,
-			"phone": user.Phone,
-			"role":  user.Role,
+			"id":         registeredUser.ID,
+			"email":      registeredUser.Email,
+			"role":       registeredUser.Role,
+			"last_login": registeredUser.LastLoginAt,
 		},
-		"employee": gin.H{
-			"id":               employee.ID,
-			"employee_code":    employee.EmployeeCode,
-			"first_name":       employee.FirstName,
-			"last_name":        employee.LastName,
-			"department_id":    employee.DepartmentID,
-			"position_id":      employee.PositionID,
-			"employment_status": employee.EmploymentStatus,
-			"hire_date":        employee.HireDate,
-		},
-	}
-
-	response.Created(c, "User and employee registered successfully", responseData)
+	})
 }
 
 func (h *AuthHandler) Login(c *gin.Context) {
-	var credentials struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
-	if err := c.ShouldBindJSON(&credentials); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	var req authDTO.LoginRequest
+	if bindAndValidate(c, &req) {
 		return
 	}
 
-	// TODO: Implement login handler
-	// - Validate request
-	// - Call use case
-	// - Return response with JWT token
-}
-
-func (h *AuthHandler) ChangePassword(c *gin.Context) {
-	var data struct {
-		OldPassword string `json:"old_password"`
-		NewPassword string `json:"new_password"`
-	}
-	if err := c.ShouldBindJSON(&data); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	user, accessToken, refreshToken, err := h.authUseCase.LoginWithIdentifier(c.Request.Context(), req.Identifier, req.Password)
+	if err != nil {
+		if errors.Is(err, domain.ErrInvalidCredentials) {
+			response.Unauthorized(c, "Invalid credentials", err)
+		} else {
+			response.InternalServerError(c, fmt.Errorf("login process failed: %w", err))
+		}
 		return
 	}
 
-	// TODO: Implement change password handler
-	// - Get user ID from context (after auth middleware)
-	// - Call use case
-	// - Return response
-}
+	h.setRefreshTokenCookie(c, refreshToken)
 
-func (h *AuthHandler) ResetPassword(c *gin.Context) {
-	var data struct {
-		Email string `json:"email"`
-	}
-	if err := c.ShouldBindJSON(&data); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	// TODO: Implement reset password handler
-	// - Call use case
-	// - Return response
+	response.Success(c, http.StatusOK, "Login successful", gin.H{
+		"access_token": accessToken,
+		"user": gin.H{
+			"id":         user.ID,
+			"email":      user.Email,
+			"role":       user.Role,
+			"last_login": user.LastLoginAt,
+		},
+	})
 }
 
 func (h *AuthHandler) GoogleLogin(c *gin.Context) {
-	var data struct {
-		Token string `json:"token"`
-	}
-	if err := c.ShouldBindJSON(&data); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	var req authDTO.GoogleLoginRequest
+	if bindAndValidate(c, &req) {
 		return
 	}
 
-	// TODO: Implement Google login handler
-	// - Verify Google token
-	// - Call use case
-	// - Return response with JWT token
+	user, accessToken, refreshToken, err := h.authUseCase.LoginWithGoogle(c.Request.Context(), req.Token)
+	if err != nil {
+		user, accessToken, refreshToken, err = h.authUseCase.RegisterAdminWithGoogle(c.Request.Context(), req.Token)
+		if err != nil {
+			response.InternalServerError(c, fmt.Errorf("google authentication process failed: %w", err))
+			return
+		}
+	}
+
+	h.setRefreshTokenCookie(c, refreshToken)
+
+	response.Success(c, http.StatusOK, "Google authentication successful", gin.H{
+		"access_token": accessToken,
+		"user": gin.H{
+			"id":         user.ID,
+			"email":      user.Email,
+			"role":       user.Role,
+			"last_login": user.LastLoginAt,
+		},
+	})
 }
 
-func (h *AuthHandler) EmployeeLogin(c *gin.Context) {
-	var data struct {
-		EmployeeID string `json:"employee_id"`
-	}
-	if err := c.ShouldBindJSON(&data); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+func (h *AuthHandler) ChangePassword(c *gin.Context) {
+	var req authDTO.ChangePasswordRequest
+	if bindAndValidate(c, &req) {
 		return
 	}
 
-	// TODO: Implement employee login handler
-	// - Call use case
-	// - Return response with JWT token
+	userIDCtx, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User ID not found in context", fmt.Errorf("missing userID in context"))
+		return
+	}
+	userID, ok := userIDCtx.(uint)
+	if !ok {
+		response.InternalServerError(c, fmt.Errorf("invalid user ID type in context"))
+		return
+	}
+
+	if err := h.authUseCase.ChangePassword(c.Request.Context(), userID, req.OldPassword, req.NewPassword); err != nil {
+		response.InternalServerError(c, err)
+		return
+	}
+
+	response.Success(c, http.StatusOK, "Password changed successfully", nil)
 }
 
-func (h *AuthHandler) PhoneLogin(c *gin.Context) {
-	var data struct {
-		Phone string `json:"phone"`
-		OTP   string `json:"otp"`
-	}
-	if err := c.ShouldBindJSON(&data); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+func (h *AuthHandler) ResetPassword(c *gin.Context) {
+	var req authDTO.ResetPasswordRequest
+	if bindAndValidate(c, &req) {
 		return
 	}
 
-	// TODO: Implement phone login handler
-	// - Call use case
-	// - Return response with JWT token
+	if err := h.authUseCase.ResetPassword(c.Request.Context(), req.Email); err != nil {
+		fmt.Printf("Error during password reset request for %s: %v\n", req.Email, err)
+	}
+
+	response.Success(c, http.StatusOK, "If an account with that email exists, a password reset link has been sent.", nil)
 }
 
-func (h *AuthHandler) RequestOTP(c *gin.Context) {
-	var data struct {
-		Phone string `json:"phone"`
+func (h *AuthHandler) RefreshToken(c *gin.Context) {
+	rawRefreshToken, err := c.Cookie("refresh_token")
+	if err != nil {
+		if errors.Is(err, http.ErrNoCookie) {
+			response.Unauthorized(c, "Refresh token not found", domain.ErrInvalidToken)
+		} else {
+			response.InternalServerError(c, fmt.Errorf("error reading refresh token cookie: %w", err))
+		}
+		return
 	}
-	if err := c.ShouldBindJSON(&data); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if rawRefreshToken == "" {
+		response.Unauthorized(c, "Refresh token is empty", domain.ErrInvalidToken)
 		return
 	}
 
-	// TODO: Implement OTP request handler
-	// - Call use case
-	// - Return response
+	newAccessToken, newRefreshToken, err := h.authUseCase.RefreshToken(c.Request.Context(), rawRefreshToken)
+	if err != nil {
+		if errors.Is(err, domain.ErrInvalidToken) {
+			h.clearRefreshTokenCookie(c)
+			response.Unauthorized(c, "Invalid or expired refresh token", err)
+		} else {
+			log.Printf("Internal error during token refresh: %v", err)
+			response.InternalServerError(c, fmt.Errorf("token refresh failed internally"))
+		}
+		return
+	}
+
+	h.setRefreshTokenCookie(c, newRefreshToken)
+
+	response.Success(c, http.StatusOK, "Token refreshed successfully", gin.H{
+		"access_token": newAccessToken,
+	})
+}
+
+func (h *AuthHandler) Logout(c *gin.Context) {
+	userIDCtx, exists := c.Get("userID")
+	if !exists {
+		h.clearRefreshTokenCookie(c)
+		response.Unauthorized(c, "User not authenticated for logout", nil)
+		return
+	}
+	userID, ok := userIDCtx.(uint)
+	if !ok || userID == 0 {
+		h.clearRefreshTokenCookie(c)
+		response.InternalServerError(c, fmt.Errorf("invalid user ID type or value in context during logout"))
+		return
+	}
+
+	if err := h.authUseCase.Logout(c.Request.Context(), userID); err != nil {
+		log.Printf("Error revoking tokens in DB during logout for user %d: %v", userID, err)
+	}
+
+	h.clearRefreshTokenCookie(c)
+
+	response.Success(c, http.StatusOK, "Logout successful", nil)
 }

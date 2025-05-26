@@ -38,6 +38,14 @@ jobs:
                   tags: ${{ secrets.AZURE_CONTAINER_REGISTRY }}/my-backend-app:${{ github.sha }},${{ secrets.AZURE_CONTAINER_REGISTRY }}/my-backend-app:latest
                   cache-from: type=registry,ref=${{ secrets.AZURE_CONTAINER_REGISTRY }}/my-backend-app:latest
                   cache-to: type=inline
+                  build-args: |
+                      DATABASE_URL=${{ secrets.DATABASE_URL }}
+                      SUPABASE_URL=${{ secrets.SUPABASE_URL }}
+                      SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}
+                      PORT=${{ secrets.PORT }}
+                      JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}
+                      JWT_ACCESS_DURATION=${{ secrets.JWT_ACCESS_DURATION }}
+                      JWT_REFRESH_DURATION=${{ secrets.JWT_REFRESH_DURATION }}
 
             - name: Login to Azure (Needed if you use Azure CLI commands directly)
               uses: azure/login@v1

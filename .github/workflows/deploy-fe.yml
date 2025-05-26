@@ -42,6 +42,10 @@ jobs:
                   tags: ${{ secrets.AZURE_CONTAINER_REGISTRY }}/my-frontend-app:${{ github.sha }},${{ secrets.AZURE_CONTAINER_REGISTRY }}/my-frontend-app:latest
                   cache-from: type=registry,ref=${{ secrets.AZURE_CONTAINER_REGISTRY }}/my-frontend-app:latest
                   cache-to: type=inline
+                  build-args: |
+                      NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+                      NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+                      NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
 
             - name: Deploy to Azure Container Apps
               uses: azure/container-apps-deploy-action@v1

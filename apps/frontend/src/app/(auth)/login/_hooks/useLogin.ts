@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/auth.store";
 import { LoginFormData } from "@/schemas/auth.schema";
 import { toast } from "sonner";
@@ -12,7 +11,6 @@ import { useLoginMutation } from "@/api/mutations/auth.mutation";
 
 export const useLogin = () => {
 	const [isLoading, setIsLoading] = useState(false);
-	const router = useRouter();
 	const setUser = useAuthStore((state) => state.setUser);
 
 	const loginForm = useForm<LoginFormData>({
@@ -31,7 +29,6 @@ export const useLogin = () => {
 		try {
 			const response = await loginMutation.mutateAsync(data);
 			setUser(response.user);
-			router.push("/dashboard");
 			toast.success("Login successful! Welcome back.");
 		} catch (error) {
 			console.error("Login error in login function:", error);
@@ -49,13 +46,8 @@ export const useLogin = () => {
 			} else if (error instanceof Error) {
 				errorMessage = error.message;
 			}
-
-			console.log(
-				"[useLogin] Attempting to show toast with message:",
-				errorMessage
-			);
 			toast.error("LOGIN ERROR: " + errorMessage, {
-				duration: 10000, // Increased duration for visibility
+				duration: 10000,
 				description:
 					error instanceof AxiosError
 						? `Status: ${error.response?.status}`

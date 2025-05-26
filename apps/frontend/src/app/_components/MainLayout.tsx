@@ -17,6 +17,7 @@ import { useAuthStore } from '@/stores/auth.store';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Bell, ChevronDown } from 'lucide-react';
 import { useProactiveTokenRefresh } from '@/hooks/useProactiveTokenRefresh';
+import { cn } from '@/lib/utils';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -157,11 +158,18 @@ function NavContent({ menuItems, footerItems, pathname }: NavContentProps) {
   );
 }
 
+const hideSidebarForPaths = [
+    "/settings/subscription",
+    "/settings/subscription/checkout",
+  ];
+
 export default function MainLayout({ children }: MainLayoutProps) {
   const pathname = usePathname();
   const { user } = useAuthStore();
   useProactiveTokenRefresh();
   const role = (user?.role as Role) || 'admin';
+
+  const shouldHideSidebar = hideSidebarForPaths.includes(pathname);
 
   const getPageTitle = () => {
     const allMenuItems = [...getMainMenuItemsByRole(role), ...getFooterItemsByRole(role)];
@@ -188,17 +196,19 @@ export default function MainLayout({ children }: MainLayoutProps) {
   return (
     <SidebarProvider>
       <div className='flex h-full min-h-screen w-full bg-slate-100'>
-        <Sidebar collapsible='icon' className='group border-r border-gray-200 bg-white shadow-sm'>
-          <SidebarHeader className='flex h-16 items-center justify-center border-b border-gray-200'>
-            <LogoComponent />
-          </SidebarHeader>
+        {!shouldHideSidebar && (
+          <>
+            <Sidebar collapsible='icon' className='group border-r border-gray-200 bg-white shadow-sm'>
+              <SidebarHeader className='flex h-16 items-center justify-center border-b border-gray-200'>
+                <LogoComponent />
+              </SidebarHeader>
+              <NavContent menuItems={menuItems} footerItems={footerItems} pathname={pathname} />
+              <SidebarRail className="border-r border-gray-200 bg-white" />
+            </Sidebar>
+          </>
+        )}
 
-          <NavContent menuItems={menuItems} footerItems={footerItems} pathname={pathname} />
-
-          <SidebarRail className="border-r border-gray-200 bg-white" />
-        </Sidebar>
-
-        <SidebarInset className='flex h-full min-h-0 w-full flex-1 flex-col overflow-y-auto'>
+        <SidebarInset className={cn('flex h-full min-h-0 w-full flex-1 flex-col overflow-y-auto', { 'ml-0': shouldHideSidebar })}>
           <header className='flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 py-4 sticky top-0 z-10'>
             <div className='flex items-center gap-3'>
               <SidebarTrigger className='text-gray-600 hover:bg-primary hover:text-white hover:cursor-pointer' />

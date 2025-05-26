@@ -1543,8 +1543,19 @@ paths:
                                     example: "https://example.com/new_profile.jpg"
                                 employment_status:
                                     type: boolean
-                                    nullable: true
                                     example: true
+                                email:
+                                    type: string
+                                    format: email
+                                    nullable: true
+                                    description: "User's new email address (optional). If provided, will attempt to update the associated user account's email."
+                                    example: "new.employee.email@example.com"
+                                phone:
+                                    type: string
+                                    pattern: '^\+?[1-9]\d{1,14}$'
+                                    nullable: true
+                                    description: "User's new phone number (optional, E.164 format). If provided, will attempt to update the associated user account's phone."
+                                    example: "+628123450001"
             responses:
                 "200":
                     description: Employee updated successfully
@@ -1598,6 +1609,17 @@ paths:
                                             employment_status:
                                                 type: boolean
                                                 example: true
+                                            email:
+                                                type: string
+                                                format: email
+                                                nullable: true
+                                                description: "Updated email of the associated user account, if changed."
+                                                example: "new.employee.email@example.com"
+                                            phone:
+                                                type: string
+                                                nullable: true
+                                                description: "Updated phone number of the associated user account, if changed."
+                                                example: "+628123450001"
                                             resignation_date:
                                                 type: string
                                                 format: date

@@ -131,3 +131,8 @@ func (m *AuthRepository) RegisterEmployeeUser(ctx context.Context, user *domain.
 	args := m.Called(ctx, user, employee)
 	return args.Error(0)
 }
+
+func (m *AuthRepository) UpdateUser(ctx context.Context, user *domain.User) error {
+	args := m.Called(ctx, user)
+	return args.Error(0)
+}

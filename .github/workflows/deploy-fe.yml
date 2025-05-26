@@ -7,20 +7,21 @@ on:
         paths:
             - "apps/frontend/**"
             - ".github/workflows/deploy-fe.yml"
-            - "infrastructure/docker/docker-compose.yml"
             - "infrastructure/docker/frontend/Dockerfile"
 
 jobs:
     build-and-deploy:
         runs-on: ubuntu-latest
+        environment: production
 
         steps:
-            - uses: actions/checkout@v3
+            - name: Checkout code
+              uses: actions/checkout@v3
 
             - name: Set up Docker Buildx
               uses: docker/setup-buildx-action@v2
 
-            - name: Login to Azure
+            - name: Login to Azure CLI
               uses: azure/login@v1
               with:
                   creds: ${{ secrets.AZURE_CREDENTIALS }}
@@ -38,13 +39,13 @@ jobs:
                   context: .
                   file: ./infrastructure/docker/frontend/Dockerfile
                   push: true
-                  tags: ${{ secrets.AZURE_CONTAINER_REGISTRY }}/hris-frontend-sukamaju123:${{ github.sha }},${{ secrets.AZURE_CONTAINER_REGISTRY }}/hris-frontend-sukamaju123:latest
-                  cache-from: type=registry,ref=${{ secrets.AZURE_CONTAINER_REGISTRY }}/hris-frontend-sukamaju123:latest
+                  tags: ${{ secrets.AZURE_CONTAINER_REGISTRY }}/my-frontend-app:${{ github.sha }},${{ secrets.AZURE_CONTAINER_REGISTRY }}/my-frontend-app:latest
+                  cache-from: type=registry,ref=${{ secrets.AZURE_CONTAINER_REGISTRY }}/my-frontend-app:latest
                   cache-to: type=inline
 
-            - name: Deploy to Azure Web App
-              uses: azure/webapps-deploy@v2
+            - name: Deploy to Azure Container Apps
+              uses: azure/container-apps-deploy-action@v1
               with:
-                  app-name: hris-frontend-sukamaju123
-                  images: ${{ secrets.AZURE_CONTAINER_REGISTRY }}/hris-frontend-sukamaju123:${{ github.sha }}
-                  publish-profile: ${{ secrets.AZURE_FRONTEND_PUBLISH_PROFILE }}
+                  resourceGroup: ${{ secrets.AZURE_RESOURCE_GROUP_NAME }}
+                  containerAppName: ${{ secrets.AZURE_FRONTEND_CONTAINER_APP_NAME }}
+                  imageToDeploy: ${{ secrets.AZURE_CONTAINER_REGISTRY }}/my-frontend-app:${{ github.sha }}

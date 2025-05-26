@@ -304,8 +304,6 @@ func (uc *EmployeeUseCase) Update(ctx context.Context, employee *domain.Employee
 		}
 	}
 
-	existingEmployee.EmploymentStatus = employee.EmploymentStatus
-
 	err = uc.employeeRepo.Update(ctx, existingEmployee)
 	if err != nil {
 		log.Printf("EmployeeUseCase: Error updating employee ID %d in repository: %v", employee.ID, err)

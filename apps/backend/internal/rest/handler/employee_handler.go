@@ -146,15 +146,50 @@ func (h *EmployeeHandler) CreateEmployee(c *gin.Context) {
 	}
 
 	respDTO := domainEmployeeDTO.EmployeeResponseDTO{
-		ID:               createdEmployee.ID,
-		FirstName:        createdEmployee.FirstName,
-		LastName:         createdEmployee.LastName,
-		Gender:           genderStrPointer,
-		Phone:            phone,
-		BranchID:         createdEmployee.BranchID,
-		PositionID:       createdEmployee.PositionID,
-		Grade:            createdEmployee.Grade,
-		EmploymentStatus: createdEmployee.EmploymentStatus,
+		ID:                    createdEmployee.ID,
+		Email:                 &createdEmployee.User.Email,
+		Phone:                 phone,
+		FirstName:             createdEmployee.FirstName,
+		LastName:              createdEmployee.LastName,
+		EmployeeCode:          createdEmployee.EmployeeCode,
+		BranchID:              createdEmployee.BranchID,
+		PositionID:            createdEmployee.PositionID,
+		Gender:                genderStrPointer,
+		NIK:                   createdEmployee.NIK,
+		PlaceOfBirth:          createdEmployee.PlaceOfBirth,
+		Grade:                 createdEmployee.Grade,
+		EmploymentStatus:      createdEmployee.EmploymentStatus,
+		BankName:              createdEmployee.BankName,
+		BankAccountNumber:     createdEmployee.BankAccountNumber,
+		BankAccountHolderName: createdEmployee.BankAccountHolderName,
+		ProfilePhotoURL:       createdEmployee.ProfilePhotoURL,
+		CreatedAt:             createdEmployee.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:             createdEmployee.UpdatedAt.Format(time.RFC3339),
+	}
+
+	if createdEmployee.LastEducation != nil {
+		lastEducationStr := string(*createdEmployee.LastEducation)
+		respDTO.LastEducation = &lastEducationStr
+	}
+	if createdEmployee.ContractType != nil {
+		contractTypeStr := string(*createdEmployee.ContractType)
+		respDTO.ContractType = &contractTypeStr
+	}
+	if createdEmployee.TaxStatus != nil {
+		taxStatusStr := string(*createdEmployee.TaxStatus)
+		respDTO.TaxStatus = &taxStatusStr
+	}
+	if createdEmployee.HireDate != nil {
+		hireDateStr := createdEmployee.HireDate.Format("2006-01-02")
+		respDTO.HireDate = &hireDateStr
+	}
+	if createdEmployee.ResignationDate != nil {
+		resignationDateStr := createdEmployee.ResignationDate.Format("2006-01-02")
+		respDTO.ResignationDate = &resignationDateStr
+	}
+
+	if createdEmployee.User.Email == "" {
+		respDTO.Email = nil
 	}
 
 	response.Success(c, http.StatusCreated, "Employee created successfully", respDTO)
@@ -199,6 +234,17 @@ func (h *EmployeeHandler) UpdateEmployee(c *gin.Context) {
 
 	employeeUpdatePayload := &domain.Employee{
 		ID: uint(id),
+	}
+
+	// Populate User fields if provided
+	if reqDTO.Email != nil || reqDTO.Phone != nil {
+		employeeUpdatePayload.User = domain.User{}
+		if reqDTO.Email != nil {
+			employeeUpdatePayload.User.Email = *reqDTO.Email
+		}
+		if reqDTO.Phone != nil {
+			employeeUpdatePayload.User.Phone = *reqDTO.Phone
+		}
 	}
 
 	if reqDTO.FirstName != nil {
@@ -293,15 +339,50 @@ func (h *EmployeeHandler) UpdateEmployee(c *gin.Context) {
 	}
 
 	respDTO := domainEmployeeDTO.EmployeeResponseDTO{
-		ID:               updatedEmployee.ID,
-		FirstName:        updatedEmployee.FirstName,
-		LastName:         updatedEmployee.LastName,
-		Gender:           genderDTO,
-		Phone:            phoneDTO,
-		BranchID:         updatedEmployee.BranchID,
-		PositionID:       updatedEmployee.PositionID,
-		Grade:            updatedEmployee.Grade,
-		EmploymentStatus: updatedEmployee.EmploymentStatus,
+		ID:                    updatedEmployee.ID,
+		Email:                 &updatedEmployee.User.Email,
+		Phone:                 phoneDTO,
+		FirstName:             updatedEmployee.FirstName,
+		LastName:              updatedEmployee.LastName,
+		EmployeeCode:          updatedEmployee.EmployeeCode,
+		BranchID:              updatedEmployee.BranchID,
+		PositionID:            updatedEmployee.PositionID,
+		Gender:                genderDTO,
+		NIK:                   updatedEmployee.NIK,
+		PlaceOfBirth:          updatedEmployee.PlaceOfBirth,
+		Grade:                 updatedEmployee.Grade,
+		EmploymentStatus:      updatedEmployee.EmploymentStatus,
+		BankName:              updatedEmployee.BankName,
+		BankAccountNumber:     updatedEmployee.BankAccountNumber,
+		BankAccountHolderName: updatedEmployee.BankAccountHolderName,
+		ProfilePhotoURL:       updatedEmployee.ProfilePhotoURL,
+		CreatedAt:             updatedEmployee.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:             updatedEmployee.UpdatedAt.Format(time.RFC3339),
+	}
+
+	if updatedEmployee.LastEducation != nil {
+		lastEducationStr := string(*updatedEmployee.LastEducation)
+		respDTO.LastEducation = &lastEducationStr
+	}
+	if updatedEmployee.ContractType != nil {
+		contractTypeStr := string(*updatedEmployee.ContractType)
+		respDTO.ContractType = &contractTypeStr
+	}
+	if updatedEmployee.TaxStatus != nil {
+		taxStatusStr := string(*updatedEmployee.TaxStatus)
+		respDTO.TaxStatus = &taxStatusStr
+	}
+	if updatedEmployee.HireDate != nil {
+		hireDateStr := updatedEmployee.HireDate.Format("2006-01-02")
+		respDTO.HireDate = &hireDateStr
+	}
+	if updatedEmployee.ResignationDate != nil {
+		resignationDateStr := updatedEmployee.ResignationDate.Format("2006-01-02")
+		respDTO.ResignationDate = &resignationDateStr
+	}
+
+	if updatedEmployee.User.Email == "" {
+		respDTO.Email = nil
 	}
 
 	response.Success(c, http.StatusOK, "Employee updated successfully", respDTO)

@@ -36,6 +36,8 @@ type CreateEmployeeRequestDTO struct {
 }
 
 type UpdateEmployeeRequestDTO struct {
+	Email                 *string               `json:"email,omitempty" binding:"omitempty,email"`
+	Phone                 *string               `json:"phone,omitempty" binding:"omitempty,e164"`
 	FirstName             *string               `json:"first_name,omitempty"`
 	LastName              *string               `json:"last_name,omitempty"`
 	PositionID            *uint                 `json:"position_id,omitempty"`

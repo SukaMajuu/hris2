@@ -47,15 +47,48 @@ func (uc *EmployeeUseCase) List(ctx context.Context, filters map[string]interfac
 		}
 
 		employeeDTOs[i] = &dtoemployee.EmployeeResponseDTO{
-			ID:               emp.ID,
-			FirstName:        emp.FirstName,
-			LastName:         emp.LastName,
-			Gender:           genderDTO,
-			Phone:            phoneDTO,
-			BranchID:         emp.BranchID,
-			PositionID:       emp.PositionID,
-			Grade:            emp.Grade,
-			EmploymentStatus: emp.EmploymentStatus,
+			ID:                    emp.ID,
+			Email:                 &emp.User.Email,
+			Phone:                 phoneDTO,
+			FirstName:             emp.FirstName,
+			LastName:              emp.LastName,
+			EmployeeCode:          emp.EmployeeCode,
+			BranchID:              emp.BranchID,
+			PositionID:            emp.PositionID,
+			Gender:                genderDTO,
+			NIK:                   emp.NIK,
+			PlaceOfBirth:          emp.PlaceOfBirth,
+			Grade:                 emp.Grade,
+			EmploymentStatus:      emp.EmploymentStatus,
+			BankName:              emp.BankName,
+			BankAccountNumber:     emp.BankAccountNumber,
+			BankAccountHolderName: emp.BankAccountHolderName,
+			ProfilePhotoURL:       emp.ProfilePhotoURL,
+		}
+
+		if emp.LastEducation != nil {
+			lastEducationStr := string(*emp.LastEducation)
+			employeeDTOs[i].LastEducation = &lastEducationStr
+		}
+		if emp.ContractType != nil {
+			contractTypeStr := string(*emp.ContractType)
+			employeeDTOs[i].ContractType = &contractTypeStr
+		}
+		if emp.TaxStatus != nil {
+			taxStatusStr := string(*emp.TaxStatus)
+			employeeDTOs[i].TaxStatus = &taxStatusStr
+		}
+		if emp.HireDate != nil {
+			hireDateStr := emp.HireDate.Format("2006-01-02")
+			employeeDTOs[i].HireDate = &hireDateStr
+		}
+		if emp.ResignationDate != nil {
+			resignationDateStr := emp.ResignationDate.Format("2006-01-02")
+			employeeDTOs[i].ResignationDate = &resignationDateStr
+		}
+
+		if emp.User.Email == "" {
+			employeeDTOs[i].Email = nil
 		}
 	}
 
@@ -129,28 +162,57 @@ func (uc *EmployeeUseCase) GetByID(ctx context.Context, id uint) (*dtoemployee.E
 	}
 
 	employeeDTO := &dtoemployee.EmployeeResponseDTO{
-		ID:               employee.ID,
-		FirstName:        employee.FirstName,
-		LastName:         employee.LastName,
-		Gender:           genderDTO,
-		Phone:            phoneDTO,
-		BranchID:         employee.BranchID,
-		PositionID:       employee.PositionID,
-		Grade:            employee.Grade,
-		EmploymentStatus: employee.EmploymentStatus,
+		ID:                    employee.ID,
+		Email:                 &employee.User.Email,
+		Phone:                 phoneDTO,
+		FirstName:             employee.FirstName,
+		LastName:              employee.LastName,
+		EmployeeCode:          employee.EmployeeCode,
+		BranchID:              employee.BranchID,
+		PositionID:            employee.PositionID,
+		Gender:                genderDTO,
+		NIK:                   employee.NIK,
+		PlaceOfBirth:          employee.PlaceOfBirth,
+		Grade:                 employee.Grade,
+		EmploymentStatus:      employee.EmploymentStatus,
+		BankName:              employee.BankName,
+		BankAccountNumber:     employee.BankAccountNumber,
+		BankAccountHolderName: employee.BankAccountHolderName,
+		ProfilePhotoURL:       employee.ProfilePhotoURL,
+	}
+
+	if employee.LastEducation != nil {
+		lastEducationStr := string(*employee.LastEducation)
+		employeeDTO.LastEducation = &lastEducationStr
+	}
+	if employee.ContractType != nil {
+		contractTypeStr := string(*employee.ContractType)
+		employeeDTO.ContractType = &contractTypeStr
+	}
+	if employee.TaxStatus != nil {
+		taxStatusStr := string(*employee.TaxStatus)
+		employeeDTO.TaxStatus = &taxStatusStr
+	}
+	if employee.HireDate != nil {
+		hireDateStr := employee.HireDate.Format("2006-01-02")
+		employeeDTO.HireDate = &hireDateStr
+	}
+	if employee.ResignationDate != nil {
+		resignationDateStr := employee.ResignationDate.Format("2006-01-02")
+		employeeDTO.ResignationDate = &resignationDateStr
+	}
+
+	if employee.User.Email == "" {
+		employeeDTO.Email = nil
 	}
 
 	log.Printf("EmployeeUseCase: Successfully retrieved employee with ID %d", id)
 	return employeeDTO, nil
 }
 
-// Update modifies an existing employee's details.
-// This would typically involve retrieving the employee, validating changes,
-// applying updates, and saving them via the repository.
 func (uc *EmployeeUseCase) Update(ctx context.Context, employee *domain.Employee) (*domain.Employee, error) {
 	log.Printf("EmployeeUseCase: Update called for employee ID %d: %+v", employee.ID, employee)
-	// TODO: Implement business logic for updating an employee.
-	// Example:
+
 	existingEmployee, err := uc.employeeRepo.GetByID(ctx, employee.ID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve existing employee for update: %w", err)
@@ -158,10 +220,6 @@ func (uc *EmployeeUseCase) Update(ctx context.Context, employee *domain.Employee
 	if existingEmployee == nil {
 		return nil, fmt.Errorf("employee with ID %d not found for update", employee.ID)
 	}
-
-	// Apply updates from 'employee' to 'existingEmployee'
-	// We should only update fields that are actually provided in the 'employee' input
-	// and are not zero-valued, to avoid unintentional overwrites.
 
 	if employee.FirstName != "" {
 		existingEmployee.FirstName = employee.FirstName
@@ -215,18 +273,36 @@ func (uc *EmployeeUseCase) Update(ctx context.Context, employee *domain.Employee
 		existingEmployee.ProfilePhotoURL = employee.ProfilePhotoURL
 	}
 
-	// If employee.PositionID is provided (not zero), update it.
-	// Note: This assumes 0 is not a valid PositionID. If it is,
-	// the input DTO for updates should use *uint for PositionID.
 	if employee.PositionID != 0 {
 		existingEmployee.PositionID = employee.PositionID
 	}
 
-	// Note: User field and its sub-fields (Email, Phone, Password) updates
-	// might need special handling, potentially in a separate auth use case or method.
-	// For now, we are not updating User details here to avoid complexity.
-	// EmploymentStatus is a boolean, so we update it directly if provided in the request.
-	// Assuming the request `employee` struct will have `EmploymentStatus` set if it's intended to be changed.
+	if employee.User.Email != "" {
+		log.Printf("EmployeeUseCase: Updating User Email for UserID %d to %s", existingEmployee.UserID, employee.User.Email)
+		existingEmployee.User.Email = employee.User.Email
+	}
+	if employee.User.Phone != "" {
+		log.Printf("EmployeeUseCase: Updating User Phone for UserID %d to %s", existingEmployee.UserID, employee.User.Phone)
+		existingEmployee.User.Phone = employee.User.Phone
+	}
+
+	if employee.User.Email != "" || employee.User.Phone != "" {
+		if existingEmployee.User.ID == 0 && existingEmployee.UserID != 0 {
+			existingEmployee.User.ID = existingEmployee.UserID
+		}
+
+		if existingEmployee.User.ID != 0 {
+			err = uc.authRepo.UpdateUser(ctx, &existingEmployee.User)
+			if err != nil {
+				log.Printf("EmployeeUseCase: Error updating user details for UserID %d: %v", existingEmployee.User.ID, err)
+				return nil, fmt.Errorf("failed to update user details for employee ID %d: %w", employee.ID, err)
+			}
+			log.Printf("EmployeeUseCase: Successfully triggered update for user details (email/phone) for UserID %d", existingEmployee.User.ID)
+		} else {
+			log.Printf("EmployeeUseCase: Warning - Cannot update user details because UserID is missing for employee %d.", employee.ID)
+		}
+	}
+
 	existingEmployee.EmploymentStatus = employee.EmploymentStatus
 
 	err = uc.employeeRepo.Update(ctx, existingEmployee)
@@ -238,7 +314,6 @@ func (uc *EmployeeUseCase) Update(ctx context.Context, employee *domain.Employee
 	return existingEmployee, nil
 }
 
-/*
 // Delete removes an employee record by their ID.
 // Business logic might include checks (e.g., cannot delete if user has active responsibilities).
 func (uc *EmployeeUseCase) Delete(ctx context.Context, id uint) error {
@@ -258,4 +333,3 @@ func (uc *EmployeeUseCase) Delete(ctx context.Context, id uint) error {
 	// return nil
 	return fmt.Errorf("Delete employee not implemented")
 }
-*/

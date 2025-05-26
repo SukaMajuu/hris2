@@ -1615,11 +1615,6 @@ paths:
                                                 nullable: true
                                                 description: "Updated email of the associated user account, if changed."
                                                 example: "new.employee.email@example.com"
-                                            phone:
-                                                type: string
-                                                nullable: true
-                                                description: "Updated phone number of the associated user account, if changed."
-                                                example: "+628123450001"
                                             resignation_date:
                                                 type: string
                                                 format: date
@@ -1709,7 +1704,7 @@ paths:
                                         type: string
                                         example: "Failed to update employee"
 
-    /employees/{id}/status:
+    /api/employee/{id}/status:
         patch:
             tags: [ Employees ]
             summary: Update employee employment status

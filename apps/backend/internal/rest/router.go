@@ -70,7 +70,7 @@ func (r *Router) Setup() *gin.Engine {
 				employee.GET("/:id", r.employeeHandler.GetEmployeeByID)
 				employee.POST("", r.employeeHandler.CreateEmployee)
 				employee.PATCH("/:id", r.employeeHandler.UpdateEmployee)
-				// employee.DELETE("/:id", r.employeeHandler.DeleteEmployee)
+				employee.PATCH("/:id/status", r.employeeHandler.ResignEmployee)
 			}
 
 			locations := api.Group("/locations")

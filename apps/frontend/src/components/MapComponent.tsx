@@ -159,7 +159,7 @@ export const MapComponent = ({
 		return () => {
 			mapInstance.remove();
 		};
-	}, []);
+	}, [interactive, latitude, longitude, onPositionChange, radius]);
 
 	useEffect(() => {
 		if (map) {
@@ -235,7 +235,7 @@ export const MapComponent = ({
 		if (circle && radius) {
 			circle.setRadius(radius);
 		}
-	}, [radius]);
+	}, [circle, radius]);
 
 	return (
 		<div

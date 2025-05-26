@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
 	dtoemployee "github.com/SukaMajuu/hris/apps/backend/domain/dto/employee"
@@ -314,22 +315,29 @@ func (uc *EmployeeUseCase) Update(ctx context.Context, employee *domain.Employee
 	return existingEmployee, nil
 }
 
-// Delete removes an employee record by their ID.
-// Business logic might include checks (e.g., cannot delete if user has active responsibilities).
-func (uc *EmployeeUseCase) Delete(ctx context.Context, id uint) error {
-	log.Printf("EmployeeUseCase: Delete called for ID: %d", id)
-	// TODO: Implement business logic for deleting an employee.
-	// Example:
-	// if err := uc.canDeleteEmployee(ctx, id); err != nil {
-	//   return fmt.Errorf("cannot delete employee ID %d: %w", id, err)
-	// }
-	//
-	// err := uc.employeeRepo.Delete(ctx, id)
-	// if err != nil {
-	//	 log.Printf("EmployeeUseCase: Error deleting employee ID %d from repository: %v", id, err)
-	//	 return fmt.Errorf("failed to delete employee ID %d: %w", id, err)
-	// }
-	// log.Printf("EmployeeUseCase: Successfully deleted employee with ID %d", id)
-	// return nil
-	return fmt.Errorf("Delete employee not implemented")
+func (uc *EmployeeUseCase) Resign(ctx context.Context, id uint) error {
+	log.Printf("EmployeeUseCase: Resign (Delete) called for ID: %d", id)
+
+	existingEmployee, err := uc.employeeRepo.GetByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, domain.ErrEmployeeNotFound) {
+			log.Printf("EmployeeUseCase: No employee found with ID %d for resignation", id)
+			return domain.ErrEmployeeNotFound
+		}
+		log.Printf("EmployeeUseCase: Error getting employee by ID %d from repository for resignation: %v", id, err)
+		return fmt.Errorf("failed to get employee by ID %d for resignation: %w", id, err)
+	}
+
+	now := time.Now()
+	existingEmployee.EmploymentStatus = false
+	existingEmployee.ResignationDate = &now
+
+	err = uc.employeeRepo.Update(ctx, existingEmployee)
+	if err != nil {
+		log.Printf("EmployeeUseCase: Error updating employee ID %d in repository for resignation: %v", id, err)
+		return fmt.Errorf("failed to update employee ID %d for resignation: %w", id, err)
+	}
+
+	log.Printf("EmployeeUseCase: Successfully resigned employee with ID %d. EmploymentStatus set to false and ResignationDate to %v", id, now.Format(time.RFC3339))
+	return nil
 }

@@ -387,3 +387,25 @@ func (h *EmployeeHandler) UpdateEmployee(c *gin.Context) {
 
 	response.Success(c, http.StatusOK, "Employee updated successfully", respDTO)
 }
+
+func (h *EmployeeHandler) ResignEmployee(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		response.BadRequest(c, "Invalid employee ID format", err)
+		return
+	}
+
+	err = h.employeeUseCase.Resign(c.Request.Context(), uint(id))
+	if err != nil {
+		if errors.Is(err, domain.ErrEmployeeNotFound) {
+			response.NotFound(c, "Employee not found for resignation", err)
+			return
+		}
+		log.Printf("EmployeeHandler: Error resigning employee from use case: %v", err)
+		response.InternalServerError(c, fmt.Errorf("failed to resign employee: %w", err))
+		return
+	}
+
+	response.Success(c, http.StatusOK, "Employee resigned successfully", nil)
+}

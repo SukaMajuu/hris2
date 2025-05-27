@@ -12,6 +12,7 @@ import WorkTypeBadge from "@/components/workTypeBadge";
 import {Check, ChevronsUpDown, Clock, User} from "lucide-react";
 import {Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,} from "@/components/ui/command";
 import {Popover, PopoverContent, PopoverTrigger,} from "@/components/ui/popover";
+import {WorkType} from "@/const/work";
 
 // Interfaces
 export interface Employee {
@@ -63,7 +64,6 @@ export function CheckClockForm({
                                    onSubmit,
                                    isEditMode = false,
                                    employees = [],
-                                   locations = [],
                                    showProfileCard = false,
                                }: CheckClockFormProps) {
     const router = useRouter();
@@ -392,7 +392,7 @@ export function CheckClockForm({
                                                 <TableRow key={index}>
                                                     <TableCell className="font-medium">{detail.day}</TableCell>
                                                     <TableCell>
-                                                        <WorkTypeBadge workType={detail.workType as any}/>
+                                                        <WorkTypeBadge workType={detail.workType as WorkType}/>
                                                     </TableCell>
                                                     <TableCell>{detail.checkIn}</TableCell>
                                                     <TableCell>{detail.break}</TableCell>

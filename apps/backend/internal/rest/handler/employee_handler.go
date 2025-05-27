@@ -220,23 +220,9 @@ func (h *EmployeeHandler) GetEmployeeByID(c *gin.Context) {
 	response.Success(c, http.StatusOK, "Employee retrieved successfully", employeeDTO)
 }
 
-func (h *EmployeeHandler) UpdateEmployee(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.ParseUint(idStr, 10, 32)
-	if err != nil {
-		response.BadRequest(c, "Invalid employee ID format", err)
-		return
-	}
-
-	var reqDTO employeeDTO.UpdateEmployeeRequestDTO
-	if err := c.ShouldBindJSON(&reqDTO); err != nil {
-		log.Printf("EmployeeHandler: Error binding JSON for update: %v", err)
-		response.BadRequest(c, "Invalid request payload", err)
-		return
-	}
-
+func (h *EmployeeHandler) mapUpdateDTOToDomain(employeeID uint, reqDTO *employeeDTO.UpdateEmployeeRequestDTO) (*domain.Employee, error) {
 	employeeUpdatePayload := &domain.Employee{
-		ID: uint(id),
+		ID: employeeID,
 	}
 
 	if reqDTO.Email != nil || reqDTO.Phone != nil {
@@ -289,8 +275,7 @@ func (h *EmployeeHandler) UpdateEmployee(c *gin.Context) {
 		parsedDate, err := time.Parse("2006-01-02", *reqDTO.ResignationDate)
 		if err != nil {
 			log.Printf("EmployeeHandler: Error parsing ResignationDate '%s': %v", *reqDTO.ResignationDate, err)
-			response.BadRequest(c, fmt.Sprintf("Invalid ResignationDate format. Please use YYYY-MM-DD. Value: %s", *reqDTO.ResignationDate), err)
-			return
+			return nil, fmt.Errorf("invalid ResignationDate format. Please use YYYY-MM-DD. Value: %s", *reqDTO.ResignationDate)
 		}
 		employeeUpdatePayload.ResignationDate = &parsedDate
 	}
@@ -298,8 +283,7 @@ func (h *EmployeeHandler) UpdateEmployee(c *gin.Context) {
 		parsedDate, err := time.Parse("2006-01-02", *reqDTO.HireDate)
 		if err != nil {
 			log.Printf("EmployeeHandler: Error parsing HireDate '%s': %v", *reqDTO.HireDate, err)
-			response.BadRequest(c, fmt.Sprintf("Invalid HireDate format. Please use YYYY-MM-DD. Value: %s", *reqDTO.HireDate), err)
-			return
+			return nil, fmt.Errorf("invalid HireDate format. Please use YYYY-MM-DD. Value: %s", *reqDTO.HireDate)
 		}
 		employeeUpdatePayload.HireDate = &parsedDate
 	}
@@ -318,6 +302,90 @@ func (h *EmployeeHandler) UpdateEmployee(c *gin.Context) {
 	if reqDTO.ProfilePhotoURL != nil {
 		employeeUpdatePayload.ProfilePhotoURL = reqDTO.ProfilePhotoURL
 	}
+	return employeeUpdatePayload, nil
+}
+
+func (h *EmployeeHandler) mapDomainToResponseDTO(employee *domain.Employee) *domainEmployeeDTO.EmployeeResponseDTO {
+	var genderDTO *string
+	if employee.Gender != nil {
+		genderStr := string(*employee.Gender)
+		genderDTO = &genderStr
+	}
+	var phoneDTO *string
+	if employee.User.Phone != "" {
+		phoneDTO = &employee.User.Phone
+	}
+
+	respDTO := &domainEmployeeDTO.EmployeeResponseDTO{
+		ID:                    employee.ID,
+		Email:                 &employee.User.Email,
+		Phone:                 phoneDTO,
+		FirstName:             employee.FirstName,
+		LastName:              employee.LastName,
+		EmployeeCode:          employee.EmployeeCode,
+		PositionName:          employee.Position.Name,
+		Gender:                genderDTO,
+		NIK:                   employee.NIK,
+		PlaceOfBirth:          employee.PlaceOfBirth,
+		Grade:                 employee.Grade,
+		EmploymentStatus:      employee.EmploymentStatus,
+		BankName:              employee.BankName,
+		BankAccountNumber:     employee.BankAccountNumber,
+		BankAccountHolderName: employee.BankAccountHolderName,
+		ProfilePhotoURL:       employee.ProfilePhotoURL,
+		CreatedAt:             employee.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:             employee.UpdatedAt.Format(time.RFC3339),
+	}
+
+	if employee.Branch != nil {
+		respDTO.BranchName = &employee.Branch.Name
+	}
+	if employee.LastEducation != nil {
+		lastEducationStr := string(*employee.LastEducation)
+		respDTO.LastEducation = &lastEducationStr
+	}
+	if employee.ContractType != nil {
+		contractTypeStr := string(*employee.ContractType)
+		respDTO.ContractType = &contractTypeStr
+	}
+	if employee.TaxStatus != nil {
+		taxStatusStr := string(*employee.TaxStatus)
+		respDTO.TaxStatus = &taxStatusStr
+	}
+	if employee.HireDate != nil {
+		hireDateStr := employee.HireDate.Format("2006-01-02")
+		respDTO.HireDate = &hireDateStr
+	}
+	if employee.ResignationDate != nil {
+		resignationDateStr := employee.ResignationDate.Format("2006-01-02")
+		respDTO.ResignationDate = &resignationDateStr
+	}
+	if employee.User.Email == "" {
+		respDTO.Email = nil
+	}
+	return respDTO
+}
+
+func (h *EmployeeHandler) UpdateEmployee(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		response.BadRequest(c, "Invalid employee ID format", err)
+		return
+	}
+
+	var reqDTO employeeDTO.UpdateEmployeeRequestDTO
+	if err := c.ShouldBindJSON(&reqDTO); err != nil {
+		log.Printf("EmployeeHandler: Error binding JSON for update: %v", err)
+		response.BadRequest(c, "Invalid request payload", err)
+		return
+	}
+
+	employeeUpdatePayload, err := h.mapUpdateDTOToDomain(uint(id), &reqDTO)
+	if err != nil {
+		response.BadRequest(c, err.Error(), err)
+		return
+	}
 
 	updatedEmployee, err := h.employeeUseCase.Update(c.Request.Context(), employeeUpdatePayload)
 	if err != nil {
@@ -330,65 +398,7 @@ func (h *EmployeeHandler) UpdateEmployee(c *gin.Context) {
 		return
 	}
 
-	var genderDTO *string
-	if updatedEmployee.Gender != nil {
-		genderStr := string(*updatedEmployee.Gender)
-		genderDTO = &genderStr
-	}
-	var phoneDTO *string
-	if updatedEmployee.User.Phone != "" {
-		phoneDTO = &updatedEmployee.User.Phone
-	}
-
-	respDTO := domainEmployeeDTO.EmployeeResponseDTO{
-		ID:                    updatedEmployee.ID,
-		Email:                 &updatedEmployee.User.Email,
-		Phone:                 phoneDTO,
-		FirstName:             updatedEmployee.FirstName,
-		LastName:              updatedEmployee.LastName,
-		EmployeeCode:          updatedEmployee.EmployeeCode,
-		PositionName:          updatedEmployee.Position.Name,
-		Gender:                genderDTO,
-		NIK:                   updatedEmployee.NIK,
-		PlaceOfBirth:          updatedEmployee.PlaceOfBirth,
-		Grade:                 updatedEmployee.Grade,
-		EmploymentStatus:      updatedEmployee.EmploymentStatus,
-		BankName:              updatedEmployee.BankName,
-		BankAccountNumber:     updatedEmployee.BankAccountNumber,
-		BankAccountHolderName: updatedEmployee.BankAccountHolderName,
-		ProfilePhotoURL:       updatedEmployee.ProfilePhotoURL,
-		CreatedAt:             updatedEmployee.CreatedAt.Format(time.RFC3339),
-		UpdatedAt:             updatedEmployee.UpdatedAt.Format(time.RFC3339),
-	}
-
-	if updatedEmployee.Branch != nil {
-		respDTO.BranchName = &updatedEmployee.Branch.Name
-	}
-
-	if updatedEmployee.LastEducation != nil {
-		lastEducationStr := string(*updatedEmployee.LastEducation)
-		respDTO.LastEducation = &lastEducationStr
-	}
-	if updatedEmployee.ContractType != nil {
-		contractTypeStr := string(*updatedEmployee.ContractType)
-		respDTO.ContractType = &contractTypeStr
-	}
-	if updatedEmployee.TaxStatus != nil {
-		taxStatusStr := string(*updatedEmployee.TaxStatus)
-		respDTO.TaxStatus = &taxStatusStr
-	}
-	if updatedEmployee.HireDate != nil {
-		hireDateStr := updatedEmployee.HireDate.Format("2006-01-02")
-		respDTO.HireDate = &hireDateStr
-	}
-	if updatedEmployee.ResignationDate != nil {
-		resignationDateStr := updatedEmployee.ResignationDate.Format("2006-01-02")
-		respDTO.ResignationDate = &resignationDateStr
-	}
-
-	if updatedEmployee.User.Email == "" {
-		respDTO.Email = nil
-	}
+	respDTO := h.mapDomainToResponseDTO(updatedEmployee)
 
 	response.Success(c, http.StatusOK, "Employee updated successfully", respDTO)
 }

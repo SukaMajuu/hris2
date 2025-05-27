@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import Button from './button';
+import { Button } from '../ui/button';
 import { Check } from 'lucide-react';
 
 interface PricingTier {
@@ -17,7 +17,7 @@ const Pricing: React.FC = () => {
   const pricingTiers: PricingTier[] = [
     {
       name: "Starter",
-      price: isAnnual ? "$12" : "$15",
+      price: isAnnual ? "Rp12.000" : "Rp15.000",
       description: "Perfect for small businesses and startups",
       features: [
         "Up to 25 employees",
@@ -31,7 +31,7 @@ const Pricing: React.FC = () => {
     },
     {
       name: "Professional",
-      price: isAnnual ? "$29" : "$35",
+      price: isAnnual ? "Rp29.000" : "Rp35.000",
       description: "Ideal for growing companies",
       features: [
         "Up to 100 employees",
@@ -47,7 +47,7 @@ const Pricing: React.FC = () => {
     },
     {
       name: "Enterprise",
-      price: isAnnual ? "$49" : "$59",
+      price: isAnnual ? "Rp49.000" : "Rp59.000",
       description: "For large organizations with complex needs",
       features: [
         "Unlimited employees",
@@ -115,8 +115,7 @@ const Pricing: React.FC = () => {
                   <span className="text-4xl font-bold text-gray-900">{tier.price}</span>
                   <span className="text-gray-600 ml-2">/ user / month</span>
                 </div>
-                <Button 
-                  variant={tier.highlighted ? 'primary' : 'outline'}
+                <Button                   
                   className="w-full"
                 >
                   {tier.ctaText}

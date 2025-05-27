@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import Button from './button';
+import { Button } from "../ui/button";
 import { Mail, Phone, MapPin, CheckCircle } from 'lucide-react';
 
 const Contact: React.FC = () => {
@@ -62,7 +62,7 @@ const Contact: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-1">Call Us</h3>
-                  <p className="text-gray-600">+1 (800) 123-4567</p>
+                  <p className="text-gray-600">+62812345</p>
                 </div>
               </div>
               
@@ -73,8 +73,8 @@ const Contact: React.FC = () => {
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-1">Visit Us</h3>
                   <p className="text-gray-600">
-                    123 Business Ave, Suite 500<br />
-                    San Francisco, CA 94107
+                    42A Rumah Hijau<br />
+                    Malang, Indonesia
                   </p>
                 </div>
               </div>

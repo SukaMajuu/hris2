@@ -12,7 +12,7 @@ import Footer from '../components/landingPage/footer';
 
 const LandingPage: React.FC = () => {
   useEffect(() => {
-    document.title = 'HRFlow | Modern HR Management System';
+    document.title = 'HRIS | Modern HR Management System';
     const handler = (e: Event) => {
       e.preventDefault();
       const anchor = e.currentTarget as HTMLAnchorElement;

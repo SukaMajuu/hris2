@@ -15,7 +15,7 @@ const Testimonials: React.FC = () => {
   const testimonials: Testimonial[] = [
     {
       id: 1,
-      name: 'Sarah Johnson',
+      name: 'Olivia Hartono',
       position: 'HR Director',
       company: 'Techorama Inc.',
       quote:
@@ -25,7 +25,7 @@ const Testimonials: React.FC = () => {
     },
     {
       id: 2,
-      name: 'Michael Chen',
+      name: 'Rendy Putra Kusuma',
       position: 'COO',
       company: 'Global Logistics',
       quote:
@@ -35,7 +35,7 @@ const Testimonials: React.FC = () => {
     },
     {
       id: 3,
-      name: 'Emily Rodriguez',
+      name: 'Putri Wulandari',
       position: 'People Operations Manager',
       company: 'Innovate Solutions',
       quote:

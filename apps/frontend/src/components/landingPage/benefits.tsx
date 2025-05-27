@@ -1,5 +1,6 @@
 import React from 'react';
 import { CheckCircle2 } from 'lucide-react';
+import Image from 'next/image';
 
 const Benefits: React.FC = () => {
   return (
@@ -7,9 +8,11 @@ const Benefits: React.FC = () => {
       <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row items-center">
           <div className="md:w-1/2 mb-10 md:mb-0">
-            <img 
-              src="https://images.pexels.com/photos/3183150/pexels-photo-3183150.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" 
-              alt="HR professionals in meeting" 
+             <Image
+              src="https://images.pexels.com/photos/3183150/pexels-photo-3183150.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"
+              alt="HR professionals in meeting"
+              width={1260} 
+              height={750}
               className="rounded-xl shadow-lg"
             />
           </div>

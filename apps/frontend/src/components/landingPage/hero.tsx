@@ -1,6 +1,7 @@
 import React from 'react';
-import Button from './button';
+import { Button } from '../ui/button';
 import { ArrowRight } from 'lucide-react';
+import Image from 'next/image';
 
 const Hero: React.FC = () => {
   return (
@@ -43,10 +44,12 @@ const Hero: React.FC = () => {
             <div className="relative">
               <div className="absolute -top-6 -left-6 w-32 h-32 bg-blue-100 rounded-full opacity-70"></div>
               <div className="absolute -bottom-8 -right-8 w-40 h-40 bg-teal-100 rounded-full opacity-70"></div>
-              <img 
-                src="https://images.pexels.com/photos/3184398/pexels-photo-3184398.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" 
-                alt="HR team collaborating" 
-                className="relative z-10 rounded-xl shadow-xl w-full"
+              <Image
+                src="https://images.pexels.com/photos/3184398/pexels-photo-3184398.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"
+                alt="HR professionals in meeting"
+                width={1260} 
+                height={750}
+                className="rounded-xl shadow-lg"
               />
             </div>
           </div>

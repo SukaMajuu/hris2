@@ -15,7 +15,7 @@ const Footer: React.FC = () => {
             </div>
             <p className="text-gray-400 mb-4 max-w-md">
               Simplify and streamline your HR operations with our comprehensive HRIS platform.
-              From recruitment to retirement, manage your entire employee lifecycle in one place.
+              Manage your entire employee lifecycle in one place.
             </p>
             <div className="flex space-x-4">
               <a href="#" className="text-gray-400 hover:text-white transition-colors">

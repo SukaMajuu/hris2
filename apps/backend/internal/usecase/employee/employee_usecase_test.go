@@ -21,6 +21,8 @@ func TestEmployeeUseCase_List(t *testing.T) {
 		ID:        1,
 		FirstName: "John",
 		User:      domain.User{Phone: "12345"},
+		Branch:    &domain.Branch{Name: "Main Branch"},
+		Position:  domain.Position{Name: "Developer"},
 	}
 	mockDomainEmployees := []*domain.Employee{mockDomainEmp}
 	var mockTotalItems int64 = 1
@@ -37,10 +39,13 @@ func TestEmployeeUseCase_List(t *testing.T) {
 		LastName:         mockDomainEmp.LastName,
 		Gender:           expectedGenderDTO,
 		Phone:            &mockDomainEmp.User.Phone,
-		BranchID:         mockDomainEmp.BranchID,
-		PositionID:       mockDomainEmp.PositionID,
+		PositionName:     mockDomainEmp.Position.Name,
 		Grade:            mockDomainEmp.Grade,
 		EmploymentStatus: mockDomainEmp.EmploymentStatus,
+	}
+
+	if mockDomainEmp.Branch != nil {
+		expectedEmployeeDTO.BranchName = &mockDomainEmp.Branch.Name
 	}
 
 	expectedSuccessResponseData := &domain.EmployeeListResponseData{

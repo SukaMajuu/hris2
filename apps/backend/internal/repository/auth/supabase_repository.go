@@ -477,3 +477,54 @@ func (r *supabaseRepository) UpdateLastLogin(ctx context.Context, userID uint, l
 	}
 	return nil
 }
+
+func (r *supabaseRepository) UpdateUser(ctx context.Context, user *domain.User) error {
+	if user.ID == 0 {
+		return errors.New("cannot update user without ID")
+	}
+
+	updates := make(map[string]interface{})
+	changed := false
+
+	if user.Email != "" {
+		existingUser, err := r.GetUserByEmail(ctx, user.Email)
+		if err == nil && existingUser.ID != user.ID {
+			return domain.ErrEmailAlreadyExists
+		}
+		updates["email"] = user.Email
+		changed = true
+	}
+
+	if user.Phone != "" {
+		existingUserWithPhone, err := r.GetUserByPhone(ctx, user.Phone)
+		if err == nil && existingUserWithPhone != nil && existingUserWithPhone.ID != user.ID {
+			log.Printf("SupabaseRepository: UpdateUser failed for UserID %d. Phone number %s already exists for UserID %d", user.ID, user.Phone, existingUserWithPhone.ID)
+			return domain.ErrPhoneAlreadyExists
+		} else if err != nil && !errors.Is(err, domain.ErrUserNotFound) {
+			log.Printf("SupabaseRepository: Error checking phone uniqueness for UserID %d, Phone %s: %v", user.ID, user.Phone, err)
+			return fmt.Errorf("error checking phone uniqueness for UserID %d: %w", user.ID, err)
+		}
+		updates["phone"] = user.Phone
+		changed = true
+	}
+
+	if !changed {
+		log.Printf("SupabaseRepository: UpdateUser called for UserID %d, but no email or phone provided for update.", user.ID)
+		return nil
+	}
+
+	updates["updated_at"] = time.Now()
+
+	result := r.db.WithContext(ctx).Model(&domain.User{}).Where("id = ?", user.ID).Updates(updates)
+	if result.Error != nil {
+		log.Printf("SupabaseRepository: Error updating user details for UserID %d: %v", user.ID, result.Error)
+		return fmt.Errorf("failed to update user details for UserID %d: %w", user.ID, result.Error)
+	}
+
+	if result.RowsAffected == 0 {
+		log.Printf("SupabaseRepository: No user found with ID %d to update, or no changes made.", user.ID)
+	}
+
+	log.Printf("SupabaseRepository: Successfully updated user details (locally) for UserID %d.", user.ID)
+	return nil
+}

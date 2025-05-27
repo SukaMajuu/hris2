@@ -7,8 +7,8 @@ type EmployeeResponseDTO struct {
 	FirstName             string  `json:"first_name"`
 	LastName              *string `json:"last_name,omitempty"`
 	EmployeeCode          *string `json:"employee_code,omitempty"`
-	BranchID              *uint   `json:"branch_id,omitempty"`
-	PositionID            uint    `json:"position_id"`
+	BranchName            *string `json:"branch_name,omitempty"`
+	PositionName          string  `json:"position_name"`
 	Gender                *string `json:"gender,omitempty"`
 	NIK                   *string `json:"nik,omitempty"`
 	PlaceOfBirth          *string `json:"place_of_birth,omitempty"`

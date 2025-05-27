@@ -152,8 +152,7 @@ func (h *EmployeeHandler) CreateEmployee(c *gin.Context) {
 		FirstName:             createdEmployee.FirstName,
 		LastName:              createdEmployee.LastName,
 		EmployeeCode:          createdEmployee.EmployeeCode,
-		BranchID:              createdEmployee.BranchID,
-		PositionID:            createdEmployee.PositionID,
+		PositionName:          createdEmployee.Position.Name,
 		Gender:                genderStrPointer,
 		NIK:                   createdEmployee.NIK,
 		PlaceOfBirth:          createdEmployee.PlaceOfBirth,
@@ -165,6 +164,10 @@ func (h *EmployeeHandler) CreateEmployee(c *gin.Context) {
 		ProfilePhotoURL:       createdEmployee.ProfilePhotoURL,
 		CreatedAt:             createdEmployee.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:             createdEmployee.UpdatedAt.Format(time.RFC3339),
+	}
+
+	if createdEmployee.Branch != nil {
+		respDTO.BranchName = &createdEmployee.Branch.Name
 	}
 
 	if createdEmployee.LastEducation != nil {
@@ -236,7 +239,6 @@ func (h *EmployeeHandler) UpdateEmployee(c *gin.Context) {
 		ID: uint(id),
 	}
 
-	// Populate User fields if provided
 	if reqDTO.Email != nil || reqDTO.Phone != nil {
 		employeeUpdatePayload.User = domain.User{}
 		if reqDTO.Email != nil {
@@ -345,8 +347,7 @@ func (h *EmployeeHandler) UpdateEmployee(c *gin.Context) {
 		FirstName:             updatedEmployee.FirstName,
 		LastName:              updatedEmployee.LastName,
 		EmployeeCode:          updatedEmployee.EmployeeCode,
-		BranchID:              updatedEmployee.BranchID,
-		PositionID:            updatedEmployee.PositionID,
+		PositionName:          updatedEmployee.Position.Name,
 		Gender:                genderDTO,
 		NIK:                   updatedEmployee.NIK,
 		PlaceOfBirth:          updatedEmployee.PlaceOfBirth,
@@ -358,6 +359,10 @@ func (h *EmployeeHandler) UpdateEmployee(c *gin.Context) {
 		ProfilePhotoURL:       updatedEmployee.ProfilePhotoURL,
 		CreatedAt:             updatedEmployee.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:             updatedEmployee.UpdatedAt.Format(time.RFC3339),
+	}
+
+	if updatedEmployee.Branch != nil {
+		respDTO.BranchName = &updatedEmployee.Branch.Name
 	}
 
 	if updatedEmployee.LastEducation != nil {

@@ -22,7 +22,7 @@ func (r *PostgresRepository) Create(ctx context.Context, employee *domain.Employ
 
 func (r *PostgresRepository) GetByID(ctx context.Context, id uint) (*domain.Employee, error) {
 	var employee domain.Employee
-	err := r.db.WithContext(ctx).Preload("User").First(&employee, id).Error
+	err := r.db.WithContext(ctx).Preload("User").Preload("Branch").Preload("Position").First(&employee, id).Error
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +70,7 @@ func (r *PostgresRepository) List(ctx context.Context, filters map[string]interf
 	}
 
 	offset := (pagination.Page - 1) * pagination.PageSize
-	if err := query.Offset(offset).Limit(pagination.PageSize).Preload("User").Find(&employees).Error; err != nil {
+	if err := query.Offset(offset).Limit(pagination.PageSize).Preload("User").Preload("Branch").Preload("Position").Find(&employees).Error; err != nil {
 		return nil, 0, err
 	}
 

@@ -54,8 +54,7 @@ func (uc *EmployeeUseCase) List(ctx context.Context, filters map[string]interfac
 			FirstName:             emp.FirstName,
 			LastName:              emp.LastName,
 			EmployeeCode:          emp.EmployeeCode,
-			BranchID:              emp.BranchID,
-			PositionID:            emp.PositionID,
+			PositionName:          emp.Position.Name,
 			Gender:                genderDTO,
 			NIK:                   emp.NIK,
 			PlaceOfBirth:          emp.PlaceOfBirth,
@@ -65,6 +64,10 @@ func (uc *EmployeeUseCase) List(ctx context.Context, filters map[string]interfac
 			BankAccountNumber:     emp.BankAccountNumber,
 			BankAccountHolderName: emp.BankAccountHolderName,
 			ProfilePhotoURL:       emp.ProfilePhotoURL,
+		}
+
+		if emp.Branch != nil {
+			employeeDTOs[i].BranchName = &emp.Branch.Name
 		}
 
 		if emp.LastEducation != nil {
@@ -169,8 +172,7 @@ func (uc *EmployeeUseCase) GetByID(ctx context.Context, id uint) (*dtoemployee.E
 		FirstName:             employee.FirstName,
 		LastName:              employee.LastName,
 		EmployeeCode:          employee.EmployeeCode,
-		BranchID:              employee.BranchID,
-		PositionID:            employee.PositionID,
+		PositionName:          employee.Position.Name,
 		Gender:                genderDTO,
 		NIK:                   employee.NIK,
 		PlaceOfBirth:          employee.PlaceOfBirth,
@@ -180,6 +182,10 @@ func (uc *EmployeeUseCase) GetByID(ctx context.Context, id uint) (*dtoemployee.E
 		BankAccountNumber:     employee.BankAccountNumber,
 		BankAccountHolderName: employee.BankAccountHolderName,
 		ProfilePhotoURL:       employee.ProfilePhotoURL,
+	}
+
+	if employee.Branch != nil {
+		employeeDTO.BranchName = &employee.Branch.Name
 	}
 
 	if employee.LastEducation != nil {

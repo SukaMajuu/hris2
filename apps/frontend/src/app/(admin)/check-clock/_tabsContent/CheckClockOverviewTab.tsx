@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import { useForm } from "react-hook-form";
 import * as React from "react";
-import { MapComponent } from "@/components/MapComponent";
+import dynamic from "next/dynamic";
 import { Label } from "@/components/ui/label";
 import {
 	ColumnDef,
@@ -44,6 +44,21 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+
+const MapComponent = dynamic(
+	() =>
+		import("@/components/MapComponent").then((mod) => ({
+			default: mod.MapComponent,
+		})),
+	{
+		ssr: false,
+		loading: () => (
+			<div className="flex items-center justify-center h-full text-gray-400">
+				Loading map...
+			</div>
+		),
+	}
+);
 
 interface DialogFormData {
 	name: string;

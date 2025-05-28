@@ -13,8 +13,23 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MapComponent } from "@/components/MapComponent";
 import { Crosshair } from "lucide-react";
+import dynamic from "next/dynamic";
+
+const MapComponent = dynamic(
+	() =>
+		import("@/components/MapComponent").then((mod) => ({
+			default: mod.MapComponent,
+		})),
+	{
+		ssr: false,
+		loading: () => (
+			<div className="flex items-center justify-center h-full text-gray-400">
+				Loading map...
+			</div>
+		),
+	}
+);
 
 interface DialogFormData {
 	attendanceType: string;

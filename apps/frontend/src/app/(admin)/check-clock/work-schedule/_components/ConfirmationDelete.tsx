@@ -1,29 +1,29 @@
 import {
-	AlertDialog,
-	AlertDialogAction,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-import type {WorkScheduleDetailRow} from "../_hooks/useWorkSchedule";
+import type { WorkSchedule, WorkScheduleDetailRow } from "../_hooks/useWorkSchedule";
 
 interface ConfirmationDeleteProps {
     isDeleteDialogOpen: boolean;
     handleCloseDeleteDialog: () => void;
     handleConfirmDelete: () => void;
-    workScheduleToDelete: WorkScheduleDetailRow | null;
+    workScheduleToDelete: WorkSchedule | WorkScheduleDetailRow | null;
 }
 
 const ConfirmationDelete = ({
-                                isDeleteDialogOpen,
-                                handleCloseDeleteDialog,
-                                handleConfirmDelete,
-                                workScheduleToDelete,
-                            }: ConfirmationDeleteProps) => {
+    isDeleteDialogOpen,
+    handleCloseDeleteDialog,
+    handleConfirmDelete,
+    workScheduleToDelete,
+}: ConfirmationDeleteProps) => {
     return (
         <AlertDialog
             open={isDeleteDialogOpen}

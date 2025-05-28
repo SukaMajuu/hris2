@@ -33,7 +33,7 @@ const ConfirmationDelete = ({
 					<AlertDialogDescription>
 						This action cannot be undone. This will permanently
 						delete the location &quot;
-						<strong>{locationToDelete?.nama || ""}</strong>
+						<strong>{locationToDelete?.locationName || ""}</strong>
 						&quot; and all associated data.
 					</AlertDialogDescription>
 				</AlertDialogHeader>

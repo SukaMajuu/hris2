@@ -24,8 +24,6 @@ export const MapComponent = ({
 	const [circle, setCircle] = useState<L.Circle | null>(null);
 
 	useEffect(() => {
-		if (typeof window === "undefined") return;
-
 		const DefaultIcon = L.icon({
 			iconUrl:
 				"https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png",

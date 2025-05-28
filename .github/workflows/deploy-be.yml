@@ -18,6 +18,7 @@ jobs:
             - uses: actions/checkout@v3
 
             - name: Set up Docker Buildx
+              id: buildx
               uses: docker/setup-buildx-action@v2
 
             - name: Login to Azure Container Registry
@@ -28,18 +29,32 @@ jobs:
                   password: ${{ secrets.AZURE_REGISTRY_PASSWORD }}
 
             - name: Build and push backend image
+              id: docker_build
               uses: docker/build-push-action@v4
               with:
                   context: .
                   file: ./infrastructure/docker/backend/Dockerfile
                   push: true
-                  tags: ${{ secrets.AZURE_CONTAINER_REGISTRY }}/hris-backend-sukamaju123:${{ github.sha }}
-                  cache-from: type=registry,ref=${{ secrets.AZURE_CONTAINER_REGISTRY }}/hris-backend-sukamaju123:latest
+                  tags: ${{ secrets.AZURE_CONTAINER_REGISTRY }}/my-backend-app:${{ github.sha }},${{ secrets.AZURE_CONTAINER_REGISTRY }}/my-backend-app:latest
+                  cache-from: type=registry,ref=${{ secrets.AZURE_CONTAINER_REGISTRY }}/my-backend-app:latest
                   cache-to: type=inline
+                  build-args: |
+                      DATABASE_URL=${{ secrets.DATABASE_URL }}
+                      SUPABASE_URL=${{ secrets.SUPABASE_URL }}
+                      SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}
+                      PORT=${{ secrets.PORT }}
+                      JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}
+                      JWT_ACCESS_DURATION=${{ secrets.JWT_ACCESS_DURATION }}
+                      JWT_REFRESH_DURATION=${{ secrets.JWT_REFRESH_DURATION }}
+
+            - name: Login to Azure (Needed if you use Azure CLI commands directly)
+              uses: azure/login@v1
+              with:
+                creds: ${{ secrets.AZURE_CREDENTIALS }}
 
             - name: Deploy to Azure Web App
               uses: azure/webapps-deploy@v2
               with:
-                  app-name: hris-backend-sukamaju123
-                  images: ${{ secrets.AZURE_CONTAINER_REGISTRY }}/hris-backend-sukamaju123:${{ github.sha }}
+                  app-name: hrisbackendpbl
+                  images: ${{ secrets.AZURE_CONTAINER_REGISTRY }}/my-backend-app:${{ github.sha }}
                   publish-profile: ${{ secrets.AZURE_BACKEND_PUBLISH_PROFILE }}

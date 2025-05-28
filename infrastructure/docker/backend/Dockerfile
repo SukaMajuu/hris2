@@ -23,14 +23,26 @@ FROM debian:bullseye-slim
 
 WORKDIR /app
 
+# Accept build arguments for environment variables
+ARG DATABASE_URL
+ARG SUPABASE_URL
+ARG SUPABASE_KEY
+ARG PORT
+ARG JWT_SECRET_KEY
+ARG JWT_ACCESS_DURATION
+ARG JWT_REFRESH_DURATION
+
+# Set environment variables
+ENV DATABASE_URL=$DATABASE_URL
+ENV SUPABASE_URL=$SUPABASE_URL
+ENV SUPABASE_KEY=$SUPABASE_KEY
+ENV PORT=$PORT
+ENV JWT_SECRET_KEY=$JWT_SECRET_KEY
+ENV JWT_ACCESS_DURATION=$JWT_ACCESS_DURATION
+ENV JWT_REFRESH_DURATION=$JWT_REFRESH_DURATION
+
 # Copy the binary from builder
 COPY --from=builder /app/main .
-
-# Copy Firebase credentials
-COPY apps/backend/firebase-credentials.json .
-
-# Copy .env file
-COPY apps/backend/.env .
 
 # Expose port
 EXPOSE 8080

@@ -20,6 +20,7 @@ required_vars=(
   "SUPABASE_DB_PASSWORD"
   "SUPABASE_URL"
   "SUPABASE_KEY"
+  "SUPABASE_ANON_KEY"
 )
 
 for var in "${required_vars[@]}"; do
@@ -62,7 +63,9 @@ az deployment group create \
     containerRegistryUrl=$ACR_URL \
     containerRegistryUsername=$ACR_USERNAME \
     containerRegistryPassword=$ACR_PASSWORD \
-    backendAppName=$BACKEND_APP_NAME
+    backendAppName=$BACKEND_APP_NAME \
+    supabaseUrl=$SUPABASE_URL \
+    supabaseAnonKey=$SUPABASE_ANON_KEY
 
 echo "Deployment completed successfully!"
 echo "Frontend URL: $(az containerapp show --name $FRONTEND_APP_NAME --resource-group $RESOURCE_GROUP --query properties.configuration.ingress.fqdn -o tsv)"

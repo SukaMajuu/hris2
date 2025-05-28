@@ -37,6 +37,18 @@
             "metadata": {
                 "description": "Name of the backend app service"
             }
+        },
+        "supabaseUrl": {
+            "type": "string",
+            "metadata": {
+                "description": "Supabase project URL"
+            }
+        },
+        "supabaseAnonKey": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Supabase anonymous key"
+            }
         }
     },
     "variables": {
@@ -101,6 +113,10 @@
                         {
                             "name": "registry-password",
                             "value": "[parameters('containerRegistryPassword')]"
+                        },
+                        {
+                            "name": "supabase-anon-key",
+                            "value": "[parameters('supabaseAnonKey')]"
                         }
                     ]
                 },
@@ -113,6 +129,14 @@
                                 {
                                     "name": "NEXT_PUBLIC_API_URL",
                                     "value": "[concat('https://', parameters('backendAppName'), '.azurewebsites.net')]"
+                                },
+                                {
+                                    "name": "NEXT_PUBLIC_SUPABASE_URL",
+                                    "value": "[parameters('supabaseUrl')]"
+                                },
+                                {
+                                    "name": "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+                                    "secretRef": "supabase-anon-key"
                                 }
                             ],
                             "resources": {
@@ -123,7 +147,17 @@
                     ],
                     "scale": {
                         "minReplicas": 1,
-                        "maxReplicas": 10
+                        "maxReplicas": 10,
+                        "rules": [
+                            {
+                                "name": "http-rule",
+                                "http": {
+                                    "metadata": {
+                                        "concurrentRequests": "30"
+                                    }
+                                }
+                            }
+                        ]
                     }
                 }
             }

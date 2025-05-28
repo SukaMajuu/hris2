@@ -23,8 +23,6 @@ export function RoleGuard({
 	const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 	const isAuthStoreLoading = useAuthStore((state) => state.isLoading);
 
-	console.log(isAuthenticated);
-
 	const userRole = user?.role as Role | undefined;
 	const isAuthorized = userRole ? allowedRoles.includes(userRole) : false;
 

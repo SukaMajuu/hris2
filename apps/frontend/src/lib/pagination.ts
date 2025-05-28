@@ -69,14 +69,24 @@ export function updateUrlWithPagination(
 	url: string,
 	params: PaginationParams
 ): string {
-	const urlObj = new URL(url, window.location.origin);
+	const urlObj = new URL(
+		url,
+		typeof window !== "undefined"
+			? window.location.origin
+			: "http://localhost:3000"
+	);
 	urlObj.searchParams.set("page", params.page.toString());
 	urlObj.searchParams.set("page_size", params.pageSize.toString());
 	return urlObj.toString();
 }
 
 export function getPaginationParamsFromUrl(url: string): PaginationParams {
-	const urlObj = new URL(url, window.location.origin);
+	const urlObj = new URL(
+		url,
+		typeof window !== "undefined"
+			? window.location.origin
+			: "http://localhost:3000"
+	);
 	const page = parseInt(urlObj.searchParams.get("page") || "1", 10);
 	const pageSize = parseInt(urlObj.searchParams.get("page_size") || "10", 10);
 	return createPaginationParams(page, pageSize);

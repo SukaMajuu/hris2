@@ -73,6 +73,7 @@
     "@storybook/test": "^8.6.4",
     "@tailwindcss/postcss": "^4",
     "@tanstack/eslint-plugin-query": "^5.66.1",
+    "@types/jwt-decode": "^2.2.1",
     "@types/leaflet": "^1.9.17",
     "@types/node": "^20",
     "@types/react": "^19",

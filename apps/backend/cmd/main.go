@@ -6,10 +6,12 @@ import (
 	"github.com/SukaMajuu/hris/apps/backend/internal/repository/auth"
 	"github.com/SukaMajuu/hris/apps/backend/internal/repository/employee"
 	"github.com/SukaMajuu/hris/apps/backend/internal/repository/location"
+	"github.com/SukaMajuu/hris/apps/backend/internal/repository/work_schedule"
 	"github.com/SukaMajuu/hris/apps/backend/internal/rest"
 	authUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/auth"
 	employeeUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/employee"
 	locationUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/location"
+	workScheduleUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/work_schedule"
 	"github.com/SukaMajuu/hris/apps/backend/pkg/config"
 	"github.com/SukaMajuu/hris/apps/backend/pkg/database"
 	"github.com/SukaMajuu/hris/apps/backend/pkg/jwt"
@@ -35,6 +37,7 @@ func main() {
 
 	employeeRepo := employee.NewPostgresRepository(db)
 	locationRepo := location.NewLocationRepository(db)
+	workScheduleRepo := work_schedule.NewWorkScheduleRepository(db)
 
 	jwtService := jwt.NewJWTService(cfg)
 
@@ -52,7 +55,12 @@ func main() {
 
 	locationUseCase := locationUseCase.NewLocationUseCase(locationRepo)
 
-	router := rest.NewRouter(authUseCase, employeeUseCase, locationUseCase)
+	workScheduleUseCase := workScheduleUseCase.NewWorkScheduleUseCase(
+		workScheduleRepo,
+		locationRepo,
+	)
+
+	router := rest.NewRouter(authUseCase, employeeUseCase, locationUseCase, workScheduleUseCase)
 
 	ginRouter := router.Setup()
 

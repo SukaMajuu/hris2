@@ -63,3 +63,16 @@ func (r *locationRepository) Update(ctx context.Context, id string, location *do
 func (r *locationRepository) Delete(ctx context.Context, id string) error {
 	return r.db.WithContext(ctx).Where("id = ?", id).Delete(&domain.Location{}).Error
 }
+
+// Exists checks if a location with the given ID exists.
+func (r *locationRepository) Exists(ctx context.Context, id string) (bool, error) {
+	var location domain.Location
+	err := r.db.WithContext(ctx).Model(&domain.Location{}).Where("id = ?", id).First(&location).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return false, nil // Record not found means it doesn't exist
+		}
+		return false, err // Other error
+	}
+	return true, nil // Record found
+}

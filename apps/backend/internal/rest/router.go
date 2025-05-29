@@ -6,6 +6,7 @@ import (
 	"github.com/SukaMajuu/hris/apps/backend/internal/usecase/auth"
 	"github.com/SukaMajuu/hris/apps/backend/internal/usecase/employee"
 	"github.com/SukaMajuu/hris/apps/backend/internal/usecase/location"
+	work_Schedule "github.com/SukaMajuu/hris/apps/backend/internal/usecase/work_schedule"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -15,15 +16,16 @@ type Router struct {
 	locationHandler *handler.LocationHandler
 	authMiddleware  *middleware.AuthMiddleware
 	employeeHandler *handler.EmployeeHandler
-	//workScheduleHandler *handler.WorkScheduleHandler
+	workScheduleHandler *handler.WorkScheduleHandler
 }
 
-func NewRouter(authUseCase *auth.AuthUseCase, employeeUseCase *employee.EmployeeUseCase, locationUseCase *location.LocationUseCase) *Router {
+func NewRouter(authUseCase *auth.AuthUseCase, employeeUseCase *employee.EmployeeUseCase, locationUseCase *location.LocationUseCase, workScheduleUsecase * work_Schedule.WorkScheduleUseCase) *Router {
 	return &Router{
 		authHandler:     handler.NewAuthHandler(authUseCase),
 		authMiddleware:  middleware.NewAuthMiddleware(authUseCase, employeeUseCase),
 		employeeHandler: handler.NewEmployeeHandler(employeeUseCase),
 		locationHandler: handler.NewLocationHandler(locationUseCase),
+		workScheduleHandler: handler.NewWorkScheduleHandler(workScheduleUsecase),
 	}
 }
 
@@ -80,6 +82,11 @@ func (r *Router) Setup() *gin.Engine {
 				locations.GET("/:id", r.locationHandler.GetLocationByID)
 				locations.PUT("/:id", r.locationHandler.UpdateLocation)
 				locations.DELETE("/:id", r.locationHandler.DeleteLocation)
+			}
+
+			work_Schedule := api.Group("/work-schedules")
+			{
+				work_Schedule.POST("", r.workScheduleHandler.CreateWorkSchedule)
 			}
 		}
 	}

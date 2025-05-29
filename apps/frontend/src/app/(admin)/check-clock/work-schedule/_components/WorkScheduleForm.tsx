@@ -191,20 +191,43 @@ export function WorkScheduleForm({
                 <div className="w-full md:w-2/3">
                     <Card className="border-none shadow-sm">
                         <CardContent className="p-6">
-                            <div className="flex items-center gap-2 mb-4">
-                                <CalendarClock className="h-5 w-5 text-gray-500"/>
-                                <h3 className="font-semibold text-lg text-gray-800">
+                            <div className="flex items-center gap-2 mb-6">
+                                <CalendarClock className="h-6 w-6 text-[#6B9AC4]"/>
+                                <h3 className="font-semibold text-xl text-gray-800">
                                     Work Schedule
                                 </h3>
                             </div>
-                            <div className="space-y-1.5">
-                                <Label htmlFor="nama">Schedule Name</Label>
-                                <Input
-                                    id="nama"
-                                    value={formData.nama ?? ""}
-                                    onChange={(e) => setFormData((prev) => ({...prev, nama: e.target.value}))}
-                                    placeholder="Enter Schedule Name"
-                                />
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="nama" className="text-sm font-medium">Schedule Name</Label>
+                                    <Input
+                                        id="nama"
+                                        value={formData.nama ?? ""}
+                                        onChange={(e) => setFormData((prev) => ({...prev, nama: e.target.value}))}
+                                        placeholder="Enter Schedule Name"
+                                        className="focus-visible:ring-[#6B9AC4] focus-visible:border-[#6B9AC4]"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="workType" className="text-sm font-medium">Work Type</Label>
+                                    <Select
+                                        value={formData.workType ?? ""}
+                                        onValueChange={(value) => setFormData((prev) => ({...prev, workType: value}))}
+                                    >
+                                        <SelectTrigger
+                                            className="w-full text-sm font-normal bg-white border-gray-300 hover:border-[#6B9AC4] focus:border-[#6B9AC4] focus:ring-[#6B9AC4]">
+                                            <SelectValue placeholder="Select work type"/>
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-white">
+                                            <SelectItem value="WFO" className="hover:bg-[#EEF2F6]">Work From Office
+                                                (WFO)</SelectItem>
+                                            <SelectItem value="WFA" className="hover:bg-[#EEF2F6]">Work From Anywhere
+                                                (WFA)</SelectItem>
+                                            <SelectItem value="HYBRID"
+                                                        className="hover:bg-[#EEF2F6]">Hybrid</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </div>
                         </CardContent>
                     </Card>

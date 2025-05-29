@@ -4,12 +4,10 @@ import (
 	"time"
 )
 
-type CheckClockSettings struct {
+type CheckclockSettings struct {
 	ID             uint         `gorm:"primaryKey"`
 	EmployeeID     uint         `gorm:"not null"`
 	Employee       Employee     `gorm:"foreignKey:EmployeeID"`
-	LocationID     uint         `gorm:"not null"`
-	Location       Location     `gorm:"foreignKey:LocationID"`
 	WorkScheduleID uint         `gorm:"not null"`
 	WorkSchedule   WorkSchedule `gorm:"foreignKey:WorkScheduleID"`
 
@@ -17,6 +15,6 @@ type CheckClockSettings struct {
 	UpdatedAt time.Time `gorm:"autoUpdateTime"`
 }
 
-func (ccs *CheckClockSettings) TableName() string {
-	return "check_clock_settings"
+func (ccs *CheckclockSettings) TableName() string {
+	return "checkclock_settings"
 }

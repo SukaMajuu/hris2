@@ -6,8 +6,8 @@ info:
     contact:
         name: SukaMaju
 servers:
-    -   url: http://localhost:8080/v1
-        description: Development server
+    - url: http://localhost:8080/v1
+      description: Development server
 
 components:
     securitySchemes:
@@ -41,7 +41,7 @@ components:
                 role:
                     type: string
                     description: Role assigned to the user, determining their permissions.
-                    enum: [ admin, user ]
+                    enum: [admin, user]
                     example: "user"
                 last_login_at:
                     type: string
@@ -128,7 +128,7 @@ components:
                     type: string
                     nullable: true
                     description: Employee's highest level of education completed (optional).
-                    enum: [ high_school, diploma, bachelor, master, doctorate ]
+                    enum: [high_school, diploma, bachelor, master, doctorate]
                 grade:
                     type: string
                     maxLength: 50
@@ -138,7 +138,7 @@ components:
                     type: string
                     nullable: true
                     description: Type of employment contract (optional).
-                    enum: [ permanent, contract, internship, freelance ]
+                    enum: [permanent, contract, internship, freelance]
                 resignation_date:
                     type: string
                     format: date
@@ -168,7 +168,8 @@ components:
                     type: string
                     nullable: true
                     description: Employee's tax status (e.g., PTKP status in Indonesia) (optional).
-                    enum: [ tk0, tk1, tk2, tk3, k0, k1, k2, k3, ki0, ki1, ki2, ki3 ]
+                    enum:
+                        [tk0, tk1, tk2, tk3, k0, k1, k2, k3, ki0, ki1, ki2, ki3]
                 profile_photo_url:
                     type: string
                     maxLength: 255
@@ -316,17 +317,29 @@ components:
             required:
                 - worktype_detail
                 - work_days
+                - created_at
+                - updated_at
             properties:
                 worktype_detail:
                     type: string
-                    enum: [ "WFO", "WFH", "WFA" ] # Adjust enums as per your domain.enums.WorkType for details
+                    enum: ["WFO", "WFA"]
                     example: "WFO"
                 work_days:
                     type: array
                     items:
                         type: string
-                        enum: [ "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" ]
-                    example: [ "Monday", "Tuesday", "Wednesday", "Thursday", "Friday" ]
+                        enum:
+                            [
+                                "Monday",
+                                "Tuesday",
+                                "Wednesday",
+                                "Thursday",
+                                "Friday",
+                                "Saturday",
+                                "Sunday",
+                            ]
+                    example:
+                        ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
                 checkin_start:
                     type: string
                     format: time # Should be "HH:MM:SS"
@@ -362,27 +375,60 @@ components:
                     format: uint
                     nullable: true
                     example: 1
-        
+                created_at:
+                    type: string
+                    format: date-time
+                    example: "2024-01-01T12:00:00Z"
+                updated_at:
+                    type: string
+                    format: date-time
+                    example: "2024-01-02T12:00:00Z"
+
         WorkScheduleCreateRequest:
             type: object
             required:
                 - name
                 - work_type
                 - details
+                - created_at
+                - updated_at
             properties:
                 name:
                     type: string
-                    example: "Standard Morning Shift"
-                work_type: # General type for the schedule itself
+                    example: "Hybrid Schedule Example"
+                work_type: 
                     type: string
-                    enum: [ "WFO", "WFA", "Hybrid" ] # Adjust enums as per your domain.enums.WorkType for schedule
-                    example: "WFO"
+                    enum: ["WFO", "WFA", "Hybrid"] 
+                    example: "Hybrid"
                 details:
                     type: array
                     items:
                         $ref: "#/components/schemas/WorkScheduleDetailRequest"
                     minItems: 1
-        
+                    example: # Added a more complete example based on your input
+                        - worktype_detail: "WFO"
+                          work_days: ["Monday", "Tuesday", "Wednesday"]
+                          checkin_start: "08:00:00"
+                          checkin_end: "09:00:00"
+                          break_start: "12:00:00"
+                          break_end: "13:00:00"
+                          checkout_start: "17:00:00"
+                          checkout_end: "18:00:00"
+                          location_id: 1
+                          created_at: "2024-01-01T12:00:00Z"
+                          updated_at: "2024-01-02T12:00:00Z"
+                        - worktype_detail: "WFA"
+                          work_days: ["Thursday", "Friday"]
+                          checkin_start: "08:00:00"
+                          checkin_end: "10:00:00"
+                          break_start: null # Use null for non-applicable time
+                          break_end: null   # Use null for non-applicable time
+                          checkout_start: "17:00:00"
+                          checkout_end: "18:00:00"
+                          location_id: null # Use null for non-applicable ID
+                          created_at: "2024-01-01T12:00:00Z"
+                          updated_at: "2024-01-02T12:00:00Z"
+
         WorkScheduleDetailResponse:
             type: object
             properties:
@@ -392,13 +438,14 @@ components:
                     example: 1
                 worktype_detail:
                     type: string
-                    enum: [ "WFO", "WFA" ]
+                    enum: ["WFO", "WFA"]
                     example: "WFO"
                 work_days:
                     type: array
                     items:
                         type: string
-                    example: [ "Monday", "Tuesday", "Wednesday", "Thursday", "Friday" ]
+                    example:
+                        ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
                 checkin_start:
                     type: string
                     format: time
@@ -457,7 +504,15 @@ components:
                     format: double
                     nullable: true
                     example: 100.5
-        
+                created_at:
+                    type: string
+                    format: date-time
+                    example: "2024-01-01T12:00:00Z"
+                updated_at:
+                    type: string
+                    format: date-time
+                    example: "2024-01-02T12:00:00Z"
+
         WorkScheduleResponse: # This replaces the old "Work schedule" schema
             type: object
             properties:
@@ -467,25 +522,82 @@ components:
                     example: 1
                 name:
                     type: string
-                    example: "Standard Morning Shift"
+                    example: "Full WFO"
                 work_type:
                     type: string
-                    example: "Shift"
+                    example: "WFO"
                 details:
                     type: array
                     items:
                         $ref: "#/components/schemas/WorkScheduleDetailResponse"
-        # You might want to comment out or delete the old "Work schedule" schema definition
-        # if it was named differently or is no longer accurate.
-        # Example:
-        # '#/components/schemas/Work schedule': ... (comment this out)
-
+                created_at:
+                    type: string
+                    format: date-time
+                    example: "2024-01-01T12:00:00Z"
+                updated_at:
+                    type: string
+                    format: date-time
+                    example: "2024-01-02T12:00:00Z"
+        
+        CheckClockSettingsCreateRequest:
+            type: object
+            required:
+                - employee_id
+                - work_schedule_id
+                - created_at
+                - updated_at
+            properties:
+                employee_id:
+                    type: integer
+                    format: uint
+                    description: The ID of the employee for whom the clock settings are being checked.
+                    example: 40
+                work_schedule_id:
+                    type: integer
+                    format: uint
+                    description: The ID of the work schedule to check against.
+                    example: 1
+                created_at:
+                    type: string
+                    format: date-time
+                    description: Timestamp of when the check clock setting was created.
+                    example: "2024-01-01T12:00:00Z"
+                updated_at:
+                    type: string
+                    format: date-time
+                    description: Timestamp of when the check clock setting was last updated.
+                    example: "2024-01-02T12:00:00Z"
+        
+        CheckClockSettingsResponse:
+            type: object
+            properties:
+                id:
+                    type: integer
+                    format: uint
+                    description: The unique identifier for the check clock setting.
+                employee_id:
+                    type: integer
+                    format: uint
+                    description: The ID of the employee.
+                work_schedule_id:
+                    type: integer
+                    format: uint
+                    description: The ID of the work schedule.
+                created_at:
+                    type: string
+                    format: date-time
+                    description: Timestamp of when the setting was created.
+                updated_at:
+                    type: string
+                    format: date-time
+                    description: Timestamp of when the setting was last updated
+        
 paths:
     /auth/login:
         post:
-            tags: [ Authentication ]
+            tags: [Authentication]
             summary: User login
-            security: [ ]
+            security: []
             requestBody:
                 required: true
                 content:
@@ -578,7 +690,7 @@ paths:
 
     /auth/register:
         post:
-            tags: [ Authentication ]
+            tags: [Authentication]
             summary: User registration
             description: Register a new user account
             requestBody:
@@ -664,11 +776,11 @@ paths:
 
     /auth/logout:
         post:
-            tags: [ Authentication ]
+            tags: [Authentication]
             summary: User logout
             description: Log out the currently authenticated user by invalidating the access token.
             security:
-                -   bearerAuth: [ ]
+                - bearerAuth: []
             responses:
                 200:
                     description: Logout successful
@@ -718,7 +830,7 @@ paths:
 
     /auth/google:
         post:
-            tags: [ Authentication ]
+            tags: [Authentication]
             summary: Google Sign-In / Registration
             description: Authenticates a user using a Google ID Token. If the user doesn't exist, attempts registration (requires agreeing to terms if applicable).
             requestBody:
@@ -830,11 +942,11 @@ paths:
 
     /auth/password/change:
         post:
-            tags: [ Authentication ]
+            tags: [Authentication]
             summary: Change Password
             description: Allows an authenticated user to change their password.
             security:
-                -   bearerAuth: [ ]
+                - bearerAuth: []
             requestBody:
                 required: true
                 content:
@@ -909,7 +1021,7 @@ paths:
 
     /auth/password/reset:
         post:
-            tags: [ Authentication ]
+            tags: [Authentication]
             summary: Request Password Reset
             description: Initiates the password reset process for a given email address. A reset link/code will typically be sent to the user's email.
             requestBody:
@@ -969,25 +1081,25 @@ paths:
 
     /api/employee:
         get:
-            tags: [ Employees ]
+            tags: [Employees]
             summary: Get all employees
             description: Retrieve a paginated list of employees. Filters can be applied via query parameters.
             parameters:
-                -   in: query
-                    name: page
-                    schema:
-                        type: integer
-                        minimum: 1
-                        default: 1
-                    description: Page number for pagination.
-                -   in: query
-                    name: page_size
-                    schema:
-                        type: integer
-                        minimum: 1
-                        maximum: 100
-                        default: 10
-                    description: Number of items per page.
+                - in: query
+                  name: page
+                  schema:
+                      type: integer
+                      minimum: 1
+                      default: 1
+                  description: Page number for pagination.
+                - in: query
+                  name: page_size
+                  schema:
+                      type: integer
+                      minimum: 1
+                      maximum: 100
+                      default: 10
+                  description: Number of items per page.
             responses:
                 "200":
                     description: A list of employees retrieved successfully.
@@ -1024,7 +1136,7 @@ paths:
                                                         gender:
                                                             type: string
                                                             nullable: true
-                                                            enum: [ Male, Female ]
+                                                            enum: [Male, Female]
                                                             example: "Male"
                                                         phone:
                                                             type: string
@@ -1089,7 +1201,7 @@ paths:
                                         type: string
                                         example: "Failed to retrieve employees list"
         post:
-            tags: [ Employees ]
+            tags: [Employees]
             summary: Create new employee
             requestBody:
                 required: true
@@ -1163,7 +1275,7 @@ paths:
                                 nik:
                                     type: string
                                     nullable: true
-                                    pattern: '^[0-9]*$'
+                                    pattern: "^[0-9]*$"
                                     maxLength: 16
                                     example: "1234567890123456"
                                 place_of_birth:
@@ -1175,7 +1287,19 @@ paths:
                                 last_education:
                                     type: string
                                     nullable: true
-                                    enum: [SD, SMP, SMA/SMK, D1, D2, D3, S1/D4, S2, S3, Other]
+                                    enum:
+                                        [
+                                            SD,
+                                            SMP,
+                                            SMA/SMK,
+                                            D1,
+                                            D2,
+                                            D3,
+                                            S1/D4,
+                                            S2,
+                                            S3,
+                                            Other,
+                                        ]
                                     description: "Employee's highest level of education (optional)."
                                     example: "SMA/SMK"
                                 grade:
@@ -1217,7 +1341,21 @@ paths:
                                 tax_status:
                                     type: string
                                     nullable: true
-                                    enum: [TK/0, TK/1, TK/2, TK/3, K/0, K/1, K/2, K/3, K/I/0, K/I/1, K/I/2, K/I/3]
+                                    enum:
+                                        [
+                                            TK/0,
+                                            TK/1,
+                                            TK/2,
+                                            TK/3,
+                                            K/0,
+                                            K/1,
+                                            K/2,
+                                            K/3,
+                                            K/I/0,
+                                            K/I/1,
+                                            K/I/2,
+                                            K/I/3,
+                                        ]
                                     description: "Employee's tax status (optional)."
                                     example: "K/0"
                                 profile_photo_url:
@@ -1302,12 +1440,29 @@ paths:
                                             last_education:
                                                 type: string
                                                 nullable: true
-                                                enum: [SD, SMP, SMA/SMK, D1, D2, D3, S1/D4, S2, S3, Other]
+                                                enum:
+                                                    [
+                                                        SD,
+                                                        SMP,
+                                                        SMA/SMK,
+                                                        D1,
+                                                        D2,
+                                                        D3,
+                                                        S1/D4,
+                                                        S2,
+                                                        S3,
+                                                        Other,
+                                                    ]
                                                 example: "SMA/SMK"
                                             contract_type:
                                                 type: string
                                                 nullable: true
-                                                enum: [permanent, contract, freelance]
+                                                enum:
+                                                    [
+                                                        permanent,
+                                                        contract,
+                                                        freelance,
+                                                    ]
                                                 example: "permanent"
                                             hire_date:
                                                 type: string
@@ -1332,7 +1487,21 @@ paths:
                                             tax_status:
                                                 type: string
                                                 nullable: true
-                                                enum: [TK/0, TK/1, TK/2, TK/3, K/0, K/1, K/2, K/3, K/I/0, K/I/1, K/I/2, K/I/3]
+                                                enum:
+                                                    [
+                                                        TK/0,
+                                                        TK/1,
+                                                        TK/2,
+                                                        TK/3,
+                                                        K/0,
+                                                        K/1,
+                                                        K/2,
+                                                        K/3,
+                                                        K/I/0,
+                                                        K/I/1,
+                                                        K/I/2,
+                                                        K/I/3,
+                                                    ]
                                                 example: "K/0"
                                             profile_photo_url:
                                                 type: string
@@ -1348,7 +1517,7 @@ paths:
                                                 type: string
                                                 format: date-time
                                                 readOnly: true
-                '400':
+                "400":
                     description: Bad request
                     content:
                         application/json:
@@ -1383,20 +1552,20 @@ paths:
 
     /api/employee/{id}:
         get:
-            tags: [ Employees ]
+            tags: [Employees]
             summary: Get employee by ID
             description: Retrieve a specific employee by their unique ID.
             security:
                 - bearerAuth: []
             parameters:
-                -   in: path
-                    name: id
-                    required: true
-                    description: Numeric ID of the employee to get.
-                    schema:
-                        type: integer
-                        format: uint
-                        example: 1
+                - in: path
+                  name: id
+                  required: true
+                  description: Numeric ID of the employee to get.
+                  schema:
+                      type: integer
+                      format: uint
+                      example: 1
             responses:
                 "200":
                     description: Employee retrieved successfully
@@ -1489,7 +1658,7 @@ paths:
                                                 type: string
                                                 format: date-time
                                                 readOnly: true
-                                                
+
                 "400":
                     description: Invalid ID supplied
                     content:
@@ -1505,7 +1674,7 @@ paths:
                                         example: "Invalid employee ID format"
                                     error:
                                         type: string
-                                        example: "strconv.ParseUint: parsing \"abc\": invalid syntax"
+                                        example: 'strconv.ParseUint: parsing "abc": invalid syntax'
                 "404":
                     description: Employee not found
                     content:
@@ -1540,19 +1709,19 @@ paths:
                                         example: "failed to retrieve employee"
 
         patch:
-            tags: [ Employees ]
+            tags: [Employees]
             summary: Update employee details
             security:
                 - bearerAuth: []
             parameters:
-                -   in: path
-                    name: id
-                    required: true
-                    description: Numeric ID of the employee to update.
-                    schema:
-                        type: integer
-                        format: uint
-                        example: 1
+                - in: path
+                  name: id
+                  required: true
+                  description: Numeric ID of the employee to update.
+                  schema:
+                      type: integer
+                      format: uint
+                      example: 1
             requestBody:
                 required: true
                 content:
@@ -1603,7 +1772,19 @@ paths:
                                 last_education:
                                     type: string
                                     nullable: true
-                                    enum: [ SD, SMP, SMA/SMK, D1, D2, D3, S1/D4, S2, S3, Other ]
+                                    enum:
+                                        [
+                                            SD,
+                                            SMP,
+                                            SMA/SMK,
+                                            D1,
+                                            D2,
+                                            D3,
+                                            S1/D4,
+                                            S2,
+                                            S3,
+                                            Other,
+                                        ]
                                     example: "SMA/SMK"
                                 grade:
                                     type: string
@@ -1613,7 +1794,7 @@ paths:
                                 contract_type:
                                     type: string
                                     nullable: true
-                                    enum: [ permanent, contract, freelance ]
+                                    enum: [permanent, contract, freelance]
                                     example: "permanent"
                                 resignation_date:
                                     type: string
@@ -1643,13 +1824,28 @@ paths:
                                 tax_status:
                                     type: string
                                     nullable: true
-                                    enum: [ TK/0, TK/1, TK/2, TK/3, K/0, K/1, K/2, K/3, K/I/0, K/I/1, K/I/2, K/I/3 ]
+                                    enum:
+                                        [
+                                            TK/0,
+                                            TK/1,
+                                            TK/2,
+                                            TK/3,
+                                            K/0,
+                                            K/1,
+                                            K/2,
+                                            K/3,
+                                            K/I/0,
+                                            K/I/1,
+                                            K/I/2,
+                                            K/I/3,
+                                        ]
                                     example: "TK/0"
                                 profile_photo_url:
                                     type: string
                                     maxLength: 255
                                     format: url
                                     nullable: true
+                                    description: "URL to the employee's profile photo (optional)."
                                     example: "https://example.com/new_profile.jpg"
                                 employment_status:
                                     type: boolean
@@ -1730,8 +1926,8 @@ paths:
                                                 format: date
                                                 nullable: true
                                                 example: "2024-03-15"
-                                            hire_date:  
-                                                type: string    
+                                            hire_date:
+                                                type: string
                                                 format: date
                                                 nullable: true
                                                 example: "2024-01-15"
@@ -1764,7 +1960,7 @@ paths:
                                                 type: string
                                                 format: date-time
                                                 example: "2024-03-15T10:30:00Z"
-                                                
+
                 400:
                     description: Bad request
                     content:
@@ -1816,15 +2012,15 @@ paths:
 
     /api/employee/{id}/status:
         patch:
-            tags: [ Employees ]
+            tags: [Employees]
             summary: Update employee employment status
             description: Update employee's employment status to inactive and set resignation date to current date
             parameters:
-                -   in: path
-                    name: id
-                    required: true
-                    schema:
-                        type: integer
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: integer
             responses:
                 200:
                     description: Employee status updated successfully
@@ -1894,9 +2090,60 @@ paths:
                                         type: string
                                         example: "Failed to update employee status"
 
+    /api/checkclock-settings:
+        post:
+            tags: [Check Clock Settings]
+            summary: Create a new check clock setting
+            description: Adds a new check clock setting or assign a work schedule to an employee.
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/CheckClockSettingsCreateRequest"
+            responses:
+                201:
+                    description: Check clock setting created successfully
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/CheckClockSettingsResponse"
+                400:
+                    description: Invalid request payload or validation error
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 400
+                                    message:
+                                        type: string
+                                        example: "Invalid request payload"
+                                    error:
+                                        type: string
+                                        example: "Missing required fields or invalid data"
+                500:
+                    description: Internal server error
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 500
+                                    message:
+                                        type: string
+                                        example: "Internal server error"
+                                    error:
+                                        type: string
+                                        example: "Failed to create check clock setting"
+
     /employee-documents:
         post:
-            tags: [ Employee Documents ]
+            tags: [Employee Documents]
             summary: Upload a new employee document
             requestBody:
                 required: true
@@ -1920,7 +2167,7 @@ paths:
                                     example: "https://storage.example.com/documents/contract.pdf"
                                 status:
                                     type: string
-                                    enum: [ draft, active ]
+                                    enum: [draft, active]
                                     example: "draft"
             responses:
                 201:
@@ -1989,13 +2236,13 @@ paths:
                                         example: "Failed to upload document"
 
         get:
-            tags: [ Employee Documents ]
+            tags: [Employee Documents]
             summary: Get all employee documents
             parameters:
-                -   in: query
-                    name: employee_id
-                    schema:
-                        type: integer
+                - in: query
+                  name: employee_id
+                  schema:
+                      type: integer
             responses:
                 200:
                     description: List of employee documents retrieved successfully
@@ -2050,14 +2297,14 @@ paths:
 
     /employee-documents/{id}:
         get:
-            tags: [ Employee Documents ]
+            tags: [Employee Documents]
             summary: Get a specific employee document by ID
             parameters:
-                -   in: path
-                    name: id
-                    required: true
-                    schema:
-                        type: integer
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: integer
             responses:
                 200:
                     description: Document details retrieved successfully
@@ -2125,15 +2372,15 @@ paths:
                                         example: "Failed to retrieve document"
 
         patch:
-            tags: [ Employee Documents ]
+            tags: [Employee Documents]
             summary: Update document details
             description: Update document title or URL
             parameters:
-                -   in: path
-                    name: id
-                    required: true
-                    schema:
-                        type: integer
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: integer
             requestBody:
                 required: true
                 content:
@@ -2214,15 +2461,15 @@ paths:
                                         example: "Failed to update document"
 
         delete:
-            tags: [ Employee Documents ]
+            tags: [Employee Documents]
             summary: Delete document
             description: Permanently delete a document
             parameters:
-                -   in: path
-                    name: id
-                    required: true
-                    schema:
-                        type: integer
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: integer
             responses:
                 200:
                     description: Document deleted successfully
@@ -2589,7 +2836,7 @@ paths:
 
     /positions:
         get:
-            tags: [ Positions ]
+            tags: [Positions]
             summary: Get all positions
             responses:
                 200:
@@ -2602,7 +2849,7 @@ paths:
                                     $ref: "#/components/schemas/Position"
 
         post:
-            tags: [ Positions ]
+            tags: [Positions]
             summary: Create a new position
             requestBody:
                 required: true
@@ -2625,14 +2872,14 @@ paths:
 
     /positions/{id}:
         get:
-            tags: [ Positions ]
+            tags: [Positions]
             summary: Get a position by ID
             parameters:
-                -   in: path
-                    name: id
-                    required: true
-                    schema:
-                        type: integer
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: integer
             responses:
                 200:
                     description: Position details
@@ -2644,14 +2891,14 @@ paths:
                     description: Position not found
 
         put:
-            tags: [ Positions ]
+            tags: [Positions]
             summary: Update a position by ID
             parameters:
-                -   in: path
-                    name: id
-                    required: true
-                    schema:
-                        type: integer
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: integer
             requestBody:
                 required: true
                 content:
@@ -2674,14 +2921,14 @@ paths:
                     description: Position not found
 
         delete:
-            tags: [ Positions ]
+            tags: [Positions]
             summary: Delete a position by ID
             parameters:
-                -   in: path
-                    name: id
-                    required: true
-                    schema:
-                        type: integer
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: integer
             responses:
                 204:
                     description: Position deleted successfully
@@ -2690,24 +2937,24 @@ paths:
 
     /api/locations:
         get:
-            tags: [ Locations ]
+            tags: [Locations]
             summary: Get all locations
             parameters:
-                -   in: query
-                    name: page
-                    schema:
-                        type: integer
-                        minimum: 1
-                        default: 1
-                    description: Page number for pagination.
-                -   in: query
-                    name: page_size
-                    schema:
-                        type: integer
-                        minimum: 1
-                        maximum: 100
-                        default: 10
-                    description: Number of items per page.
+                - in: query
+                  name: page
+                  schema:
+                      type: integer
+                      minimum: 1
+                      default: 1
+                  description: Page number for pagination.
+                - in: query
+                  name: page_size
+                  schema:
+                      type: integer
+                      minimum: 1
+                      maximum: 100
+                      default: 10
+                  description: Number of items per page.
             responses:
                 200:
                     description: List of locations
@@ -2772,7 +3019,7 @@ paths:
                                                 type: boolean
                                                 example: false
         post:
-            tags: [ Locations ]
+            tags: [Locations]
             summary: Create a new location
             requestBody:
                 required: true
@@ -2802,14 +3049,14 @@ paths:
 
     /api/locations/{id}:
         get:
-            tags: [ Locations ]
+            tags: [Locations]
             summary: Get a location by ID
             parameters:
-                -   in: path
-                    name: id
-                    required: true
-                    schema:
-                        type: integer
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: integer
             responses:
                 200:
                     description: Location details
@@ -2849,14 +3096,14 @@ paths:
                     description: Location not found
 
         put:
-            tags: [ Locations ]
+            tags: [Locations]
             summary: Update a location by ID
             parameters:
-                -   in: path
-                    name: id
-                    required: true
-                    schema:
-                        type: integer
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: integer
             requestBody:
                 required: true
                 content:
@@ -2911,10 +3158,10 @@ paths:
                                                 example: 100
                 404:
                     description: Location not found
-    
-    /api/work-schedules: # Renamed from /work_schedules
-        post: # Update this POST operation
-            tags: [ Work Schedules ] # Keep or adjust tags
+
+    /api/work-schedules: 
+        post: 
+            tags: [Work Schedules] 
             summary: Create new work schedule with details
             description: Creates a new work schedule along with its associated details (days, times, location for WFO).
             requestBody:
@@ -2922,7 +3169,7 @@ paths:
                 content:
                     application/json:
                         schema:
-                            $ref: "#/components/schemas/WorkScheduleCreateRequest" # Use the new request schema
+                            $ref: "#/components/schemas/WorkScheduleCreateRequest"
             responses:
                 201:
                     description: Work schedule created successfully
@@ -2938,111 +3185,39 @@ paths:
                                         type: string
                                         example: "Work schedule created successfully"
                                     data:
-                                        $ref: "#/components/schemas/WorkScheduleResponse" # Use the new response schema
+                                        $ref: "#/components/schemas/WorkScheduleResponse"
                 400:
                     description: Bad request (e.g., validation error, invalid input)
                     content:
                         application/json:
                             schema:
-                                $ref: "#/components/schemas/ErrorResponse" # Assuming you have a generic error response schema
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 400
+                                    message:
+                                        type: string
+                                        example: "Bad request"
+                                    error:
+                                        type: string
+                                        example: "Validation error"
                 500:
                     description: Internal server error
                     content:
                         application/json:
                             schema:
-                                $ref: "#/components/schemas/ErrorResponse"
-
-    #    /work-arrangements:
-    #        get:
-    #            tags: [ Work Arrangements ]
-    #            summary: Get all work arrangements
-    #            responses:
-    #                200:
-    #                    description: List of work arrangements
-    #                    content:
-    #                        application/json:
-    #                            schema:
-    #                                type: array
-    #                                items:
-    #                                    $ref: "#/components/schemas/WorkArrangement"
-    #
-    #        post:
-    #            tags: [ Work Arrangements ]
-    #            summary: Create a new work arrangement
-    #            requestBody:
-    #                required: true
-    #                content:
-    #                    application/json:
-    #                        schema:
-    #                            $ref: "#/components/schemas/WorkArrangement"
-    #            responses:
-    #                201:
-    #                    description: Work arrangement created successfully
-    #                    content:
-    #                        application/json:
-    #                            schema:
-    #                                $ref: "#/components/schemas/WorkArrangement"
-    #
-    #    /work-arrangements/{id}:
-    #        get:
-    #            tags: [ Work Arrangements ]
-    #            summary: Get work arrangement by ID
-    #            parameters:
-    #                -   in: path
-    #                    name: id
-    #                    required: true
-    #                    schema:
-    #                        type: integer
-    #            responses:
-    #                200:
-    #                    description: Work arrangement details
-    #                    content:
-    #                        application/json:
-    #                            schema:
-    #                                $ref: "#/components/schemas/WorkArrangement"
-    #                404:
-    #                    description: Work arrangement not found
-    #
-    #        put:
-    #            tags: [ Work Arrangements ]
-    #            summary: Update work arrangement by ID
-    #            parameters:
-    #                -   in: path
-    #                    name: id
-    #                    required: true
-    #                    schema:
-    #                        type: integer
-    #            requestBody:
-    #                required: true
-    #                content:
-    #                    application/json:
-    #                        schema:
-    #                            $ref: "#/components/schemas/WorkArrangement"
-    #            responses:
-    #                200:
-    #                    description: Work arrangement updated successfully
-    #                    content:
-    #                        application/json:
-    #                            schema:
-    #                                $ref: "#/components/schemas/WorkArrangement"
-    #                404:
-    #                    description: Work arrangement not found
-    #
-    #        delete:
-    #            tags: [ Work Arrangements ]
-    #            summary: Delete work arrangement by ID
-    #            parameters:
-    #                -   in: path
-    #                    name: id
-    #                    required: true
-    #                    schema:
-    #                        type: integer
-    #            responses:
-    #                204:
-    #                    description: Work arrangement deleted successfully
-    #                404:
-    #                    description: Work arrangement not found
-
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 500
+                                    message:
+                                        type: string
+                                        example: "Internal server error"
+                                    error:
+                                        type: string
+                                        example: "Failed to create work schedule"
     /health:
         get:
             summary: Health Check
@@ -3098,4 +3273,4 @@ paths:
                                                 example: 2023-03-17T12:00:00Z
 
 security:
-    -   bearerAuth: [ ]
+    - bearerAuth: []

@@ -4,6 +4,7 @@ import (
 	"github.com/SukaMajuu/hris/apps/backend/internal/rest/handler"
 	"github.com/SukaMajuu/hris/apps/backend/internal/rest/middleware"
 	"github.com/SukaMajuu/hris/apps/backend/internal/usecase/auth"
+	checkclocksettingsusecase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/checkclock_settings"
 	"github.com/SukaMajuu/hris/apps/backend/internal/usecase/employee"
 	"github.com/SukaMajuu/hris/apps/backend/internal/usecase/location"
 	work_Schedule "github.com/SukaMajuu/hris/apps/backend/internal/usecase/work_schedule"
@@ -12,20 +13,28 @@ import (
 )
 
 type Router struct {
-	authHandler     *handler.AuthHandler
-	locationHandler *handler.LocationHandler
-	authMiddleware  *middleware.AuthMiddleware
-	employeeHandler *handler.EmployeeHandler
-	workScheduleHandler *handler.WorkScheduleHandler
+	authHandler               *handler.AuthHandler
+	locationHandler           *handler.LocationHandler
+	authMiddleware            *middleware.AuthMiddleware
+	employeeHandler           *handler.EmployeeHandler
+	workScheduleHandler       *handler.WorkScheduleHandler
+	checkclockSettingsHandler *handler.CheckclockSettingsHandler
 }
 
-func NewRouter(authUseCase *auth.AuthUseCase, employeeUseCase *employee.EmployeeUseCase, locationUseCase *location.LocationUseCase, workScheduleUsecase * work_Schedule.WorkScheduleUseCase) *Router {
+func NewRouter(
+	authUseCase *auth.AuthUseCase,
+	employeeUseCase *employee.EmployeeUseCase,
+	locationUseCase *location.LocationUseCase,
+	workScheduleUseCase *work_Schedule.WorkScheduleUseCase,
+	checkclockSettingsUseCase *checkclocksettingsusecase.CheckclockSettingsUseCase,
+) *Router {
 	return &Router{
-		authHandler:     handler.NewAuthHandler(authUseCase),
-		authMiddleware:  middleware.NewAuthMiddleware(authUseCase, employeeUseCase),
-		employeeHandler: handler.NewEmployeeHandler(employeeUseCase),
-		locationHandler: handler.NewLocationHandler(locationUseCase),
-		workScheduleHandler: handler.NewWorkScheduleHandler(workScheduleUsecase),
+		authHandler:               handler.NewAuthHandler(authUseCase),
+		authMiddleware:            middleware.NewAuthMiddleware(authUseCase, employeeUseCase),
+		employeeHandler:           handler.NewEmployeeHandler(employeeUseCase),
+		locationHandler:           handler.NewLocationHandler(locationUseCase),
+		workScheduleHandler: handler.NewWorkScheduleHandler(workScheduleUseCase),
+		checkclockSettingsHandler: handler.NewCheckclockSettingsHandler(checkclockSettingsUseCase),
 	}
 }
 
@@ -87,6 +96,11 @@ func (r *Router) Setup() *gin.Engine {
 			work_Schedule := api.Group("/work-schedules")
 			{
 				work_Schedule.POST("", r.workScheduleHandler.CreateWorkSchedule)
+			}
+
+			checkclockSettings := api.Group("/checkclock-settings")
+			{
+				checkclockSettings.POST("", r.checkclockSettingsHandler.CreateCheckclockSettings)
 			}
 		}
 	}

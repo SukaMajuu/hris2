@@ -3,6 +3,7 @@ package work_schedule
 import (
 	"fmt"
 
+	"github.com/SukaMajuu/hris/apps/backend/domain/enums"
 	"github.com/go-playground/validator/v10"
 )
 
@@ -30,14 +31,11 @@ func (r *CreateWorkScheduleRequest) Validate() error {
 		return err
 	}
 	for i, d := range r.Details {
-		if d.WorkTypeDetail == "WFO" && d.LocationID == nil {
+		if d.WorkTypeDetail == string(enums.WorkTypeWFO) && d.LocationID == nil { // Menggunakan enums
 			return fmt.Errorf("locationId wajib diisi untuk detail ke-%d dengan type WFO", i+1)
 		}
-		if d.WorkTypeDetail == "WFA" && d.LocationID != nil {
-			// Seharusnya LocationID *bisa* nil untuk WFA, jadi validasi ini mungkin perlu dipertimbangkan ulang atau dihilangkan
-			// Jika WFA tidak boleh punya LocationID sama sekali, maka ini benar.
-			// return fmt.Errorf("locationId tidak boleh diisi untuk detail ke-%d dengan type WFA", i+1)
-		}
+		// Blok if untuk WFA dihapus karena kosong setelah baris di dalamnya dikomentari
+		// Jika ada logika validasi yang diperlukan untuk WFA, tambahkan di sini.
 		// Validasi untuk WorkDays sudah ditangani oleh tag `validate` pada struct
 	}
 	return nil

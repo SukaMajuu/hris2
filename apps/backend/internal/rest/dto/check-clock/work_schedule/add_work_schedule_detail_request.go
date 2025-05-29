@@ -3,6 +3,7 @@ package work_schedule
 import (
 	"fmt"
 
+	"github.com/SukaMajuu/hris/apps/backend/domain/enums" // Import enums
 	"github.com/go-playground/validator/v10"
 )
 
@@ -23,10 +24,10 @@ func (r *AddWorkScheduleDetailRequest) Validate() error {
 	if err := validate.Struct(r); err != nil {
 		return err
 	}
-	if r.WorkTypeDetail == "WFO" && r.LocationID == nil {
+	if r.WorkTypeDetail == string(enums.WorkTypeWFO) && r.LocationID == nil { // Gunakan konstanta enums
 		return fmt.Errorf("locationId wajib diisi untuk WorkTypeDetail WFO")
 	}
-	if r.WorkTypeDetail == "WFA" && r.LocationID != nil {
+	if r.WorkTypeDetail == string(enums.WorkTypeWFA) && r.LocationID != nil { // Gunakan konstanta enums
 		return fmt.Errorf("locationId tidak boleh diisi untuk WorkTypeDetail WFA")
 	}
 	return nil

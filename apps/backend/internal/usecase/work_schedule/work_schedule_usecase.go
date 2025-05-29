@@ -47,11 +47,11 @@ func toWorkScheduleDetailResponseDTO(detail domain.WorkScheduleDetail) *dtoworks
 		WorkTypeDetail: string(detail.WorktypeDetail), // Corrected casing
 		WorkDays:       dtoWorkDays,
 		CheckInStart:   formatTimeToStringPtr(detail.CheckinStart), // Corrected casing
-		CheckInEnd:     formatTimeToStringPtr(detail.CheckinEnd), // Corrected casing
+		CheckInEnd:     formatTimeToStringPtr(detail.CheckinEnd),   // Corrected casing
 		BreakStart:     formatTimeToStringPtr(detail.BreakStart),
 		BreakEnd:       formatTimeToStringPtr(detail.BreakEnd),
 		CheckOutStart:  formatTimeToStringPtr(detail.CheckoutStart), // Corrected casing
-		CheckOutEnd:    formatTimeToStringPtr(detail.CheckoutEnd), // Corrected casing
+		CheckOutEnd:    formatTimeToStringPtr(detail.CheckoutEnd),   // Corrected casing
 		LocationID:     detail.LocationID,
 	}
 
@@ -164,7 +164,13 @@ func (uc *WorkScheduleUseCase) List(ctx context.Context, paginationParams domain
 
 // Update updates an existing work schedule and its details.
 // detailsToSave should include new details (ID=0) and existing details to be updated (ID>0).
-func (uc *WorkScheduleUseCase) Update(ctx context.Context, scheduleID uint, updatedScheduleData *domain.WorkSchedule, detailsToSave []*domain.WorkScheduleDetail, detailIDsToDelete []uint) (*dtoworkschedule.WorkScheduleResponseDTO, error) {
+func (uc *WorkScheduleUseCase) Update(
+	ctx context.Context,
+	scheduleID uint,
+	updatedScheduleData *domain.WorkSchedule,
+	detailsToSave []*domain.WorkScheduleDetail,
+	detailIDsToDelete []uint,
+) (*dtoworkschedule.WorkScheduleResponseDTO, error) {
 	// Fetch existing schedule to ensure it exists and to apply partial updates
 	existingSchedule, err := uc.workScheduleRepo.GetByIDWithDetails(ctx, scheduleID)
 	if err != nil {

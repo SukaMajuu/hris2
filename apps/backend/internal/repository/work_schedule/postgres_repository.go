@@ -54,7 +54,7 @@ func (r *WorkScheduleRepository) GetByIDWithDetails(ctx context.Context, id uint
 /*
 // DeleteSchedule menghapus jadwal kerja berdasarkan ID
 func (r *WorkScheduleRepository) DeleteSchedule(ctx context.Context, id uint) error {
-	// Implementasi penghapusan jadwal kerja
+	// Implementation of work schedule deletion
 	// Misalnya, penghapusan lunak atau penghapusan keras
 	// Untuk contoh ini, kita akan melakukan penghapusan keras
 	result := r.db.WithContext(ctx).Delete(&domain.WorkSchedule{}, id)
@@ -104,7 +104,7 @@ func (r *WorkScheduleRepository) SaveWithDetails(ctx context.Context, workSchedu
 
 // SoftDeleteDetail melakukan soft delete pada detail jadwal kerja
 func (r *WorkScheduleRepository) SoftDeleteDetail(ctx context.Context, detailID uint) error {
-	// Implementasi soft delete jika diperlukan, misalnya dengan mengatur kolom deleted_at
+	// Implementation of soft delete if needed, for example by setting the deleted_at column
 	// Untuk contoh ini, kita akan melakukan penghapusan keras
 	result := r.db.WithContext(ctx).Delete(&domain.WorkScheduleDetail{}, detailID)
 	if result.Error != nil {

@@ -21,7 +21,13 @@ type Router struct {
 	checkclockSettingsHandler *handler.CheckclockSettingsHandler
 }
 
-func NewRouter(authUseCase *auth.AuthUseCase, employeeUseCase *employee.EmployeeUseCase, locationUseCase *location.LocationUseCase, workScheduleUsecase *work_Schedule.WorkScheduleUseCase, checkclockSettingsUseCase *checkclocksettingsusecase.CheckclockSettingsUseCase) *Router {
+func NewRouter(
+	authUseCase *auth.AuthUseCase,
+	employeeUseCase *employee.EmployeeUseCase,
+	locationUseCase *location.LocationUseCase,
+	workScheduleUsecase *work_Schedule.WorkScheduleUseCase,
+	checkclockSettingsUseCase *checkclocksettingsusecase.CheckclockSettingsUseCase,
+) *Router {
 	return &Router{
 		authHandler:               handler.NewAuthHandler(authUseCase),
 		authMiddleware:            middleware.NewAuthMiddleware(authUseCase, employeeUseCase),

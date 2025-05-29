@@ -284,3 +284,40 @@ func TestLocationUseCase_Delete(t *testing.T) {
 		})
 	}
 }
+
+func TestLocationUseCase_Exists(t *testing.T) {
+	ctx := context.Background()
+	locationID := "1"
+	repoError := errors.New("exists error")
+
+	tests := []struct {
+		name             string
+		mockRepoResponse bool
+		mockRepoError    error
+		expectedResponse bool
+		expectedError    error
+	}{
+		{"exists returns true", true, nil, true, nil},
+		{"exists returns false", false, nil, false, nil},
+		{"repository returns an error", false, repoError, false, repoError},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockLocationRepo := new(mocks.LocationRepository)
+			uc := NewLocationUseCase(mockLocationRepo)
+			mockLocationRepo.On("Exists", ctx, locationID).Return(tt.mockRepoResponse, tt.mockRepoError).Once()
+
+			exists, err := uc.Exists(ctx, locationID)
+
+			assert.Equal(t, tt.expectedResponse, exists)
+			if tt.expectedError != nil {
+				assert.Error(t, err)
+				assert.Equal(t, tt.expectedError, err)
+			} else {
+				assert.NoError(t, err)
+			}
+			mockLocationRepo.AssertExpectations(t)
+		})
+	}
+}

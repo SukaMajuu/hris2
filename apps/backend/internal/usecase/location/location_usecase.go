@@ -101,3 +101,7 @@ func (uc *LocationUseCase) Delete(ctx context.Context, id string) error {
 	}
 	return nil
 }
+
+func (uc *LocationUseCase) Exists(ctx context.Context, id string) (bool, error) {
+	return uc.locationRepo.Exists(ctx, id)
+}

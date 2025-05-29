@@ -12,4 +12,5 @@ type LocationRepository interface {
 	GetByID(ctx context.Context, id string) (*domain.Location, error)
 	Update(ctx context.Context, id string, location *domain.Location) (*domain.Location, error)
 	Delete(ctx context.Context, id string) error
+	Exists(ctx context.Context, id string) (bool, error)
 }

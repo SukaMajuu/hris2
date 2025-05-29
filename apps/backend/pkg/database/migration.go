@@ -73,6 +73,7 @@ func Migrate(db *gorm.DB) error {
 		&models.Location{},
 		&models.CheckClockSettings{},
 		&models.WorkSchedule{},
+		&models.WorkScheduleDetail{}, // Tambahkan ini
 		&models.Attendance{},
 		&models.LeaveRequest{},
 	); err != nil {

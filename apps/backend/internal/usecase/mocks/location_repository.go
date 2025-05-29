@@ -102,4 +102,25 @@ func (_m *LocationRepository) Delete(ctx context.Context, id string) error {
 	return r0
 }
 
+// Exists mocks the Exists method of the LocationRepository interface.
+func (_m *LocationRepository) Exists(ctx context.Context, id string) (bool, error) {
+	ret := _m.Called(ctx, id)
+
+	var r0 bool
+	if rf, ok := ret.Get(0).(func(context.Context, string) bool); ok {
+		r0 = rf(ctx, id)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, id)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 var _ interfaces.LocationRepository = (*LocationRepository)(nil)

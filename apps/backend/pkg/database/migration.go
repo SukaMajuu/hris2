@@ -37,7 +37,11 @@ func Migrate(db *gorm.DB) error {
 
 		-- Work Type Enum (New)
 		DROP TYPE IF EXISTS work_type CASCADE;
-		CREATE TYPE work_type AS ENUM ('WFO', 'WFH', 'WFA','Hybrid');
+		CREATE TYPE work_type AS ENUM ('WFO', 'WFA','Hybrid');
+
+		-- Work Type Detail Enum (New)
+		DROP TYPE IF EXISTS worktype_detail CASCADE;
+		CREATE TYPE worktype_detail AS ENUM ('WFO', 'WFA');
 		
 		-- leave_type Enum (New)
 		DROP TYPE IF EXISTS leave_type CASCADE;
@@ -71,15 +75,15 @@ func Migrate(db *gorm.DB) error {
 		&models.Branch{},
 		&models.RefreshToken{},
 		&models.Location{},
-		&models.CheckClockSettings{},
 		&models.WorkSchedule{},
-		&models.WorkScheduleDetail{}, // Tambahkan ini
+		&models.WorkScheduleDetail{},
+		&models.CheckclockSettings{},
 		&models.Attendance{},
 		&models.LeaveRequest{},
 	); err != nil {
 		return err
 	}
 
-	log.Println("Database migrations completed successfully")
+	log.Println("Database auto-migration completed successfully")
 	return nil
 }

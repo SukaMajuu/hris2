@@ -25,7 +25,7 @@ func NewRouter(
 	authUseCase *auth.AuthUseCase,
 	employeeUseCase *employee.EmployeeUseCase,
 	locationUseCase *location.LocationUseCase,
-	workScheduleUsecase *work_Schedule.WorkScheduleUseCase,
+	workScheduleUseCase *work_Schedule.WorkScheduleUseCase,
 	checkclockSettingsUseCase *checkclocksettingsusecase.CheckclockSettingsUseCase,
 ) *Router {
 	return &Router{
@@ -33,7 +33,7 @@ func NewRouter(
 		authMiddleware:            middleware.NewAuthMiddleware(authUseCase, employeeUseCase),
 		employeeHandler:           handler.NewEmployeeHandler(employeeUseCase),
 		locationHandler:           handler.NewLocationHandler(locationUseCase),
-		workScheduleHandler:       handler.NewWorkScheduleHandler(workScheduleUsecase),
+		workScheduleHandler: handler.NewWorkScheduleHandler(workScheduleUseCase),
 		checkclockSettingsHandler: handler.NewCheckclockSettingsHandler(checkclockSettingsUseCase),
 	}
 }

@@ -38,15 +38,22 @@ func (h *WorkScheduleHandler) CreateWorkSchedule(c *gin.Context) {
 			workDaysInDetail = append(workDaysInDetail, domain.Days(dayStr))
 		}
 
+		checkinStart := utils.ParseTimeHelper(detailDTO.CheckInStart)
+		checkinEnd := utils.ParseTimeHelper(detailDTO.CheckInEnd)
+		breakStart := utils.ParseTimeHelper(detailDTO.BreakStart)
+		breakEnd := utils.ParseTimeHelper(detailDTO.BreakEnd)
+		checkoutStart := utils.ParseTimeHelper(detailDTO.CheckOutStart)
+		checkoutEnd := utils.ParseTimeHelper(detailDTO.CheckOutEnd)
+
 		domainDetail := &domain.WorkScheduleDetail{
 			WorktypeDetail: enums.WorkType(detailDTO.WorkTypeDetail),
 			WorkDays:       workDaysInDetail,
-			CheckinStart:   utils.ParseTimeHelper(detailDTO.CheckInStart),
-			CheckoutStart:     utils.ParseTimeHelper(detailDTO.CheckInEnd),
-			BreakStart:     utils.ParseTimeHelper(detailDTO.BreakStart),
-			BreakEnd:       utils.ParseTimeHelper(detailDTO.BreakEnd),
-			CheckinEnd:  utils.ParseTimeHelper(detailDTO.CheckOutStart),
-			CheckoutEnd:    utils.ParseTimeHelper(detailDTO.CheckOutEnd),
+			CheckinStart:   checkinStart,
+			CheckinEnd:     checkinEnd,
+			BreakStart:     breakStart,
+			BreakEnd:       breakEnd,
+			CheckoutStart:  checkoutStart,
+			CheckoutEnd:    checkoutEnd,
 			LocationID:     detailDTO.LocationID,
 		}
 		domainDetails = append(domainDetails, domainDetail)
@@ -62,7 +69,7 @@ func (h *WorkScheduleHandler) CreateWorkSchedule(c *gin.Context) {
 	createdWorkSchedule, err := h.workScheduleUseCase.Create(c.Request.Context(), domainWorkSchedule, domainDetails)
 
 	if err != nil {
-		response.InternalServerError(c, err)
+		response.BadRequest(c, err.Error(), nil) // Memberikan feedback error yang lebih baik
 		return
 	}
 

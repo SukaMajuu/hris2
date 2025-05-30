@@ -33,55 +33,27 @@ export function AuthGuard({ children }: AuthGuardProps) {
 	const isPublicPage = PUBLIC_PAGES.includes(pathname);
 
 	useEffect(() => {
-		console.log("[AuthGuard] State check:", {
-			isAuthStoreLoading,
-			isAuthenticated,
-			isPasswordRecovery,
-			pathname,
-			isPublicPage,
-		});
-
 		if (isAuthStoreLoading) {
-			console.log("[AuthGuard] Auth store still loading, waiting...");
 			return;
 		}
 
-		// Special handling for root path - let useAuthListener handle password recovery
 		if (pathname === "/" && !isAuthenticated) {
-			console.log(
-				"[AuthGuard] Root path with unauthenticated user, letting useAuthListener handle"
-			);
-			// Don't redirect immediately from root, let useAuthListener handle it
 			return;
 		}
 
-		// Don't redirect during password recovery flow
 		if (isPasswordRecovery && pathname === "/reset-password") {
-			console.log(
-				"[AuthGuard] Password recovery mode on reset-password page, allowing access"
-			);
 			return;
 		}
 
-		// Redirect authenticated users away from auth pages to dashboard
 		if (isAuthenticated && isPublicPage && pathname !== "/") {
-			console.log(
-				"[AuthGuard] Authenticated user on public page, redirecting to dashboard"
-			);
 			router.replace("/dashboard");
 			return;
 		}
 
-		// Redirect unauthenticated users to login when accessing protected routes
 		if (!isAuthenticated && !isPublicPage) {
-			console.log(
-				"[AuthGuard] Unauthenticated user on protected route, redirecting to login"
-			);
 			router.replace("/login");
 			return;
 		}
-
-		console.log("[AuthGuard] No action needed, allowing access");
 	}, [
 		isAuthStoreLoading,
 		isAuthenticated,
@@ -91,12 +63,10 @@ export function AuthGuard({ children }: AuthGuardProps) {
 		pathname,
 	]);
 
-	// Show loader during auth store loading
 	if (isAuthStoreLoading) {
 		return <FullPageLoader />;
 	}
 
-	// Show loader while redirecting authenticated users away from auth pages
 	if (
 		isAuthenticated &&
 		isPublicPage &&
@@ -106,7 +76,6 @@ export function AuthGuard({ children }: AuthGuardProps) {
 		return <FullPageLoader />;
 	}
 
-	// Show loader while redirecting unauthenticated users to login
 	if (!isAuthenticated && !isPublicPage) {
 		return <FullPageLoader />;
 	}

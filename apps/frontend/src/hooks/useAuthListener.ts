@@ -1,4 +1,3 @@
-// src/hooks/useAuthListener.ts
 "use client";
 
 import { useEffect, useState, useRef } from "react";
@@ -32,10 +31,6 @@ export function useAuthListener() {
 	const justLoggedOutRef = useRef(false);
 
 	useEffect(() => {
-		// if (!useAuthStore.getState().isLoading) {
-		// 	setIsLoading(true);
-		// }
-
 		const token = tokenService.getAccessToken();
 		const currentAuthStoreState = useAuthStore.getState();
 
@@ -63,36 +58,16 @@ export function useAuthListener() {
 			!token &&
 			!currentAuthStoreState.isPasswordRecovery
 		) {
-			// Don't clear user during password recovery - Supabase recovery sessions work differently
-			console.log(
-				"[AuthListener] Clearing user - authenticated but no token and not in password recovery"
-			);
 			clearUser();
 		}
 
 		const { data: authListener } = supabase.auth.onAuthStateChange(
 			async (event, session) => {
-				console.log(
-					"[AuthListener] Event:",
-					event,
-					"Session:",
-					!!session,
-					"Pathname:",
-					pathname
-				);
 				const appState = useAuthStore.getState();
 
 				if (event === "PASSWORD_RECOVERY") {
-					console.log(
-						"[AuthListener] PASSWORD_RECOVERY detected, setting state and redirecting to /reset-password"
-					);
 					setIsPasswordRecovery(true);
 					if (pathname !== "/reset-password") {
-						console.log(
-							"[AuthListener] Redirecting from",
-							pathname,
-							"to /reset-password"
-						);
 						router.replace("/reset-password");
 					}
 					setIsLoading(false);
@@ -101,7 +76,6 @@ export function useAuthListener() {
 				}
 
 				if (event === "SIGNED_OUT") {
-					console.log("[AuthListener] SIGNED_OUT detected");
 					justLoggedOutRef.current = true;
 					setIsPasswordRecovery(false);
 					if (
@@ -134,20 +108,12 @@ export function useAuthListener() {
 					session?.user &&
 					(event === "INITIAL_SESSION" || event === "SIGNED_IN")
 				) {
-					console.log(
-						"[AuthListener] INITIAL_SESSION/SIGNED_IN detected",
-						event
-					);
 					if (justLoggedOutRef.current) {
-						console.warn(
-							"[AuthListener] INITIAL_SESSION/SIGNED_IN with user detected shortly after logout. Ignoring to prevent re-auth loop."
-						);
 						setIsLoading(false);
 						setInitialSetupCompleted(true);
 						return;
 					}
 
-					// Only clear password recovery state on actual SIGNED_IN (not during INITIAL_SESSION in recovery flow)
 					if (event === "SIGNED_IN") {
 						setIsPasswordRecovery(false);
 					}
@@ -237,6 +203,7 @@ export function useAuthListener() {
 		router,
 		pathname,
 		initialSetupCompleted,
+		setIsPasswordRecovery,
 	]);
 
 	return { initialAuthCheckCompleted: initialSetupCompleted };

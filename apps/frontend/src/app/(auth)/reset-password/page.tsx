@@ -21,12 +21,16 @@ import {
 } from "@/schemas/auth.schema";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { EyeOff } from "lucide-react";
+import { Eye } from "lucide-react";
 
 export default function ResetPasswordPage() {
 	const router = useRouter();
 	const [isLoading, setIsLoading] = useState(false);
 	const [message, setMessage] = useState("");
 	const [error, setError] = useState("");
+	const [showPassword, setShowPassword] = useState(false);
+	const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
 	const resetPasswordForm = useForm<ResetPasswordFormData>({
 		resolver: zodResolver(resetPasswordSchema),
@@ -118,13 +122,38 @@ export default function ResetPasswordPage() {
 							<FormItem className="min-h-20 relative">
 								<FormLabel>New Password</FormLabel>
 								<FormControl>
-									<Input
-										className="h-12 px-4 text-base"
-										type="password"
-										placeholder="Enter your new password"
-										{...field}
-										disabled={isLoading}
-									/>
+									<div className="relative">
+										<Input
+											className="h-12 px-4 pr-12 text-base"
+											type={
+												showPassword
+													? "text"
+													: "password"
+											}
+											placeholder="Enter your password"
+											{...field}
+										/>
+										<Button
+											size="icon"
+											type="button"
+											variant="ghost"
+											className="absolute h-12 right-0 top-0 hover:bg-transparent"
+											onClick={() =>
+												setShowPassword(!showPassword)
+											}
+											aria-label={
+												showPassword
+													? "Hide password"
+													: "Show password"
+											}
+										>
+											{showPassword ? (
+												<EyeOff className="h-6 w-6 text-black" />
+											) : (
+												<Eye className="h-6 w-6 text-black" />
+											)}
+										</Button>
+									</div>
 								</FormControl>
 								<FormMessage className="absolute -bottom-4" />
 							</FormItem>
@@ -137,13 +166,40 @@ export default function ResetPasswordPage() {
 							<FormItem className="min-h-20 relative">
 								<FormLabel>Confirm New Password</FormLabel>
 								<FormControl>
-									<Input
-										className="h-12 px-4 text-base"
-										type="password"
-										placeholder="Confirm your new password"
-										{...field}
-										disabled={isLoading}
-									/>
+									<div className="relative">
+										<Input
+											className="h-12 px-4 pr-12 text-base"
+											type={
+												showConfirmPassword
+													? "text"
+													: "password"
+											}
+											placeholder="Confirm your password"
+											{...field}
+										/>
+										<Button
+											size="icon"
+											type="button"
+											variant="ghost"
+											className="absolute h-12 right-0 top-0 hover:bg-transparent"
+											onClick={() =>
+												setShowConfirmPassword(
+													!showConfirmPassword
+												)
+											}
+											aria-label={
+												showConfirmPassword
+													? "Hide password"
+													: "Show password"
+											}
+										>
+											{showConfirmPassword ? (
+												<EyeOff className="h-6 w-6 text-black" />
+											) : (
+												<Eye className="h-6 w-6 text-black" />
+											)}
+										</Button>
+									</div>
 								</FormControl>
 								<FormMessage className="absolute -bottom-4" />
 							</FormItem>

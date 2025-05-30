@@ -12,4 +12,11 @@ export const queryKeys = {
 		list: ["users", "list"] as const,
 		detail: (id: string) => ["users", "detail", id] as const,
 	},
+	locations: {
+		list: ["locations", "list"] as const,
+		detail: (id: string) => ["locations", "detail", id] as const,
+		create: ["locations", "create"] as const,
+		update: (id: string) => ["locations", "update", id] as const,
+		delete: (id: string) => ["locations", "delete", id] as const,
+	},
 } as const;

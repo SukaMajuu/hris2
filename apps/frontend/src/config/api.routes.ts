@@ -11,6 +11,13 @@ export const API_ROUTES = {
 				reset: "/auth/password/reset",
 			},
 		},
+		locations: {
+			list: "/api/locations",
+			detail: (id: string) => `/api/locations/${id}`,
+			create: "/api/locations",
+			update: (id: string) => `/api/locations/${id}`,
+			delete: (id: string) => `/api/locations/${id}`,
+		},
 		api: {
 			base: "/api",
 			users: {

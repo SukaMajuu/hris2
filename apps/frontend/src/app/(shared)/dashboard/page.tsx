@@ -496,9 +496,9 @@ export default function DashboardPage() {
       {isAdminDashboard ? (
         <div className='grid grid-cols-1 gap-6 xl:grid-cols-2'>
           <div className='flex flex-col gap-6'>
-            <Card className='rounded-2xl border-none p-0 shadow-sm'>
-              <CardContent className='p-6'>
-                <div className='mb-2 flex items-center justify-between'>
+            <Card className='flex h-full flex-row rounded-2xl border-none p-0 shadow-sm'>
+              <CardContent className='flex w-full flex-col justify-between gap-8 p-6'>
+                <div className='flex items-center justify-between'>
                   <div>
                     <div className='text-sm font-medium text-gray-500'>Employee Statistics</div>
                     <div className='text-xl font-bold'>Current Number of Employees</div>
@@ -515,13 +515,13 @@ export default function DashboardPage() {
                     ))}
                   </select>
                 </div>
-                <div className='flex h-56 items-center justify-center'>
+                <div className='flex h-64 items-center justify-center'>
                   <Bar data={barData} options={barOptions} />
                 </div>
               </CardContent>
             </Card>
             <Card className='rounded-2xl border-none p-0 shadow-sm'>
-              <CardContent className='p-6'>
+              <CardContent className='p-6 flex flex-col gap-6'>
                 <div className='mb-2 flex items-center justify-between'>
                   <div>
                     <div className='text-sm font-medium text-gray-500'>Employee Statistics</div>
@@ -539,7 +539,7 @@ export default function DashboardPage() {
                     ))}
                   </select>
                 </div>
-                <div className='flex h-56 items-center justify-center'>
+                <div className='flex items-center justify-center'>
                   <Bar data={statusBarData} options={statusBarOptions} />
                 </div>
               </CardContent>
@@ -551,7 +551,7 @@ export default function DashboardPage() {
               <CardContent className='flex w-full flex-row items-center justify-between gap-8 p-6'>
                 <div className='flex flex-1 flex-col items-center justify-center'>
                   <div className='flex items-center justify-center'>
-                    <div className='flex h-48 w-48 items-center justify-center rounded-full border border-dashed border-gray-300'>
+                    <div className='flex lg:h-64 lg:w-64 w-48 h-48 items-center justify-center rounded-full border border-dashed border-gray-300'>
                       <Pie data={pieData} options={pieOptions} />
                     </div>
                   </div>

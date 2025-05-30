@@ -1,4 +1,3 @@
-import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/auth.store";
 import { toast } from "sonner";
 import { useLogoutMutation } from "@/api/mutations/auth.mutation";
@@ -6,7 +5,6 @@ import { AxiosError } from "axios";
 import { useRef, useCallback } from "react";
 
 export const useLogout = () => {
-	const router = useRouter();
 	const logoutFromStore = useAuthStore((state) => state.logout);
 	const logoutMutation = useLogoutMutation();
 	const isLoggingOut = useRef(false);
@@ -35,13 +33,11 @@ export const useLogout = () => {
 
 			toast.success("You have been logged out.");
 
-			router.replace("/login");
-
 			setTimeout(() => {
 				isLoggingOut.current = false;
 			}, 500);
 		}
-	}, [logoutFromStore, logoutMutation, router]);
+	}, [logoutFromStore, logoutMutation]);
 
 	return {
 		logout: performLogout,

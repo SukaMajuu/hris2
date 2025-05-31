@@ -91,7 +91,7 @@ func (uc *WorkScheduleUseCase) Create(ctx context.Context, workSchedule *domain.
 				if detail.LocationID == nil {
 					return nil, fmt.Errorf("location ID is required for WFO work type detail")
 				}
-				_, err := uc.locationRepo.GetByID(ctx, fmt.Sprintf("%d", *detail.LocationID)) // Convert uint to string for GetByID
+				_, err := uc.locationRepo.GetByID(ctx, *detail.LocationID) // Convert uint to string for GetByID
 				if err != nil {
 					return nil, fmt.Errorf("invalid location ID %d for WFO detail: %w", *detail.LocationID, err)
 				}

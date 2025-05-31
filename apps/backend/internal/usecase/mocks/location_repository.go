@@ -54,11 +54,11 @@ func (_m *LocationRepository) List(ctx context.Context, paginationParams domain.
 	return r0, r1, r2
 }
 
-func (_m *LocationRepository) GetByID(ctx context.Context, id string) (*domain.Location, error) {
+func (_m *LocationRepository) GetByID(ctx context.Context, id uint) (*domain.Location, error) {
 	ret := _m.Called(ctx, id)
 
 	var r0 *domain.Location
-	if rf, ok := ret.Get(0).(func(context.Context, string) *domain.Location); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, uint) *domain.Location); ok {
 		r0 = rf(ctx, id)
 	} else {
 		if ret.Get(0) != nil {
@@ -67,7 +67,7 @@ func (_m *LocationRepository) GetByID(ctx context.Context, id string) (*domain.L
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, uint) error); ok {
 		r1 = rf(ctx, id)
 	} else {
 		r1 = ret.Error(1)
@@ -76,11 +76,11 @@ func (_m *LocationRepository) GetByID(ctx context.Context, id string) (*domain.L
 	return r0, r1
 }
 
-func (_m *LocationRepository) Update(ctx context.Context, id string, location *domain.Location) (*domain.Location, error) {
+func (_m *LocationRepository) Update(ctx context.Context, id uint, location *domain.Location) (*domain.Location, error) {
 	ret := _m.Called(ctx, id, location)
 
 	var r0 *domain.Location
-	if rf, ok := ret.Get(0).(func(context.Context, string, *domain.Location) *domain.Location); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, uint, *domain.Location) *domain.Location); ok {
 		r0 = rf(ctx, id, location)
 	} else {
 		r0 = ret.Get(0).(*domain.Location)
@@ -89,11 +89,11 @@ func (_m *LocationRepository) Update(ctx context.Context, id string, location *d
 	return r0, ret.Error(1)
 }
 
-func (_m *LocationRepository) Delete(ctx context.Context, id string) error {
+func (_m *LocationRepository) Delete(ctx context.Context, id uint) error {
 	ret := _m.Called(ctx, id)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, uint) error); ok {
 		r0 = rf(ctx, id)
 	} else {
 		r0 = ret.Error(0)
@@ -103,18 +103,18 @@ func (_m *LocationRepository) Delete(ctx context.Context, id string) error {
 }
 
 // Exists mocks the Exists method of the LocationRepository interface.
-func (_m *LocationRepository) Exists(ctx context.Context, id string) (bool, error) {
+func (_m *LocationRepository) Exists(ctx context.Context, id uint) (bool, error) {
 	ret := _m.Called(ctx, id)
 
 	var r0 bool
-	if rf, ok := ret.Get(0).(func(context.Context, string) bool); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, uint) bool); ok {
 		r0 = rf(ctx, id)
 	} else {
 		r0 = ret.Get(0).(bool)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, uint) error); ok {
 		r1 = rf(ctx, id)
 	} else {
 		r1 = ret.Error(1)

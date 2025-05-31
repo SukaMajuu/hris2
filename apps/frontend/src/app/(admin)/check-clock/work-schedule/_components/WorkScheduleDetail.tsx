@@ -2,14 +2,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Card, CardContent } from "@/components/ui/card";
 import WorkTypeBadge from "@/components/workTypeBadge";
 import { WorkType } from "@/const/work";
-import { WorkScheduleDetail } from "../_hooks/useWorkSchedule";
+import { WorkScheduleDetailRow } from "@/types/work-schedule.types"; // Updated import
 
 interface WorkScheduleDetailDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     scheduleName?: string;
     workScheduleType?: string;
-    workScheduleDetails: WorkScheduleDetail[];
+    workScheduleDetails: WorkScheduleDetailRow[]; // Updated type
 }
 
 const WorkScheduleDetailDialog = ({
@@ -20,15 +20,15 @@ const WorkScheduleDetailDialog = ({
     workScheduleDetails,
 }: WorkScheduleDetailDialogProps) => {
     // Flatten details: satu hari = satu baris
-    const flattenDetails = (details: WorkScheduleDetail[]) => {
-        const result: Array<WorkScheduleDetail & { singleDay: string }> = [];
+    const flattenDetails = (details: WorkScheduleDetailRow[]) => { // Updated type
+        const result: Array<WorkScheduleDetailRow & { singleDay: string }> = [];
         details.forEach((detail) => {
-            if (Array.isArray(detail.workDays)) {
-                detail.workDays.forEach((day) => {
+            if (Array.isArray(detail.workdays)) {
+                detail.workdays.forEach((day) => {
                     result.push({ ...detail, singleDay: day });
                 });
             } else {
-                result.push({ ...detail, singleDay: detail.workDays || "-" });
+                result.push({ ...detail, singleDay: detail.workdays || "-" });
             }
         });
         return result;
@@ -82,12 +82,12 @@ const WorkScheduleDetailDialog = ({
                                             <tr key={idx} className="border-b last:border-b-0">
                                                 <td className="py-2 px-3 font-medium whitespace-nowrap">{detail.singleDay}</td>
                                                 <td className="py-2 px-3 whitespace-nowrap">
-                                                    <WorkTypeBadge workType={detail.workTypeChildren as WorkType} />
+                                                    <WorkTypeBadge workType={detail.worktype_detail as WorkType} />
                                                 </td>
-                                                <td className="py-2 px-3 whitespace-nowrap">{formatTimeRange(detail.checkInStart, detail.checkInEnd)}</td>
-                                                <td className="py-2 px-3 whitespace-nowrap">{formatTimeRange(detail.breakStart, detail.breakEnd)}</td>
-                                                <td className="py-2 px-3 whitespace-nowrap">{formatTimeRange(detail.checkOutStart, detail.checkOutEnd)}</td>
-                                                <td className="py-2 px-3 max-w-[10rem] truncate" title={detail.locationName || "-"}>{detail.locationName || "-"}</td>
+                                                <td className="py-2 px-3 whitespace-nowrap">{formatTimeRange(detail.checkin_start ?? undefined, detail.checkin_end ?? undefined)}</td>
+                                                <td className="py-2 px-3 whitespace-nowrap">{formatTimeRange(detail.break_start ?? undefined, detail.break_end ?? undefined)}</td>
+                                                <td className="py-2 px-3 whitespace-nowrap">{formatTimeRange(detail.checkout_start ?? undefined, detail.checkout_end ?? undefined)}</td>
+                                                <td className="py-2 px-3 max-w-[10rem] truncate" title={detail.location_name || "-"}>{detail.location_name || "-"}</td>
                                             </tr>
                                         ))
                                     )}

@@ -11,6 +11,8 @@ type WorkScheduleRepository interface {
 	CreateWithDetails(ctx context.Context, workSchedule *domain.WorkSchedule, details []*domain.WorkScheduleDetail) error
 	GetByIDWithDetails(ctx context.Context, id uint) (*domain.WorkSchedule, error) // Dipertahankan karena digunakan oleh Create use case
 
+	// // List Operation
+	ListWithPagination(ctx context.Context, pagination domain.PaginationParams) ([]*domain.WorkSchedule, int64, error)
 	// GetDetailsByScheduleID(ctx context.Context, scheduleID uint) ([]*domain.WorkScheduleDetail, error)
 
 	// // Unified Save Operation (Create/Update)
@@ -21,8 +23,6 @@ type WorkScheduleRepository interface {
 
 	// SoftDeleteDetail(ctx context.Context, detailID uint) error
 
-	// // List Operation
-	// ListWithPagination(ctx context.Context, pagination domain.PaginationParams) ([]*domain.WorkSchedule, int64, error)
 
 	// // Validation
 	// IsDetailConfigurationUnique(ctx context.Context, scheduleID uint, workTypeDetail string, days []domain.Days, excludeDetailID uint) (bool, error)

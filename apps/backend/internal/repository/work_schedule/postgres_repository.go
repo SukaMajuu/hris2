@@ -115,23 +115,31 @@ func (r *WorkScheduleRepository) SoftDeleteDetail(ctx context.Context, detailID 
 	}
 	return nil
 }
+*/
 
 // ListWithPagination mengambil daftar jadwal kerja dengan paginasi
-func (r *WorkScheduleRepository) ListWithPagination(ctx context.Context, pagination domain.PaginationParams) ([]*domain.WorkSchedule, int64, error) {
+func (r *WorkScheduleRepository) ListWithPagination(ctx context.Context, paginationParams domain.PaginationParams) ([]*domain.WorkSchedule, int64, error) {
 	var workSchedules []*domain.WorkSchedule
 	var totalItems int64
 
-	query := r.db.WithContext(ctx).Model(&domain.WorkSchedule{})
+	offset := (paginationParams.Page - 1) * paginationParams.PageSize
 
-	// Hitung total item sebelum paginasi
-	if err := query.Count(&totalItems).Error; err != nil {
-		return nil, 0, fmt.Errorf("failed to count work schedules: %w", err)
+	// Count total items
+	err := r.db.WithContext(ctx).Model(&domain.WorkSchedule{}).Count(&totalItems).Error
+	if err != nil {
+		return nil, 0, err
 	}
 
-	// Terapkan paginasi
-	offset := (pagination.Page - 1) * pagination.PageSize
-	if err := query.Offset(offset).Limit(pagination.PageSize).Find(&workSchedules).Error; err != nil {
-		return nil, 0, fmt.Errorf("failed to list work schedules with pagination: %w", err)
+	// Retrieve paginated items with details preloaded
+	err = r.db.WithContext(ctx).Model(&domain.WorkSchedule{}).
+		Preload("Details").
+		Preload("Details.Location"). // Preload location for each detail
+		Offset(offset).
+		Limit(paginationParams.PageSize).
+		Find(&workSchedules).Error
+
+	if err != nil {
+		return nil, 0, err
 	}
 
 	return workSchedules, totalItems, nil
@@ -158,4 +166,3 @@ func (r *WorkScheduleRepository) IsDetailConfigurationUnique(ctx context.Context
 
 	return count == 0, nil
 }
-*/

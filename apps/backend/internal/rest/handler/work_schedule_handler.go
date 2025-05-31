@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"fmt"
+
 	"github.com/SukaMajuu/hris/apps/backend/domain"
 	"github.com/SukaMajuu/hris/apps/backend/domain/enums"
 	workSheduleDTO "github.com/SukaMajuu/hris/apps/backend/internal/rest/dto/check-clock/work_schedule"
@@ -74,4 +76,36 @@ func (h *WorkScheduleHandler) CreateWorkSchedule(c *gin.Context) {
 	}
 
 	response.Created(c, "Work schedule created successfully", createdWorkSchedule) // Memperbaiki panggilan response.Created
+}
+
+func (h *WorkScheduleHandler) ListWorkSchedules(c *gin.Context) {
+	var queryDTO workSheduleDTO.ListWorkScheduleRequestQuery
+
+	if bindAndValidateQuery(c, &queryDTO) {
+		return
+	}
+
+	paginationParams := domain.PaginationParams{
+		Page:     queryDTO.Page,
+		PageSize: queryDTO.PageSize,
+	}
+
+	// Set default pagination values if not provided
+	if paginationParams.Page <= 0 {
+		paginationParams.Page = 1
+	}
+	if paginationParams.PageSize <= 0 {
+		paginationParams.PageSize = 10 // Default page size
+	}
+
+	// Correctly assign the two return values from h.workScheduleUseCase.List
+	responseData, err := h.workScheduleUseCase.List(c.Request.Context(), paginationParams)
+	if err != nil {
+		// Pass the error directly to response.InternalServerError
+		response.InternalServerError(c, fmt.Errorf("failed to list work schedules: %w", err))
+		return
+	}
+
+	// Pass the responseData (which includes items and pagination) to response.OK
+	response.OK(c, "Work schedules listed successfully", responseData)
 }

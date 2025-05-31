@@ -317,8 +317,6 @@ components:
             required:
                 - worktype_detail
                 - work_days
-                - created_at
-                - updated_at
             properties:
                 worktype_detail:
                     type: string
@@ -375,14 +373,6 @@ components:
                     format: uint
                     nullable: true
                     example: 1
-                created_at:
-                    type: string
-                    format: date-time
-                    example: "2024-01-01T12:00:00Z"
-                updated_at:
-                    type: string
-                    format: date-time
-                    example: "2024-01-02T12:00:00Z"
 
         WorkScheduleCreateRequest:
             type: object
@@ -390,22 +380,20 @@ components:
                 - name
                 - work_type
                 - details
-                - created_at
-                - updated_at
             properties:
                 name:
                     type: string
                     example: "Hybrid Schedule Example"
-                work_type: 
+                work_type:
                     type: string
-                    enum: ["WFO", "WFA", "Hybrid"] 
+                    enum: ["WFO", "WFA", "Hybrid"]
                     example: "Hybrid"
                 details:
                     type: array
                     items:
                         $ref: "#/components/schemas/WorkScheduleDetailRequest"
                     minItems: 1
-                    example: # Added a more complete example based on your input
+                    example:
                         - worktype_detail: "WFO"
                           work_days: ["Monday", "Tuesday", "Wednesday"]
                           checkin_start: "08:00:00"
@@ -415,19 +403,15 @@ components:
                           checkout_start: "17:00:00"
                           checkout_end: "18:00:00"
                           location_id: 1
-                          created_at: "2024-01-01T12:00:00Z"
-                          updated_at: "2024-01-02T12:00:00Z"
                         - worktype_detail: "WFA"
                           work_days: ["Thursday", "Friday"]
                           checkin_start: "08:00:00"
                           checkin_end: "10:00:00"
-                          break_start: null # Use null for non-applicable time
-                          break_end: null   # Use null for non-applicable time
+                          break_start: null
+                          break_end: null
                           checkout_start: "17:00:00"
                           checkout_end: "18:00:00"
                           location_id: null # Use null for non-applicable ID
-                          created_at: "2024-01-01T12:00:00Z"
-                          updated_at: "2024-01-02T12:00:00Z"
 
         WorkScheduleDetailResponse:
             type: object
@@ -538,7 +522,7 @@ components:
                     type: string
                     format: date-time
                     example: "2024-01-02T12:00:00Z"
-        
+
         CheckClockSettingsCreateRequest:
             type: object
             required:
@@ -567,7 +551,7 @@ components:
                     format: date-time
                     description: Timestamp of when the check clock setting was last updated.
                     example: "2024-01-02T12:00:00Z"
-        
+
         CheckClockSettingsResponse:
             type: object
             properties:
@@ -591,7 +575,7 @@ components:
                     type: string
                     format: date-time
                     description: Timestamp of when the setting was last updated
-        
+
 paths:
     /auth/login:
         post:
@@ -3015,9 +2999,9 @@ paths:
                                                     has_next_page:
                                                         type: boolean
                                                         example: true
-                                            has_prev_page:
-                                                type: boolean
-                                                example: false
+                                                    has_prev_page:
+                                                        type: boolean
+                                                        example: false
         post:
             tags: [Locations]
             summary: Create a new location
@@ -3159,9 +3143,73 @@ paths:
                 404:
                     description: Location not found
 
-    /api/work-schedules: 
-        post: 
-            tags: [Work Schedules] 
+    /api/work-schedules:
+        get:
+            tags: [Work Schedules]
+            summary: Get all work schedules
+            description: Retrieves a list of all work schedules with pagination.
+            parameters:
+                - in: query
+                  name: page
+                  schema:
+                      type: integer
+                      minimum: 1
+                      default: 1
+                  description: Page number for pagination.
+                - in: query
+                  name: page_size
+                  schema:
+                      type: integer
+                      minimum: 1
+                      maximum: 100
+                      default: 10
+                  description: Number of items per page.
+            responses:
+                200:
+                    description: List of work schedules retrieved successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "Work schedules retrieved successfully"
+                                    data:
+                                        type: object
+                                        properties:
+                                            items:
+                                                type: array
+                                                items:
+                                                    $ref: "#/components/schemas/WorkScheduleResponse"
+                                            pagination:
+                                                type: object
+                                                properties:
+                                                    total_items:
+                                                        type: integer
+                                                        format: int64
+                                                        example: 100
+                                                    total_pages:
+                                                        type: integer
+                                                        example: 10
+                                                    current_page:
+                                                        type: integer
+                                                        example: 1
+                                                    page_size:
+                                                        type: integer
+                                                        example: 10
+                                                    has_next_page:
+                                                        type: boolean
+                                                        example: true
+                                                    has_prev_page:
+                                                        type: boolean
+                                                        example: false
+                                                        
+        post:
+            tags: [Work Schedules]
             summary: Create new work schedule with details
             description: Creates a new work schedule along with its associated details (days, times, location for WFO).
             requestBody:
@@ -3218,6 +3266,7 @@ paths:
                                     error:
                                         type: string
                                         example: "Failed to create work schedule"
+
     /health:
         get:
             summary: Health Check

@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"strconv" // Added for Atoi conversion
+
 	"github.com/SukaMajuu/hris/apps/backend/domain"
 	locationDTO "github.com/SukaMajuu/hris/apps/backend/internal/rest/dto/check-clock/location"
 	"github.com/SukaMajuu/hris/apps/backend/internal/usecase/location"
@@ -69,9 +71,14 @@ func (h *LocationHandler) ListLocations(c *gin.Context) {
 }
 
 func (h *LocationHandler) GetLocationByID(c *gin.Context) {
-	id := c.Param("id")
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		response.BadRequest(c, "Invalid ID format", err)
+		return
+	}
 
-	location, err := h.locationUseCase.GetByID(c.Request.Context(), id)
+	location, err := h.locationUseCase.GetByID(c.Request.Context(), uint(id))
 	if err != nil {
 		response.NotFound(c, domain.ErrLocationNotFound.Error(), err)
 		return
@@ -81,13 +88,19 @@ func (h *LocationHandler) GetLocationByID(c *gin.Context) {
 }
 
 func (h *LocationHandler) UpdateLocation(c *gin.Context) {
-	id := c.Param("id")
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		response.BadRequest(c, "Invalid ID format", err)
+		return
+	}
+
 	var req locationDTO.UpdateLocationRequest
 	if bindAndValidate(c, &req) {
 		return
 	}
 
-	updatedLocation, err := h.locationUseCase.Update(c.Request.Context(), id, &domain.Location{
+	updatedLocation, err := h.locationUseCase.Update(c.Request.Context(), uint(id), &domain.Location{
 		Name:          req.Name,
 		AddressDetail: req.AddressDetail,
 		Latitude:      req.Latitude,
@@ -104,9 +117,14 @@ func (h *LocationHandler) UpdateLocation(c *gin.Context) {
 }
 
 func (h *LocationHandler) DeleteLocation(c *gin.Context) {
-	id := c.Param("id")
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		response.BadRequest(c, "Invalid ID format", err)
+		return
+	}
 
-	err := h.locationUseCase.Delete(c.Request.Context(), id)
+	err = h.locationUseCase.Delete(c.Request.Context(), uint(id))
 	if err != nil {
 		response.InternalServerError(c, err)
 		return

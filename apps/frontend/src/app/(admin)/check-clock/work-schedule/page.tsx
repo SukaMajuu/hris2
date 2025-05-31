@@ -3,15 +3,14 @@
 import WorkTypeBadge from "@/components/workTypeBadge";
 import { WorkType } from "@/const/work";
 import { DataTable } from "@/components/dataTable";
-
-import { useWorkSchedule, WorkSchedule, initialWorkSchedules } from "./_hooks/useWorkSchedule";
+// import { useWorkSchedule, WorkSchedule, initialWorkSchedules } from "./_hooks/useWorkSchedule"; // Removed
 import { Card, CardContent } from "@/components/ui/card";
 import { PaginationComponent } from "@/components/pagination";
 import { PageSizeComponent } from "@/components/pageSize";
 import { Button } from "@/components/ui/button";
 import { Edit, Eye, Plus, Search, Trash } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, useMemo } from "react";
 import {
     ColumnDef,
     getCoreRowModel,
@@ -23,22 +22,43 @@ import {
 import ConfirmationDelete from "./_components/ConfirmationDelete";
 import Link from "next/link";
 import WorkScheduleDetailDialog from "./_components/WorkScheduleDetail";
+import { useWorkSchedules } from "@/api/queries/work-schedule.queries"; // Added
+import { useDeleteWorkSchedule } from "@/api/mutations/work-schedule.mutation"; // Added
+import { WorkSchedule } from "@/types/work-schedule.types"; // Added
+import { useRouter } from "next/navigation"; // Added
+import { toast } from "@/components/ui/use-toast"; // Added
 
 export default function WorkSchedulePage() {
+    const router = useRouter(); // Added
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [workScheduleToDelete, setWorkScheduleToDelete] = useState<WorkSchedule | null>(null);
     const [scheduleNameFilter, setScheduleNameFilter] = React.useState("");
     const [pagination, setPagination] = React.useState<PaginationState>({
-        pageIndex: 0,
-        pageSize: 10,
+        pageIndex: 0, // default page index
+        pageSize: 10, // default page size
     });
     const [viewDialogOpen, setViewDialogOpen] = useState(false);
     const [viewedSchedule, setViewedSchedule] = useState<WorkSchedule | null>(null);
 
-    // Ambil data WorkSchedule dari hook
-    const { handleEdit } = useWorkSchedule();
-    // Gunakan initialWorkSchedules sebagai sumber data tabel
-    const workSchedules: WorkSchedule[] = initialWorkSchedules;
+    // Fetch WorkSchedules using React Query
+    const { data: paginatedWorkSchedules, isLoading, isError, error } = useWorkSchedules(
+        pagination.pageIndex + 1, // API is 1-based, table is 0-based
+        pagination.pageSize,
+    );
+    const deleteWorkScheduleMutation = useDeleteWorkSchedule(); // Added
+
+    // Use fetched data or an empty array if loading or error
+    const workSchedules: WorkSchedule[] = useMemo(() => {
+        if (paginatedWorkSchedules && paginatedWorkSchedules.items) {
+            console.log("Fetched Work Schedules:", paginatedWorkSchedules.items); // For debugging
+            return paginatedWorkSchedules.items;
+        }
+        return [];
+    }, [paginatedWorkSchedules]); // Changed
+
+    const handleEdit = useCallback((id: number) => { // Added router.push
+        router.push(`/check-clock/work-schedule/edit/${id}`);
+    }, [router]);
 
     const handleOpenDelete = useCallback((data: WorkSchedule) => {
         setWorkScheduleToDelete(data);
@@ -50,19 +70,28 @@ export default function WorkSchedulePage() {
         setIsDeleteDialogOpen(false);
     }, []);
 
-    const handleConfirmDelete = useCallback(() => {
+    const handleConfirmDelete = useCallback(async () => { // Changed to use mutation
         if (workScheduleToDelete) {
-            // Simulasi hapus: update state jika perlu
+            try {
+                await deleteWorkScheduleMutation.mutateAsync(workScheduleToDelete.id);
+                toast({ title: "Success", description: "Work schedule deleted successfully." });
+                setIsDeleteDialogOpen(false);
+                setWorkScheduleToDelete(null);
+            } catch (e: unknown) { // Changed to catch (e: unknown)
+                let errorMessage = "Failed to delete work schedule.";
+                if (e instanceof Error) {
+                    errorMessage = e.message;
+                }
+                toast({ title: "Error", description: errorMessage, variant: "destructive" });
+            }
         }
-        setIsDeleteDialogOpen(false);
-    }, [workScheduleToDelete]);
+    }, [workScheduleToDelete, deleteWorkScheduleMutation]);
 
     const handleView = useCallback((data: WorkSchedule) => {
         setViewedSchedule(data);
         setViewDialogOpen(true);
     }, []);
 
-    // Kolom untuk tabel WorkSchedule (bukan detail)
     const columns = React.useMemo<ColumnDef<WorkSchedule>[]>
         (() => [
             {
@@ -78,14 +107,14 @@ export default function WorkSchedulePage() {
             },
             {
                 header: "Schedule Name",
-                accessorKey: "nama",
+                accessorKey: "name", // Changed from "nama" to "name"
             },
             {
                 header: "Work Type",
-                accessorKey: "workType",
+                accessorKey: "work_type", // Changed from "workType" to "work_type"
                 cell: ({ row }) => (
                     <WorkTypeBadge
-                        workType={row.original.workType as WorkType}
+                        workType={row.original.work_type as WorkType} // Corrected to work_type
                     />
                 )
             },
@@ -140,10 +169,11 @@ export default function WorkSchedulePage() {
         );
 
     const table = useReactTable<WorkSchedule>({
-        data: workSchedules,
+        data: workSchedules, // Ensure this uses the processed workSchedules
         columns,
         state: {
-            columnFilters: [{ id: "nama", value: scheduleNameFilter }],
+            // columnFilters: [{ id: "nama", value: scheduleNameFilter }], // "nama" should be "name"
+            columnFilters: [{ id: "name", value: scheduleNameFilter }],
             pagination,
         },
         onColumnFiltersChange: (updater) => {
@@ -151,15 +181,24 @@ export default function WorkSchedulePage() {
                 typeof updater === "function"
                     ? updater(table.getState().columnFilters)
                     : updater;
-            const nameFilterUpdate = newFilters.find((f) => f.id === "nama");
+            // const nameFilterUpdate = newFilters.find((f) => f.id === "nama"); // "nama" should be "name"
+            const nameFilterUpdate = newFilters.find((f) => f.id === "name");
             setScheduleNameFilter((nameFilterUpdate?.value as string) || "");
         },
         onPaginationChange: setPagination,
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
+        manualPagination: true, // Enable manual pagination
+        pageCount: paginatedWorkSchedules?.pagination?.total_pages ?? -1, // Set pageCount for manual pagination
         autoResetPageIndex: false,
     });
+
+    if (isLoading) return <div>Loading...</div>; // Added loading state
+    if (isError) {
+        console.error("Error fetching work schedules:", error); // Log the actual error
+        return <div>Error fetching data: {error?.message}</div>; // Added error state
+    }
 
     return (
         <>
@@ -187,7 +226,8 @@ export default function WorkSchedulePage() {
                                     onChange={(event) => {
                                         const newNameFilter = event.target.value;
                                         setScheduleNameFilter(newNameFilter);
-                                        table.getColumn("nama")?.setFilterValue(newNameFilter);
+                                        // table.getColumn("nama")?.setFilterValue(newNameFilter); // "nama" should be "name"
+                                        table.getColumn("name")?.setFilterValue(newNameFilter);
                                     }}
                                     className="pl-10 w-full bg-white border-gray-200"
                                     placeholder="Search Schedule Name"
@@ -215,9 +255,12 @@ export default function WorkSchedulePage() {
             <WorkScheduleDetailDialog
                 open={viewDialogOpen}
                 onOpenChange={setViewDialogOpen}
-                scheduleName={viewedSchedule?.nama}
-                workScheduleType={viewedSchedule?.workType}
-                workScheduleDetails={Array.isArray(viewedSchedule?.workScheduleDetails) ? viewedSchedule.workScheduleDetails : []}
+                // scheduleName={viewedSchedule?.nama} // "nama" should be "name"
+                scheduleName={viewedSchedule?.name}
+                // workScheduleType={viewedSchedule?.workType} // "workType" should be "work_type"
+                workScheduleType={viewedSchedule?.work_type}
+                // workScheduleDetails={Array.isArray(viewedSchedule?.workScheduleDetails) ? viewedSchedule.workScheduleDetails : []} // "workScheduleDetails" should be "details"
+                workScheduleDetails={Array.isArray(viewedSchedule?.details) ? viewedSchedule.details : []}
             />
         </>
     );

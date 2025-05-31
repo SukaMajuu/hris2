@@ -4,6 +4,20 @@ import { ApiRefreshResponse } from "@/types/auth";
 
 type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
+export interface PaginationInfo {
+	total_items: number;
+	total_pages: number;
+	current_page: number;
+	page_size: number;
+	has_next_page: boolean;
+	has_prev_page: boolean;
+}
+
+export interface PaginatedResponse<T> {
+	items: T[];
+	pagination: PaginationInfo;
+}
+
 export class ApiService {
 	private baseURL: string;
 	private isRefreshing = false;

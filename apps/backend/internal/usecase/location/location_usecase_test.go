@@ -167,7 +167,7 @@ func TestLocationUseCase_Create(t *testing.T) {
 
 func TestLocationUseCase_GetByID(t *testing.T) {
 	ctx := context.Background()
-	locationID := "1"
+	locationID := uint(1)
 	mockLocation := &domain.Location{ID: 1, Name: "Found Location"}
 	mockLocationDTO := &dtolocation.LocationResponseDTO{
 		ID:   mockLocation.ID,
@@ -189,27 +189,27 @@ func TestLocationUseCase_GetByID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockLocationRepo := new(mocks.LocationRepository)
-			uc := NewLocationUseCase(mockLocationRepo)
-			mockLocationRepo.On("GetByID", ctx, locationID).Return(tt.mockRepoResponse, tt.mockRepoError).Once()
+			mockRepo := new(mocks.LocationRepository)
+			uc := NewLocationUseCase(mockRepo)
+
+			mockRepo.On("GetByID", ctx, locationID).Return(tt.mockRepoResponse, tt.mockRepoError)
 
 			resp, err := uc.GetByID(ctx, locationID)
 
 			assert.Equal(t, tt.expectedResponse, resp)
 			if tt.expectedError != nil {
-				assert.Error(t, err)
-				assert.Equal(t, tt.expectedError, err)
+				assert.ErrorIs(t, err, tt.expectedError)
 			} else {
 				assert.NoError(t, err)
 			}
-			mockLocationRepo.AssertExpectations(t)
+			mockRepo.AssertExpectations(t)
 		})
 	}
 }
 
 func TestLocationUseCase_Update(t *testing.T) {
 	ctx := context.Background()
-	locationID := "1"
+	locationID := uint(1)
 	mockLocationUpdate := &domain.Location{ID: 1, Name: "Updated Location"}
 	mockLocationDTO := &dtolocation.LocationResponseDTO{
 		ID:   mockLocationUpdate.ID,
@@ -231,30 +231,30 @@ func TestLocationUseCase_Update(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockLocationRepo := new(mocks.LocationRepository)
-			uc := NewLocationUseCase(mockLocationRepo)
-			mockLocationRepo.On("Update", ctx, locationID, mockLocationUpdate).Return(tt.mockRepoResponse, tt.mockRepoError).Once()
+			mockRepo := new(mocks.LocationRepository)
+			uc := NewLocationUseCase(mockRepo)
 
-			actualResponse, err := uc.Update(ctx, locationID, mockLocationUpdate)
+			mockRepo.On("Update", ctx, locationID, mockLocationUpdate).Return(tt.mockRepoResponse, tt.mockRepoError)
 
-			assert.Equal(t, tt.expectedResponse, actualResponse)
+			resp, err := uc.Update(ctx, locationID, mockLocationUpdate)
+
+			assert.Equal(t, tt.expectedResponse, resp)
 			if tt.expectedError != nil {
-				assert.Error(t, err)
 				assert.EqualError(t, err, tt.expectedError.Error())
 				if tt.checkErrorIs != nil {
-					assert.True(t, errors.Is(err, tt.checkErrorIs), "Expected error to wrap: %v, but got: %v", tt.checkErrorIs, err)
+					assert.ErrorIs(t, err, tt.checkErrorIs)
 				}
 			} else {
 				assert.NoError(t, err)
 			}
-			mockLocationRepo.AssertExpectations(t)
+			mockRepo.AssertExpectations(t)
 		})
 	}
 }
 
 func TestLocationUseCase_Delete(t *testing.T) {
 	ctx := context.Background()
-	locationID := "1"
+	locationID := uint(1)
 	repoError := errors.New("delete error")
 
 	tests := []struct {
@@ -268,56 +268,56 @@ func TestLocationUseCase_Delete(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockLocationRepo := new(mocks.LocationRepository)
-			uc := NewLocationUseCase(mockLocationRepo)
-			mockLocationRepo.On("Delete", ctx, locationID).Return(tt.mockRepoError).Once()
+			mockRepo := new(mocks.LocationRepository)
+			uc := NewLocationUseCase(mockRepo)
+
+			mockRepo.On("Delete", ctx, locationID).Return(tt.mockRepoError)
 
 			err := uc.Delete(ctx, locationID)
 
 			if tt.expectedError != nil {
-				assert.Error(t, err)
-				assert.Equal(t, tt.expectedError, err)
+				assert.ErrorIs(t, err, tt.expectedError)
 			} else {
 				assert.NoError(t, err)
 			}
-			mockLocationRepo.AssertExpectations(t)
+			mockRepo.AssertExpectations(t)
 		})
 	}
 }
 
 func TestLocationUseCase_Exists(t *testing.T) {
 	ctx := context.Background()
-	locationID := "1"
+	locationID := uint(1)
 	repoError := errors.New("exists error")
 
 	tests := []struct {
-		name             string
-		mockRepoResponse bool
-		mockRepoError    error
-		expectedResponse bool
-		expectedError    error
+		name           string
+		mockRepoExists bool
+		mockRepoError  error
+		expectedExists bool
+		expectedError  error
 	}{
-		{"exists returns true", true, nil, true, nil},
-		{"exists returns false", false, nil, false, nil},
+		{"location exists", true, nil, true, nil},
+		{"location does not exist", false, nil, false, nil},
 		{"repository returns an error", false, repoError, false, repoError},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockLocationRepo := new(mocks.LocationRepository)
-			uc := NewLocationUseCase(mockLocationRepo)
-			mockLocationRepo.On("Exists", ctx, locationID).Return(tt.mockRepoResponse, tt.mockRepoError).Once()
+			mockRepo := new(mocks.LocationRepository)
+			uc := NewLocationUseCase(mockRepo)
+
+			mockRepo.On("Exists", ctx, locationID).Return(tt.mockRepoExists, tt.mockRepoError)
 
 			exists, err := uc.Exists(ctx, locationID)
 
-			assert.Equal(t, tt.expectedResponse, exists)
+			assert.Equal(t, tt.expectedExists, exists)
 			if tt.expectedError != nil {
-				assert.Error(t, err)
-				assert.Equal(t, tt.expectedError, err)
+				assert.ErrorIs(t, err, tt.expectedError)
 			} else {
 				assert.NoError(t, err)
 			}
-			mockLocationRepo.AssertExpectations(t)
+			mockRepo.AssertExpectations(t)
 		})
 	}
 }

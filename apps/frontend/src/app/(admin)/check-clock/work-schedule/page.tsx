@@ -34,18 +34,27 @@ export default function WorkSchedulePage() {
     const [workScheduleToDelete, setWorkScheduleToDelete] = useState<WorkSchedule | null>(null);
     const [scheduleNameFilter, setScheduleNameFilter] = React.useState("");
     const [pagination, setPagination] = React.useState<PaginationState>({
-        pageIndex: 0,
-        pageSize: 10,
+        pageIndex: 0, // default page index
+        pageSize: 10, // default page size
     });
     const [viewDialogOpen, setViewDialogOpen] = useState(false);
     const [viewedSchedule, setViewedSchedule] = useState<WorkSchedule | null>(null);
 
     // Fetch WorkSchedules using React Query
-    const { data: workSchedulesData, isLoading, isError, error } = useWorkSchedules(); // Changed
+    const { data: paginatedWorkSchedules, isLoading, isError, error } = useWorkSchedules(
+        pagination.pageIndex + 1, // API is 1-based, table is 0-based
+        pagination.pageSize,
+    );
     const deleteWorkScheduleMutation = useDeleteWorkSchedule(); // Added
 
     // Use fetched data or an empty array if loading or error
-    const workSchedules: WorkSchedule[] = useMemo(() => workSchedulesData || [], [workSchedulesData]); // Changed
+    const workSchedules: WorkSchedule[] = useMemo(() => {
+        if (paginatedWorkSchedules && paginatedWorkSchedules.items) {
+            console.log("Fetched Work Schedules:", paginatedWorkSchedules.items); // For debugging
+            return paginatedWorkSchedules.items;
+        }
+        return [];
+    }, [paginatedWorkSchedules]); // Changed
 
     const handleEdit = useCallback((id: number) => { // Added router.push
         router.push(`/check-clock/work-schedule/edit/${id}`);
@@ -98,14 +107,14 @@ export default function WorkSchedulePage() {
             },
             {
                 header: "Schedule Name",
-                accessorKey: "nama",
+                accessorKey: "name", // Changed from "nama" to "name"
             },
             {
                 header: "Work Type",
-                accessorKey: "workType",
+                accessorKey: "work_type", // Changed from "workType" to "work_type"
                 cell: ({ row }) => (
                     <WorkTypeBadge
-                        workType={row.original.workType as WorkType}
+                        workType={row.original.work_type as WorkType} // Corrected to work_type
                     />
                 )
             },
@@ -160,10 +169,11 @@ export default function WorkSchedulePage() {
         );
 
     const table = useReactTable<WorkSchedule>({
-        data: workSchedules, // Changed to use fetched data
+        data: workSchedules, // Ensure this uses the processed workSchedules
         columns,
         state: {
-            columnFilters: [{ id: "nama", value: scheduleNameFilter }],
+            // columnFilters: [{ id: "nama", value: scheduleNameFilter }], // "nama" should be "name"
+            columnFilters: [{ id: "name", value: scheduleNameFilter }],
             pagination,
         },
         onColumnFiltersChange: (updater) => {
@@ -171,18 +181,24 @@ export default function WorkSchedulePage() {
                 typeof updater === "function"
                     ? updater(table.getState().columnFilters)
                     : updater;
-            const nameFilterUpdate = newFilters.find((f) => f.id === "nama");
+            // const nameFilterUpdate = newFilters.find((f) => f.id === "nama"); // "nama" should be "name"
+            const nameFilterUpdate = newFilters.find((f) => f.id === "name");
             setScheduleNameFilter((nameFilterUpdate?.value as string) || "");
         },
         onPaginationChange: setPagination,
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
+        manualPagination: true, // Enable manual pagination
+        pageCount: paginatedWorkSchedules?.pagination?.total_pages ?? -1, // Set pageCount for manual pagination
         autoResetPageIndex: false,
     });
 
     if (isLoading) return <div>Loading...</div>; // Added loading state
-    if (isError) return <div>Error fetching data: {error?.message}</div>; // Added error state
+    if (isError) {
+        console.error("Error fetching work schedules:", error); // Log the actual error
+        return <div>Error fetching data: {error?.message}</div>; // Added error state
+    }
 
     return (
         <>
@@ -210,7 +226,8 @@ export default function WorkSchedulePage() {
                                     onChange={(event) => {
                                         const newNameFilter = event.target.value;
                                         setScheduleNameFilter(newNameFilter);
-                                        table.getColumn("nama")?.setFilterValue(newNameFilter);
+                                        // table.getColumn("nama")?.setFilterValue(newNameFilter); // "nama" should be "name"
+                                        table.getColumn("name")?.setFilterValue(newNameFilter);
                                     }}
                                     className="pl-10 w-full bg-white border-gray-200"
                                     placeholder="Search Schedule Name"
@@ -238,9 +255,12 @@ export default function WorkSchedulePage() {
             <WorkScheduleDetailDialog
                 open={viewDialogOpen}
                 onOpenChange={setViewDialogOpen}
-                scheduleName={viewedSchedule?.nama}
-                workScheduleType={viewedSchedule?.workType}
-                workScheduleDetails={Array.isArray(viewedSchedule?.workScheduleDetails) ? viewedSchedule.workScheduleDetails : []}
+                // scheduleName={viewedSchedule?.nama} // "nama" should be "name"
+                scheduleName={viewedSchedule?.name}
+                // workScheduleType={viewedSchedule?.workType} // "workType" should be "work_type"
+                workScheduleType={viewedSchedule?.work_type}
+                // workScheduleDetails={Array.isArray(viewedSchedule?.workScheduleDetails) ? viewedSchedule.workScheduleDetails : []} // "workScheduleDetails" should be "details"
+                workScheduleDetails={Array.isArray(viewedSchedule?.details) ? viewedSchedule.details : []}
             />
         </>
     );

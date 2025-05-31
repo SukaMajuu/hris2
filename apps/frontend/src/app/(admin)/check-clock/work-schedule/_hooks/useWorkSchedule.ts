@@ -1,191 +1,87 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { WorkSchedule, WorkScheduleDetailItem } from "@/types/work-schedule.types";
+import { workScheduleService } from "@/services/work-schedule.service";
 
 /**
- * Type for work schedule detail
+ * Type for flattened work schedule detail rows - this might still be useful for UI
+ * Ensure this aligns with WorkScheduleDetailItem and how forms might use it.
  */
-export type WorkScheduleDetail = {
-    workTypeChildren: string; // Work type (WFO, WFA)
-    workDays?: string[]; // Working days
-    checkInStart: string; // Check-in start time
-    checkInEnd: string; // Check-in end time
-    breakStart: string; // Break start time
-    breakEnd: string; // Break end time
-    checkOutStart: string; // Check-out start time
-    checkOutEnd: string; // Check-out end time
-    locationId?: string; // Location ID (for WFO)
-    locationName?: string; // Location name (for WFO)
-    addressDetails?: string; // Address details (for WFO)
-    latitude?: string; // Location latitude (for WFO)
-    longitude?: string; // Location longitude (for WFO)
+export type WorkScheduleDetailRow = WorkScheduleDetailItem & {
+    // If you need to associate with a parent schedule's temporary ID or name in a form context:
+    // parentId?: number; 
+    // parentName?: string;
 };
 
 /**
- * Interface for work schedule
+ * Hook to manage work schedule data, focusing on a single schedule for forms (add/edit).
+ * List management should be handled by React Query hooks like useWorkSchedules.
  */
-export interface WorkSchedule {
-    id: number;
-    nama: string;
-    workType: string;
-    workScheduleDetails?: WorkScheduleDetail[];
-}
-
-/**
- * Type for flattened work schedule detail rows
- */
-export type WorkScheduleDetailRow = WorkScheduleDetail & {
-    id: number; // Parent work schedule ID
-    nama: string; // Parent work schedule name
-};
-
-// Initial work schedules mirip initialLocations pada useLocation
-export const initialWorkSchedules: WorkSchedule[] = [
-    {
-        id: 1,
-        nama: "Hybrid Schedule",
-        workType: "Hybrid",
-        workScheduleDetails: [
-            {
-                workTypeChildren: "WFO",
-                workDays: ["Monday", "Tuesday"],
-                checkInStart: "07:00",
-                checkInEnd: "08:00",
-                breakStart: "12:00",
-                breakEnd: "13:00",
-                checkOutStart: "16:00",
-                checkOutEnd: "17:00",
-                locationId: "malang",
-                locationName: "Malang City",
-                addressDetails: "Jl. Merdeka No. 123",
-                latitude: "-7.983908",
-                longitude: "112.621391",
-            },
-            {
-                workTypeChildren: "WFA",
-                workDays: ["Wednesday", "Thursday", "Friday"],
-                checkInStart: "08:00",
-                checkInEnd: "09:00",
-                breakStart: "-",
-                breakEnd: "-",
-                checkOutStart: "17:00",
-                checkOutEnd: "18:00",
-                locationId: "",
-                locationName: "-",
-                addressDetails: "",
-                latitude: "",
-                longitude: "",
-            },
-        ],
-    },
-    {
-        id: 2,
-        nama: "Full WFO",
-        workType: "WFO",
-        workScheduleDetails: [
-            {
-                workTypeChildren: "WFO",
-                workDays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-                checkInStart: "08:00",
-                checkInEnd: "09:00",
-                breakStart: "12:00",
-                breakEnd: "13:00",
-                checkOutStart: "17:00",
-                checkOutEnd: "18:00",
-                locationId: "1",
-                locationName: "Head Office",
-                addressDetails: "Jl. Merdeka No. 123",
-                latitude: "-7.983908",
-                longitude: "112.621391",
-            },
-        ],
-    },
-    {
-        id: 3,
-        nama: "Full Remote",
-        workType: "WFA",
-        workScheduleDetails: [
-            {
-                workTypeChildren: "WFA",
-                workDays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-                checkInStart: "08:00",
-                checkInEnd: "10:00",
-                breakStart: "-",
-                breakEnd: "-",
-                checkOutStart: "16:00",
-                checkOutEnd: "18:00",
-                locationId: "2",
-                locationName: "Jakarta",
-                addressDetails: "Jl. Sudirman No. 45",
-                latitude: "-6.2088",
-                longitude: "106.8456",
-            },
-        ],
-    },
-]
-
-/**
- * Hook to manage work schedule data
- * Selalu menggunakan data dummy
- */
-export function useWorkSchedule() {
-    const [page, setPage] = useState(1);
-    const [pageSize, setPageSize] = useState(10);
+export function useWorkSchedule(scheduleId?: number) {
     const router = useRouter();
+    // State for managing a single work schedule, e.g., for an edit form
+    const [currentSchedule, setCurrentSchedule] = useState<Partial<WorkSchedule> | null>(null);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [error, setError] = useState<Error | null>(null);
 
-    // State untuk data jadwal kerja permanen
-    const [workSchedules, setWorkSchedules] = useState<WorkSchedule[]>(initialWorkSchedules);
+    // If an ID is provided, fetch the schedule for editing
+    useEffect(() => {
+        if (scheduleId) {
+            setIsLoading(true);
+            workScheduleService.getById(scheduleId)
+                .then(data => {
+                    setCurrentSchedule(data);
+                    setIsLoading(false);
+                })
+                .catch(err => {
+                    setError(err);
+                    setIsLoading(false);
+                    console.error("Failed to fetch work schedule by ID", err);
+                });
+        }
+    }, [scheduleId]);
+
 
     /**
-     * Menangani event edit jadwal kerja
-     * @param id ID jadwal kerja yang akan diedit
+     * Menangani event edit jadwal kerja - navigation part
+     * The actual data fetching for edit page should use useWorkScheduleDetail query or similar.
      */
-    const handleEdit = (id: number) => {
+    const handleEditNavigation = (id: number) => {
         router.push(`/check-clock/work-schedule/edit/${id}`);
     };
 
-    const handleSaveWorkSchedule = (data: Partial<WorkSchedule>) => {
-        if (data.id) {
-            // Update
-            setWorkSchedules((prev) =>
-                prev.map((ws) => (ws.id === data.id ? { ...ws, ...data } : ws))
-            );
-            return { success: true, id: data.id };
-        } else {
-            // Add new
-            const newId = Math.max(0, ...workSchedules.map((ws) => ws.id)) + 1;
-            const newWorkSchedule: WorkSchedule = {
-                id: newId,
-                nama: data.nama || "Jadwal Baru",
-                workType: data.workType || "WFO",
-                workScheduleDetails: data.workScheduleDetails || [],
-            };
-            setWorkSchedules((prev) => [...prev, newWorkSchedule]);
-            return { success: true, id: newId };
+    // Function to save (create or update) a work schedule
+    const handleSaveWorkSchedule = useCallback(async (data: Partial<WorkSchedule>) => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            let savedData;
+            if (data.id) {
+                // Update existing work schedule
+                savedData = await workScheduleService.update(data.id, data);
+            } else {
+                // Create new work schedule
+                // Ensure all required fields for creation are present in 'data'
+                savedData = await workScheduleService.create(data);
+            }
+            setCurrentSchedule(savedData); // Optionally update local state
+            setIsLoading(false);
+            return { success: true, id: savedData.id };
+        } catch (e) {
+            const err = e instanceof Error ? e : new Error("Failed to save work schedule");
+            setError(err);
+            setIsLoading(false);
+            console.error(err);
+            return { success: false, error: err.message };
         }
-    };
-
-    // Fungsi untuk mendapatkan work schedule berdasarkan ID
-    const getWorkScheduleById = (id: number): WorkSchedule | undefined => {
-        return workSchedules.find(ws => ws.id === id);
-    };
-
-    // Fungsi untuk update work schedule berdasarkan ID
-    const updateWorkSchedule = (id: number, data: Partial<WorkSchedule>) => {
-        const updatedSchedules = workSchedules.map(ws =>
-            ws.id === id ? { ...ws, ...data } : ws
-        );
-        setWorkSchedules(updatedSchedules);
-        return { success: true };
-    };
+    }, []);
 
     return {
-        page,
-        setPage,
-        pageSize,
-        setPageSize,
-        handleEdit,
+        currentSchedule,
+        setCurrentSchedule, // To allow form to update it
+        isLoading,
+        error,
+        handleEditNavigation, // Renamed to avoid confusion with data editing
         handleSaveWorkSchedule,
-        getWorkScheduleById,
-        updateWorkSchedule, // expose updateWorkSchedule
     };
 }

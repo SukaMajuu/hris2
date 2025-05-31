@@ -83,68 +83,62 @@ func toWorkScheduleResponseDTO(ws *domain.WorkSchedule) *dtoworkschedule.WorkSch
 // Create creates a new work schedule with its details.
 func (uc *WorkScheduleUseCase) Create(ctx context.Context, workSchedule *domain.WorkSchedule, details []*domain.WorkScheduleDetail) (*dtoworkschedule.WorkScheduleResponseDTO, error) {
 	// Validate LocationID for WFO if locationRepo is available
-	for _, detail := range details {
-		if detail.WorktypeDetail == enums.WorkTypeWFO && detail.LocationID != nil { // Corrected casing
-			if uc.locationRepo != nil { // Check if locationRepo is provided
-				exists, err := uc.locationRepo.Exists(ctx, fmt.Sprintf("%d", *detail.LocationID))
+	// For WFO, at least one detail must have a LocationID
+	if workSchedule.WorkType == enums.WorkTypeWFO && uc.locationRepo != nil {
+		foundWfoLocation := false
+		for _, detail := range details {
+			if detail.WorktypeDetail == enums.WorkTypeWFO {
+				if detail.LocationID == nil {
+					return nil, fmt.Errorf("location ID is required for WFO work type detail")
+				}
+				_, err := uc.locationRepo.GetByID(ctx, fmt.Sprintf("%d", *detail.LocationID)) // Convert uint to string for GetByID
 				if err != nil {
-					return nil, fmt.Errorf("failed to verify location ID %d: %w", *detail.LocationID, err)
+					return nil, fmt.Errorf("invalid location ID %d for WFO detail: %w", *detail.LocationID, err)
 				}
-				if !exists {
-					return nil, fmt.Errorf("location ID %d does not exist", *detail.LocationID)
-				}
+				foundWfoLocation = true
 			}
-		} else if detail.WorktypeDetail == enums.WorkTypeWFA { // Corrected casing
-			detail.LocationID = nil // Ensure LocationID is nil for WFA
+		}
+		if !foundWfoLocation && len(details) > 0 { // if work type is WFO but no WFO details, it's an issue if details are provided
+			// This case might need more specific business logic. Assuming if details are present, one must match WFO with location.
 		}
 	}
 
 	workSchedule.Details = nil // Clear details from main object as they are passed separately
+
 	err := uc.workScheduleRepo.CreateWithDetails(ctx, workSchedule, details)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create work schedule: %w", err)
 	}
 
 	// Fetch the newly created work schedule to get all details including IDs and preloaded Location
-	createdScheduleWithDetails, err := uc.workScheduleRepo.GetByIDWithDetails(ctx, workSchedule.ID)
+	createdWorkSchedule, err := uc.workScheduleRepo.GetByIDWithDetails(ctx, workSchedule.ID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch created work schedule with details: %w", err)
 	}
-	return toWorkScheduleResponseDTO(createdScheduleWithDetails), nil
+
+	return toWorkScheduleResponseDTO(createdWorkSchedule), nil
 }
 
 func (uc *WorkScheduleUseCase) List(ctx context.Context, paginationParams domain.PaginationParams) (*domain.WorkScheduleListResponseData, error) {
-	domainWorkSchedules, totalItems, err := uc.workScheduleRepo.ListWithPagination(ctx, paginationParams)
+	workSchedules, totalItems, err := uc.workScheduleRepo.ListWithPagination(ctx, paginationParams)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list work schedules from repository: %w", err)
+		return nil, fmt.Errorf("failed to list work schedules: %w", err)
 	}
 
-	workScheduleDTOs := make([]*dtoworkschedule.WorkScheduleResponseDTO, len(domainWorkSchedules))
-	for i, ws := range domainWorkSchedules {
-		workScheduleDTOs[i] = toWorkScheduleResponseDTO(ws)
+	responseDTOs := make([]*dtoworkschedule.WorkScheduleResponseDTO, len(workSchedules))
+	for i, ws := range workSchedules {
+		responseDTOs[i] = toWorkScheduleResponseDTO(ws)
 	}
 
-	totalPages := 0
-	if paginationParams.PageSize > 0 {
-		totalPages = int(math.Ceil(float64(totalItems) / float64(paginationParams.PageSize)))
-	}
-	if totalPages < 1 && totalItems > 0 {
-		totalPages = 1
-	} else if totalItems == 0 {
-		totalPages = 0
-	}
-
-	response := &domain.WorkScheduleListResponseData{
-		Items: workScheduleDTOs,
+	return &domain.WorkScheduleListResponseData{
+		Items: responseDTOs,
 		Pagination: domain.Pagination{
 			TotalItems:  totalItems,
-			TotalPages:  totalPages,
+			TotalPages:  int(math.Ceil(float64(totalItems) / float64(paginationParams.PageSize))),
 			CurrentPage: paginationParams.Page,
 			PageSize:    paginationParams.PageSize,
-			HasNextPage: paginationParams.Page < totalPages,
-			HasPrevPage: paginationParams.Page > 1 && paginationParams.Page <= totalPages,
+			HasNextPage: paginationParams.Page*paginationParams.PageSize < int(totalItems),
+			HasPrevPage: paginationParams.Page > 1,
 		},
-	}
-
-	return response, nil
+	}, nil
 }

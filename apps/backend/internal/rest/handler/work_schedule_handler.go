@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"fmt"
+
 	"github.com/SukaMajuu/hris/apps/backend/domain"
 	"github.com/SukaMajuu/hris/apps/backend/domain/enums"
 	workSheduleDTO "github.com/SukaMajuu/hris/apps/backend/internal/rest/dto/check-clock/work_schedule"
@@ -96,11 +98,14 @@ func (h *WorkScheduleHandler) ListWorkSchedules(c *gin.Context) {
 		paginationParams.PageSize = 10 // Default page size
 	}
 
-	workSchedules, err := h.workScheduleUseCase.List(c.Request.Context(), paginationParams)
+	// Correctly assign the two return values from h.workScheduleUseCase.List
+	responseData, err := h.workScheduleUseCase.List(c.Request.Context(), paginationParams)
 	if err != nil {
-		response.InternalServerError(c, err) // Corrected this line
+		// Pass the error directly to response.InternalServerError
+		response.InternalServerError(c, fmt.Errorf("failed to list work schedules: %w", err))
 		return
 	}
 
-	response.OK(c, "Work schedules retrieved successfully", workSchedules) // Corrected this line, assuming OK is a wrapper or maps to Success with a 200 status
+	// Pass the responseData (which includes items and pagination) to response.OK
+	response.OK(c, "Work schedules listed successfully", responseData)
 }

@@ -93,10 +93,11 @@ func (r *Router) Setup() *gin.Engine {
 				locations.DELETE("/:id", r.locationHandler.DeleteLocation)
 			}
 
-			work_Schedule := api.Group("/work-schedules")
+			// Work Schedule routes
+			workScheduleRoutes := api.Group("/work-schedules")
 			{
-				work_Schedule.POST("", r.workScheduleHandler.CreateWorkSchedule)
-				work_Schedule.GET("", r.workScheduleHandler.ListWorkSchedules)
+				workScheduleRoutes.POST("", r.workScheduleHandler.CreateWorkSchedule)
+				workScheduleRoutes.GET("", r.workScheduleHandler.ListWorkSchedules)
 			}
 
 			checkclockSettings := api.Group("/checkclock-settings")

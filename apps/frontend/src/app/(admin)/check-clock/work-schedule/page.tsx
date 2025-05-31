@@ -3,15 +3,14 @@
 import WorkTypeBadge from "@/components/workTypeBadge";
 import { WorkType } from "@/const/work";
 import { DataTable } from "@/components/dataTable";
-
-import { useWorkSchedule, WorkSchedule, initialWorkSchedules } from "./_hooks/useWorkSchedule";
+// import { useWorkSchedule, WorkSchedule, initialWorkSchedules } from "./_hooks/useWorkSchedule"; // Removed
 import { Card, CardContent } from "@/components/ui/card";
 import { PaginationComponent } from "@/components/pagination";
 import { PageSizeComponent } from "@/components/pageSize";
 import { Button } from "@/components/ui/button";
 import { Edit, Eye, Plus, Search, Trash } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, useMemo } from "react";
 import {
     ColumnDef,
     getCoreRowModel,
@@ -23,8 +22,14 @@ import {
 import ConfirmationDelete from "./_components/ConfirmationDelete";
 import Link from "next/link";
 import WorkScheduleDetailDialog from "./_components/WorkScheduleDetail";
+import { useWorkSchedules } from "@/api/queries/work-schedule.queries"; // Added
+import { useDeleteWorkSchedule } from "@/api/mutations/work-schedule.mutation"; // Added
+import { WorkSchedule } from "@/types/work-schedule.types"; // Added
+import { useRouter } from "next/navigation"; // Added
+import { toast } from "@/components/ui/use-toast"; // Added
 
 export default function WorkSchedulePage() {
+    const router = useRouter(); // Added
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [workScheduleToDelete, setWorkScheduleToDelete] = useState<WorkSchedule | null>(null);
     const [scheduleNameFilter, setScheduleNameFilter] = React.useState("");
@@ -35,10 +40,16 @@ export default function WorkSchedulePage() {
     const [viewDialogOpen, setViewDialogOpen] = useState(false);
     const [viewedSchedule, setViewedSchedule] = useState<WorkSchedule | null>(null);
 
-    // Ambil data WorkSchedule dari hook
-    const { handleEdit } = useWorkSchedule();
-    // Gunakan initialWorkSchedules sebagai sumber data tabel
-    const workSchedules: WorkSchedule[] = initialWorkSchedules;
+    // Fetch WorkSchedules using React Query
+    const { data: workSchedulesData, isLoading, isError, error } = useWorkSchedules(); // Changed
+    const deleteWorkScheduleMutation = useDeleteWorkSchedule(); // Added
+
+    // Use fetched data or an empty array if loading or error
+    const workSchedules: WorkSchedule[] = useMemo(() => workSchedulesData || [], [workSchedulesData]); // Changed
+
+    const handleEdit = useCallback((id: number) => { // Added router.push
+        router.push(`/check-clock/work-schedule/edit/${id}`);
+    }, [router]);
 
     const handleOpenDelete = useCallback((data: WorkSchedule) => {
         setWorkScheduleToDelete(data);
@@ -50,19 +61,28 @@ export default function WorkSchedulePage() {
         setIsDeleteDialogOpen(false);
     }, []);
 
-    const handleConfirmDelete = useCallback(() => {
+    const handleConfirmDelete = useCallback(async () => { // Changed to use mutation
         if (workScheduleToDelete) {
-            // Simulasi hapus: update state jika perlu
+            try {
+                await deleteWorkScheduleMutation.mutateAsync(workScheduleToDelete.id);
+                toast({ title: "Success", description: "Work schedule deleted successfully." });
+                setIsDeleteDialogOpen(false);
+                setWorkScheduleToDelete(null);
+            } catch (e: unknown) { // Changed to catch (e: unknown)
+                let errorMessage = "Failed to delete work schedule.";
+                if (e instanceof Error) {
+                    errorMessage = e.message;
+                }
+                toast({ title: "Error", description: errorMessage, variant: "destructive" });
+            }
         }
-        setIsDeleteDialogOpen(false);
-    }, [workScheduleToDelete]);
+    }, [workScheduleToDelete, deleteWorkScheduleMutation]);
 
     const handleView = useCallback((data: WorkSchedule) => {
         setViewedSchedule(data);
         setViewDialogOpen(true);
     }, []);
 
-    // Kolom untuk tabel WorkSchedule (bukan detail)
     const columns = React.useMemo<ColumnDef<WorkSchedule>[]>
         (() => [
             {
@@ -140,7 +160,7 @@ export default function WorkSchedulePage() {
         );
 
     const table = useReactTable<WorkSchedule>({
-        data: workSchedules,
+        data: workSchedules, // Changed to use fetched data
         columns,
         state: {
             columnFilters: [{ id: "nama", value: scheduleNameFilter }],
@@ -160,6 +180,9 @@ export default function WorkSchedulePage() {
         getFilteredRowModel: getFilteredRowModel(),
         autoResetPageIndex: false,
     });
+
+    if (isLoading) return <div>Loading...</div>; // Added loading state
+    if (isError) return <div>Error fetching data: {error?.message}</div>; // Added error state
 
     return (
         <>

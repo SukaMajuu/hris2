@@ -2,14 +2,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Card, CardContent } from "@/components/ui/card";
 import WorkTypeBadge from "@/components/workTypeBadge";
 import { WorkType } from "@/const/work";
-import { WorkScheduleDetail } from "../_hooks/useWorkSchedule";
+import { WorkScheduleDetailRow } from "@/types/work-schedule.types"; // Updated import
 
 interface WorkScheduleDetailDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     scheduleName?: string;
     workScheduleType?: string;
-    workScheduleDetails: WorkScheduleDetail[];
+    workScheduleDetails: WorkScheduleDetailRow[]; // Updated type
 }
 
 const WorkScheduleDetailDialog = ({
@@ -20,8 +20,8 @@ const WorkScheduleDetailDialog = ({
     workScheduleDetails,
 }: WorkScheduleDetailDialogProps) => {
     // Flatten details: satu hari = satu baris
-    const flattenDetails = (details: WorkScheduleDetail[]) => {
-        const result: Array<WorkScheduleDetail & { singleDay: string }> = [];
+    const flattenDetails = (details: WorkScheduleDetailRow[]) => { // Updated type
+        const result: Array<WorkScheduleDetailRow & { singleDay: string }> = [];
         details.forEach((detail) => {
             if (Array.isArray(detail.workDays)) {
                 detail.workDays.forEach((day) => {

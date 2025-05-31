@@ -1,34 +1,27 @@
 "use client";
 
-import {useParams, useRouter} from "next/navigation";
-import {Card, CardHeader, CardTitle} from "@/components/ui/card";
-import {toast} from "@/components/ui/use-toast";
-import {WorkScheduleForm} from "@/app/(admin)/check-clock/work-schedule/_components/WorkScheduleForm";
-import {useWorkSchedule, WorkSchedule} from "@/app/(admin)/check-clock/work-schedule/_hooks/useWorkSchedule";
-import {useEffect, useState} from "react";
+import { useParams, useRouter } from "next/navigation";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "@/components/ui/use-toast";
+import { WorkScheduleForm } from "@/app/(admin)/check-clock/work-schedule/_components/WorkScheduleForm";
+import { useWorkScheduleDetail } from "@/api/queries/work-schedule.queries";
+import { useUpdateWorkSchedule } from "@/api/mutations/work-schedule.mutation";
+import { WorkSchedule } from "@/types/work-schedule.types";
 
 export default function EditWorkSchedulePage() {
     const params = useParams();
     const router = useRouter();
-    const {getWorkScheduleById, updateWorkSchedule} = useWorkSchedule();
     const id = Number(params.id);
-    const [initialData, setInitialData] = useState<WorkSchedule | undefined>(undefined);
-    const [isLoading, setIsLoading] = useState(true);
 
-    // Get work schedule data by ID
-    useEffect(() => {
-        const workSchedule = getWorkScheduleById(id);
-        setInitialData(workSchedule);
-        setIsLoading(false);
-    }, [id, getWorkScheduleById]);
+    const { data: initialData, isLoading: isLoadingData, isError } = useWorkScheduleDetail(id);
+    const updateWorkScheduleMutation = useUpdateWorkSchedule();
 
-    const handleSave = (data: Partial<WorkSchedule>) => {
-        console.log("Updating work schedule data:", data);
+    const handleSave = async (data: Partial<WorkSchedule>) => {
+        console.log("Updating workSchedule data:", data);
+        if (!initialData?.id) return;
 
-        // Save changes using hook
-        const result = updateWorkSchedule(id, data);
-
-        if (result.success) {
+        try {
+            await updateWorkScheduleMutation.mutateAsync({ id: initialData.id, ...data } as WorkSchedule);
             toast({
                 title: "Success",
                 description: "Work schedule successfully updated",
@@ -37,22 +30,23 @@ export default function EditWorkSchedulePage() {
             setTimeout(() => {
                 router.push("/check-clock/work-schedule");
             }, 2000);
-        } else {
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "Failed to update work schedule";
             toast({
                 title: "Failed",
-                description: "Failed to update work schedule",
+                description: errorMessage,
                 variant: "destructive",
                 duration: 3000,
             });
         }
     };
 
-    if (isLoading) {
+    if (isLoadingData) {
         return <div className="p-8 text-center">Loading data...</div>;
     }
 
-    if (!initialData) {
-        return <div className="p-8 text-center">Data not found.</div>;
+    if (isError || !initialData) {
+        return <div className="p-8 text-center">Data not found or failed to load.</div>;
     }
 
     return (
@@ -68,6 +62,7 @@ export default function EditWorkSchedulePage() {
                 onSubmit={handleSave}
                 isEditMode={true}
                 initialData={initialData}
+                isLoading={updateWorkScheduleMutation.isPending}
             />
         </div>
     );

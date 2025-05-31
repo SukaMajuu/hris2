@@ -17,7 +17,7 @@ export const useUpdateWorkSchedule = () => {
     const queryClient = useQueryClient();
     return useMutation({
         mutationKey: queryKeys.workSchedules.update,
-        mutationFn: ({ id, ...data }: { id: number;[key: string]: any }) => workScheduleService.update(id, data),
+        mutationFn: ({ id, ...data }: { id: number; [key: string]: unknown }) => workScheduleService.update(id, data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: queryKeys.workSchedules.list });
         },

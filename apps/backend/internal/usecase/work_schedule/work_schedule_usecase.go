@@ -85,7 +85,6 @@ func (uc *WorkScheduleUseCase) Create(ctx context.Context, workSchedule *domain.
 	// Validate LocationID for WFO if locationRepo is available
 	// For WFO, at least one detail must have a LocationID
 	if workSchedule.WorkType == enums.WorkTypeWFO && uc.locationRepo != nil {
-		foundWfoLocation := false
 		for _, detail := range details {
 			if detail.WorktypeDetail == enums.WorkTypeWFO {
 				if detail.LocationID == nil {
@@ -95,11 +94,7 @@ func (uc *WorkScheduleUseCase) Create(ctx context.Context, workSchedule *domain.
 				if err != nil {
 					return nil, fmt.Errorf("invalid location ID %d for WFO detail: %w", *detail.LocationID, err)
 				}
-				foundWfoLocation = true
 			}
-		}
-		if !foundWfoLocation && len(details) > 0 { // if work type is WFO but no WFO details, it's an issue if details are provided
-			// This case might need more specific business logic. Assuming if details are present, one must match WFO with location.
 		}
 	}
 

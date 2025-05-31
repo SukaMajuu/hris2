@@ -75,3 +75,32 @@ func (h *WorkScheduleHandler) CreateWorkSchedule(c *gin.Context) {
 
 	response.Created(c, "Work schedule created successfully", createdWorkSchedule) // Memperbaiki panggilan response.Created
 }
+
+func (h *WorkScheduleHandler) ListWorkSchedules(c *gin.Context) {
+	var queryDTO workSheduleDTO.ListWorkScheduleRequestQuery
+
+	if bindAndValidateQuery(c, &queryDTO) {
+		return
+	}
+
+	paginationParams := domain.PaginationParams{
+		Page:     queryDTO.Page,
+		PageSize: queryDTO.PageSize,
+	}
+
+	// Set default pagination values if not provided
+	if paginationParams.Page <= 0 {
+		paginationParams.Page = 1
+	}
+	if paginationParams.PageSize <= 0 {
+		paginationParams.PageSize = 10 // Default page size
+	}
+
+	workSchedules, err := h.workScheduleUseCase.List(c.Request.Context(), paginationParams)
+	if err != nil {
+		response.InternalServerError(c, err) // Corrected this line
+		return
+	}
+
+	response.OK(c, "Work schedules retrieved successfully", workSchedules) // Corrected this line, assuming OK is a wrapper or maps to Success with a 200 status
+}

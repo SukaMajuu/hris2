@@ -33,7 +33,7 @@ func NewRouter(
 		authMiddleware:            middleware.NewAuthMiddleware(authUseCase, employeeUseCase),
 		employeeHandler:           handler.NewEmployeeHandler(employeeUseCase),
 		locationHandler:           handler.NewLocationHandler(locationUseCase),
-		workScheduleHandler: handler.NewWorkScheduleHandler(workScheduleUseCase),
+		workScheduleHandler:       handler.NewWorkScheduleHandler(workScheduleUseCase),
 		checkclockSettingsHandler: handler.NewCheckclockSettingsHandler(checkclockSettingsUseCase),
 	}
 }
@@ -96,6 +96,7 @@ func (r *Router) Setup() *gin.Engine {
 			work_Schedule := api.Group("/work-schedules")
 			{
 				work_Schedule.POST("", r.workScheduleHandler.CreateWorkSchedule)
+				work_Schedule.GET("", r.workScheduleHandler.ListWorkSchedules)
 			}
 
 			checkclockSettings := api.Group("/checkclock-settings")

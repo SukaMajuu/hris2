@@ -1,14 +1,17 @@
 package rest
 
 import (
+	"github.com/SukaMajuu/hris/apps/backend/domain/interfaces"
 	"github.com/SukaMajuu/hris/apps/backend/internal/rest/handler"
 	"github.com/SukaMajuu/hris/apps/backend/internal/rest/middleware"
-	"github.com/SukaMajuu/hris/apps/backend/internal/usecase/auth"
+	auth "github.com/SukaMajuu/hris/apps/backend/internal/usecase/auth"
 	checkclocksettingsusecase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/checkclock_settings"
-	"github.com/SukaMajuu/hris/apps/backend/internal/usecase/employee"
-	"github.com/SukaMajuu/hris/apps/backend/internal/usecase/location"
 	"github.com/SukaMajuu/hris/apps/backend/internal/usecase/subscription"
+	document "github.com/SukaMajuu/hris/apps/backend/internal/usecase/document"
+	employee "github.com/SukaMajuu/hris/apps/backend/internal/usecase/employee"
+	location "github.com/SukaMajuu/hris/apps/backend/internal/usecase/location"
 	work_Schedule "github.com/SukaMajuu/hris/apps/backend/internal/usecase/work_schedule"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -21,6 +24,7 @@ type Router struct {
 	workScheduleHandler       *handler.WorkScheduleHandler
 	checkclockSettingsHandler *handler.CheckclockSettingsHandler
 	subscriptionHandler       *handler.SubscriptionHandler
+	documentHandler           *handler.DocumentHandler
 }
 
 func NewRouter(
@@ -30,6 +34,8 @@ func NewRouter(
 	workScheduleUseCase *work_Schedule.WorkScheduleUseCase,
 	checkclockSettingsUseCase *checkclocksettingsusecase.CheckclockSettingsUseCase,
 	subscriptionUseCase *subscription.SubscriptionUseCase,
+	documentUseCase *document.DocumentUseCase,
+	employeeRepo interfaces.EmployeeRepository,
 ) *Router {
 	return &Router{
 		authHandler:               handler.NewAuthHandler(authUseCase),
@@ -39,6 +45,7 @@ func NewRouter(
 		workScheduleHandler:       handler.NewWorkScheduleHandler(workScheduleUseCase),
 		checkclockSettingsHandler: handler.NewCheckclockSettingsHandler(checkclockSettingsUseCase),
 		subscriptionHandler:       handler.NewSubscriptionHandler(subscriptionUseCase),
+		documentHandler:           handler.NewDocumentHandler(documentUseCase, employeeRepo),
 	}
 }
 
@@ -106,6 +113,13 @@ func (r *Router) Setup() *gin.Engine {
 			checkclockSettings := api.Group("/checkclock-settings")
 			{
 				checkclockSettings.POST("", r.checkclockSettingsHandler.CreateCheckclockSettings)
+			}
+      
+      documents := api.Group("/documents")
+			{
+				documents.POST("/upload", r.authMiddleware.Authenticate(), r.documentHandler.UploadDocument)
+				documents.GET("", r.authMiddleware.Authenticate(), r.documentHandler.GetDocuments)
+				documents.DELETE("/:id", r.authMiddleware.Authenticate(), r.documentHandler.DeleteDocument)
 			}
 
 			subscription := api.Group("/subscription")

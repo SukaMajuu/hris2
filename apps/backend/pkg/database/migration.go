@@ -106,6 +106,7 @@ func Migrate(db *gorm.DB) error {
 		&models.CustomerBillingInfo{},
 		&models.CheckoutSession{},
 		&models.PaymentTransaction{},
+		&models.Document{},
 	); err != nil {
 		return err
 	}

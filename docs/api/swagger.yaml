@@ -923,6 +923,50 @@ components:
                     type: string
                     description: Bank account holder name (optional)
                     example: "PT. Example Company"
+        Document:
+            type: object
+            description: Represents a document in the system.
+            properties:
+                id:
+                    type: integer
+                    format: uint
+                    description: Unique identifier for the document.
+                    readOnly: true
+                    example: 1
+                employee_id:
+                    type: integer
+                    format: uint
+                    description: Foreign key referencing the associated Employee ID.
+                    example: 1
+                name:
+                    type: string
+                    maxLength: 255
+                    description: The filename of the document.
+                    example: "John_Doe_Documents_123456789012345.pdf"
+                url:
+                    type: string
+                    maxLength: 255
+                    format: url
+                    description: URL to access the document.
+                    example: "https://your-project.supabase.co/storage/v1/object/public/document/John_Doe_Documents_123456789012345.pdf"
+                created_at:
+                    type: string
+                    format: date-time
+                    description: Timestamp when the document was created.
+                    readOnly: true
+                    example: "2024-01-15T10:30:00Z"
+                updated_at:
+                    type: string
+                    format: date-time
+                    description: Timestamp when the document was last updated.
+                    readOnly: true
+                    example: "2024-01-15T10:30:00Z"
+            required:
+                - employee_id
+                - name
+                - url
+                - created_at
+                - updated_at
 
 paths:
     /auth/login:
@@ -3614,6 +3658,222 @@ paths:
                                     error:
                                         type: string
                                         example: "Failed to create work schedule"
+
+    /api/documents/upload:
+        post:
+            tags: [Documents]
+            summary: Upload a document
+            description: Upload a document file for the authenticated user. The file will be stored in Supabase storage and a record will be created in the database linked to the user's employee record.
+            security:
+                - bearerAuth: []
+            requestBody:
+                required: true
+                content:
+                    multipart/form-data:
+                        schema:
+                            type: object
+                            properties:
+                                file:
+                                    type: string
+                                    format: binary
+                                    description: The document file to upload (PDF or Word documents only)
+                            required:
+                                - file
+            responses:
+                201:
+                    description: Document uploaded successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 201
+                                    message:
+                                        type: string
+                                        example: "Document uploaded successfully"
+                                    data:
+                                        type: object
+                                        properties:
+                                            id:
+                                                type: integer
+                                                format: uint
+                                                example: 1
+                                            employee_id:
+                                                type: integer
+                                                format: uint
+                                                example: 1
+                                            name:
+                                                type: string
+                                                example: "John_Doe_Documents_123456789012345.pdf"
+                                            url:
+                                                type: string
+                                                format: url
+                                                example: "https://your-project.supabase.co/storage/v1/object/public/document/John_Doe_Documents_123456789012345.pdf"
+                                            created_at:
+                                                type: string
+                                                format: date-time
+                                                example: "2024-01-15T10:30:00Z"
+                                            updated_at:
+                                                type: string
+                                                format: date-time
+                                                example: "2024-01-15T10:30:00Z"
+                400:
+                    description: Bad request (e.g., missing file, invalid file type, user not authenticated)
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 400
+                                    message:
+                                        type: string
+                                        example: "File type not allowed"
+                                    error:
+                                        type: string
+                                        example: "File type not allowed. Detected: application/zip. Allowed types: application/pdf, application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                401:
+                    description: Unauthorized
+                500:
+                    description: Internal server error
+
+    /api/documents:
+        get:
+            tags: [Documents]
+            summary: Get my documents
+            description: Retrieve all documents belonging to the authenticated user.
+            security:
+                - bearerAuth: []
+            responses:
+                200:
+                    description: Your documents retrieved successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "Your documents retrieved successfully"
+                                    data:
+                                        type: array
+                                        items:
+                                            type: object
+                                            properties:
+                                                id:
+                                                    type: integer
+                                                    format: uint
+                                                    example: 1
+                                                employee_id:
+                                                    type: integer
+                                                    format: uint
+                                                    example: 1
+                                                name:
+                                                    type: string
+                                                    example: "John_Doe_Documents_123456789012345.pdf"
+                                                url:
+                                                    type: string
+                                                    format: url
+                                                    example: "https://your-project.supabase.co/storage/v1/object/public/document/John_Doe_Documents_123456789012345.pdf"
+                                                created_at:
+                                                    type: string
+                                                    format: date-time
+                                                    example: "2024-01-15T10:30:00Z"
+                                                updated_at:
+                                                    type: string
+                                                    format: date-time
+                                                    example: "2024-01-15T10:30:00Z"
+                401:
+                    description: Unauthorized - Invalid or missing authentication token
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 401
+                                    message:
+                                        type: string
+                                        example: "User ID not found in context"
+                                    error:
+                                        type: string
+                                        example: "missing userID in context"
+                404:
+                    description: Employee not found for current user
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 404
+                                    message:
+                                        type: string
+                                        example: "Employee not found for current user"
+                500:
+                    description: Internal server error
+
+    /api/documents/{id}:
+        delete:
+            tags: [Documents]
+            summary: Delete document
+            description: Delete a document by its ID. This will remove both the database record and the file from Supabase storage.
+            security:
+                - bearerAuth: []
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: integer
+                      format: uint
+                  description: The document ID
+                  example: 1
+            responses:
+                200:
+                    description: Document deleted successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "Document deleted successfully"
+                                    data:
+                                        type: object
+                                        nullable: true
+                400:
+                    description: Invalid document ID
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 400
+                                    message:
+                                        type: string
+                                        example: "Invalid document ID"
+                                    error:
+                                        type: string
+                                        example: "strconv.ParseUint: parsing \"abc\": invalid syntax"
+                404:
+                    description: Document not found
+                500:
+                    description: Internal server error
 
     /health:
         get:

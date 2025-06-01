@@ -25,8 +25,9 @@ type DatabaseConfig struct {
 }
 
 type SupabaseConfig struct {
-	URL string
-	Key string
+	URL        string
+	Key        string
+	ServiceKey string // Service role key for admin operations
 }
 
 type ServerConfig struct {
@@ -62,8 +63,9 @@ func Load() (*Config, error) {
 			SSLMode:     getEnv("DB_SSLMODE", "disable"),
 		},
 		Supabase: SupabaseConfig{
-			URL: getEnv("SUPABASE_URL", ""),
-			Key: getEnv("SUPABASE_KEY", ""),
+			URL:        getEnv("SUPABASE_URL", ""),
+			Key:        getEnv("SUPABASE_KEY", ""),
+			ServiceKey: getEnv("SUPABASE_SERVICE_KEY", ""),
 		},
 		Server: ServerConfig{
 			Port: getEnv("PORT", "8080"),

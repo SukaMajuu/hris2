@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain/enums"
+	"github.com/shopspring/decimal"
 )
 
 type Subscription struct {
@@ -74,11 +75,49 @@ func (s *Subscription) StartTrial() {
 	s.StartDate = now
 }
 
-// ConvertFromTrial converts a trial subscription to a paid subscription
 func (s *Subscription) ConvertFromTrial() {
 	if s.Status == enums.StatusTrial {
 		s.Status = enums.StatusActive
-		// Set next billing date based on subscription plan (monthly/yearly)
-		s.NextBillingDate = &time.Time{}
+
+		now := time.Now()
+		nextBillingDate := now.AddDate(0, 1, 0)
+
+		s.NextBillingDate = &nextBillingDate
+	}
+}
+
+func (s *Subscription) ConvertFromTrialToPaid(isMonthly bool) {
+	if s.Status == enums.StatusTrial {
+		s.Status = enums.StatusActive
+
+		now := time.Now()
+		var nextBillingDate time.Time
+
+		if isMonthly {
+			nextBillingDate = now.AddDate(0, 1, 0)
+		} else {
+			nextBillingDate = now.AddDate(1, 0, 0)
+		}
+
+		s.NextBillingDate = &nextBillingDate
+	}
+}
+
+func (s *Subscription) ConvertFromTrialWithCheckoutSession(checkoutAmount decimal.Decimal) {
+	if s.Status == enums.StatusTrial && s.SeatPlan.ID != 0 {
+		s.Status = enums.StatusActive
+
+		now := time.Now()
+		var nextBillingDate time.Time
+
+		if checkoutAmount.Equal(s.SeatPlan.PricePerMonth) {
+			nextBillingDate = now.AddDate(0, 1, 0)
+		} else if checkoutAmount.Equal(s.SeatPlan.PricePerYear) {
+			nextBillingDate = now.AddDate(1, 0, 0)
+		} else {
+			nextBillingDate = now.AddDate(0, 1, 0)
+		}
+
+		s.NextBillingDate = &nextBillingDate
 	}
 }

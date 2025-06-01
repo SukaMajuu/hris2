@@ -287,7 +287,7 @@ func (uc *SubscriptionUseCase) processInvoicePaidWebhook(ctx context.Context, da
 	}
 
 	if subscription.Status == enums.StatusTrial {
-		subscription.ConvertFromTrial()
+		subscription.ConvertFromTrialWithCheckoutSession(session.Amount)
 		if err := uc.xenditRepo.UpdateSubscription(ctx, subscription); err != nil {
 			return fmt.Errorf("failed to update subscription: %w", err)
 		}

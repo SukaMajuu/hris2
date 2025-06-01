@@ -9,7 +9,7 @@ import (
 	"github.com/SukaMajuu/hris/apps/backend/internal/repository/employee"
 	"github.com/SukaMajuu/hris/apps/backend/internal/repository/location"
 	"github.com/SukaMajuu/hris/apps/backend/internal/repository/work_schedule"
-  "github.com/SukaMajuu/hris/apps/backend/internal/repository/xendit"
+	"github.com/SukaMajuu/hris/apps/backend/internal/repository/xendit"
 	"github.com/SukaMajuu/hris/apps/backend/internal/rest"
 	authUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/auth"
 	checkclockSettingsUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/checkclock_settings"
@@ -88,14 +88,13 @@ func main() {
 		xenditClient,
 	)
 
-	router := rest.NewRouter(authUseCase, employeeUseCase, locationUseCase, workScheduleUseCase, checkclockSettingsUseCase, subscriptionUseCase)
 	documentUseCase := documentUseCase.NewDocumentUseCase(
 		documentRepo,
 		employeeRepo,
 		supabaseClient,
 	)
 
-	router := rest.NewRouter(authUseCase, employeeUseCase, locationUseCase, workScheduleUseCase, checkclockSettingsUseCase, documentUseCase, employeeRepo, subscriptionUseCase)
+	router := rest.NewRouter(authUseCase, employeeUseCase, locationUseCase, workScheduleUseCase, checkclockSettingsUseCase, subscriptionUseCase, documentUseCase, employeeRepo)
 
 	ginRouter := router.Setup()
 

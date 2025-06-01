@@ -18,6 +18,24 @@ export const API_ROUTES = {
 				list: "/api/users",
 				detail: (id: number) => `/api/users/${id}`,
 			},
+			checkClockEmployees: { // Added
+				base: "/api/check-clock-employees",
+				list: (employeeId?: number, page?: number, pageSize?: number, startDate?: string, endDate?: string) => {
+                    const params = new URLSearchParams();
+                    if (employeeId) params.append('employee_id', employeeId.toString());
+                    if (page) params.append('page', page.toString());
+                    if (pageSize) params.append('page_size', pageSize.toString());
+                    if (startDate) params.append('start_date', startDate);
+                    if (endDate) params.append('end_date', endDate);
+                    return `/api/check-clock-employees${params.toString() ? `?${params.toString()}` : ''}`;
+                },
+				detail: (id: number) => `/api/check-clock-employees/${id}`,
+                create: "/api/check-clock-employees",
+                update: (id: number) => `/api/check-clock-employees/${id}`,
+                delete: (id: number) => `/api/check-clock-employees/${id}`,
+                approve: (id: number) => `/api/check-clock-employees/${id}/approve`,
+                reject: (id: number) => `/api/check-clock-employees/${id}/reject`,
+			},
 			// Add other API routes as they are implemented
 			// employees: {
 			//   base: '/api/employees',

@@ -14,17 +14,17 @@ import (
 )
 
 type SubscriptionUseCase struct {
-	xenditRepo    interfaces.XenditRepository
-	xenditService interfaces.XenditService
+	xenditRepo   interfaces.XenditRepository
+	xenditClient interfaces.XenditClient
 }
 
 func NewSubscriptionUseCase(
 	xenditRepo interfaces.XenditRepository,
-	xenditService interfaces.XenditService,
+	xenditClient interfaces.XenditClient,
 ) *SubscriptionUseCase {
 	return &SubscriptionUseCase{
-		xenditRepo:    xenditRepo,
-		xenditService: xenditService,
+		xenditRepo:   xenditRepo,
+		xenditClient: xenditClient,
 	}
 }
 
@@ -152,7 +152,7 @@ func (uc *SubscriptionUseCase) InitiatePaidCheckout(ctx context.Context, userID,
 		},
 	}
 
-	invoice, err := uc.xenditService.CreateInvoice(ctx, invoiceReq)
+	invoice, err := uc.xenditClient.CreateInvoice(ctx, invoiceReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Xendit invoice: %w", err)
 	}

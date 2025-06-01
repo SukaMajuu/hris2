@@ -45,7 +45,7 @@ func main() {
 	workScheduleRepo := work_schedule.NewWorkScheduleRepository(db)
 	checkclockSettingsRepo := checkclock_settings.NewCheckclockSettingsRepository(db)
 	xenditRepo := xendit.NewXenditRepository(db)
-	xenditService := xenditService.NewXenditService(&cfg.Xendit)
+	xenditClient := xenditService.NewXenditClient(&cfg.Xendit)
 
 	jwtService := jwt.NewJWTService(cfg)
 
@@ -76,7 +76,7 @@ func main() {
 
 	subscriptionUseCase := subscriptionUseCase.NewSubscriptionUseCase(
 		xenditRepo,
-		xenditService,
+		xenditClient,
 	)
 
 	router := rest.NewRouter(authUseCase, employeeUseCase, locationUseCase, workScheduleUseCase, checkclockSettingsUseCase, subscriptionUseCase)

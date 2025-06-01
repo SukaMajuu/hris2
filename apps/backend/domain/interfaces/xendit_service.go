@@ -7,43 +7,11 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-type XenditService interface {
-	// Customer Management
-	CreateCustomer(ctx context.Context, req CreateCustomerRequest) (*XenditCustomer, error)
-	GetCustomer(ctx context.Context, customerID string) (*XenditCustomer, error)
-
-	// Invoice Management
+type XenditClient interface {
 	CreateInvoice(ctx context.Context, req CreateInvoiceRequest) (*XenditInvoice, error)
-	GetInvoice(ctx context.Context, invoiceID string) (*XenditInvoice, error)
-	ExpireInvoice(ctx context.Context, invoiceID string) (*XenditInvoice, error)
-
-	// Payment Method
-	GetAvailablePaymentMethods(ctx context.Context) ([]XenditPaymentMethod, error)
-
-	// Webhook
-	VerifyWebhookSignature(webhookToken, payload string) bool
-	ProcessWebhook(ctx context.Context, webhookData map[string]interface{}) error
 }
 
 // Request/Response DTOs
-type CreateCustomerRequest struct {
-	ReferenceID string
-	Email       string
-	GivenNames  string
-	Surname     *string
-	MobileNumber *string
-	Addresses   []CustomerAddress
-}
-
-type CustomerAddress struct {
-	Country     string
-	StreetLine1 string
-	StreetLine2 *string
-	City        string
-	Province    string
-	PostalCode  string
-}
-
 type CreateInvoiceRequest struct {
 	ExternalID          string
 	PayerEmail          string
@@ -67,6 +35,15 @@ type InvoiceCustomer struct {
 	Addresses    []CustomerAddress
 }
 
+type CustomerAddress struct {
+	Country     string
+	StreetLine1 string
+	StreetLine2 *string
+	City        string
+	Province    string
+	PostalCode  string
+}
+
 type InvoiceItem struct {
 	Name     string
 	Quantity int
@@ -75,18 +52,6 @@ type InvoiceItem struct {
 }
 
 // Response DTOs
-type XenditCustomer struct {
-	ID           string
-	ReferenceID  string
-	Email        string
-	GivenNames   string
-	Surname      *string
-	MobileNumber *string
-	Addresses    []CustomerAddress
-	CreatedAt    string
-	UpdatedAt    string
-}
-
 type XenditInvoice struct {
 	ID                 string
 	ExternalID         string
@@ -113,14 +78,6 @@ type XenditInvoice struct {
 type InvoiceFee struct {
 	Type  string
 	Value decimal.Decimal
-}
-
-type XenditPaymentMethod struct {
-	ID          string
-	Name        string
-	Code        string
-	Type        string
-	IsActivated bool
 }
 
 // Repository interface for Xendit-related database operations

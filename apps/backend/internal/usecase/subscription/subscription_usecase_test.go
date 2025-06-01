@@ -107,8 +107,8 @@ func TestSubscriptionUseCase_GetSubscriptionPlans(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockXenditRepo := new(mocks.XenditRepository)
-			mockXenditService := new(mocks.XenditService)
-			uc := NewSubscriptionUseCase(mockXenditRepo, mockXenditService)
+			mockXenditClient := new(mocks.XenditClient)
+			uc := NewSubscriptionUseCase(mockXenditRepo, mockXenditClient)
 
 			mockXenditRepo.On("GetSubscriptionPlans", ctx).
 				Return(tt.mockPlans, tt.mockPlansError).Once()
@@ -130,7 +130,7 @@ func TestSubscriptionUseCase_GetSubscriptionPlans(t *testing.T) {
 			}
 
 			mockXenditRepo.AssertExpectations(t)
-			mockXenditService.AssertExpectations(t)
+			mockXenditClient.AssertExpectations(t)
 		})
 	}
 }
@@ -191,8 +191,8 @@ func TestSubscriptionUseCase_InitiateTrialCheckout(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockXenditRepo := new(mocks.XenditRepository)
-			mockXenditService := new(mocks.XenditService)
-			uc := NewSubscriptionUseCase(mockXenditRepo, mockXenditService)
+			mockXenditClient := new(mocks.XenditClient)
+			uc := NewSubscriptionUseCase(mockXenditRepo, mockXenditClient)
 
 			mockXenditRepo.On("GetSeatPlan", ctx, seatPlanID).
 				Return(tt.mockSeatPlan, tt.mockGetSeatPlanError).Once()
@@ -220,7 +220,7 @@ func TestSubscriptionUseCase_InitiateTrialCheckout(t *testing.T) {
 			}
 
 			mockXenditRepo.AssertExpectations(t)
-			mockXenditService.AssertExpectations(t)
+			mockXenditClient.AssertExpectations(t)
 		})
 	}
 }
@@ -308,8 +308,8 @@ func TestSubscriptionUseCase_InitiatePaidCheckout(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockXenditRepo := new(mocks.XenditRepository)
-			mockXenditService := new(mocks.XenditService)
-			uc := NewSubscriptionUseCase(mockXenditRepo, mockXenditService)
+			mockXenditClient := new(mocks.XenditClient)
+			uc := NewSubscriptionUseCase(mockXenditRepo, mockXenditClient)
 
 			mockXenditRepo.On("GetSeatPlan", ctx, seatPlanID).
 				Return(tt.mockSeatPlan, tt.mockGetSeatPlanError).Once()
@@ -319,7 +319,7 @@ func TestSubscriptionUseCase_InitiatePaidCheckout(t *testing.T) {
 					Return(tt.mockCreateCheckoutError).Once()
 
 				if tt.mockCreateCheckoutError == nil {
-					mockXenditService.On("CreateInvoice", ctx, mock.AnythingOfType("interfaces.CreateInvoiceRequest")).
+					mockXenditClient.On("CreateInvoice", ctx, mock.AnythingOfType("interfaces.CreateInvoiceRequest")).
 						Return(tt.mockXenditInvoice, tt.mockXenditError).Once()
 
 					if tt.mockXenditError == nil {
@@ -348,7 +348,7 @@ func TestSubscriptionUseCase_InitiatePaidCheckout(t *testing.T) {
 			}
 
 			mockXenditRepo.AssertExpectations(t)
-			mockXenditService.AssertExpectations(t)
+			mockXenditClient.AssertExpectations(t)
 		})
 	}
 }
@@ -439,8 +439,8 @@ func TestSubscriptionUseCase_CompleteTrialCheckout(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockXenditRepo := new(mocks.XenditRepository)
-			mockXenditService := new(mocks.XenditService)
-			uc := NewSubscriptionUseCase(mockXenditRepo, mockXenditService)
+			mockXenditClient := new(mocks.XenditClient)
+			uc := NewSubscriptionUseCase(mockXenditRepo, mockXenditClient)
 
 			mockXenditRepo.On("GetCheckoutSession", ctx, tt.sessionID).
 				Return(tt.mockCheckoutSession, tt.mockGetSessionError).Once()
@@ -481,7 +481,7 @@ func TestSubscriptionUseCase_CompleteTrialCheckout(t *testing.T) {
 			}
 
 			mockXenditRepo.AssertExpectations(t)
-			mockXenditService.AssertExpectations(t)
+			mockXenditClient.AssertExpectations(t)
 		})
 	}
 }
@@ -514,8 +514,8 @@ func TestSubscriptionUseCase_ProcessPaymentWebhook(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockXenditRepo := new(mocks.XenditRepository)
-			mockXenditService := new(mocks.XenditService)
-			uc := NewSubscriptionUseCase(mockXenditRepo, mockXenditService)
+			mockXenditClient := new(mocks.XenditClient)
+			uc := NewSubscriptionUseCase(mockXenditRepo, mockXenditClient)
 
 			actualErr := uc.ProcessPaymentWebhook(ctx, tt.webhookData)
 
@@ -527,7 +527,7 @@ func TestSubscriptionUseCase_ProcessPaymentWebhook(t *testing.T) {
 			}
 
 			mockXenditRepo.AssertExpectations(t)
-			mockXenditService.AssertExpectations(t)
+			mockXenditClient.AssertExpectations(t)
 		})
 	}
 }

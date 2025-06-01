@@ -80,6 +80,7 @@ func Migrate(db *gorm.DB) error {
 		&models.CheckclockSettings{},
 		&models.Attendance{},
 		&models.LeaveRequest{},
+		&models.Document{},
 	); err != nil {
 		return err
 	}

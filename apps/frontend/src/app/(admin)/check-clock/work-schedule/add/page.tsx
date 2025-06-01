@@ -1,22 +1,21 @@
 "use client";
 
-import {useRouter} from "next/navigation";
-import {Card, CardHeader, CardTitle} from "@/components/ui/card";
-import {toast} from "@/components/ui/use-toast";
-import {WorkScheduleForm} from "@/app/(admin)/check-clock/work-schedule/_components/WorkScheduleForm";
-import {useWorkSchedule, WorkSchedule} from "../_hooks/useWorkSchedule";
+import { useRouter } from "next/navigation";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "@/components/ui/use-toast";
+import { WorkScheduleForm } from "@/app/(admin)/check-clock/work-schedule/_components/WorkScheduleForm";
+import { useCreateWorkSchedule } from "@/api/mutations/work-schedule.mutation";
+import { WorkSchedule } from "@/types/work-schedule.types";
 
 export default function AddWorkSchedulePage() {
     const router = useRouter();
-    const {createWorkSchedule} = useWorkSchedule();
+    const createWorkScheduleMutation = useCreateWorkSchedule();
 
-    const handleSave = (data: Partial<WorkSchedule>) => {
+    const handleSave = async (data: Partial<WorkSchedule>) => {
         console.log("Saving new work schedule data:", data);
 
-        // Save data using hook
-        const result = createWorkSchedule(data);
-
-        if (result.success) {
+        try {
+            await createWorkScheduleMutation.mutateAsync(data as WorkSchedule);
             toast({
                 title: "Success",
                 description: "Work schedule successfully added",
@@ -25,10 +24,14 @@ export default function AddWorkSchedulePage() {
             setTimeout(() => {
                 router.push("/check-clock/work-schedule");
             }, 2000);
-        } else {
+        } catch (error) {
+            const errorMessage =
+                error instanceof Error
+                    ? error.message
+                    : "Failed to add work schedule";
             toast({
                 title: "Failed",
-                description: "Failed to add work schedule",
+                description: errorMessage,
                 variant: "destructive",
                 duration: 3000,
             });
@@ -48,6 +51,7 @@ export default function AddWorkSchedulePage() {
                 onSubmit={handleSave}
                 isEditMode={false}
                 initialData={{}}
+                isLoading={createWorkScheduleMutation.isPending}
             />
         </div>
     );

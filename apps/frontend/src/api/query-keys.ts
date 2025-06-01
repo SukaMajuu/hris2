@@ -19,4 +19,11 @@ export const queryKeys = {
 		update: (id: string) => ["locations", "update", id] as const,
 		delete: (id: string) => ["locations", "delete", id] as const,
 	},
+	workSchedules: {
+		list: ["workSchedules", "list"] as const,
+		detail: (id: number | string) => ["workSchedules", "detail", id] as const,
+		create: ["workSchedules", "create"] as const,
+		update: ["workSchedules", "update"] as const,
+		delete: ["workSchedules", "delete"] as const,
+	},
 } as const;

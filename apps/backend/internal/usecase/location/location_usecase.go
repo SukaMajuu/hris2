@@ -78,7 +78,7 @@ func (uc *LocationUseCase) List(ctx context.Context, paginationParams domain.Pag
 	return response, nil
 }
 
-func (uc *LocationUseCase) GetByID(ctx context.Context, id string) (*dtolocation.LocationResponseDTO, error) {
+func (uc *LocationUseCase) GetByID(ctx context.Context, id uint) (*dtolocation.LocationResponseDTO, error) {
 	locationDomain, err := uc.locationRepo.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -86,7 +86,7 @@ func (uc *LocationUseCase) GetByID(ctx context.Context, id string) (*dtolocation
 	return toLocationResponseDTO(locationDomain), nil
 }
 
-func (uc *LocationUseCase) Update(ctx context.Context, id string, locationUpdates *domain.Location) (*dtolocation.LocationResponseDTO, error) {
+func (uc *LocationUseCase) Update(ctx context.Context, id uint, locationUpdates *domain.Location) (*dtolocation.LocationResponseDTO, error) {
 	updatedLocationDomain, err := uc.locationRepo.Update(ctx, id, locationUpdates)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update location: %w", err)
@@ -94,7 +94,7 @@ func (uc *LocationUseCase) Update(ctx context.Context, id string, locationUpdate
 	return toLocationResponseDTO(updatedLocationDomain), nil
 }
 
-func (uc *LocationUseCase) Delete(ctx context.Context, id string) error {
+func (uc *LocationUseCase) Delete(ctx context.Context, id uint) error {
 	err := uc.locationRepo.Delete(ctx, id)
 	if err != nil {
 		return err
@@ -102,6 +102,6 @@ func (uc *LocationUseCase) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
-func (uc *LocationUseCase) Exists(ctx context.Context, id string) (bool, error) {
+func (uc *LocationUseCase) Exists(ctx context.Context, id uint) (bool, error) {
 	return uc.locationRepo.Exists(ctx, id)
 }

@@ -90,6 +90,20 @@ func (uc *DocumentUseCase) GetDocumentsByEmployeeID(ctx context.Context, employe
 	return uc.documentRepo.GetByEmployeeID(ctx, employeeID)
 }
 
+func (uc *DocumentUseCase) GetDocumentsByUserID(ctx context.Context, userID uint) ([]*domain.Document, error) {
+	employee, err := uc.employeeRepo.GetByUserID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get employee for user ID %d: %w", userID, err)
+	}
+
+	documents, err := uc.documentRepo.GetByEmployeeID(ctx, employee.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get documents for employee ID %d: %w", employee.ID, err)
+	}
+
+	return documents, nil
+}
+
 func (uc *DocumentUseCase) DeleteDocument(ctx context.Context, id uint) error {
 	document, err := uc.documentRepo.GetByID(ctx, id)
 	if err != nil {

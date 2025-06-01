@@ -94,7 +94,7 @@ func main() {
 		supabaseClient,
 	)
 
-	router := rest.NewRouter(authUseCase, employeeUseCase, locationUseCase, workScheduleUseCase, checkclockSettingsUseCase, subscriptionUseCase, documentUseCase, employeeRepo)
+	router := rest.NewRouter(authUseCase, employeeUseCase, locationUseCase, workScheduleUseCase, checkclockSettingsUseCase, subscriptionUseCase, documentUseCase)
 
 	ginRouter := router.Setup()
 

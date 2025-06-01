@@ -1,7 +1,6 @@
 package rest
 
 import (
-	"github.com/SukaMajuu/hris/apps/backend/domain/interfaces"
 	"github.com/SukaMajuu/hris/apps/backend/internal/rest/handler"
 	"github.com/SukaMajuu/hris/apps/backend/internal/rest/middleware"
 	auth "github.com/SukaMajuu/hris/apps/backend/internal/usecase/auth"
@@ -9,6 +8,7 @@ import (
 	document "github.com/SukaMajuu/hris/apps/backend/internal/usecase/document"
 	employee "github.com/SukaMajuu/hris/apps/backend/internal/usecase/employee"
 	location "github.com/SukaMajuu/hris/apps/backend/internal/usecase/location"
+	"github.com/SukaMajuu/hris/apps/backend/internal/usecase/subscription"
 	work_Schedule "github.com/SukaMajuu/hris/apps/backend/internal/usecase/work_schedule"
 
 	"github.com/gin-contrib/cors"
@@ -22,6 +22,7 @@ type Router struct {
 	employeeHandler           *handler.EmployeeHandler
 	workScheduleHandler       *handler.WorkScheduleHandler
 	checkclockSettingsHandler *handler.CheckclockSettingsHandler
+	subscriptionHandler       *handler.SubscriptionHandler
 	documentHandler           *handler.DocumentHandler
 }
 
@@ -31,8 +32,8 @@ func NewRouter(
 	locationUseCase *location.LocationUseCase,
 	workScheduleUseCase *work_Schedule.WorkScheduleUseCase,
 	checkclockSettingsUseCase *checkclocksettingsusecase.CheckclockSettingsUseCase,
+	subscriptionUseCase *subscription.SubscriptionUseCase,
 	documentUseCase *document.DocumentUseCase,
-	employeeRepo interfaces.EmployeeRepository,
 ) *Router {
 	return &Router{
 		authHandler:               handler.NewAuthHandler(authUseCase),
@@ -41,7 +42,8 @@ func NewRouter(
 		locationHandler:           handler.NewLocationHandler(locationUseCase),
 		workScheduleHandler:       handler.NewWorkScheduleHandler(workScheduleUseCase),
 		checkclockSettingsHandler: handler.NewCheckclockSettingsHandler(checkclockSettingsUseCase),
-		documentHandler:           handler.NewDocumentHandler(documentUseCase, employeeRepo),
+		subscriptionHandler:       handler.NewSubscriptionHandler(subscriptionUseCase),
+		documentHandler:           handler.NewDocumentHandler(documentUseCase),
 	}
 }
 
@@ -100,7 +102,6 @@ func (r *Router) Setup() *gin.Engine {
 				locations.DELETE("/:id", r.locationHandler.DeleteLocation)
 			}
 
-			// Work Schedule routes
 			workScheduleRoutes := api.Group("/work-schedules")
 			{
 				workScheduleRoutes.POST("", r.workScheduleHandler.CreateWorkSchedule)
@@ -112,12 +113,32 @@ func (r *Router) Setup() *gin.Engine {
 				checkclockSettings.POST("", r.checkclockSettingsHandler.CreateCheckclockSettings)
 			}
 
-			documents := api.Group("/documents")
+      documents := api.Group("/documents")
 			{
 				documents.POST("/upload", r.authMiddleware.Authenticate(), r.documentHandler.UploadDocument)
 				documents.GET("", r.authMiddleware.Authenticate(), r.documentHandler.GetDocuments)
 				documents.DELETE("/:id", r.authMiddleware.Authenticate(), r.documentHandler.DeleteDocument)
 			}
+
+			subscription := api.Group("/subscription")
+			{
+				subscription.GET("/plans", r.subscriptionHandler.GetSubscriptionPlans)
+				subscription.GET("/plans/:subscription_plan_id/seat-plans", r.subscriptionHandler.GetSeatPlans)
+				subscription.GET("/checkout/:session_id", r.subscriptionHandler.GetCheckoutSession)
+
+				protected := subscription.Group("")
+				{
+					protected.GET("/me", r.subscriptionHandler.GetUserSubscription)
+					protected.POST("/checkout/trial", r.subscriptionHandler.InitiateTrialCheckout)
+					protected.POST("/checkout/paid", r.subscriptionHandler.InitiatePaidCheckout)
+					protected.POST("/checkout/complete-trial", r.subscriptionHandler.CompleteTrialCheckout)
+				}
+			}
+		}
+
+		webhooks := v1.Group("/webhooks")
+		{
+			webhooks.POST("/xendit", r.subscriptionHandler.ProcessWebhook)
 		}
 	}
 

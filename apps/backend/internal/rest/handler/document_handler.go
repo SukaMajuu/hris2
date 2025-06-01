@@ -9,7 +9,6 @@ import (
 	"time"
 
 	respDocumentDTO "github.com/SukaMajuu/hris/apps/backend/domain/dto/document"
-	"github.com/SukaMajuu/hris/apps/backend/domain/interfaces"
 	reqDocumentDTO "github.com/SukaMajuu/hris/apps/backend/internal/rest/dto/document"
 	documentUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/document"
 	"github.com/SukaMajuu/hris/apps/backend/pkg/response"
@@ -18,13 +17,11 @@ import (
 
 type DocumentHandler struct {
 	documentUseCase *documentUseCase.DocumentUseCase
-	employeeRepo    interfaces.EmployeeRepository
 }
 
-func NewDocumentHandler(useCase *documentUseCase.DocumentUseCase, employeeRepo interfaces.EmployeeRepository) *DocumentHandler {
+func NewDocumentHandler(useCase *documentUseCase.DocumentUseCase) *DocumentHandler {
 	return &DocumentHandler{
 		documentUseCase: useCase,
-		employeeRepo:    employeeRepo,
 	}
 }
 
@@ -111,34 +108,16 @@ func (h *DocumentHandler) GetDocuments(c *gin.Context) {
 		return
 	}
 
-	log.Printf("DocumentHandler: Getting employee for user ID: %d", userID)
+	log.Printf("DocumentHandler: Getting documents for user ID: %d", userID)
 
-	employee, err := h.employeeRepo.GetByUserID(c.Request.Context(), userID)
+	documents, err := h.documentUseCase.GetDocumentsByUserID(c.Request.Context(), userID)
 	if err != nil {
-		log.Printf("DocumentHandler: Employee not found for user ID %d: %v", userID, err)
-		response.BadRequest(c, "Employee not found for current user", err)
-		return
-	}
-	log.Printf("DocumentHandler: Employee found: %s %s (ID: %d)", employee.FirstName,
-		func() string {
-			if employee.LastName != nil {
-				return *employee.LastName
-			} else {
-				return ""
-			}
-		}(),
-		employee.ID)
-
-	log.Printf("DocumentHandler: Getting documents for current user's employee ID: %d", employee.ID)
-
-	documents, err := h.documentUseCase.GetDocumentsByEmployeeID(c.Request.Context(), employee.ID)
-	if err != nil {
-		log.Printf("DocumentHandler: Error getting documents for current user: %v", err)
+		log.Printf("DocumentHandler: Error getting documents for user ID %d: %v", userID, err)
 		response.InternalServerError(c, fmt.Errorf("failed to retrieve user documents"))
 		return
 	}
 
-	log.Printf("DocumentHandler: Found %d documents for current user (employee ID %d)", len(documents), employee.ID)
+	log.Printf("DocumentHandler: Found %d documents for user ID %d", len(documents), userID)
 
 	var respDTOs []respDocumentDTO.DocumentResponseDTO
 	for i, doc := range documents {

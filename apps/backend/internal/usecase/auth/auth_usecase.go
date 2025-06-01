@@ -262,47 +262,38 @@ func (uc *AuthUseCase) RefreshToken(ctx context.Context, rawRefreshToken string)
 
 	incomingTokenHash, err := uc.jwtService.HashToken(rawRefreshToken)
 	if err != nil {
-		log.Printf("Failed to hash incoming refresh token: %v", err)
 		return "", "", fmt.Errorf("internal error during token refresh: %w", err)
 	}
 
 	storedToken, err := uc.authRepo.FindRefreshTokenByHash(ctx, incomingTokenHash)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			log.Printf("Refresh token hash not found in DB: %s...", incomingTokenHash[:min(10, len(incomingTokenHash))])
 			return "", "", fmt.Errorf("refresh token not found or already used: %w", domain.ErrInvalidToken)
 		}
-		log.Printf("DB error finding refresh token by hash: %v", err)
 		return "", "", fmt.Errorf("internal error during token refresh: %w", err)
 	}
 
 	if storedToken.Revoked {
-		log.Printf("Attempted to use revoked refresh token ID %d for user %d", storedToken.ID, storedToken.UserID)
 		return "", "", fmt.Errorf("refresh token has been revoked: %w", domain.ErrInvalidToken)
 	}
 	if time.Now().After(storedToken.ExpiresAt) {
-		log.Printf("Attempted to use expired refresh token ID %d (expired at %v)", storedToken.ID, storedToken.ExpiresAt)
 		return "", "", fmt.Errorf("refresh token expired: %w", domain.ErrInvalidToken)
 	}
 	if storedToken.UserID != claims.UserID {
-		log.Printf("CRITICAL: Refresh token hash collision or tampering suspected. Stored UserID: %d, Claim UserID: %d", storedToken.UserID, claims.UserID)
 		return "", "", fmt.Errorf("token user mismatch: %w", domain.ErrInvalidToken)
 	}
 
 	if err := uc.authRepo.RevokeRefreshTokenByID(ctx, storedToken.ID); err != nil {
-		log.Printf("Failed to revoke used refresh token ID %d: %v", storedToken.ID, err)
 		return "", "", fmt.Errorf("internal error during token refresh: %w", err)
 	}
 
 	user, err := uc.authRepo.GetUserByID(ctx, claims.UserID)
 	if err != nil {
-		log.Printf("Failed to get user %d during refresh: %v", claims.UserID, err)
 		return "", "", fmt.Errorf("failed to retrieve user details for refresh: %w", err)
 	}
 
 	newAccessToken, newRefreshToken, newRefreshTokenHash, err := uc.jwtService.GenerateToken(user.ID, user.Email, user.Role)
 	if err != nil {
-		log.Printf("Failed to generate new tokens for user %d: %v", user.ID, err)
 		return "", "", fmt.Errorf("failed to generate new tokens: %w", err)
 	}
 
@@ -313,7 +304,6 @@ func (uc *AuthUseCase) RefreshToken(ctx context.Context, rawRefreshToken string)
 		ExpiresAt: time.Now().Add(refreshDuration),
 	}
 	if err := uc.authRepo.StoreRefreshToken(ctx, newRefreshTokenRecord); err != nil {
-		log.Printf("Failed to store new refresh token for user %d after refresh: %v", user.ID, err)
 		return "", "", fmt.Errorf("failed to store new refresh token: %w", err)
 	}
 
@@ -322,10 +312,8 @@ func (uc *AuthUseCase) RefreshToken(ctx context.Context, rawRefreshToken string)
 
 func (uc *AuthUseCase) Logout(ctx context.Context, userID uint) error {
 	if err := uc.authRepo.RevokeAllUserRefreshTokens(ctx, userID); err != nil {
-		log.Printf("Failed to revoke all refresh tokens during logout for user %d: %v", userID, err)
 		return fmt.Errorf("error revoking tokens during logout: %w", err)
 	}
-	log.Printf("Successfully revoked all refresh tokens for user %d", userID)
 	return nil
 }
 

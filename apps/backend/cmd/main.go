@@ -9,16 +9,19 @@ import (
 	"github.com/SukaMajuu/hris/apps/backend/internal/repository/employee"
 	"github.com/SukaMajuu/hris/apps/backend/internal/repository/location"
 	"github.com/SukaMajuu/hris/apps/backend/internal/repository/work_schedule"
+	"github.com/SukaMajuu/hris/apps/backend/internal/repository/xendit"
 	"github.com/SukaMajuu/hris/apps/backend/internal/rest"
 	authUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/auth"
 	checkclockSettingsUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/checkclock_settings"
 	documentUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/document"
 	employeeUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/employee"
 	locationUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/location"
+	subscriptionUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/subscription"
 	workScheduleUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/work_schedule"
 	"github.com/SukaMajuu/hris/apps/backend/pkg/config"
 	"github.com/SukaMajuu/hris/apps/backend/pkg/database"
 	"github.com/SukaMajuu/hris/apps/backend/pkg/jwt"
+	xenditService "github.com/SukaMajuu/hris/apps/backend/pkg/xendit"
 	"github.com/supabase-community/supabase-go"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -49,6 +52,8 @@ func main() {
 	locationRepo := location.NewLocationRepository(db)
 	workScheduleRepo := work_schedule.NewWorkScheduleRepository(db)
 	checkclockSettingsRepo := checkclock_settings.NewCheckclockSettingsRepository(db)
+	xenditRepo := xendit.NewXenditRepository(db)
+	xenditClient := xenditService.NewXenditClient(&cfg.Xendit)
 	documentRepo := document.NewPostgresRepository(db)
 
 	jwtService := jwt.NewJWTService(cfg)
@@ -78,13 +83,18 @@ func main() {
 		workScheduleRepo,
 	)
 
+	subscriptionUseCase := subscriptionUseCase.NewSubscriptionUseCase(
+		xenditRepo,
+		xenditClient,
+	)
+
 	documentUseCase := documentUseCase.NewDocumentUseCase(
 		documentRepo,
 		employeeRepo,
 		supabaseClient,
 	)
 
-	router := rest.NewRouter(authUseCase, employeeUseCase, locationUseCase, workScheduleUseCase, checkclockSettingsUseCase, documentUseCase, employeeRepo)
+	router := rest.NewRouter(authUseCase, employeeUseCase, locationUseCase, workScheduleUseCase, checkclockSettingsUseCase, subscriptionUseCase, documentUseCase)
 
 	ginRouter := router.Setup()
 

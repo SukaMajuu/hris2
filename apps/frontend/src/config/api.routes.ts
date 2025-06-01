@@ -18,6 +18,14 @@ export const API_ROUTES = {
 				list: "/api/users",
 				detail: (id: number) => `/api/users/${id}`,
 			},
+			workSchedules: {
+				base: "/api/work-schedules",
+				list: "/api/work-schedules", // For listing, query params will be added by the service
+				detail: (id: number) => `/api/work-schedules/${id}`,
+				create: "/api/work-schedules",
+				update: (id: number) => `/api/work-schedules/${id}`,
+				delete: (id: number) => `/api/work-schedules/${id}`,
+			},
 			// Add other API routes as they are implemented
 			// employees: {
 			//   base: '/api/employees',

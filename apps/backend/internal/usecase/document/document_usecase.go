@@ -14,6 +14,8 @@ import (
 	"github.com/supabase-community/supabase-go"
 )
 
+const bucketName = "document"
+
 type DocumentUseCase struct {
 	documentRepo   interfaces.DocumentRepository
 	employeeRepo   interfaces.EmployeeRepository
@@ -45,9 +47,11 @@ func (uc *DocumentUseCase) UploadDocument(ctx context.Context, userID uint, file
 	if err != nil {
 		return nil, fmt.Errorf("failed to open uploaded file: %w", err)
 	}
-	defer src.Close()
-
-	bucketName := "document"
+	defer func() {
+		if closeErr := src.Close(); closeErr != nil {
+			fmt.Printf("Warning: failed to close file: %v", closeErr)
+		}
+	}()
 
 	if uc.supabaseClient == nil || uc.supabaseClient.Storage == nil {
 		return nil, fmt.Errorf("storage client not available")
@@ -72,7 +76,9 @@ func (uc *DocumentUseCase) UploadDocument(ctx context.Context, userID uint, file
 	err = uc.documentRepo.Create(ctx, document)
 	if err != nil {
 		if uc.supabaseClient != nil && uc.supabaseClient.Storage != nil {
-			uc.supabaseClient.Storage.RemoveFile(bucketName, []string{fileName})
+			if _, removeErr := uc.supabaseClient.Storage.RemoveFile(bucketName, []string{fileName}); removeErr != nil {
+				fmt.Printf("Warning: failed to cleanup uploaded file: %v", removeErr)
+			}
 		}
 		return nil, fmt.Errorf("failed to create document record: %w", err)
 	}
@@ -96,9 +102,7 @@ func (uc *DocumentUseCase) DeleteDocument(ctx context.Context, id uint) error {
 	}
 
 	if uc.supabaseClient != nil && uc.supabaseClient.Storage != nil {
-		bucketName := "document"
-		_, err = uc.supabaseClient.Storage.RemoveFile(bucketName, []string{document.Name})
-		if err != nil {
+		if _, err = uc.supabaseClient.Storage.RemoveFile(bucketName, []string{document.Name}); err != nil {
 			fmt.Printf("Warning: failed to delete file from storage: %v", err)
 		}
 	}

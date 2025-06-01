@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"mime/multipart"
 	"strings"
 	"testing"
 	"time"
@@ -16,13 +15,6 @@ import (
 	"github.com/supabase-community/supabase-go"
 	"gorm.io/gorm"
 )
-
-func createMockFile(filename string) *multipart.FileHeader {
-	return &multipart.FileHeader{
-		Filename: filename,
-		Size:     1024,
-	}
-}
 
 func TestGetDocumentsByEmployeeID(t *testing.T) {
 	now := time.Now()

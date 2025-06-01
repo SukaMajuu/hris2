@@ -3,17 +3,17 @@ package handler
 import (
 	"strconv"
 
-	"github.com/SukaMajuu/hris/apps/backend/internal/rest/dto"
-	"github.com/SukaMajuu/hris/apps/backend/internal/usecase/subscription"
+	subscriptionDTO "github.com/SukaMajuu/hris/apps/backend/internal/rest/dto/subscription"
+	subscriptionUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/subscription"
 	"github.com/SukaMajuu/hris/apps/backend/pkg/response"
 	"github.com/gin-gonic/gin"
 )
 
 type SubscriptionHandler struct {
-	subscriptionUseCase *subscription.SubscriptionUseCase
+	subscriptionUseCase *subscriptionUseCase.SubscriptionUseCase
 }
 
-func NewSubscriptionHandler(subscriptionUseCase *subscription.SubscriptionUseCase) *SubscriptionHandler {
+func NewSubscriptionHandler(subscriptionUseCase *subscriptionUseCase.SubscriptionUseCase) *SubscriptionHandler {
 	return &SubscriptionHandler{
 		subscriptionUseCase: subscriptionUseCase,
 	}
@@ -47,7 +47,7 @@ func (h *SubscriptionHandler) GetSeatPlans(c *gin.Context) {
 }
 
 func (h *SubscriptionHandler) InitiateTrialCheckout(c *gin.Context) {
-	var req dto.InitiateTrialCheckoutRequest
+	var req subscriptionDTO.InitiateTrialCheckoutRequest
 	if bindAndValidate(c, &req) {
 		return
 	}
@@ -73,7 +73,7 @@ func (h *SubscriptionHandler) InitiateTrialCheckout(c *gin.Context) {
 }
 
 func (h *SubscriptionHandler) InitiatePaidCheckout(c *gin.Context) {
-	var req dto.InitiatePaidCheckoutRequest
+	var req subscriptionDTO.InitiatePaidCheckoutRequest
 	if bindAndValidate(c, &req) {
 		return
 	}
@@ -100,12 +100,12 @@ func (h *SubscriptionHandler) InitiatePaidCheckout(c *gin.Context) {
 }
 
 func (h *SubscriptionHandler) CompleteTrialCheckout(c *gin.Context) {
-	var req dto.CompleteTrialCheckoutRequest
+	var req subscriptionDTO.CompleteTrialCheckoutRequest
 	if bindAndValidate(c, &req) {
 		return
 	}
 
-	billingInfo := dto.FromCompleteTrialCheckoutRequest(&req)
+	billingInfo := subscriptionDTO.FromCompleteTrialCheckoutRequest(&req)
 
 	subscriptionResponse, err := h.subscriptionUseCase.CompleteTrialCheckout(
 		c.Request.Context(),

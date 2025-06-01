@@ -1,4 +1,4 @@
-package dto
+package subscription
 
 import (
 	"github.com/SukaMajuu/hris/apps/backend/domain"

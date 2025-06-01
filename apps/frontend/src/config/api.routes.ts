@@ -18,6 +18,17 @@ export const API_ROUTES = {
 				list: "/api/users",
 				detail: (id: number) => `/api/users/${id}`,
 			},
+			// Add new routes for CheckClockOverview
+            checkClockOverview: {
+              list: "/api/check-clock/overview",
+              detail: (id: number | string) => `/api/check-clock/${id}`,
+              create: "/api/check-clock/overview",
+              update: (id: number | string) => `/api/check-clock/${id}`, // Or a specific PATCH endpoint
+              delete: (id: number | string) => `/api/check-clock/${id}`,
+              approvalList: "/api/check-clock/approval", // Standardized path
+              approveReject: (id: number | string) => `/api/check-clock/approval/${id}`, // Standardized path
+              employeeRecords: (employeeId: string) => `/api/employees/${employeeId}/check-clock` // Standardized path
+            },
 			// Add other API routes as they are implemented
 			// employees: {
 			//   base: '/api/employees',

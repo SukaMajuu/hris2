@@ -18,6 +18,14 @@ export const API_ROUTES = {
 				list: "/api/users",
 				detail: (id: number) => `/api/users/${id}`,
 			},
+			// New Check-Clock Approval Routes
+			checkClockApprovals: {
+				base: "/api/check-clock-approvals", // Base path for approvals
+				list: "/api/check-clock-approvals", // GET list of approvals
+				detail: (id: number | string) => `/api/check-clock-approvals/${id}`, // GET details of a specific approval
+				approve: (id: number | string) => `/api/check-clock-approvals/${id}/approve`, // POST to approve
+				reject: (id: number | string) => `/api/check-clock-approvals/${id}/reject`, // POST to reject
+			},
 			// Add other API routes as they are implemented
 			// employees: {
 			//   base: '/api/employees',

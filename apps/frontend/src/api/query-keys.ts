@@ -19,4 +19,12 @@ export const queryKeys = {
 		update: ["workSchedules", "update"] as const,
 		delete: ["workSchedules", "delete"] as const,
 	},
+	// New Query Keys for CheckClock Approvals
+	checkClockApprovals: {
+		all: ["checkClockApprovals"] as const,
+		list: (page?: number, pageSize?: number, filters?: unknown) => 
+            [...queryKeys.checkClockApprovals.all, "list", { page, pageSize, filters }] as const,
+		detail: (id: number | string) => 
+            [...queryKeys.checkClockApprovals.all, "detail", id] as const,
+	},
 } as const;

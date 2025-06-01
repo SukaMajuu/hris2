@@ -46,7 +46,9 @@ func isAllowedMimeType(mimeType string) bool {
 func (h *DocumentHandler) UploadDocument(c *gin.Context) {
 	var reqDTO reqDocumentDTO.UploadDocumentRequestDTO
 
-	if bindAndValidate(c, &reqDTO) {
+	if err := c.ShouldBind(&reqDTO); err != nil {
+		log.Printf("DocumentHandler: Error binding request: %v", err)
+		response.BadRequest(c, "Invalid request format", err)
 		return
 	}
 

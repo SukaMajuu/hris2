@@ -49,6 +49,10 @@ func (uc *DocumentUseCase) UploadDocument(ctx context.Context, userID uint, file
 
 	bucketName := "document"
 
+	if uc.supabaseClient == nil || uc.supabaseClient.Storage == nil {
+		return nil, fmt.Errorf("storage client not available")
+	}
+
 	_, err = uc.supabaseClient.Storage.UploadFile(bucketName, fileName, src)
 	if err != nil {
 		fmt.Printf("UseCase: Upload failed with error: %v\n", err)
@@ -67,7 +71,9 @@ func (uc *DocumentUseCase) UploadDocument(ctx context.Context, userID uint, file
 
 	err = uc.documentRepo.Create(ctx, document)
 	if err != nil {
-		uc.supabaseClient.Storage.RemoveFile(bucketName, []string{fileName})
+		if uc.supabaseClient != nil && uc.supabaseClient.Storage != nil {
+			uc.supabaseClient.Storage.RemoveFile(bucketName, []string{fileName})
+		}
 		return nil, fmt.Errorf("failed to create document record: %w", err)
 	}
 
@@ -89,10 +95,12 @@ func (uc *DocumentUseCase) DeleteDocument(ctx context.Context, id uint) error {
 		return fmt.Errorf("failed to delete document from database: %w", err)
 	}
 
-	bucketName := "document"
-	_, err = uc.supabaseClient.Storage.RemoveFile(bucketName, []string{document.Name})
-	if err != nil {
-		fmt.Printf("Warning: failed to delete file from storage: %v", err)
+	if uc.supabaseClient != nil && uc.supabaseClient.Storage != nil {
+		bucketName := "document"
+		_, err = uc.supabaseClient.Storage.RemoveFile(bucketName, []string{document.Name})
+		if err != nil {
+			fmt.Printf("Warning: failed to delete file from storage: %v", err)
+		}
 	}
 
 	return nil

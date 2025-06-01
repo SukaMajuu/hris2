@@ -11,7 +11,7 @@ const (
 	PaymentPending   PaymentStatus = "pending"
 	PaymentPaid      PaymentStatus = "paid"
 	PaymentFailed    PaymentStatus = "failed"
-	PaymentCancelled PaymentStatus = "cancelled"
+	PaymentCancelled PaymentStatus = "canceled"
 	PaymentExpired   PaymentStatus = "expired"
 	PaymentRefunded  PaymentStatus = "refunded"
 )

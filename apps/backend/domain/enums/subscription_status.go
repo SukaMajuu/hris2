@@ -13,7 +13,7 @@ const (
 	StatusInactive  SubscriptionStatus = "inactive"
 	StatusSuspended SubscriptionStatus = "suspended"
 	StatusExpired   SubscriptionStatus = "expired"
-	StatusCancelled SubscriptionStatus = "cancelled"
+	StatusCancelled SubscriptionStatus = "canceled"
 )
 
 func (ss *SubscriptionStatus) Scan(value interface{}) error {

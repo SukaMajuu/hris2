@@ -12,7 +12,7 @@ const (
 	CheckoutPending   CheckoutStatus = "pending"
 	CheckoutCompleted CheckoutStatus = "completed"
 	CheckoutFailed    CheckoutStatus = "failed"
-	CheckoutCancelled CheckoutStatus = "cancelled"
+	CheckoutCancelled CheckoutStatus = "canceled"
 	CheckoutExpired   CheckoutStatus = "expired"
 )
 

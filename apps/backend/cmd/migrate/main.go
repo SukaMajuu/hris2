@@ -23,4 +23,10 @@ func main() {
     }
 
     log.Println("Database migrations completed successfully")
+
+    if err := database.Run(db); err != nil {
+        log.Fatal("Failed to run seeders:", err)
+    }
+
+    log.Println("Database setup completed successfully")
 }

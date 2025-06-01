@@ -13,6 +13,9 @@ type User struct {
 	Password    string         `gorm:"-"`
 	Phone       string         `gorm:"type:varchar(20);unique;default:null"`
 	Role        enums.UserRole `gorm:"type:user_role;not null;default:user"`
+
+	HasUsedTrial bool          `gorm:"type:boolean;default:false;not null"`
+
 	LastLoginAt *time.Time     `gorm:"type:timestamp"`
 	CreatedAt   time.Time      `gorm:"autoCreateTime"`
 	UpdatedAt   time.Time      `gorm:"autoUpdateTime"`
@@ -20,4 +23,8 @@ type User struct {
 
 func (a *User) TableName() string {
 	return "users"
+}
+
+func (u *User) IsEligibleForTrial() bool {
+	return u.Role == enums.RoleAdmin && !u.HasUsedTrial
 }

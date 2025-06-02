@@ -137,7 +137,7 @@ func (r *Repository) UpdateSubscription(ctx context.Context, subscription *domai
 func (r *Repository) GetSubscriptionPlans(ctx context.Context) ([]domain.SubscriptionPlan, error) {
 	var plans []domain.SubscriptionPlan
 	if err := r.db.WithContext(ctx).
-		Where("is_active = ?", true).
+		Preload("PlanFeatures.SubscriptionFeature").
 		Find(&plans).Error; err != nil {
 		return nil, err
 	}

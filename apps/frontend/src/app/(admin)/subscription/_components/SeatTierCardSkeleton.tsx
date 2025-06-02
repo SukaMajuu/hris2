@@ -3,7 +3,7 @@ import { Card, CardHeader } from "@/components/ui/card";
 
 const SeatTierCardSkeleton: React.FC = () => {
 	return (
-		<Card className="rounded-lg p-6 flex flex-col h-full shadow-md bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 animate-pulse">
+		<Card className="w-full min-w-80 rounded-lg p-6 flex flex-col h-full shadow-md bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 animate-pulse">
 			<CardHeader className="p-0 mb-3 pt-2">
 				{/* Package name skeleton */}
 				<div className="h-3 bg-slate-200 dark:bg-slate-700 rounded-md w-20 mb-3"></div>

@@ -56,23 +56,28 @@ function SubscriptionPageContent() {
 	}
 
 	return (
-		<div className="container mx-auto">
-			<div className="mb-8">
-				<Link
-					href="/settings"
-					className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center"
-				>
-					<ArrowLeftIcon className="w-4 h-4 mr-1" />
-					Go Back
-				</Link>
-			</div>
+		<div className="container mx-auto min-h-[95vh] flex flex-col justify-center">
+			{/* Only show Go Back link if user has existing subscription */}
+			{userSubscription?.subscription_plan && (
+				<div className="mb-8">
+					<Link
+						href="/settings"
+						className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center"
+					>
+						<ArrowLeftIcon className="w-4 h-4 mr-1" />
+						Go Back
+					</Link>
+				</div>
+			)}
 			<header className="text-center mb-12">
 				<h1 className="text-4xl font-extrabold text-slate-900 dark:text-slate-100 sm:text-5xl">
 					HRIS Pricing Plans
 				</h1>
 				<p className="mt-4 text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
 					{activeView === "package"
-						? "Step 1: Choose the plan that best suits your business features."
+						? userSubscription?.subscription_plan
+							? "Step 1: Choose a new plan that best suits your business features."
+							: "Step 1: Choose the plan that best suits your business features."
 						: `Step 2: Select an employee tier for the ${selectedPlanName} plan.`}
 				</p>
 			</header>
@@ -125,10 +130,12 @@ function SubscriptionPageContent() {
 			{activeView === "seat" && selectedPlanId && (
 				<>
 					{isLoadingSeatPlans ? (
-						<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-							{[...Array(6)].map((_, index) => (
-								<SeatTierCardSkeleton key={index} />
-							))}
+						<div className="flex justify-center">
+							<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 max-w-6xl">
+								{[...Array(6)].map((_, index) => (
+									<SeatTierCardSkeleton key={index} />
+								))}
+							</div>
 						</div>
 					) : seatPlansError ? (
 						<div className="flex items-center justify-center min-h-48">
@@ -140,20 +147,22 @@ function SubscriptionPageContent() {
 							</div>
 						</div>
 					) : (
-						<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-							{transformedSeatTiers.map((tier) => (
-								<SeatTierCardComponent
-									key={tier.id}
-									tier={tier}
-									isCurrentTier={
-										userSubscription?.seat_plan?.id ===
-											tier.id &&
-										userSubscription?.subscription_plan
-											?.id === selectedPlanId
-									}
-									onSelectSeatTier={handleSelectSeatTier}
-								/>
-							))}
+						<div className="flex justify-center">
+							<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 max-w-6xl">
+								{transformedSeatTiers.map((tier) => (
+									<SeatTierCardComponent
+										key={tier.id}
+										tier={tier}
+										isCurrentTier={
+											userSubscription?.seat_plan?.id ===
+												tier.id &&
+											userSubscription?.subscription_plan
+												?.id === selectedPlanId
+										}
+										onSelectSeatTier={handleSelectSeatTier}
+									/>
+								))}
+							</div>
 						</div>
 					)}
 				</>

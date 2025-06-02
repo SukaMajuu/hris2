@@ -20,7 +20,36 @@ export const useSeatPlans = (subscriptionPlanId: number) => {
 export const useUserSubscription = () => {
 	return useQuery({
 		queryKey: queryKeys.subscription.userSubscription,
-		queryFn: () => subscriptionService.getUserSubscription(),
+		queryFn: async () => {
+			try {
+				return await subscriptionService.getUserSubscription();
+			} catch (error) {
+				const errorObj = error as {
+					response?: { status?: number };
+					status?: number;
+				};
+				if (
+					errorObj?.response?.status === 404 ||
+					errorObj?.status === 404
+				) {
+					return null;
+				}
+				throw error;
+			}
+		},
+		retry: (failureCount, error: unknown) => {
+			const errorObj = error as {
+				response?: { status?: number };
+				status?: number;
+			};
+			if (
+				errorObj?.response?.status === 404 ||
+				errorObj?.status === 404
+			) {
+				return false;
+			}
+			return failureCount < 3;
+		},
 	});
 };
 

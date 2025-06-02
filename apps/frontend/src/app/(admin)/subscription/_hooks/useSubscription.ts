@@ -27,7 +27,6 @@ export const useSubscription = () => {
 	const {
 		data: userSubscription,
 		isLoading: isLoadingUserSubscription,
-		error: userSubscriptionError,
 	} = useUserSubscription();
 
 	const {
@@ -92,7 +91,7 @@ export const useSubscription = () => {
 
 	// Computed values
 	const isLoading = isLoadingPlans || isLoadingUserSubscription;
-	const hasError = plansError || userSubscriptionError;
+	const hasError = plansError;
 	const selectedPlanName =
 		subscriptionPlans?.find((p) => p.id === selectedPlanId)?.name || "";
 

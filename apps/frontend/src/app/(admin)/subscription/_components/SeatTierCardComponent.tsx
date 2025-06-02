@@ -31,7 +31,7 @@ const SeatTierCardComponent: React.FC<SeatTierCardComponentProps> = ({
 	return (
 		<Card
 			className={`
-				rounded-lg p-6 flex flex-col h-full shadow-md bg-slate-50 dark:bg-slate-800
+				w-full min-w-80 rounded-lg p-6 flex flex-col h-full shadow-md bg-slate-50 dark:bg-slate-800
 				border border-slate-200 dark:border-slate-700 hover:ring-2 hover:ring-primary relative
 			`}
 		>

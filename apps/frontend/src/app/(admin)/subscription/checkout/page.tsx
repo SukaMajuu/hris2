@@ -163,7 +163,7 @@ function CheckoutPageContent() {
 						asChild
 						className="mt-1 mb-2 dark:text-blue-400 dark:border-blue-400 dark:hover:bg-blue-400/10"
 					>
-						<Link href="/settings/subscription">Change plan</Link>
+						<Link href="/subscription">Change plan</Link>
 					</Button>
 
 					<div className="mt-6">

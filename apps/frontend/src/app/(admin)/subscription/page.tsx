@@ -2,14 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-	CheckIcon,
-	ArrowRightIcon,
-	ArrowLeftIcon,
-	AlertCircle,
-	Loader2,
-} from "lucide-react";
+import { ArrowLeftIcon, AlertCircle, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
@@ -17,186 +10,10 @@ import {
 	useUserSubscription,
 	useSeatPlans,
 } from "@/api/queries/subscription.queries";
-import { SubscriptionPlan } from "@/types/subscription";
-
-interface SeatTier {
-	id: number;
-	packageName: string;
-	employeeRangeDescription: string;
-	planId: number;
-	sizeTierName: string;
-	pricePerMonth: number;
-	pricePerYear: number;
-}
-
-interface PlanCardComponentProps {
-	plan: SubscriptionPlan;
-	currentUserPlan: SubscriptionPlan | null;
-	onSelectPlan: (planId: number) => void;
-}
-
-const PlanCardComponent: React.FC<PlanCardComponentProps> = ({
-	plan,
-	currentUserPlan,
-	onSelectPlan,
-}) => {
-	const isCurrentPlan = currentUserPlan?.id === plan.id;
-	const isInactive = plan.is_active === false;
-
-	const cardClasses = `
-		rounded-xl p-6 flex flex-col h-full shadow-lg relative
-		${
-			isCurrentPlan
-				? "border-2 border-primary"
-				: "border border-slate-200 dark:border-slate-700"
-		}
-		${isInactive ? "opacity-60 bg-slate-50 dark:bg-slate-800/50" : ""}
-	`;
-	const textColor = `text-slate-700 dark:text-slate-300 ${
-		isInactive ? "opacity-70" : ""
-	}`;
-
-	return (
-		<Card className={cardClasses}>
-			{isCurrentPlan && (
-				<div className="absolute top-3 right-3 bg-primary text-white text-xs font-semibold px-2.5 py-1 rounded-full">
-					Current Package
-				</div>
-			)}
-			{isInactive && !isCurrentPlan && (
-				<div className="absolute top-3 right-3 bg-slate-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full">
-					Not Available
-				</div>
-			)}
-			<CardHeader className="p-0 pt-2">
-				<CardTitle
-					className={`text-4xl font-bold text-slate-900 dark:text-slate-100 ${
-						isInactive ? "opacity-70" : ""
-					}`}
-				>
-					{plan.name}
-				</CardTitle>
-				<p className={`text-sm ${textColor}`}>{plan.description}</p>
-			</CardHeader>
-			<CardContent className="p-0 flex-grow">
-				<ul className="space-y-4 border-t border-slate-200 dark:border-slate-700 pt-4 mt-4">
-					{plan.features &&
-					plan.features.length > 0 &&
-					!isInactive ? (
-						plan.features.map((feature, index) => (
-							<li
-								key={
-									typeof feature === "object"
-										? feature.id
-										: index
-								}
-								className={`flex items-center justify-between gap-2 ${textColor}`}
-							>
-								<span>
-									{typeof feature === "object"
-										? feature.name
-										: feature}
-								</span>
-								<CheckIcon
-									className={`w-4 h-4 bg-green-500 text-white rounded-full p-0.5 flex-shrink-0 ${
-										isInactive ? "opacity-50" : ""
-									}`}
-								/>
-							</li>
-						))
-					) : (
-						<li className={`${textColor} text-center py-4`}>
-							No features available
-						</li>
-					)}
-				</ul>
-			</CardContent>
-			<div className="mt-6">
-				<Button
-					onClick={() => !isInactive && onSelectPlan(plan.id)}
-					disabled={isInactive}
-					className={`w-full font-semibold py-3 text-white ${
-						isCurrentPlan
-							? "bg-primary hover:bg-primary/80"
-							: isInactive
-							? "bg-slate-400 dark:bg-slate-600 cursor-not-allowed"
-							: "bg-primary hover:bg-primary/80"
-					}`}
-				>
-					{isInactive
-						? "Not Available Right Now"
-						: isCurrentPlan
-						? "Configure Seats"
-						: "Select a Package"}
-					{!isInactive && <ArrowRightIcon className="ml-2 w-4 h-4" />}
-				</Button>
-			</div>
-		</Card>
-	);
-};
-
-interface SeatTierCardComponentProps {
-	tier: SeatTier;
-	isCurrentTier: boolean;
-	onSelectSeatTier: (planId: number, seatPlanId: number) => void;
-}
-
-const SeatTierCardComponent: React.FC<SeatTierCardComponentProps> = ({
-	tier,
-	isCurrentTier,
-	onSelectSeatTier,
-}) => {
-	const formatCurrency = (value: number) => {
-		return `Rp ${value.toLocaleString("id-ID")}`;
-	};
-
-	return (
-		<Card
-			className={`
-				rounded-lg p-6 flex flex-col h-full shadow-md bg-slate-50 dark:bg-slate-800
-				border border-slate-200 dark:border-slate-700 hover:ring-2 hover:ring-primary relative
-			`}
-		>
-			{isCurrentTier && (
-				<div className="absolute top-3 right-3 bg-primary text-white text-xs font-semibold px-2.5 py-1 rounded-full">
-					Current Tier
-				</div>
-			)}
-			<CardHeader className="p-0 mb-3 pt-2">
-				<p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-					{tier.packageName} Plan
-				</p>
-				<p className="text-lg font-medium text-slate-700 dark:text-slate-200 mt-2">
-					{tier.employeeRangeDescription}
-				</p>
-				<div className="mt-2 space-y-1">
-					<p className="text-sm text-slate-600 dark:text-slate-400">
-						Monthly: {formatCurrency(tier.pricePerMonth)}
-					</p>
-					<p className="text-sm text-slate-600 dark:text-slate-400">
-						Yearly: {formatCurrency(tier.pricePerYear)}
-					</p>
-				</div>
-			</CardHeader>
-			<div className="mt-auto">
-				<Button
-					onClick={() => onSelectSeatTier(tier.planId, tier.id)}
-					className={`w-full font-semibold py-2.5 text-sm ${
-						isCurrentTier
-							? "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
-							: "bg-slate-600 hover:bg-slate-700 dark:bg-slate-500 dark:hover:bg-slate-600 text-white"
-					}`}
-					disabled={isCurrentTier}
-				>
-					{isCurrentTier ? "Current Tier" : "Select Tier"}
-					{!isCurrentTier && (
-						<ArrowRightIcon className="ml-1.5 w-4 h-4" />
-					)}
-				</Button>
-			</div>
-		</Card>
-	);
-};
+import PlanCardComponent from "./_components/PlanCardComponent";
+import SeatTierCardComponent, {
+	SeatTier,
+} from "./_components/SeatTierCardComponent";
 
 function SubscriptionPageContent() {
 	const searchParams = useSearchParams();
@@ -250,7 +67,7 @@ function SubscriptionPageContent() {
 
 	const handleSelectSeatTier = (planId: number, seatPlanId: number) => {
 		router.push(
-			`/settings/subscription/checkout?planId=${planId}&seatPlanId=${seatPlanId}`
+			`/subscription/checkout?planId=${planId}&seatPlanId=${seatPlanId}`
 		);
 	};
 
@@ -302,14 +119,14 @@ function SubscriptionPageContent() {
 	}
 
 	return (
-		<div className="max-w-5xl mx-auto">
+		<div className="container mx-auto">
 			<div className="mb-8">
 				<Link
 					href="/settings"
 					className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center"
 				>
 					<ArrowLeftIcon className="w-4 h-4 mr-1" />
-					Back to Settings
+					Go Back
 				</Link>
 			</div>
 			<header className="text-center mb-12">
@@ -360,7 +177,7 @@ function SubscriptionPageContent() {
 			</div>
 
 			{activeView === "package" && (
-				<div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
+				<div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch max-w-5xl mx-auto">
 					{subscriptionPlans?.map((plan) => (
 						<div key={plan.id} className="md:col-span-1">
 							<PlanCardComponent
@@ -394,7 +211,7 @@ function SubscriptionPageContent() {
 							</div>
 						</div>
 					) : (
-						<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+						<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
 							{transformedSeatTiers.map((tier) => (
 								<SeatTierCardComponent
 									key={tier.id}

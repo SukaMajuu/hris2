@@ -147,7 +147,7 @@ export default function SettingsPage() {
 												</ul>
 											</div>
 										)}
-									<Link href="/settings/subscription">
+									<Link href="/subscription">
 										<Button
 											variant="outline"
 											className="dark:text-foreground dark:border-slate-700 dark:hover:bg-slate-800"
@@ -189,7 +189,7 @@ export default function SettingsPage() {
 											</p>
 										)}
 									</div>
-									<Link href="/settings/subscription?view=seat">
+									<Link href="/subscription?view=seat">
 										<Button
 											variant="outline"
 											className="dark:text-foreground dark:border-slate-700 dark:hover:bg-slate-800"

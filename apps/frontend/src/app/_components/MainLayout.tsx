@@ -158,9 +158,9 @@ function NavContent({ menuItems, footerItems, pathname }: NavContentProps) {
   );
 }
 
-const hideSidebarForPaths = [
-    "/settings/subscription",
-    "/settings/subscription/checkout",
+const hideLayoutForPaths = [
+    "/subscription",
+    "/subscription/checkout",
   ];
 
 export default function MainLayout({ children }: MainLayoutProps) {
@@ -169,7 +169,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
   useProactiveTokenRefresh();
   const role = (user?.role as Role) || 'admin';
 
-  const shouldHideSidebar = hideSidebarForPaths.includes(pathname);
+  const shouldHideLayout = hideLayoutForPaths.includes(pathname);
 
   const getPageTitle = () => {
     const allMenuItems = [...getMainMenuItemsByRole(role), ...getFooterItemsByRole(role)];
@@ -196,7 +196,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
   return (
     <SidebarProvider>
       <div className='flex h-full min-h-screen w-full bg-slate-100'>
-        {!shouldHideSidebar && (
+        {!shouldHideLayout && (
           <>
             <Sidebar collapsible='icon' className='group border-r border-gray-200 bg-white shadow-sm'>
               <SidebarHeader className='flex h-16 items-center justify-center border-b border-gray-200'>
@@ -208,9 +208,11 @@ export default function MainLayout({ children }: MainLayoutProps) {
           </>
         )}
 
-        <SidebarInset className={cn('flex h-full min-h-0 w-full flex-1 flex-col overflow-y-auto', { 'ml-0': shouldHideSidebar })}>
-          <header className='flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 py-4 sticky top-0 z-10'>
-            <div className='flex items-center gap-3'>
+        <SidebarInset className={cn('flex h-full min-h-0 w-full flex-1 flex-col overflow-y-auto', { 'ml-0': shouldHideLayout })}>
+          {!shouldHideLayout && (
+            <>
+              <header className='flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 py-4 sticky top-0 z-10'>
+                <div className='flex items-center gap-3'>
               <SidebarTrigger className='text-gray-600 hover:bg-primary hover:text-white hover:cursor-pointer' />
               <h1 className='text-lg font-semibold text-gray-800 md:text-xl whitespace-nowrap'>{getPageTitle()}</h1>
             </div>
@@ -234,10 +236,12 @@ export default function MainLayout({ children }: MainLayoutProps) {
               </div>
             </div>
           </header>
+          </>
+        )}
 
-          <main className='flex-1 bg-slate-100'>
-            <div className='p-4 lg:p-6'>{children}</div>
-          </main>
+        <main className='flex-1 bg-slate-100'>
+          <div className='p-4 lg:p-6'>{children}</div>
+        </main>
         </SidebarInset>
       </div>
 

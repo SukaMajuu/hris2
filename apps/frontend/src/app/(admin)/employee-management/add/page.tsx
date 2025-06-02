@@ -1,8 +1,6 @@
 'use client';
 
 import { Card } from '@/components/ui/card';
-
-// Import hook and components
 import { useAddEmployeeForm } from './_hooks/useAddEmployeeForm';
 import { AddEmployeeHeader } from './_components/AddEmployeeHeader';
 import { StepNavigator } from './_components/StepNavigator';

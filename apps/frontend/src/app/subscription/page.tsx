@@ -59,7 +59,7 @@ function SubscriptionPageContent() {
 	}
 
 	return (
-		<div className="container mx-auto min-h-[95vh] flex flex-col gap-12 py-8">
+		<div className="container mx-auto min-h-[95vh] flex flex-col gap-12">
 			{/* Only show Go Back link if user has existing subscription */}
 			{userSubscription?.subscription_plan && (
 				<div className="mb-8">

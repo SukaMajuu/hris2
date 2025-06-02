@@ -16,7 +16,8 @@ export function useSubscriptionStatus() {
 
 	const hasActiveSubscription =
 		userSubscription?.subscription_plan &&
-		userSubscription?.status === "active";
+		(userSubscription?.status === "active" ||
+			userSubscription?.status === "trial");
 
 	const isLoading = isAuthStoreLoading || isLoadingSubscription;
 

@@ -15,6 +15,7 @@ import (
 	"github.com/SukaMajuu/hris/apps/backend/domain"
 	dtoemployee "github.com/SukaMajuu/hris/apps/backend/domain/dto/employee"
 	"github.com/SukaMajuu/hris/apps/backend/domain/interfaces"
+	storage "github.com/supabase-community/storage-go"
 	"github.com/supabase-community/supabase-go"
 	"gorm.io/gorm"
 )
@@ -396,13 +397,36 @@ func (uc *EmployeeUseCase) GetStatistics(ctx context.Context) (*dtoemployee.Empl
 func (uc *EmployeeUseCase) UploadProfilePhoto(ctx context.Context, employeeID uint, file *multipart.FileHeader) (*domain.Employee, error) {
 	log.Printf("EmployeeUseCase: UploadProfilePhoto called for employee ID: %d", employeeID)
 
+	// Step 1: Read existing employee data from database
 	employee, err := uc.employeeRepo.GetByID(ctx, employeeID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get employee: %w", err)
 	}
 
+	// Step 2: Check if there's an existing photo and delete it from bucket first
+	var oldFileName string
+	if employee.ProfilePhotoURL != nil && *employee.ProfilePhotoURL != "" {
+		oldFileName = uc.extractFileNameFromURL(*employee.ProfilePhotoURL)
+		if oldFileName != "" {
+			log.Printf("EmployeeUseCase: Found existing photo, deleting from bucket: %s", oldFileName)
+			removeResponse, removeErr := uc.supabaseClient.Storage.RemoveFile(bucketNamePhoto, []string{oldFileName})
+			if removeErr != nil {
+				log.Printf("Warning: failed to remove old photo file '%s': %v", oldFileName, removeErr)
+				// Continue with upload even if delete fails
+			} else {
+				log.Printf("EmployeeUseCase: Successfully deleted old photo file: %s. Response: %+v", oldFileName, removeResponse)
+			}
+		} else {
+			log.Printf("EmployeeUseCase: Warning - Could not extract filename from existing photo URL: %s", *employee.ProfilePhotoURL)
+		}
+	} else {
+		log.Printf("EmployeeUseCase: No existing photo found for employee ID: %d", employeeID)
+	}
+
+	// Step 3: Generate new filename for the new photo
 	fileName := uc.generatePhotoFileName(employee, file.Filename)
 
+	// Step 4: Open and prepare the new file for upload
 	src, err := file.Open()
 	if err != nil {
 		return nil, fmt.Errorf("failed to open uploaded file: %w", err)
@@ -417,13 +441,11 @@ func (uc *EmployeeUseCase) UploadProfilePhoto(ctx context.Context, employeeID ui
 		return nil, fmt.Errorf("storage client not available")
 	}
 
-	var oldFileName string
-	if employee.ProfilePhotoURL != nil && *employee.ProfilePhotoURL != "" {
-		oldFileName = uc.extractFileNameFromURL(*employee.ProfilePhotoURL)
-		log.Printf("EmployeeUseCase: Found existing photo, will delete after successful upload: %s", oldFileName)
-	}
-
-	_, err = uc.supabaseClient.Storage.UploadFile(bucketNamePhoto, fileName, src)
+	// Step 5: Upload new photo to bucket
+	_, err = uc.supabaseClient.Storage.UploadFile(bucketNamePhoto, fileName, src, storage.FileOptions{
+		ContentType: &[]string{uc.getContentTypeFromExtension(file.Filename)}[0],
+		Upsert:      &[]bool{true}[0],
+	})
 	if err != nil {
 		log.Printf("EmployeeUseCase: Upload failed with error: %v", err)
 		return nil, fmt.Errorf("failed to upload file to storage: %w", err)
@@ -431,28 +453,21 @@ func (uc *EmployeeUseCase) UploadProfilePhoto(ctx context.Context, employeeID ui
 
 	log.Printf("EmployeeUseCase: Photo upload successful! File: %s", fileName)
 
+	// Step 6: Generate public URL for the new photo
 	publicURL := uc.supabaseClient.Storage.GetPublicUrl(bucketNamePhoto, fileName)
 	log.Printf("EmployeeUseCase: Generated public URL: %s", publicURL.SignedURL)
 
+	// Step 7: Update database with new photo URL
 	employee.ProfilePhotoURL = &publicURL.SignedURL
 
 	err = uc.employeeRepo.Update(ctx, employee)
 	if err != nil {
-
+		// Step 8: If database update fails, cleanup the newly uploaded file
 		log.Printf("EmployeeUseCase: Database update failed, cleaning up uploaded file: %s", fileName)
 		if _, removeErr := uc.supabaseClient.Storage.RemoveFile(bucketNamePhoto, []string{fileName}); removeErr != nil {
 			log.Printf("Warning: failed to cleanup uploaded file: %v", removeErr)
 		}
 		return nil, fmt.Errorf("failed to update employee photo URL: %w", err)
-	}
-
-	if oldFileName != "" {
-		log.Printf("EmployeeUseCase: Deleting old photo file: %s", oldFileName)
-		if _, removeErr := uc.supabaseClient.Storage.RemoveFile(bucketNamePhoto, []string{oldFileName}); removeErr != nil {
-			log.Printf("Warning: failed to remove old photo file '%s': %v", oldFileName, removeErr)
-		} else {
-			log.Printf("EmployeeUseCase: Successfully deleted old photo file: %s", oldFileName)
-		}
 	}
 
 	log.Printf("EmployeeUseCase: Successfully updated employee photo URL for ID: %d", employeeID)
@@ -485,9 +500,56 @@ func (uc *EmployeeUseCase) generatePhotoFileName(employee *domain.Employee, orig
 }
 
 func (uc *EmployeeUseCase) extractFileNameFromURL(url string) string {
+	log.Printf("EmployeeUseCase: Extracting filename from URL: %s", url)
+
+	// Handle Supabase storage URLs
+	// Format: https://xxx.supabase.co/storage/v1/object/public/photo/filename.ext
+	if strings.Contains(url, "/storage/v1/object/public/") {
+		// Split by "public/" and take the part after it
+		parts := strings.Split(url, "/storage/v1/object/public/")
+		if len(parts) > 1 {
+			// Get the part after "public/" which should be "bucket/filename"
+			pathAfterPublic := parts[1]
+			// Split by "/" to get bucket and filename
+			pathParts := strings.Split(pathAfterPublic, "/")
+			if len(pathParts) >= 2 {
+				// Skip the bucket name (first part) and get the filename
+				fileName := strings.Join(pathParts[1:], "/") // Join in case filename has slashes
+				// Remove query parameters if any
+				if idx := strings.Index(fileName, "?"); idx != -1 {
+					fileName = fileName[:idx]
+				}
+				log.Printf("EmployeeUseCase: Extracted filename from Supabase URL: %s", fileName)
+				return fileName
+			}
+		}
+	}
+
+	// Fallback: extract filename from the end of URL
 	parts := strings.Split(url, "/")
 	if len(parts) > 0 {
-		return parts[len(parts)-1]
+		fileName := parts[len(parts)-1]
+		// Remove query parameters if any
+		if idx := strings.Index(fileName, "?"); idx != -1 {
+			fileName = fileName[:idx]
+		}
+		log.Printf("EmployeeUseCase: Extracted filename (fallback method): %s", fileName)
+		return fileName
 	}
+
+	log.Printf("EmployeeUseCase: Could not extract filename from URL")
 	return ""
+}
+
+// getContentTypeFromExtension determines the content type based on file extension
+func (uc *EmployeeUseCase) getContentTypeFromExtension(filename string) string {
+	ext := strings.ToLower(filepath.Ext(filename))
+	switch ext {
+	case ".jpg", ".jpeg":
+		return "image/jpeg"
+	case ".png":
+		return "image/png"
+	default:
+		return "image/jpeg"
+	}
 }

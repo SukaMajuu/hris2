@@ -1,346 +1,279 @@
-import { useState, useEffect, useCallback } from "react";
-import type { Employee } from "../../_types/employee";
-import { useEmployeeManagement } from "../../_hooks/useEmployeeManagement";
+import { useState, useCallback, useEffect } from 'react';
+import { useEmployeeDetailQuery } from '@/api/queries/employee.queries';
 
 export interface ClientDocument {
-	name: string;
-	file: File | null;
-	url?: string;
-	uploadedAt?: string;
+  name: string;
+  file: File | null;
+  url?: string;
+  uploadedAt?: string;
 }
 
-export function useDetailEmployee(employeeId: number | null) {
-	const { employees } = useEmployeeManagement();
+export function useDetailEmployee(employeeId: number) {
+  const {
+    data: employee,
+    isLoading,
+    error,
+    isError,
+  } = useEmployeeDetailQuery(employeeId, !!employeeId);
 
-	const [initialEmployeeData, setInitialEmployeeData] = useState<
-		Employee | undefined
-	>(undefined);
-	const [isLoading, setIsLoading] = useState(true);
-	const [error, setError] = useState<string | undefined>(undefined);
+  // Profile image states
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [profileFile, setProfileFile] = useState<File | null>(null);
 
-	const [profileImage, setProfileImage] = useState<string | null>(null);
-	const [profileFile, setProfileFile] = useState<File | null>(null);
-	const [name, setName] = useState("");
-	const [employeeCode, setEmployeeCode] = useState("");
-	const [branch, setBranch] = useState("");
-	const [position, setPosition] = useState("");
-	const [employmentStatus, setEmploymentStatus] = useState("");
-	const [department, setDepartment] = useState("");
-	const [grade, setGrade] = useState("");
-	const [joinDate, setJoinDate] = useState("");
-	const [contractType, setContractType] = useState("");
-	const [sp, setSp] = useState("");
-	const [editJob, setEditJob] = useState(false);
+  // Job information states
+  const [name, setName] = useState('');
+  const [employeeCode, setEmployeeCode] = useState('');
+  const [branch, setBranch] = useState('');
+  const [position, setPosition] = useState('');
+  const [employmentStatus, setEmploymentStatus] = useState('');
+  const [department, setDepartment] = useState('');
+  const [grade, setGrade] = useState('');
+  const [joinDate, setJoinDate] = useState('');
+  const [contractType, setContractType] = useState('');
+  const [sp, setSp] = useState('');
+  const [editJob, setEditJob] = useState(false);
 
-	const [nik, setNik] = useState("");
-	const [email, setEmail] = useState("");
-	const [gender, setGender] = useState("");
-	const [placeOfBirth, setPlaceOfBirth] = useState("");
-	const [dateOfBirth, setDateOfBirth] = useState("");
-	const [phone, setPhone] = useState("");
-	const [address, setAddress] = useState("");
-	const [lastEducation, setLastEducation] = useState("");
-	const [editPersonal, setEditPersonal] = useState(false);
+  // Personal information states
+  const [nik, setNik] = useState('');
+  const [email, setEmail] = useState('');
+  const [gender, setGender] = useState('');
+  const [placeOfBirth, setPlaceOfBirth] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [lastEducation, setLastEducation] = useState('');
+  const [editPersonal, setEditPersonal] = useState(false);
 
-	const [bankName, setBankName] = useState("");
-	const [bankAccountHolder, setBankAccountHolder] = useState("");
-	const [bankAccountNumber, setBankAccountNumber] = useState("");
-	const [editBank, setEditBank] = useState(false);
+  // Bank information states
+  const [bankName, setBankName] = useState('');
+  const [bankAccountHolder, setBankAccountHolder] = useState('');
+  const [bankAccountNumber, setBankAccountNumber] = useState('');
+  const [editBank, setEditBank] = useState(false);
 
-	const [currentDocuments, setCurrentDocuments] = useState<ClientDocument[]>(
-		[]
-	);
+  // Document states
+  const [currentDocuments, setCurrentDocuments] = useState<ClientDocument[]>([]);
 
-	useEffect(() => {
-		if (employeeId === null || isNaN(employeeId)) {
-			setError("Invalid employee ID.");
-			setIsLoading(false);
-			setInitialEmployeeData(undefined);
-			return;
-		}
+  // Initialize form data when employee data is loaded
+  useEffect(() => {
+    if (employee) {
+      // Format employee name from first_name and last_name
+      const fullName = [employee.first_name, employee.last_name].filter(Boolean).join(' ');
 
-		const foundEmployee = employees.find((e) => e.id === employeeId);
-		setInitialEmployeeData(foundEmployee);
-		setIsLoading(false);
-		if (!foundEmployee) {
-			setError("Employee not found.");
-		} else {
-			setError(undefined);
+      setName(fullName);
+      setEmployeeCode(employee.employee_code || '');
+      setNik(employee.nik || '');
+      setEmail(employee.email || '');
+      setGender(employee.gender || '');
+      setPlaceOfBirth(employee.place_of_birth || '');
+      setDateOfBirth(employee.date_of_birth || '');
+      setPhone(employee.phone || '');
+      setAddress(''); // Address field not in API response
+      setBranch(employee.branch_name || '');
+      setPosition(employee.position_name || '');
+      setEmploymentStatus(employee.employment_status ? 'Active' : 'Inactive');
+      setDepartment(''); // Department field not in API response
+      setGrade(employee.grade || '');
+      setJoinDate(employee.hire_date || '');
+      setBankName(employee.bank_name || '');
+      setBankAccountHolder(employee.bank_account_holder_name || '');
+      setBankAccountNumber(employee.bank_account_number || '');
+      setProfileImage(employee.profile_photo_url || null);
+      setLastEducation(employee.last_education || '');
+      setContractType(employee.contract_type || '');
+      setSp(employee.sp || '');
+      setCurrentDocuments(
+        employee.documentMetadata?.map((doc) => ({
+          name: doc.name,
+          file: null,
+          url: doc.url,
+          uploadedAt: doc.uploadedAt,
+        })) || [],
+      );
+    }
+  }, [employee]);
 
-			setName(foundEmployee.name || "");
-			setEmployeeCode(foundEmployee.employeeCode || "");
-			setNik(foundEmployee.nik || "");
-			setEmail(foundEmployee.email || "");
-			setGender(foundEmployee.gender || "");
-			setPlaceOfBirth(foundEmployee.placeOfBirth || "");
-			setDateOfBirth(foundEmployee.dateOfBirth || "");
-			setPhone(foundEmployee.phone || "");
-			setAddress(foundEmployee.address || "");
-			setBranch(foundEmployee.branch || "");
-			setPosition(foundEmployee.position || "");
-			setEmploymentStatus(foundEmployee.employmentStatus || "");
-			setDepartment(foundEmployee.department || "");
-			setGrade(foundEmployee.grade || "");
-			setJoinDate(foundEmployee.joinDate || "");
-			setBankName(foundEmployee.bankName || "");
-			setBankAccountHolder(foundEmployee.bankAccountHolder || "");
-			setBankAccountNumber(foundEmployee.bankAccountNumber || "");
-			setProfileImage(foundEmployee.profilePicture || "/logo.png");
-			setLastEducation(foundEmployee.lastEducation || "");
-			setContractType(foundEmployee.contractType || "");
-			setSp(foundEmployee.sp || "");
-			setCurrentDocuments(
-				foundEmployee.documentMetadata?.map((doc) => ({
-					name: doc.name,
-					file: null,
-					url: doc.url,
-					uploadedAt: doc.uploadedAt,
-				})) || []
-			);
-		}
-	}, [employeeId, employees]);
+  const handleProfileImageChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    if (file) {
+      setProfileFile(file);
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        setProfileImage(ev.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  }, []);
 
-	const handleProfileImageChange = useCallback(
-		(e: React.ChangeEvent<HTMLInputElement>) => {
-			const file = e.target.files?.[0] || null;
-			if (file) {
-				setProfileFile(file);
-				const reader = new FileReader();
-				reader.onload = (ev) => {
-					setProfileImage(ev.target?.result as string);
-				};
-				reader.readAsDataURL(file);
-			}
-		},
-		[]
-	);
+  const handleAddNewDocument = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setCurrentDocuments((prevDocs) => [
+        ...prevDocs,
+        {
+          name: file.name,
+          file: file,
+          url: undefined,
+          uploadedAt: new Date().toISOString().split('T')[0],
+        },
+      ]);
+    }
+  }, []);
 
-	const handleAddNewDocument = useCallback(
-		(e: React.ChangeEvent<HTMLInputElement>) => {
-			const file = e.target.files?.[0];
-			if (file) {
-				setCurrentDocuments((prevDocs) => [
-					...prevDocs,
-					{
-						name: file.name,
-						file: file,
-						url: undefined,
-						uploadedAt: new Date().toISOString().split("T")[0],
-					},
-				]);
-			}
-		},
-		[]
-	);
+  const handleDeleteDocument = useCallback((index: number) => {
+    setCurrentDocuments((prevDocs) => prevDocs.filter((_, i) => i !== index));
+  }, []);
 
-	const handleDeleteDocument = useCallback((index: number) => {
-		setCurrentDocuments((prevDocs) =>
-			prevDocs.filter((_, i) => i !== index)
-		);
-	}, []);
+  const handleDownloadDocument = useCallback((doc: ClientDocument) => {
+    if (doc.url && !doc.file) {
+      const link = document.createElement('a');
+      link.href = doc.url;
+      link.download = doc.name;
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else if (doc.file) {
+      const url = URL.createObjectURL(doc.file);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = doc.name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+  }, []);
 
-	const handleDownloadDocument = useCallback((doc: ClientDocument) => {
-		if (doc.url && !doc.file) {
-			const link = document.createElement("a");
-			link.href = doc.url;
-			link.download = doc.name;
-			link.target = "_blank";
-			document.body.appendChild(link);
-			link.click();
-			document.body.removeChild(link);
-		} else if (doc.file) {
-			const url = URL.createObjectURL(doc.file);
-			const link = document.createElement("a");
-			link.href = url;
-			link.download = doc.name;
-			document.body.appendChild(link);
-			link.click();
-			document.body.removeChild(link);
-			URL.revokeObjectURL(url);
-		}
-	}, []);
+  const handleSaveJob = useCallback(() => {
+    console.log('Saving job info...', {
+      employeeCode,
+      branch,
+      position,
+      employmentStatus,
+      department,
+      grade,
+      joinDate,
+      contractType,
+      sp,
+    });
 
-	const handleSaveJob = useCallback(() => {
-		console.log("Saving job info...", {
-			employeeCode,
-			branch,
-			position,
-			employmentStatus,
-			department,
-			grade,
-			joinDate,
-			contractType,
-			sp,
-		});
-		if (initialEmployeeData) {
-			// TODO: Make API call to update employee data
-			setInitialEmployeeData((prev) =>
-				prev
-					? {
-							...prev,
-							employeeCode,
-							branch,
-							position,
-							employmentStatus,
-							department,
-							grade,
-							joinDate,
-							contractType,
-							sp,
-							profilePicture:
-								profileImage === null
-									? undefined
-									: profileImage,
-					  }
-					: undefined
-			);
-		}
-		setEditJob(false);
-	}, [
-		employeeCode,
-		branch,
-		position,
-		employmentStatus,
-		department,
-		grade,
-		joinDate,
-		contractType,
-		sp,
-		profileImage,
-		initialEmployeeData,
-	]);
+    setEditJob(false);
+  }, [
+    employeeCode,
+    branch,
+    position,
+    employmentStatus,
+    department,
+    grade,
+    joinDate,
+    contractType,
+    sp,
+  ]);
 
-	const handleSavePersonal = useCallback(() => {
-		// TODO: Make API call to update employee data
-		if (initialEmployeeData) {
-			setInitialEmployeeData((prev) =>
-				prev
-					? {
-							...prev,
-							nik,
-							email,
-							gender,
-							placeOfBirth,
-							dateOfBirth,
-							phone,
-							address,
-							lastEducation,
-							name,
-					  }
-					: undefined
-			);
-		}
-		setEditPersonal(false);
-	}, [
-		nik,
-		email,
-		gender,
-		placeOfBirth,
-		dateOfBirth,
-		phone,
-		address,
-		lastEducation,
-		initialEmployeeData,
-		name,
-	]);
+  const handleSavePersonal = useCallback(() => {
+    console.log('Saving personal info...', {
+      nik,
+      email,
+      gender,
+      placeOfBirth,
+      dateOfBirth,
+      phone,
+      address,
+      lastEducation,
+      name,
+    });
+    // TODO: Make API call to update employee data
+    setEditPersonal(false);
+  }, [nik, email, gender, placeOfBirth, dateOfBirth, phone, address, lastEducation, name]);
 
-	const handleSaveBank = useCallback(() => {
-		// TODO: Make API call to update employee data
-		if (initialEmployeeData) {
-			setInitialEmployeeData((prev) =>
-				prev
-					? {
-							...prev,
-							bankName,
-							bankAccountHolder,
-							bankAccountNumber,
-					  }
-					: undefined
-			);
-		}
-		setEditBank(false);
-	}, [bankName, bankAccountHolder, bankAccountNumber, initialEmployeeData]);
+  const handleSaveBank = useCallback(() => {
+    console.log('Saving bank info...', {
+      bankName,
+      bankAccountHolder,
+      bankAccountNumber,
+    });
+    // TODO: Make API call to update employee data
+    setEditBank(false);
+  }, [bankName, bankAccountHolder, bankAccountNumber]);
 
-	const handleResetPassword = useCallback(() => {
-		const newPassword = Math.random().toString(36).slice(-8);
-		console.log(
-			`Password reset requested for employee ${initialEmployeeData?.id}. New temporary password: ${newPassword}`
-		);
-		alert(
-			`Password has been reset. New temporary password: ${newPassword}`
-		);
-	}, [initialEmployeeData?.id]);
+  const handleResetPassword = useCallback(() => {
+    const newPassword = Math.random().toString(36).slice(-8);
+    console.log(
+      `Password reset requested for employee ${employee?.id}. New temporary password: ${newPassword}`,
+    );
+    alert(`Password has been reset. New temporary password: ${newPassword}`);
+  }, [employee?.id]);
 
-	return {
-		initialEmployeeData,
-		isLoading,
-		error,
+  return {
+    initialEmployeeData: employee,
+    isLoading,
+    error: isError ? error?.message || 'Failed to load employee data' : null,
 
-		profileImage,
-		setProfileImage,
-		profileFile,
-		setProfileFile,
-		name,
-		setName,
-		employeeCode,
-		setEmployeeCode,
-		branch,
-		setBranch,
-		position,
-		setPosition,
-		employmentStatus,
-		setEmploymentStatus,
-		department,
-		setDepartment,
-		grade,
-		setGrade,
-		joinDate,
-		setJoinDate,
-		contractType,
-		setContractType,
-		sp,
-		setSp,
-		editJob,
-		setEditJob,
+    profileImage,
+    setProfileImage,
+    profileFile,
+    setProfileFile,
+    name,
+    setName,
+    employeeCode,
+    setEmployeeCode,
+    branch,
+    setBranch,
+    position,
+    setPosition,
+    employmentStatus,
+    setEmploymentStatus,
+    department,
+    setDepartment,
+    grade,
+    setGrade,
+    joinDate,
+    setJoinDate,
+    contractType,
+    setContractType,
+    sp,
+    setSp,
+    editJob,
+    setEditJob,
 
-		nik,
-		setNik,
-		email,
-		setEmail,
-		gender,
-		setGender,
-		placeOfBirth,
-		setPlaceOfBirth,
-		dateOfBirth,
-		setDateOfBirth,
-		phone,
-		setPhone,
-		address,
-		setAddress,
-		lastEducation,
-		setLastEducation,
-		editPersonal,
-		setEditPersonal,
+    nik,
+    setNik,
+    email,
+    setEmail,
+    gender,
+    setGender,
+    placeOfBirth,
+    setPlaceOfBirth,
+    dateOfBirth,
+    setDateOfBirth,
+    phone,
+    setPhone,
+    address,
+    setAddress,
+    lastEducation,
+    setLastEducation,
+    editPersonal,
+    setEditPersonal,
 
-		bankName,
-		setBankName,
-		bankAccountHolder,
-		setBankAccountHolder,
-		bankAccountNumber,
-		setBankAccountNumber,
-		editBank,
-		setEditBank,
+    bankName,
+    setBankName,
+    bankAccountHolder,
+    setBankAccountHolder,
+    bankAccountNumber,
+    setBankAccountNumber,
+    editBank,
+    setEditBank,
 
-		currentDocuments,
-		setCurrentDocuments,
+    currentDocuments,
+    setCurrentDocuments,
 
-		handleProfileImageChange,
-		handleAddNewDocument,
-		handleDeleteDocument,
-		handleDownloadDocument,
-		handleSaveJob,
-		handleSavePersonal,
-		handleSaveBank,
-		handleResetPassword,
-	};
+    handleProfileImageChange,
+    handleAddNewDocument,
+    handleDeleteDocument,
+    handleDownloadDocument,
+    handleSaveJob,
+    handleSavePersonal,
+    handleSaveBank,
+    handleResetPassword,
+  };
 }

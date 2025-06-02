@@ -82,7 +82,7 @@ func (r *Router) Setup() *gin.Engine {
 
 		// Protected API routes
 		api := v1.Group("/api")
-		// api.Use(r.authMiddleware.Authenticate())
+		api.Use(r.authMiddleware.Authenticate())
 		{
 			employee := api.Group("/employee")
 			{
@@ -113,7 +113,7 @@ func (r *Router) Setup() *gin.Engine {
 				checkclockSettings.POST("", r.checkclockSettingsHandler.CreateCheckclockSettings)
 			}
 
-      documents := api.Group("/documents")
+			documents := api.Group("/documents")
 			{
 				documents.POST("/upload", r.authMiddleware.Authenticate(), r.documentHandler.UploadDocument)
 				documents.GET("", r.authMiddleware.Authenticate(), r.documentHandler.GetDocuments)

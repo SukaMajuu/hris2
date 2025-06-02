@@ -46,6 +46,27 @@ export type CreateWorkScheduleDetail = {
     location_id?: number | null;
 };
 
+// Backend Update Request DTOs that match the backend API expectations
+export type UpdateWorkScheduleRequest = {
+    name: string;
+    workType: string; // Update uses camelCase, not snake_case
+    details: UpdateWorkScheduleDetail[];
+    toDelete?: number[]; // IDs of details to delete
+};
+
+export type UpdateWorkScheduleDetail = {
+    id?: number | null; // Null for new details
+    workTypeDetail: string; // Update uses camelCase, not snake_case
+    workDays: string[]; // Update uses camelCase, not snake_case
+    checkInStart?: string | null;
+    checkInEnd?: string | null;
+    breakStart?: string | null;
+    breakEnd?: string | null;
+    checkOutStart?: string | null;
+    checkOutEnd?: string | null;
+    locationId?: number | null; // Update uses camelCase, not snake_case
+};
+
 // Form-specific type that uses frontend field naming conventions
 // This is used in WorkScheduleForm component for internal state management
 export type WorkScheduleDetailRow = {
@@ -93,27 +114,87 @@ export const transformFormToCreateRequest = (formData: WorkScheduleFormType): Cr
     };
 };
 
-export const transformWorkScheduleToForm = (workSchedule: WorkSchedule): WorkScheduleFormType => {
+export const transformFormToUpdateRequest = (formData: WorkScheduleFormType, deletedDetailIds: number[] = []): UpdateWorkScheduleRequest => {
     return {
-        id: workSchedule.id,
-        nama: workSchedule.name,
-        workType: workSchedule.work_type,
-        workScheduleDetails: workSchedule.details.map(detail => ({
-            id: detail.id,
-            workTypeChildren: detail.worktype_detail,
-            workDays: detail.workdays,
-            checkInStart: detail.checkin_start || "",
-            checkInEnd: detail.checkin_end || "",
-            breakStart: detail.break_start || "",
-            breakEnd: detail.break_end || "",
-            checkOutStart: detail.checkout_start || "",
-            checkOutEnd: detail.checkout_end || "",
-            locationId: detail.location_id?.toString() || "",
-            locationName: detail.location_name || "",
-            addressDetails: detail.location_address || "",
-            latitude: detail.latitude?.toString() || "",
-            longitude: detail.longitude?.toString() || "",
-            radiusM: detail.radius_m || null,
-        }))
+        name: formData.nama,
+        workType: formData.workType, // Update uses camelCase
+        details: formData.workScheduleDetails.map(detail => ({
+            id: detail.id || null, // Include ID for existing details, null for new ones
+            workTypeDetail: detail.workTypeChildren, // Update uses camelCase
+            workDays: detail.workDays, // Update uses camelCase
+            checkInStart: detail.checkInStart || null,
+            checkInEnd: detail.checkInEnd || null,
+            breakStart: detail.breakStart || null,
+            breakEnd: detail.breakEnd || null,
+            checkOutStart: detail.checkOutStart || null,
+            checkOutEnd: detail.checkOutEnd || null,
+            locationId: detail.locationId ? parseInt(detail.locationId) : null,
+        })),
+        toDelete: deletedDetailIds // Use the passed deleted IDs
     };
+};
+
+export const transformWorkScheduleToForm = (workSchedule: WorkSchedule): WorkScheduleFormType => {
+    // Provide default values if data is missing
+    // Try different possible field names from API using bracket notation
+    const workTypeValue = workSchedule.work_type ||
+        ((workSchedule as unknown) as Record<string, unknown>)['type'] ||
+        ((workSchedule as unknown) as Record<string, unknown>)['workType'] || "";
+    const nameValue = workSchedule.name ||
+        ((workSchedule as unknown) as Record<string, unknown>)['nama'] || "";
+
+    const result = {
+        id: workSchedule.id,
+        nama: nameValue as string,
+        workType: workTypeValue as string,
+        workScheduleDetails: (workSchedule.details || []).map(detail => {
+            // Try different possible field names for detail work type
+            const detailWorkType = detail.worktype_detail ||
+                ((detail as unknown) as Record<string, unknown>)['work_type'] ||
+                ((detail as unknown) as Record<string, unknown>)['type'] ||
+                ((detail as unknown) as Record<string, unknown>)['workType'] || "";
+            const detailWorkDays = detail.workdays ||
+                ((detail as unknown) as Record<string, unknown>)['work_days'] ||
+                ((detail as unknown) as Record<string, unknown>)['workDays'] || [];
+
+            return {
+                id: detail.id,
+                workTypeChildren: detailWorkType as string,
+                workDays: detailWorkDays as string[],
+                checkInStart: detail.checkin_start || "",
+                checkInEnd: detail.checkin_end || "",
+                breakStart: detail.break_start || "",
+                breakEnd: detail.break_end || "",
+                checkOutStart: detail.checkout_start || "",
+                checkOutEnd: detail.checkout_end || "",
+                locationId: detail.location_id?.toString() || "",
+                locationName: detail.location_name || "",
+                addressDetails: detail.location_address || "",
+                latitude: detail.latitude?.toString() || "",
+                longitude: detail.longitude?.toString() || "",
+                radiusM: detail.radius_m || null,
+            };
+        })
+    };// Ensure at least one detail exists
+    if (result.workScheduleDetails.length === 0) {
+        result.workScheduleDetails = [{
+            id: undefined,
+            workTypeChildren: "",
+            workDays: [],
+            checkInStart: "",
+            checkInEnd: "",
+            breakStart: "",
+            breakEnd: "",
+            checkOutStart: "",
+            checkOutEnd: "",
+            locationId: "",
+            locationName: "",
+            latitude: "",
+            longitude: "",
+            addressDetails: "",
+            radiusM: null,
+        }];
+    }
+
+    return result;
 };

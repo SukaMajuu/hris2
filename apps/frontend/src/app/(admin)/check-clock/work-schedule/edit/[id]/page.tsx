@@ -4,19 +4,17 @@ import { useParams } from "next/navigation";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { WorkScheduleForm } from "@/app/(admin)/check-clock/work-schedule/_components/WorkScheduleForm";
 import { useWorkScheduleDetailData, useWorkScheduleMutations } from "@/app/(admin)/check-clock/work-schedule/_hooks/useWorkSchedule";
-import { CreateWorkScheduleRequest } from "@/types/work-schedule.types";
+import { CreateWorkScheduleRequest, UpdateWorkScheduleRequest } from "@/types/work-schedule.types";
 
 export default function EditWorkSchedulePage() {
     const params = useParams();
-    const id = Number(params.id);
-
-    const { workSchedule: initialData, isLoading: isLoadingData, isError } = useWorkScheduleDetailData(id);
+    const id = Number(params.id); const { workSchedule: initialData, isLoading: isLoadingData, isError } = useWorkScheduleDetailData(id);
     const { handleUpdate, isUpdating } = useWorkScheduleMutations();
 
-    const handleSave = async (data: CreateWorkScheduleRequest) => {
-        console.log("Updating workSchedule data:", data);
+    const handleSave = async (data: CreateWorkScheduleRequest | UpdateWorkScheduleRequest) => {
         if (!initialData?.id) return;
-        await handleUpdate(initialData.id, data);
+        // Type assertion since we know this will be UpdateWorkScheduleRequest in edit mode
+        await handleUpdate(initialData.id, data as UpdateWorkScheduleRequest);
     };
 
     if (isLoadingData) {

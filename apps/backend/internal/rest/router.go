@@ -100,12 +100,14 @@ func (r *Router) Setup() *gin.Engine {
 				locations.GET("/:id", r.locationHandler.GetLocationByID)
 				locations.PUT("/:id", r.locationHandler.UpdateLocation)
 				locations.DELETE("/:id", r.locationHandler.DeleteLocation)
-			}
-
+			}			
+			
 			workScheduleRoutes := api.Group("/work-schedules")
 			{
 				workScheduleRoutes.POST("", r.workScheduleHandler.CreateWorkSchedule)
 				workScheduleRoutes.GET("", r.workScheduleHandler.ListWorkSchedules)
+				workScheduleRoutes.GET("/:id", r.workScheduleHandler.GetWorkSchedule)
+				workScheduleRoutes.PUT("/:id", r.workScheduleHandler.UpdateWorkSchedule)
 			}
 
 			checkclockSettings := api.Group("/checkclock-settings")

@@ -137,3 +137,55 @@ func (uc *WorkScheduleUseCase) List(ctx context.Context, paginationParams domain
 		},
 	}, nil
 }
+
+// Update updates an existing work schedule with its details.
+func (uc *WorkScheduleUseCase) Update(ctx context.Context, id uint, workSchedule *domain.WorkSchedule, details []*domain.WorkScheduleDetail, toDeleteIDs []uint) (*dtoworkschedule.WorkScheduleResponseDTO, error) {
+	// First, check if the work schedule exists
+	existingWorkSchedule, err := uc.workScheduleRepo.GetByIDWithDetails(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("work schedule with ID %d not found: %w", id, err)
+	}
+
+	// Validate LocationID for WFO details if locationRepo is available
+	if uc.locationRepo != nil {
+		for _, detail := range details {
+			if detail.WorktypeDetail == enums.WorkTypeWFO {
+				if detail.LocationID == nil {
+					return nil, fmt.Errorf("location ID is required for WFO work type detail")
+				}
+				_, err := uc.locationRepo.GetByID(ctx, *detail.LocationID)
+				if err != nil {
+					return nil, fmt.Errorf("invalid location ID %d for WFO detail: %w", *detail.LocationID, err)
+				}
+			}
+		}
+	}
+
+	// Set the ID for the work schedule to be updated
+	workSchedule.ID = existingWorkSchedule.ID
+	workSchedule.CreatedAt = existingWorkSchedule.CreatedAt // Preserve creation time
+
+	// Update the work schedule with details
+	err = uc.workScheduleRepo.UpdateWithDetails(ctx, workSchedule, details, toDeleteIDs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update work schedule: %w", err)
+	}
+
+	// Fetch the updated work schedule to get all details including IDs and preloaded Location
+	updatedWorkSchedule, err := uc.workScheduleRepo.GetByIDWithDetails(ctx, workSchedule.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch updated work schedule with details: %w", err)
+	}
+
+	return toWorkScheduleResponseDTO(updatedWorkSchedule), nil
+}
+
+// GetByID retrieves a work schedule by ID with all its details
+func (uc *WorkScheduleUseCase) GetByID(ctx context.Context, id uint) (*dtoworkschedule.WorkScheduleResponseDTO, error) {
+	workSchedule, err := uc.workScheduleRepo.GetByIDWithDetails(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get work schedule by ID %d: %w", id, err)
+	}
+
+	return toWorkScheduleResponseDTO(workSchedule), nil
+}

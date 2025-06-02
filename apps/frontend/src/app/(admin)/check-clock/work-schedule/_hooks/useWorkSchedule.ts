@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { WorkSchedule, WorkScheduleDetailItem, CreateWorkScheduleRequest } from "@/types/work-schedule.types";
+import { WorkSchedule, WorkScheduleDetailItem, CreateWorkScheduleRequest, UpdateWorkScheduleRequest } from "@/types/work-schedule.types";
 import { useWorkSchedules, useWorkScheduleDetail } from "@/api/queries/work-schedule.queries";
 import { useCreateWorkSchedule, useUpdateWorkSchedule, useDeleteWorkSchedule } from "@/api/mutations/work-schedule.mutation";
 import { useWorkScheduleStore } from "@/stores/work-schedule.store";
@@ -158,10 +158,8 @@ export function useWorkScheduleMutations() {
             });
             throw error;
         }
-    }, [createMutation, router]);
-
-    // Update work schedule
-    const handleUpdate = useCallback(async (id: number, data: CreateWorkScheduleRequest) => {
+    }, [createMutation, router]);    // Update work schedule
+    const handleUpdate = useCallback(async (id: number, data: UpdateWorkScheduleRequest) => {
         try {
             await updateMutation.mutateAsync({ id, data });
             toast({

@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from "
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { WorkScheduleFormType, WorkScheduleDetailRow, CreateWorkScheduleRequest, transformFormToCreateRequest, transformWorkScheduleToForm, WorkSchedule } from "@/types/work-schedule.types";
+import { WorkScheduleFormType, WorkScheduleDetailRow, CreateWorkScheduleRequest, UpdateWorkScheduleRequest, transformFormToCreateRequest, transformFormToUpdateRequest, transformWorkScheduleToForm, WorkSchedule } from "@/types/work-schedule.types";
 import { CalendarClock, CalendarCog, MapPin, PlusCircle, Trash2 } from "lucide-react"; // Added PlusCircle, Trash2
 import { MultiSelect } from "@/components/multiSelect";
 
@@ -20,7 +20,7 @@ interface Location {
 
 interface WorkScheduleFormProps {
     initialData?: WorkSchedule; // API type
-    onSubmit: (data: CreateWorkScheduleRequest) => void; // Expects transformed data
+    onSubmit: (data: CreateWorkScheduleRequest | UpdateWorkScheduleRequest) => void; // Accepts both types
     isEditMode?: boolean;
     isLoading?: boolean;
     locations?: Location[];
@@ -76,10 +76,15 @@ export function WorkScheduleForm({
 }: WorkScheduleFormProps) {
     const router = useRouter();
     const formRefs = useRef<(HTMLDivElement | null)[]>([]);
+    const isDataLoaded = useRef(false); // Prevent multiple data loads
+    const lastProcessedId = useRef<number | undefined>(undefined); // Track last processed ID
 
-    // Transform initialData dari WorkSchedule ke WorkScheduleFormType
+    // Track deleted details for update requests
+    const [deletedDetailIds, setDeletedDetailIds] = useState<number[]>([]);
+
+    // Initialize with transformed data if available, otherwise use defaults
     const [formData, setFormData] = useState<WorkScheduleFormType>(() => {
-        if (initialData && initialData.name && initialData.work_type && initialData.details) { // Ensure initialData is a valid WorkSchedule
+        if (initialData?.id) {
             return transformWorkScheduleToForm(initialData);
         }
         return {
@@ -87,8 +92,32 @@ export function WorkScheduleForm({
             workType: "",
             workScheduleDetails: [{ ...emptyWorkScheduleDetail }]
         };
-    });
+    });    // Update form data when initialData changes (for edit mode)
+    useEffect(() => {
+        // Only process if we have valid data and haven't processed this ID yet
+        if (!initialData?.id) {
+            return;
+        }
 
+        // Check if this is the same ID we already processed
+        if (lastProcessedId.current === initialData.id) {
+            return;
+        }
+
+        try {
+            const transformedData = transformWorkScheduleToForm(initialData);
+
+            // Update tracking refs before setting state
+            lastProcessedId.current = initialData.id;
+            isDataLoaded.current = true;
+
+            setFormData(transformedData);
+            // Reset deleted details when loading new data
+            setDeletedDetailIds([]);
+        } catch (error) {
+            console.error("Error transforming data:", error);
+        }
+    }, [initialData]);
     // Update referensi DOM saat jumlah detail berubah
     useEffect(() => {
         formRefs.current = formRefs.current.slice(0, formData.workScheduleDetails?.length || 0);
@@ -143,13 +172,18 @@ export function WorkScheduleForm({
             }, 100);
             return { ...prev, workScheduleDetails: newDetails };
         });
-    };
-
-    /**
+    };    /**
      * Menghapus detail jadwal
      */
     const handleRemoveDetail = (idx: number) => {
         setFormData((prev) => {
+            const detailToRemove = prev.workScheduleDetails[idx];
+
+            // If this is an existing detail (has an ID), add it to deleted list
+            if (detailToRemove?.id && isEditMode) {
+                setDeletedDetailIds(currentDeleted => [...currentDeleted, detailToRemove.id!]);
+            }
+
             const details = prev.workScheduleDetails.filter((_, index) => index !== idx);
             // Ensure at least one detail row remains
             if (details.length === 0) {
@@ -182,9 +216,14 @@ export function WorkScheduleForm({
                 alert("Location is required for WFO details.");
                 return;
             }
+        }        // Use the appropriate transformation based on edit mode
+        if (isEditMode) {
+            const updateRequest = transformFormToUpdateRequest(formData, deletedDetailIds);
+            onSubmit(updateRequest);
+        } else {
+            const createRequest = transformFormToCreateRequest(formData);
+            onSubmit(createRequest);
         }
-        const createRequest = transformFormToCreateRequest(formData);
-        onSubmit(createRequest);
     };
 
     return (
@@ -209,8 +248,7 @@ export function WorkScheduleForm({
                                 className="focus-visible:ring-[#6B9AC4] focus-visible:border-[#6B9AC4]"
                                 required
                             />
-                        </div>
-                        <div className="space-y-2">
+                        </div>                        <div className="space-y-2">
                             <Label htmlFor="workType" className="text-sm font-medium">Main Work Type <span className="text-red-500">*</span></Label>
                             <Select
                                 value={formData.workType ?? ""}
@@ -219,12 +257,12 @@ export function WorkScheduleForm({
                             >
                                 <SelectTrigger className="w-full bg-white border-gray-300">
                                     <SelectValue placeholder="Select main work type" />
-                                </SelectTrigger>                                <SelectContent className="bg-white">
+                                </SelectTrigger>
+                                <SelectContent className="bg-white">
                                     <SelectItem value="WFO">Work From Office (WFO)</SelectItem>
                                     <SelectItem value="WFA">Work From Anywhere (WFA)</SelectItem>
                                     <SelectItem value="Hybrid">Hybrid</SelectItem>
-                                </SelectContent>
-                            </Select>
+                                </SelectContent>                            </Select>
                         </div>
                     </div>
                 </CardContent>
@@ -269,12 +307,10 @@ export function WorkScheduleForm({
                                     >
                                         <SelectTrigger className="w-full bg-white border-gray-300">
                                             <SelectValue placeholder="Select detail work type" />
-                                        </SelectTrigger>
-                                        <SelectContent className="bg-white">
+                                        </SelectTrigger>                                        <SelectContent className="bg-white">
                                             <SelectItem value="WFO">Work From Office (WFO)</SelectItem>
                                             <SelectItem value="WFA">Work From Anywhere (WFA)</SelectItem>
-                                        </SelectContent>
-                                    </Select>
+                                        </SelectContent>                                    </Select>
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor={`workDays-${idx}`} className="text-sm font-medium">Work Days <span className="text-red-500">*</span></Label>

@@ -3,15 +3,16 @@
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { WorkScheduleForm } from "@/app/(admin)/check-clock/work-schedule/_components/WorkScheduleForm";
 import { useWorkScheduleMutations } from "@/app/(admin)/check-clock/work-schedule/_hooks/useWorkSchedule";
-import { CreateWorkScheduleRequest } from "@/types/work-schedule.types"; // Import CreateWorkScheduleRequest
+import { CreateWorkScheduleRequest, UpdateWorkScheduleRequest } from "@/types/work-schedule.types"; // Import both request types
 
 export default function AddWorkSchedulePage() {
     const { handleCreate, isCreating } = useWorkScheduleMutations();
 
-    // Updated handleSave to expect CreateWorkScheduleRequest
-    const handleSave = async (data: CreateWorkScheduleRequest) => {
+    // Updated handleSave to accept both types but cast to CreateWorkScheduleRequest for create mode
+    const handleSave = async (data: CreateWorkScheduleRequest | UpdateWorkScheduleRequest) => {
         console.log("Saving new work schedule data:", data);
-        await handleCreate(data);
+        // Type assertion since we know this will be CreateWorkScheduleRequest in create mode
+        await handleCreate(data as CreateWorkScheduleRequest);
     };
 
     return (

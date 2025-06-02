@@ -51,37 +51,12 @@ func (r *WorkScheduleRepository) GetByIDWithDetails(ctx context.Context, id uint
 	return &workSchedule, nil
 }
 
-/*
-// DeleteSchedule menghapus jadwal kerja berdasarkan ID
-func (r *WorkScheduleRepository) DeleteSchedule(ctx context.Context, id uint) error {
-	// Implementation of work schedule deletion
-	// Misalnya, penghapusan lunak atau penghapusan keras
-	// Untuk contoh ini, kita akan melakukan penghapusan keras
-	result := r.db.WithContext(ctx).Delete(&domain.WorkSchedule{}, id)
-	if result.Error != nil {
-		return fmt.Errorf("failed to delete work schedule with ID %d: %w", id, result.Error)
-	}
-	if result.RowsAffected == 0 {
-		return fmt.Errorf("no work schedule found with ID %d to delete", id) // Atau bisa juga mengembalikan nil jika tidak ada yang dihapus dianggap bukan error
-	}
-	return nil
-}
-
-// GetDetailsByScheduleID mengambil detail jadwal kerja berdasarkan ID jadwal kerja
-func (r *WorkScheduleRepository) GetDetailsByScheduleID(ctx context.Context, scheduleID uint) ([]*domain.WorkScheduleDetail, error) {
-	var details []*domain.WorkScheduleDetail
-	if err := r.db.WithContext(ctx).Where("work_schedule_id = ?", scheduleID).Find(&details).Error; err != nil {
-		return nil, fmt.Errorf("failed to get work schedule details for schedule ID %d: %w", scheduleID, err)
-	}
-	return details, nil
-}
-
-// SaveWithDetails menyimpan (membuat atau memperbarui) jadwal kerja beserta detailnya
-func (r *WorkScheduleRepository) SaveWithDetails(ctx context.Context, workSchedule *domain.WorkSchedule, details []*domain.WorkScheduleDetail, deletedDetailIDs []uint) error {
+// UpdateWithDetails memperbarui jadwal kerja beserta detailnya
+func (r *WorkScheduleRepository) UpdateWithDetails(ctx context.Context, workSchedule *domain.WorkSchedule, details []*domain.WorkScheduleDetail, deletedDetailIDs []uint) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// Simpan atau perbarui WorkSchedule utama
+		// Update WorkSchedule utama
 		if err := tx.Save(workSchedule).Error; err != nil {
-			return fmt.Errorf("failed to save work schedule: %w", err)
+			return fmt.Errorf("failed to update work schedule: %w", err)
 		}
 
 		// Hapus detail yang ditandai untuk dihapus
@@ -102,20 +77,14 @@ func (r *WorkScheduleRepository) SaveWithDetails(ctx context.Context, workSchedu
 	})
 }
 
-// SoftDeleteDetail melakukan soft delete pada detail jadwal kerja
-func (r *WorkScheduleRepository) SoftDeleteDetail(ctx context.Context, detailID uint) error {
-	// Implementation of soft delete if needed, for example by setting the deleted_at column
-	// Untuk contoh ini, kita akan melakukan penghapusan keras
-	result := r.db.WithContext(ctx).Delete(&domain.WorkScheduleDetail{}, detailID)
-	if result.Error != nil {
-		return fmt.Errorf("failed to delete work schedule detail with ID %d: %w", detailID, result.Error)
+// GetDetailsByScheduleID mengambil detail jadwal kerja berdasarkan ID jadwal kerja
+func (r *WorkScheduleRepository) GetDetailsByScheduleID(ctx context.Context, scheduleID uint) ([]*domain.WorkScheduleDetail, error) {
+	var details []*domain.WorkScheduleDetail
+	if err := r.db.WithContext(ctx).Preload("Location").Where("work_schedule_id = ?", scheduleID).Find(&details).Error; err != nil {
+		return nil, fmt.Errorf("failed to get work schedule details for schedule ID %d: %w", scheduleID, err)
 	}
-	if result.RowsAffected == 0 {
-		return fmt.Errorf("no work schedule detail found with ID %d to delete", detailID)
-	}
-	return nil
+	return details, nil
 }
-*/
 
 // ListWithPagination mengambil daftar jadwal kerja dengan paginasi
 func (r *WorkScheduleRepository) ListWithPagination(ctx context.Context, paginationParams domain.PaginationParams) ([]*domain.WorkSchedule, int64, error) {

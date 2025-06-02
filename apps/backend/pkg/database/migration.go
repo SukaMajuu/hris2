@@ -42,7 +42,7 @@ func Migrate(db *gorm.DB) error {
 		-- Work Type Detail Enum (New)
 		DROP TYPE IF EXISTS worktype_detail CASCADE;
 		CREATE TYPE worktype_detail AS ENUM ('WFO', 'WFA');
-		
+
 		-- leave_type Enum (New)
 		DROP TYPE IF EXISTS leave_type CASCADE;
 		CREATE TYPE leave_type AS ENUM ('sick_leave', 'annual_leave', 'maternity_leave', 'compassionate_leave', 'marriage Leave');
@@ -54,6 +54,22 @@ func Migrate(db *gorm.DB) error {
 		-- leave_status (new)
 		DROP TYPE IF EXISTS leave_status CASCADE;
 		CREATE TYPE leave_status AS ENUM ('Waiting Approval', 'Approved', 'Rejected');
+
+		-- Subscription Plan Type Enum (New)
+		DROP TYPE IF EXISTS subscription_plan_type CASCADE;
+		CREATE TYPE subscription_plan_type AS ENUM ('standard', 'premium', 'ultra');
+
+		-- Subscription Status Enum (New)
+		DROP TYPE IF EXISTS subscription_status CASCADE;
+		CREATE TYPE subscription_status AS ENUM ('trial', 'active', 'inactive', 'suspended', 'expired', 'cancelled');
+
+		-- Payment Status Enum (New)
+		DROP TYPE IF EXISTS payment_status CASCADE;
+		CREATE TYPE payment_status AS ENUM ('pending', 'paid', 'failed', 'cancelled', 'expired', 'refunded');
+
+		-- Checkout Status Enum (New)
+		DROP TYPE IF EXISTS checkout_status CASCADE;
+		CREATE TYPE checkout_status AS ENUM ('initiated', 'pending', 'completed', 'failed', 'cancelled', 'expired');
 
 	EXCEPTION WHEN undefined_object THEN null; -- Changed exception handler for DROP TYPE
 	END $$;`).Error; err != nil {
@@ -80,6 +96,17 @@ func Migrate(db *gorm.DB) error {
 		&models.CheckclockSettings{},
 		&models.Attendance{},
 		&models.LeaveRequest{},
+		&models.SubscriptionFeature{},
+		&models.SubscriptionPlan{},
+		&models.SubscriptionPlanFeature{},
+		&models.SeatPlan{},
+		&models.Subscription{},
+		&models.SubscriptionUsage{},
+		&models.TrialActivity{},
+		&models.CustomerBillingInfo{},
+		&models.CheckoutSession{},
+		&models.PaymentTransaction{},
+		&models.Document{},
 	); err != nil {
 		return err
 	}

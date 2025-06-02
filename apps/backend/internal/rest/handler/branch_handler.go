@@ -11,6 +11,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const (
+	errBranchNotFound = "branch not found"
+)
+
 type BranchHandler struct {
 	branchUseCase *branch.BranchUseCase
 }
@@ -109,7 +113,7 @@ func (h *BranchHandler) UpdateBranch(c *gin.Context) {
 	})
 
 	if err != nil {
-		if err.Error() == "branch not found" {
+		if err.Error() == errBranchNotFound {
 			response.NotFound(c, "Branch not found", err)
 			return
 		}
@@ -138,7 +142,7 @@ func (h *BranchHandler) DeleteBranch(c *gin.Context) {
 
 	err = h.branchUseCase.Delete(c.Request.Context(), uint(id))
 	if err != nil {
-		if err.Error() == "branch not found" {
+		if err.Error() == errBranchNotFound {
 			response.NotFound(c, "Branch not found", err)
 			return
 		}

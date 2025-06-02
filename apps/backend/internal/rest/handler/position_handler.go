@@ -11,6 +11,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const (
+	errPositionNotFound = "position not found"
+)
+
 type PositionHandler struct {
 	positionUseCase *position.PositionUseCase
 }
@@ -109,7 +113,7 @@ func (h *PositionHandler) UpdatePosition(c *gin.Context) {
 	})
 
 	if err != nil {
-		if err.Error() == "position not found" {
+		if err.Error() == errPositionNotFound {
 			response.NotFound(c, "Position not found", err)
 			return
 		}
@@ -138,7 +142,7 @@ func (h *PositionHandler) DeletePosition(c *gin.Context) {
 
 	err = h.positionUseCase.Delete(c.Request.Context(), uint(id))
 	if err != nil {
-		if err.Error() == "position not found" {
+		if err.Error() == errPositionNotFound {
 			response.NotFound(c, "Position not found", err)
 			return
 		}

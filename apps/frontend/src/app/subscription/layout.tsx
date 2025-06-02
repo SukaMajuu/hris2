@@ -4,7 +4,6 @@ import type React from "react";
 import MainLayout from "@/app/_components/MainLayout";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import { ROLES } from "@/const/role";
-import { SubscriptionGuard } from "@/components/subscription/SubscriptionGuard";
 
 export default function AdminLayout({
 	children,
@@ -13,9 +12,7 @@ export default function AdminLayout({
 }) {
 	return (
 		<MainLayout>
-			<RoleGuard allowedRoles={[ROLES.admin]}>
-				<SubscriptionGuard>{children}</SubscriptionGuard>
-			</RoleGuard>
+			<RoleGuard allowedRoles={[ROLES.admin]}>{children}</RoleGuard>
 		</MainLayout>
 	);
 }

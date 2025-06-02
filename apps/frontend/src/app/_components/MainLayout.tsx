@@ -17,6 +17,7 @@ import { useAuthStore } from '@/stores/auth.store';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Bell, ChevronDown } from 'lucide-react';
 import { useProactiveTokenRefresh } from '@/hooks/useProactiveTokenRefresh';
+import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 import { cn } from '@/lib/utils';
 
 interface MainLayoutProps {
@@ -167,9 +168,12 @@ export default function MainLayout({ children }: MainLayoutProps) {
   const pathname = usePathname();
   const { user } = useAuthStore();
   useProactiveTokenRefresh();
+
+  const { shouldShowLayout: hasActiveSubscription } = useSubscriptionStatus();
+
   const role = (user?.role as Role) || 'admin';
 
-  const shouldHideLayout = hideLayoutForPaths.includes(pathname);
+  const shouldHideLayout = hideLayoutForPaths.includes(pathname) || !hasActiveSubscription;
 
   const getPageTitle = () => {
     const allMenuItems = [...getMainMenuItemsByRole(role), ...getFooterItemsByRole(role)];

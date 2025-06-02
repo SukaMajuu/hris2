@@ -97,7 +97,7 @@ function CheckoutPageContent() {
 	}
 
 	return (
-		<div className="min-h-screen bg-slate-100 dark:bg-slate-950 p-4 md:p-8">
+		<div className="bg-slate-100 dark:bg-slate-950 p-4 md:p-8">
 			<div className="max-w-5xl mx-auto grid md:grid-cols-3 gap-8 items-start">
 				<div className="md:col-span-2 bg-white dark:bg-slate-900 p-6 rounded-lg shadow-lg">
 					<h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100 mb-1">

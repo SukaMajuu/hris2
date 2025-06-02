@@ -213,6 +213,10 @@ components:
                     type: string
                     maxLength: 255
                     description: The name of the position.
+                hr_id:
+                    type: integer
+                    format: uint
+                    description: Foreign key referencing the HR User ID who manages this position.
                 created_at:
                     type: string
                     format: date-time
@@ -225,8 +229,90 @@ components:
                     readOnly: true
             required:
                 - name
+                - hr_id
                 - created_at
                 - updated_at
+
+        PositionCreateRequest:
+            type: object
+            description: Request body for creating a new position.
+            properties:
+                name:
+                    type: string
+                    maxLength: 255
+                    description: The name of the position.
+                    example: "Software Engineer"
+            required:
+                - name
+
+        PositionUpdateRequest:
+            type: object
+            description: Request body for updating a position.
+            properties:
+                name:
+                    type: string
+                    maxLength: 255
+                    description: The updated name of the position.
+                    example: "Senior Software Engineer"
+            required:
+                - name
+
+        Branch:
+            type: object
+            description: Represents a company branch or location.
+            properties:
+                id:
+                    type: integer
+                    format: uint
+                    description: Unique identifier for the branch.
+                    readOnly: true
+                name:
+                    type: string
+                    maxLength: 255
+                    description: The name of the branch.
+                hr_id:
+                    type: integer
+                    format: uint
+                    description: Foreign key referencing the HR User ID who manages this branch.
+                created_at:
+                    type: string
+                    format: date-time
+                    description: Timestamp when the branch was created.
+                    readOnly: true
+                updated_at:
+                    type: string
+                    format: date-time
+                    description: Timestamp when the branch was last updated.
+                    readOnly: true
+            required:
+                - name
+                - hr_id
+                - created_at
+                - updated_at
+
+        BranchCreateRequest:
+            type: object
+            description: Request body for creating a new branch.
+            properties:
+                name:
+                    type: string
+                    maxLength: 255
+                    description: The name of the branch.
+                    example: "Jakarta Office"
+            required:
+                - name
+
+        BranchUpdateRequest:
+            type: object
+            description: Request body for updating a branch.
+            properties:
+                name:
+                    type: string
+                    maxLength: 255
+                    description: The updated name of the branch.
+                    example: "Jakarta Main Office"
+            required:
+                - name
 
         Location:
             type: object
@@ -288,34 +374,6 @@ components:
             required:
                 - page
                 - page_size
-
-        Branch:
-            type: object
-            description: Represents a company branch or location.
-            properties:
-                id:
-                    type: integer
-                    format: uint
-                    description: Unique identifier for the branch.
-                    readOnly: true
-                name:
-                    type: string
-                    maxLength: 255
-                    description: The unique name of the branch.
-                created_at:
-                    type: string
-                    format: date-time
-                    description: Timestamp when the branch was created.
-                    readOnly: true
-                updated_at:
-                    type: string
-                    format: date-time
-                    description: Timestamp when the branch was last updated.
-                    readOnly: true
-            required:
-                - name
-                - created_at
-                - updated_at
 
         WorkScheduleDetailRequest:
             type: object
@@ -4699,6 +4757,340 @@ paths:
                                     error:
                                         type: string
                                         example: "Failed to process webhook"
+
+    /api/branches:
+        post:
+            tags: [Branches]
+            summary: Create a new branch
+            description: Create a new branch for the authenticated HR user
+            security:
+                - bearerAuth: []
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/BranchCreateRequest"
+            responses:
+                201:
+                    description: Branch created successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 201
+                                    message:
+                                        type: string
+                                        example: "Branch created successfully"
+                                    data:
+                                        $ref: "#/components/schemas/Branch"
+                400:
+                    description: Bad request
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 400
+                                    message:
+                                        type: string
+                                        example: "Invalid request data"
+                                    error:
+                                        type: string
+                                        example: "Missing required fields"
+                401:
+                    description: Unauthorized
+                500:
+                    description: Internal server error
+
+        get:
+            tags: [Branches]
+            summary: Get my branches
+            description: Retrieve all branches managed by the authenticated HR user
+            security:
+                - bearerAuth: []
+            responses:
+                200:
+                    description: Branches retrieved successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "Branches retrieved successfully"
+                                    data:
+                                        type: array
+                                        items:
+                                            $ref: "#/components/schemas/Branch"
+                401:
+                    description: Unauthorized
+                500:
+                    description: Internal server error
+
+    /api/branches/{id}:
+        put:
+            tags: [Branches]
+            summary: Update a branch
+            description: Update an existing branch
+            security:
+                - bearerAuth: []
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  description: Branch ID
+                  schema:
+                      type: integer
+                      format: uint
+                      example: 1
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/BranchUpdateRequest"
+            responses:
+                200:
+                    description: Branch updated successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "Branch updated successfully"
+                                    data:
+                                        $ref: "#/components/schemas/Branch"
+                400:
+                    description: Bad request
+                401:
+                    description: Unauthorized
+                404:
+                    description: Branch not found
+                500:
+                    description: Internal server error
+
+        delete:
+            tags: [Branches]
+            summary: Delete a branch
+            description: Delete an existing branch
+            security:
+                - bearerAuth: []
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  description: Branch ID
+                  schema:
+                      type: integer
+                      format: uint
+                      example: 1
+            responses:
+                200:
+                    description: Branch deleted successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "Branch deleted successfully"
+                                    data:
+                                        type: object
+                                        nullable: true
+                400:
+                    description: Invalid ID format
+                401:
+                    description: Unauthorized
+                404:
+                    description: Branch not found
+                500:
+                    description: Internal server error
+
+    /api/positions:
+        post:
+            tags: [Positions]
+            summary: Create a new position
+            description: Create a new position for the authenticated HR user
+            security:
+                - bearerAuth: []
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/PositionCreateRequest"
+            responses:
+                201:
+                    description: Position created successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 201
+                                    message:
+                                        type: string
+                                        example: "Position created successfully"
+                                    data:
+                                        $ref: "#/components/schemas/Position"
+                400:
+                    description: Bad request
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 400
+                                    message:
+                                        type: string
+                                        example: "Invalid request data"
+                                    error:
+                                        type: string
+                                        example: "Missing required fields"
+                401:
+                    description: Unauthorized
+                500:
+                    description: Internal server error
+
+        get:
+            tags: [Positions]
+            summary: Get my positions
+            description: Retrieve all positions managed by the authenticated HR user
+            security:
+                - bearerAuth: []
+            responses:
+                200:
+                    description: Positions retrieved successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "Positions retrieved successfully"
+                                    data:
+                                        type: array
+                                        items:
+                                            $ref: "#/components/schemas/Position"
+                401:
+                    description: Unauthorized
+                500:
+                    description: Internal server error
+
+    /api/positions/{id}:
+        put:
+            tags: [Positions]
+            summary: Update a position
+            description: Update an existing position
+            security:
+                - bearerAuth: []
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  description: Position ID
+                  schema:
+                      type: integer
+                      format: uint
+                      example: 1
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/PositionUpdateRequest"
+            responses:
+                200:
+                    description: Position updated successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "Position updated successfully"
+                                    data:
+                                        $ref: "#/components/schemas/Position"
+                400:
+                    description: Bad request
+                401:
+                    description: Unauthorized
+                404:
+                    description: Position not found
+                500:
+                    description: Internal server error
+
+        delete:
+            tags: [Positions]
+            summary: Delete a position
+            description: Delete an existing position
+            security:
+                - bearerAuth: []
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  description: Position ID
+                  schema:
+                      type: integer
+                      format: uint
+                      example: 1
+            responses:
+                200:
+                    description: Position deleted successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "Position deleted successfully"
+                                    data:
+                                        type: object
+                                        nullable: true
+                400:
+                    description: Invalid ID format
+                401:
+                    description: Unauthorized
+                404:
+                    description: Position not found
+                500:
+                    description: Internal server error
 
 security:
     - bearerAuth: []

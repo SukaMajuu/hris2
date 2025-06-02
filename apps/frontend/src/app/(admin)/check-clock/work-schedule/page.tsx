@@ -12,12 +12,12 @@ import { Edit, Eye, Plus, Search, Trash } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import React, { useCallback, useState, useMemo } from "react";
 import {
-    ColumnDef,
-    getCoreRowModel,
-    getFilteredRowModel,
-    getPaginationRowModel,
-    PaginationState,
-    useReactTable,
+	ColumnDef,
+	getCoreRowModel,
+	getFilteredRowModel,
+	getPaginationRowModel,
+	PaginationState,
+	useReactTable,
 } from "@tanstack/react-table";
 import ConfirmationDelete from "./_components/ConfirmationDelete";
 import Link from "next/link";
@@ -29,239 +29,272 @@ import { useRouter } from "next/navigation"; // Added
 import { toast } from "@/components/ui/use-toast"; // Added
 
 export default function WorkSchedulePage() {
-    const router = useRouter(); // Added
-    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-    const [workScheduleToDelete, setWorkScheduleToDelete] = useState<WorkSchedule | null>(null);
-    const [scheduleNameFilter, setScheduleNameFilter] = React.useState("");
-    const [pagination, setPagination] = React.useState<PaginationState>({
-        pageIndex: 0, // default page index
-        pageSize: 10, // default page size
-    });
-    const [viewDialogOpen, setViewDialogOpen] = useState(false);
-    const [viewedSchedule, setViewedSchedule] = useState<WorkSchedule | null>(null);
+	const router = useRouter(); // Added
+	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+	const [
+		workScheduleToDelete,
+		setWorkScheduleToDelete,
+	] = useState<WorkSchedule | null>(null);
+	const [scheduleNameFilter, setScheduleNameFilter] = React.useState("");
+	const [pagination, setPagination] = React.useState<PaginationState>({
+		pageIndex: 0, // default page index
+		pageSize: 10, // default page size
+	});
+	const [viewDialogOpen, setViewDialogOpen] = useState(false);
+	const [viewedSchedule, setViewedSchedule] = useState<WorkSchedule | null>(
+		null
+	);
 
-    // Fetch WorkSchedules using React Query
-    const { data: paginatedWorkSchedules, isLoading, isError, error } = useWorkSchedules(
-        pagination.pageIndex + 1, // API is 1-based, table is 0-based
-        pagination.pageSize,
-    );
-    const deleteWorkScheduleMutation = useDeleteWorkSchedule(); // Added
+	// Fetch WorkSchedules using React Query
+	const {
+		data: paginatedWorkSchedules,
+		isLoading,
+		isError,
+		error,
+	} = useWorkSchedules(
+		pagination.pageIndex + 1, // API is 1-based, table is 0-based
+		pagination.pageSize
+	);
+	const deleteWorkScheduleMutation = useDeleteWorkSchedule(); // Added
 
-    // Use fetched data or an empty array if loading or error
-    const workSchedules: WorkSchedule[] = useMemo(() => {
-        if (paginatedWorkSchedules && paginatedWorkSchedules.items) {
-            console.log("Fetched Work Schedules:", paginatedWorkSchedules.items); // For debugging
-            return paginatedWorkSchedules.items;
-        }
-        return [];
-    }, [paginatedWorkSchedules]); // Changed
+	// Use fetched data or an empty array if loading or error
+	const workSchedules: WorkSchedule[] = useMemo(() => {
+		if (paginatedWorkSchedules && paginatedWorkSchedules.items) {
+			console.log(
+				"Fetched Work Schedules:",
+				paginatedWorkSchedules.items
+			); // For debugging
+			return paginatedWorkSchedules.items;
+		}
+		return [];
+	}, [paginatedWorkSchedules]); // Changed
 
-    const handleEdit = useCallback((id: number) => { // Added router.push
-        router.push(`/check-clock/work-schedule/edit/${id}`);
-    }, [router]);
+	const handleEdit = useCallback(
+		(id: number) => {
+			// Added router.push
+			router.push(`/check-clock/work-schedule/edit/${id}`);
+		},
+		[router]
+	);
 
-    const handleOpenDelete = useCallback((data: WorkSchedule) => {
-        setWorkScheduleToDelete(data);
-        setIsDeleteDialogOpen(true);
-    }, []);
+	const handleOpenDelete = useCallback((data: WorkSchedule) => {
+		setWorkScheduleToDelete(data);
+		setIsDeleteDialogOpen(true);
+	}, []);
 
-    const handleCloseDeleteDialog = useCallback(() => {
-        setWorkScheduleToDelete(null);
-        setIsDeleteDialogOpen(false);
-    }, []);
+	const handleCloseDeleteDialog = useCallback(() => {
+		setWorkScheduleToDelete(null);
+		setIsDeleteDialogOpen(false);
+	}, []);
 
-    const handleConfirmDelete = useCallback(async () => { // Changed to use mutation
-        if (workScheduleToDelete) {
-            try {
-                await deleteWorkScheduleMutation.mutateAsync(workScheduleToDelete.id);
-                toast({ title: "Success", description: "Work schedule deleted successfully." });
-                setIsDeleteDialogOpen(false);
-                setWorkScheduleToDelete(null);
-            } catch (e: unknown) { // Changed to catch (e: unknown)
-                let errorMessage = "Failed to delete work schedule.";
-                if (e instanceof Error) {
-                    errorMessage = e.message;
-                }
-                toast({ title: "Error", description: errorMessage, variant: "destructive" });
-            }
-        }
-    }, [workScheduleToDelete, deleteWorkScheduleMutation]);
+	const handleConfirmDelete = useCallback(async () => {
+		// Changed to use mutation
+		if (workScheduleToDelete) {
+			try {
+				await deleteWorkScheduleMutation.mutateAsync(
+					workScheduleToDelete.id
+				);
+				toast({
+					title: "Success",
+					description: "Work schedule deleted successfully.",
+				});
+				setIsDeleteDialogOpen(false);
+				setWorkScheduleToDelete(null);
+			} catch (e) {
+				// Changed to catch (e: unknown)
+				let errorMessage = "Failed to delete work schedule.";
+				if (e instanceof Error) {
+					errorMessage = e.message;
+				}
+				toast({
+					title: "Error",
+					description: errorMessage,
+					variant: "destructive",
+				});
+			}
+		}
+	}, [workScheduleToDelete, deleteWorkScheduleMutation]);
 
-    const handleView = useCallback((data: WorkSchedule) => {
-        setViewedSchedule(data);
-        setViewDialogOpen(true);
-    }, []);
+	const handleView = useCallback((data: WorkSchedule) => {
+		setViewedSchedule(data);
+		setViewDialogOpen(true);
+	}, []);
 
-    const columns = React.useMemo<ColumnDef<WorkSchedule>[]>
-        (() => [
-            {
-                header: "No.",
-                id: "no",
-                cell: ({ row, table }) => {
-                    const { pageIndex, pageSize } = table.getState().pagination;
-                    return pageIndex * pageSize + row.index + 1;
-                },
-                meta: { className: "max-w-[80px]" },
-                enableSorting: false,
-                enableColumnFilter: false,
-            },
-            {
-                header: "Schedule Name",
-                accessorKey: "name", // Changed from "nama" to "name"
-            },
-            {
-                header: "Work Type",
-                accessorKey: "work_type", // Changed from "workType" to "work_type"
-                cell: ({ row }) => (
-                    <WorkTypeBadge
-                        workType={row.original.work_type as WorkType} // Corrected to work_type
-                    />
-                )
-            },
-            {
-                header: "Action",
-                id: "action",
-                cell: ({ row }) => (
-                    <div className="flex justify-center gap-2">
-                        <Button
-                            variant="default"
-                            size="sm"
-                            className="h-9 px-3 bg-blue-500 text-white hover:bg-blue-600 border-none hover:cursor-pointer"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                handleView(row.original);
-                            }}
-                        >
-                            <Eye className="h-4 w-4 mr-1" />
-                            View
-                        </Button>
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-9 px-3 bg-[#FFA500] text-white hover:bg-[#E69500] border-none hover:cursor-pointer"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                handleEdit(row.original.id);
-                            }}
-                        >
-                            <Edit className="h-4 w-4 mr-1" />
-                            Edit
-                        </Button>
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-9 px-3 bg-destructive text-white hover:bg-destructive/80 border-none hover:cursor-pointer"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                handleOpenDelete(row.original);
-                            }}
-                        >
-                            <Trash className="h-4 w-4 mr-1" />
-                            Delete
-                        </Button>
-                    </div>
-                ),
-                enableSorting: false,
-                enableColumnFilter: false,
-            },
-        ],
-            [handleEdit, handleOpenDelete, handleView]
-        );
+	const columns = React.useMemo<ColumnDef<WorkSchedule>[]>(
+		() => [
+			{
+				header: "No.",
+				id: "no",
+				cell: ({ row, table }) => {
+					const { pageIndex, pageSize } = table.getState().pagination;
+					return pageIndex * pageSize + row.index + 1;
+				},
+				meta: { className: "max-w-[80px]" },
+				enableSorting: false,
+				enableColumnFilter: false,
+			},
+			{
+				header: "Schedule Name",
+				accessorKey: "name", // Changed from "nama" to "name"
+			},
+			{
+				header: "Work Type",
+				accessorKey: "work_type", // Changed from "workType" to "work_type"
+				cell: ({ row }) => (
+					<WorkTypeBadge
+						workType={row.original.work_type as WorkType} // Corrected to work_type
+					/>
+				),
+			},
+			{
+				header: "Action",
+				id: "action",
+				cell: ({ row }) => (
+					<div className="flex justify-center gap-2">
+						<Button
+							variant="default"
+							size="sm"
+							className="h-9 px-3 bg-blue-500 text-white hover:bg-blue-600 border-none hover:cursor-pointer"
+							onClick={(e) => {
+								e.stopPropagation();
+								handleView(row.original);
+							}}
+						>
+							<Eye className="h-4 w-4 mr-1" />
+							View
+						</Button>
+						<Button
+							size="sm"
+							variant="outline"
+							className="h-9 px-3 bg-[#FFA500] text-white hover:bg-[#E69500] border-none hover:cursor-pointer"
+							onClick={(e) => {
+								e.stopPropagation();
+								handleEdit(row.original.id);
+							}}
+						>
+							<Edit className="h-4 w-4 mr-1" />
+							Edit
+						</Button>
+						<Button
+							size="sm"
+							variant="outline"
+							className="h-9 px-3 bg-destructive text-white hover:bg-destructive/80 border-none hover:cursor-pointer"
+							onClick={(e) => {
+								e.stopPropagation();
+								handleOpenDelete(row.original);
+							}}
+						>
+							<Trash className="h-4 w-4 mr-1" />
+							Delete
+						</Button>
+					</div>
+				),
+				enableSorting: false,
+				enableColumnFilter: false,
+			},
+		],
+		[handleEdit, handleOpenDelete, handleView]
+	);
 
-    const table = useReactTable<WorkSchedule>({
-        data: workSchedules, // Ensure this uses the processed workSchedules
-        columns,
-        state: {
-            // columnFilters: [{ id: "nama", value: scheduleNameFilter }], // "nama" should be "name"
-            columnFilters: [{ id: "name", value: scheduleNameFilter }],
-            pagination,
-        },
-        onColumnFiltersChange: (updater) => {
-            const newFilters =
-                typeof updater === "function"
-                    ? updater(table.getState().columnFilters)
-                    : updater;
-            // const nameFilterUpdate = newFilters.find((f) => f.id === "nama"); // "nama" should be "name"
-            const nameFilterUpdate = newFilters.find((f) => f.id === "name");
-            setScheduleNameFilter((nameFilterUpdate?.value as string) || "");
-        },
-        onPaginationChange: setPagination,
-        getCoreRowModel: getCoreRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
-        getFilteredRowModel: getFilteredRowModel(),
-        manualPagination: true, // Enable manual pagination
-        pageCount: paginatedWorkSchedules?.pagination?.total_pages ?? -1, // Set pageCount for manual pagination
-        autoResetPageIndex: false,
-    });
+	const table = useReactTable<WorkSchedule>({
+		data: workSchedules, // Ensure this uses the processed workSchedules
+		columns,
+		state: {
+			// columnFilters: [{ id: "nama", value: scheduleNameFilter }], // "nama" should be "name"
+			columnFilters: [{ id: "name", value: scheduleNameFilter }],
+			pagination,
+		},
+		onColumnFiltersChange: (updater) => {
+			const newFilters =
+				typeof updater === "function"
+					? updater(table.getState().columnFilters)
+					: updater;
+			// const nameFilterUpdate = newFilters.find((f) => f.id === "nama"); // "nama" should be "name"
+			const nameFilterUpdate = newFilters.find((f) => f.id === "name");
+			setScheduleNameFilter((nameFilterUpdate?.value as string) || "");
+		},
+		onPaginationChange: setPagination,
+		getCoreRowModel: getCoreRowModel(),
+		getPaginationRowModel: getPaginationRowModel(),
+		getFilteredRowModel: getFilteredRowModel(),
+		manualPagination: true, // Enable manual pagination
+		pageCount: paginatedWorkSchedules?.pagination?.total_pages ?? -1, // Set pageCount for manual pagination
+		autoResetPageIndex: false,
+	});
 
-    if (isLoading) return <div>Loading...</div>; // Added loading state
-    if (isError) {
-        console.error("Error fetching work schedules:", error); // Log the actual error
-        return <div>Error fetching data: {error?.message}</div>; // Added error state
-    }
+	if (isLoading) return <div>Loading...</div>; // Added loading state
+	if (isError) {
+		console.error("Error fetching work schedules:", error); // Log the actual error
+		return <div>Error fetching data: {error?.message}</div>; // Added error state
+	}
 
-    return (
-        <>
-            <Card className="border border-gray-100 dark:border-gray-800">
-                <CardContent>
-                    <header className="flex flex-col gap-4 mb-6">
-                        <div className="flex flex-row flex-wrap justify-between items-center w-full">
-                            <h2 className="text-xl font-semibold">
-                                Work Schedule
-                            </h2>
-                            <Link href="/check-clock/work-schedule/add">
-                                <Button
-                                    className="gap-2 bg-[#6B9AC4] hover:bg-[#5A89B3] text-white dark:text-slate-100 hover:cursor-pointer px-4 py-2 rounded-md">
-                                    <Plus className="h-4 w-4" />
-                                    Add Data
-                                </Button>
-                            </Link>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-4 md:w-[400px]">
-                            <div className="relative flex-[1]">
-                                <Search
-                                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                                <Input
-                                    value={scheduleNameFilter ?? ""}
-                                    onChange={(event) => {
-                                        const newNameFilter = event.target.value;
-                                        setScheduleNameFilter(newNameFilter);
-                                        // table.getColumn("nama")?.setFilterValue(newNameFilter); // "nama" should be "name"
-                                        table.getColumn("name")?.setFilterValue(newNameFilter);
-                                    }}
-                                    className="pl-10 w-full bg-white border-gray-200"
-                                    placeholder="Search Schedule Name"
-                                />
-                            </div>
-                        </div>
-                    </header>
+	return (
+		<>
+			<Card className="border border-gray-100 dark:border-gray-800">
+				<CardContent>
+					<header className="flex flex-col gap-4 mb-6">
+						<div className="flex flex-row flex-wrap justify-between items-center w-full">
+							<h2 className="text-xl font-semibold">
+								Work Schedule
+							</h2>
+							<Link href="/check-clock/work-schedule/add">
+								<Button className="gap-2 bg-[#6B9AC4] hover:bg-[#5A89B3] text-white dark:text-slate-100 hover:cursor-pointer px-4 py-2 rounded-md">
+									<Plus className="h-4 w-4" />
+									Add Data
+								</Button>
+							</Link>
+						</div>
+						<div className="flex flex-wrap items-center gap-4 md:w-[400px]">
+							<div className="relative flex-[1]">
+								<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+								<Input
+									value={scheduleNameFilter ?? ""}
+									onChange={(event) => {
+										const newNameFilter =
+											event.target.value;
+										setScheduleNameFilter(newNameFilter);
+										// table.getColumn("nama")?.setFilterValue(newNameFilter); // "nama" should be "name"
+										table
+											.getColumn("name")
+											?.setFilterValue(newNameFilter);
+									}}
+									className="pl-10 w-full bg-white border-gray-200"
+									placeholder="Search Schedule Name"
+								/>
+							</div>
+						</div>
+					</header>
 
-                    <DataTable table={table} />
+					<DataTable table={table} />
 
-                    <footer className="flex flex-col md:flex-row items-center justify-between mt-4 gap-4">
-                        <PageSizeComponent table={table} />
-                        <PaginationComponent table={table} />
-                    </footer>
-                </CardContent>
-            </Card>
+					<footer className="flex flex-col md:flex-row items-center justify-between mt-4 gap-4">
+						<PageSizeComponent table={table} />
+						<PaginationComponent table={table} />
+					</footer>
+				</CardContent>
+			</Card>
 
-            <ConfirmationDelete
-                isDeleteDialogOpen={isDeleteDialogOpen}
-                handleCloseDeleteDialog={handleCloseDeleteDialog}
-                handleConfirmDelete={handleConfirmDelete}
-                workScheduleToDelete={workScheduleToDelete}
-            />
+			<ConfirmationDelete
+				isDeleteDialogOpen={isDeleteDialogOpen}
+				handleCloseDeleteDialog={handleCloseDeleteDialog}
+				handleConfirmDelete={handleConfirmDelete}
+				workScheduleToDelete={workScheduleToDelete as WorkSchedule}
+			/>
 
-            <WorkScheduleDetailDialog
-                open={viewDialogOpen}
-                onOpenChange={setViewDialogOpen}
-                // scheduleName={viewedSchedule?.nama} // "nama" should be "name"
-                scheduleName={viewedSchedule?.name}
-                // workScheduleType={viewedSchedule?.workType} // "workType" should be "work_type"
-                workScheduleType={viewedSchedule?.work_type}
-                // workScheduleDetails={Array.isArray(viewedSchedule?.workScheduleDetails) ? viewedSchedule.workScheduleDetails : []} // "workScheduleDetails" should be "details"
-                workScheduleDetails={Array.isArray(viewedSchedule?.details) ? viewedSchedule.details : []}
-            />
-        </>
-    );
+			<WorkScheduleDetailDialog
+				open={viewDialogOpen}
+				onOpenChange={setViewDialogOpen}
+				// scheduleName={viewedSchedule?.nama} // "nama" should be "name"
+				scheduleName={viewedSchedule?.name}
+				// workScheduleType={viewedSchedule?.workType} // "workType" should be "work_type"
+				workScheduleType={viewedSchedule?.work_type}
+				// workScheduleDetails={Array.isArray(viewedSchedule?.workScheduleDetails) ? viewedSchedule.workScheduleDetails : []} // "workScheduleDetails" should be "details"
+				workScheduleDetails={
+					Array.isArray(viewedSchedule?.details)
+						? viewedSchedule.details
+						: []
+				}
+			/>
+		</>
+	);
 }

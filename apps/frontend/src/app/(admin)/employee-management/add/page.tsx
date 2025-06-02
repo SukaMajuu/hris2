@@ -40,6 +40,7 @@ export default function AddEmployeePage() {
           <EmployeeInformationStep
             formData={formData}
             onInputChange={handleInputChange}
+            onSelectChange={handleSelectChange}
             onRemovePhoto={handleRemovePhoto}
             profilePhotoInputRef={profilePhotoInputRef}
           />

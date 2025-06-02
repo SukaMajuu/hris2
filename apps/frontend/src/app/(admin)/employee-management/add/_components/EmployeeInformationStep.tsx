@@ -4,12 +4,20 @@ import React from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import Image from 'next/image';
 import type { EmployeeFormData } from '../_hooks/useAddEmployeeForm';
 
 interface EmployeeInformationStepProps {
   formData: EmployeeFormData;
   onInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onSelectChange: (name: string, value: string) => void;
   onRemovePhoto: () => void;
   profilePhotoInputRef: React.RefObject<HTMLInputElement | null>;
 }
@@ -17,9 +25,27 @@ interface EmployeeInformationStepProps {
 export function EmployeeInformationStep({
   formData,
   onInputChange,
+  onSelectChange,
   onRemovePhoto,
   profilePhotoInputRef,
 }: EmployeeInformationStepProps) {
+  // Mock data for branches and positions - can be replaced with API calls later
+  const branches = [
+    { value: 'jakarta', label: 'Jakarta Office' },
+    { value: 'bandung', label: 'Bandung Office' },
+    { value: 'surabaya', label: 'Surabaya Office' },
+    { value: 'yogyakarta', label: 'Yogyakarta Office' },
+  ];
+
+  const positions = [
+    { value: 'software-engineer', label: 'Software Engineer' },
+    { value: 'qa-engineer', label: 'QA Engineer' },
+    { value: 'product-manager', label: 'Product Manager' },
+    { value: 'ui-ux-designer', label: 'UI/UX Designer' },
+    { value: 'data-analyst', label: 'Data Analyst' },
+    { value: 'hr-specialist', label: 'HR Specialist' },
+  ];
+
   return (
     <>
       <h2 className='text-center text-xl font-semibold text-slate-800 dark:text-slate-100'>
@@ -96,14 +122,21 @@ export function EmployeeInformationStep({
             >
               Branch
             </label>
-            <Input
-              id='branch'
-              name='branch'
+            <Select
               value={formData.branch}
-              onChange={onInputChange}
-              placeholder='Enter branch'
-              className='focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800'
-            />
+              onValueChange={(value) => onSelectChange('branch', value)}
+            >
+              <SelectTrigger className='focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800'>
+                <SelectValue placeholder='Select branch' />
+              </SelectTrigger>
+              <SelectContent>
+                {branches.map((branch) => (
+                  <SelectItem key={branch.value} value={branch.value}>
+                    {branch.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <label
@@ -112,14 +145,21 @@ export function EmployeeInformationStep({
             >
               Position
             </label>
-            <Input
-              id='position'
-              name='position'
+            <Select
               value={formData.position}
-              onChange={onInputChange}
-              placeholder='Enter position'
-              className='focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800'
-            />
+              onValueChange={(value) => onSelectChange('position', value)}
+            >
+              <SelectTrigger className='focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800'>
+                <SelectValue placeholder='Select position' />
+              </SelectTrigger>
+              <SelectContent>
+                {positions.map((position) => (
+                  <SelectItem key={position.value} value={position.value}>
+                    {position.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <label

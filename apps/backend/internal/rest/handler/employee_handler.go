@@ -450,3 +450,16 @@ func (h *EmployeeHandler) ResignEmployee(c *gin.Context) {
 
 	response.Success(c, http.StatusOK, "Employee resigned successfully", nil)
 }
+
+func (h *EmployeeHandler) GetEmployeeStatistics(c *gin.Context) {
+	log.Printf("EmployeeHandler: GetEmployeeStatistics called")
+
+	statisticsData, err := h.employeeUseCase.GetStatistics(c.Request.Context())
+	if err != nil {
+		log.Printf("EmployeeHandler: Error getting employee statistics from use case: %v", err)
+		response.InternalServerError(c, fmt.Errorf("failed to retrieve employee statistics"))
+		return
+	}
+
+	response.Success(c, http.StatusOK, "Employee statistics retrieved successfully", statisticsData)
+}

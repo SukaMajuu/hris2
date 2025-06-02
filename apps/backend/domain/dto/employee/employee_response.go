@@ -27,3 +27,13 @@ type EmployeeResponseDTO struct {
 	CreatedAt             string  `json:"created_at"`
 	UpdatedAt             string  `json:"updated_at"`
 }
+
+type EmployeeStatisticsResponseDTO struct {
+	TotalEmployees     int64 `json:"total_employees"`
+	NewEmployees       int64 `json:"new_employees"`
+	ActiveEmployees    int64 `json:"active_employees"`
+	ResignedEmployees  int64 `json:"resigned_employees"`
+	PermanentEmployees int64 `json:"permanent_employees"`
+	ContractEmployees  int64 `json:"contract_employees"`
+	FreelanceEmployees int64 `json:"freelance_employees"`
+}

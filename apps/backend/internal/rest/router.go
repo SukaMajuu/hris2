@@ -87,6 +87,7 @@ func (r *Router) Setup() *gin.Engine {
 			employee := api.Group("/employee")
 			{
 				employee.GET("", r.employeeHandler.ListEmployees)
+				employee.GET("/statistics", r.employeeHandler.GetEmployeeStatistics)
 				employee.GET("/:id", r.employeeHandler.GetEmployeeByID)
 				employee.POST("", r.employeeHandler.CreateEmployee)
 				employee.PATCH("/:id", r.employeeHandler.UpdateEmployee)
@@ -113,7 +114,7 @@ func (r *Router) Setup() *gin.Engine {
 				checkclockSettings.POST("", r.checkclockSettingsHandler.CreateCheckclockSettings)
 			}
 
-      documents := api.Group("/documents")
+			documents := api.Group("/documents")
 			{
 				documents.POST("/upload", r.authMiddleware.Authenticate(), r.documentHandler.UploadDocument)
 				documents.GET("", r.authMiddleware.Authenticate(), r.documentHandler.GetDocuments)

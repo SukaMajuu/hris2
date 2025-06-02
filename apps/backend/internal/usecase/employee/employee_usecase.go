@@ -356,3 +356,28 @@ func (uc *EmployeeUseCase) Resign(ctx context.Context, id uint) error {
 	log.Printf("EmployeeUseCase: Successfully resigned employee with ID %d. EmploymentStatus set to false and ResignationDate to %v", id, now.Format(time.RFC3339))
 	return nil
 }
+
+func (uc *EmployeeUseCase) GetStatistics(ctx context.Context) (*dtoemployee.EmployeeStatisticsResponseDTO, error) {
+	log.Printf("EmployeeUseCase: GetStatistics called")
+
+	totalEmployees, newEmployees, activeEmployees, resignedEmployees, permanentEmployees, contractEmployees, freelanceEmployees, err := uc.employeeRepo.GetStatistics(ctx)
+	if err != nil {
+		log.Printf("EmployeeUseCase: Error getting employee statistics from repository: %v", err)
+		return nil, fmt.Errorf("failed to get employee statistics: %w", err)
+	}
+
+	response := &dtoemployee.EmployeeStatisticsResponseDTO{
+		TotalEmployees:     totalEmployees,
+		NewEmployees:       newEmployees,
+		ActiveEmployees:    activeEmployees,
+		ResignedEmployees:  resignedEmployees,
+		PermanentEmployees: permanentEmployees,
+		ContractEmployees:  contractEmployees,
+		FreelanceEmployees: freelanceEmployees,
+	}
+
+	log.Printf("EmployeeUseCase: Successfully retrieved employee statistics - Total: %d, New: %d, Active: %d, Resigned: %d, Permanent: %d, Contract: %d, Freelance: %d",
+		totalEmployees, newEmployees, activeEmployees, resignedEmployees, permanentEmployees, contractEmployees, freelanceEmployees)
+
+	return response, nil
+}

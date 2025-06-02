@@ -1,4 +1,3 @@
-// src/hooks/useAuthListener.ts
 "use client";
 
 import { useEffect, useState, useRef } from "react";
@@ -24,15 +23,14 @@ export function useAuthListener() {
 	const setUser = useAuthStore((state) => state.setUser);
 	const clearUser = useAuthStore((state) => state.logout);
 	const setIsLoading = useAuthStore((state) => state.setIsLoading);
+	const setIsPasswordRecovery = useAuthStore(
+		(state) => state.setIsPasswordRecovery
+	);
 
 	const [initialSetupCompleted, setInitialSetupCompleted] = useState(false);
 	const justLoggedOutRef = useRef(false);
 
 	useEffect(() => {
-		// if (!useAuthStore.getState().isLoading) {
-		// 	setIsLoading(true);
-		// }
-
 		const token = tokenService.getAccessToken();
 		const currentAuthStoreState = useAuthStore.getState();
 
@@ -55,7 +53,11 @@ export function useAuthListener() {
 				tokenService.clearTokens();
 				clearUser();
 			}
-		} else if (currentAuthStoreState.isAuthenticated && !token) {
+		} else if (
+			currentAuthStoreState.isAuthenticated &&
+			!token &&
+			!currentAuthStoreState.isPasswordRecovery
+		) {
 			clearUser();
 		}
 
@@ -64,8 +66,10 @@ export function useAuthListener() {
 				const appState = useAuthStore.getState();
 
 				if (event === "PASSWORD_RECOVERY") {
-					if (pathname !== "/reset-password")
+					setIsPasswordRecovery(true);
+					if (pathname !== "/reset-password") {
 						router.replace("/reset-password");
+					}
 					setIsLoading(false);
 					setInitialSetupCompleted(true);
 					return;
@@ -73,6 +77,7 @@ export function useAuthListener() {
 
 				if (event === "SIGNED_OUT") {
 					justLoggedOutRef.current = true;
+					setIsPasswordRecovery(false);
 					if (
 						appState.isAuthenticated ||
 						tokenService.getAccessToken()
@@ -104,12 +109,13 @@ export function useAuthListener() {
 					(event === "INITIAL_SESSION" || event === "SIGNED_IN")
 				) {
 					if (justLoggedOutRef.current) {
-						console.warn(
-							"[AuthListener] INITIAL_SESSION/SIGNED_IN with user detected shortly after logout. Ignoring to prevent re-auth loop."
-						);
 						setIsLoading(false);
 						setInitialSetupCompleted(true);
 						return;
+					}
+
+					if (event === "SIGNED_IN") {
+						setIsPasswordRecovery(false);
 					}
 
 					const supabaseUserIdAsNumber = parseInt(
@@ -197,6 +203,7 @@ export function useAuthListener() {
 		router,
 		pathname,
 		initialSetupCompleted,
+		setIsPasswordRecovery,
 	]);
 
 	return { initialAuthCheckCompleted: initialSetupCompleted };

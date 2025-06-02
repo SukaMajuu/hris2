@@ -1,15 +1,15 @@
 "use client";
 
-import {Card, CardContent} from "@/components/ui/card";
-import {Input} from "@/components/ui/input";
-import {Label} from "@/components/ui/label";
-import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select";
-import {Button} from "@/components/ui/button";
-import {useRouter} from "next/navigation";
-import {useEffect, useRef, useState} from "react";
-import type {WorkSchedule, WorkScheduleDetail} from "../_hooks/useWorkSchedule";
-import {CalendarClock, CalendarCog, MapPin} from "lucide-react";
-import {MultiSelect} from "@/components/multiSelect";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { WorkSchedule, WorkScheduleDetailRow } from "@/types/work-schedule.types"; // Updated import
+import { CalendarClock, CalendarCog, MapPin } from "lucide-react";
+import { MultiSelect } from "@/components/multiSelect";
 
 // import {WorkTypeChildrenEnum} from "@/schemas/checkclock.schema";
 
@@ -24,6 +24,7 @@ interface WorkScheduleFormProps {
     initialData?: Partial<WorkSchedule>;
     onSubmit: (data: Partial<WorkSchedule>) => void;
     isEditMode?: boolean;
+    isLoading?: boolean; // Added isLoading prop
     locations?: Location[];
     MapComponent?: React.ComponentType<{
         latitude?: number;
@@ -34,7 +35,7 @@ interface WorkScheduleFormProps {
 }
 
 // Default empty work schedule detail untuk inisialisasi
-const emptyWorkScheduleDetail: WorkScheduleDetail = {
+const emptyWorkScheduleDetail: WorkScheduleDetailRow = { // Updated type, ensure it matches the adjusted WorkScheduleDetailRow
     workTypeChildren: "",
     workDays: [],
     checkInStart: "",
@@ -52,28 +53,29 @@ const emptyWorkScheduleDetail: WorkScheduleDetail = {
 
 // Pilihan hari kerja
 const daysOfWeek = [
-    {label: "Monday", value: "Monday"},
-    {label: "Tuesday", value: "Tuesday"},
-    {label: "Wednesday", value: "Wednesday"},
-    {label: "Thursday", value: "Thursday"},
-    {label: "Friday", value: "Friday"},
-    {label: "Saturday", value: "Saturday"},
-    {label: "Sunday", value: "Sunday"},
+    { label: "Monday", value: "Monday" },
+    { label: "Tuesday", value: "Tuesday" },
+    { label: "Wednesday", value: "Wednesday" },
+    { label: "Thursday", value: "Thursday" },
+    { label: "Friday", value: "Friday" },
+    { label: "Saturday", value: "Saturday" },
+    { label: "Sunday", value: "Sunday" },
 ];
 
 // Default locations jika tidak ada props
 const defaultLocations: Location[] = [
-    {value: "malang", label: "Kota Malang", latitude: "-7.983908", longitude: "112.621391"},
-    {value: "jakarta", label: "Jakarta", latitude: "-6.2088", longitude: "106.8456"},
+    { value: "malang", label: "Kota Malang", latitude: "-7.983908", longitude: "112.621391" },
+    { value: "jakarta", label: "Jakarta", latitude: "-6.2088", longitude: "106.8456" },
 ];
 
 export function WorkScheduleForm({
-                                     initialData = {},
-                                     onSubmit,
-                                     isEditMode = false,
-                                     locations = [],
-                                     MapComponent,
-                                 }: WorkScheduleFormProps) {
+    initialData = {},
+    onSubmit,
+    isEditMode = false,
+    isLoading = false, // Added isLoading prop
+    locations = [],
+    MapComponent,
+}: WorkScheduleFormProps) {
     const router = useRouter();
     const formRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -82,7 +84,7 @@ export function WorkScheduleForm({
         ...initialData,
         workScheduleDetails: (initialData.workScheduleDetails && initialData.workScheduleDetails.length > 0)
             ? initialData.workScheduleDetails
-            : [{...emptyWorkScheduleDetail}], // Gunakan shallow copy
+            : [{ ...emptyWorkScheduleDetail }], // Gunakan shallow copy
     });
 
     // Update referensi DOM saat jumlah detail berubah
@@ -96,12 +98,12 @@ export function WorkScheduleForm({
     /**
      * Handler untuk mengubah satu field dari detail jadwal kerja
      */
-    const handleDetailChange = (idx: number, key: keyof WorkScheduleDetail, value: string | string[]) => {
+    const handleDetailChange = (idx: number, key: keyof WorkScheduleDetailRow, value: string | string[]) => { // Updated type
         setFormData((prev) => {
             const details = [...(prev.workScheduleDetails || [])];
 
             // Gunakan nilai yang sudah ada atau default kosong
-            const currentDetail = details[idx] || {...emptyWorkScheduleDetail};
+            const currentDetail = details[idx] || { ...emptyWorkScheduleDetail };
 
             // Update field yang spesifik
             details[idx] = {
@@ -109,7 +111,7 @@ export function WorkScheduleForm({
                 [key]: value
             };
 
-            return {...prev, workScheduleDetails: details};
+            return { ...prev, workScheduleDetails: details };
         });
     };
 
@@ -124,7 +126,7 @@ export function WorkScheduleForm({
 
         setFormData((prev) => {
             const details = [...(prev.workScheduleDetails || [])];
-            const currentDetail = details[idx] || {...emptyWorkScheduleDetail};
+            const currentDetail = details[idx] || { ...emptyWorkScheduleDetail };
 
             details[idx] = {
                 ...currentDetail,
@@ -135,7 +137,7 @@ export function WorkScheduleForm({
                 addressDetails: selectedLocation.label || "",
             };
 
-            return {...prev, workScheduleDetails: details};
+            return { ...prev, workScheduleDetails: details };
         });
     };
 
@@ -146,7 +148,7 @@ export function WorkScheduleForm({
         setFormData((prev) => {
             const newDetails = [
                 ...(prev.workScheduleDetails || []),
-                {...emptyWorkScheduleDetail}
+                { ...emptyWorkScheduleDetail }
             ];
 
             // Scroll ke form baru setelah render
@@ -172,7 +174,7 @@ export function WorkScheduleForm({
         setFormData((prev) => {
             const details = [...(prev.workScheduleDetails || [])];
             details.splice(idx, 1);
-            return {...prev, workScheduleDetails: details};
+            return { ...prev, workScheduleDetails: details };
         });
     };
 
@@ -191,20 +193,43 @@ export function WorkScheduleForm({
                 <div className="w-full md:w-2/3">
                     <Card className="border-none shadow-sm">
                         <CardContent className="p-6">
-                            <div className="flex items-center gap-2 mb-4">
-                                <CalendarClock className="h-5 w-5 text-gray-500"/>
-                                <h3 className="font-semibold text-lg text-gray-800">
+                            <div className="flex items-center gap-2 mb-6">
+                                <CalendarClock className="h-6 w-6 text-[#6B9AC4]" />
+                                <h3 className="font-semibold text-xl text-gray-800">
                                     Work Schedule
                                 </h3>
                             </div>
-                            <div className="space-y-1.5">
-                                <Label htmlFor="nama">Schedule Name</Label>
-                                <Input
-                                    id="nama"
-                                    value={formData.nama ?? ""}
-                                    onChange={(e) => setFormData((prev) => ({...prev, nama: e.target.value}))}
-                                    placeholder="Enter Schedule Name"
-                                />
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="nama" className="text-sm font-medium">Schedule Name</Label>
+                                    <Input
+                                        id="nama"
+                                        value={formData.nama ?? ""}
+                                        onChange={(e) => setFormData((prev) => ({ ...prev, nama: e.target.value }))}
+                                        placeholder="Enter Schedule Name"
+                                        className="focus-visible:ring-[#6B9AC4] focus-visible:border-[#6B9AC4]"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="workType" className="text-sm font-medium">Work Type</Label>
+                                    <Select
+                                        value={formData.workType ?? ""}
+                                        onValueChange={(value) => setFormData((prev) => ({ ...prev, workType: value }))}
+                                    >
+                                        <SelectTrigger
+                                            className="w-full text-sm font-normal bg-white border-gray-300 hover:border-[#6B9AC4] focus:border-[#6B9AC4] focus:ring-[#6B9AC4]">
+                                            <SelectValue placeholder="Select work type" />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-white">
+                                            <SelectItem value="WFO" className="hover:bg-[#EEF2F6]">Work From Office
+                                                (WFO)</SelectItem>
+                                            <SelectItem value="WFA" className="hover:bg-[#EEF2F6]">Work From Anywhere
+                                                (WFA)</SelectItem>
+                                            <SelectItem value="HYBRID"
+                                                className="hover:bg-[#EEF2F6]">Hybrid</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
@@ -256,7 +281,7 @@ export function WorkScheduleForm({
                                 {/* Work Schedule Details */}
                                 <div>
                                     <div className="flex items-center gap-2 mb-4">
-                                        <CalendarCog className="h-5 w-5 text-gray-500"/>
+                                        <CalendarCog className="h-5 w-5 text-gray-500" />
                                         <h3 className="font-semibold text-lg text-gray-800">
                                             Work Schedule Details
                                         </h3>
@@ -270,7 +295,7 @@ export function WorkScheduleForm({
                                             >
                                                 <SelectTrigger
                                                     className="w-full text-sm font-normal text-gray-700 border-gray-300 hover:border-gray-400">
-                                                    <SelectValue placeholder="Select work type detail"/>
+                                                    <SelectValue placeholder="Select work type detail" />
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                     <SelectItem value="WFO">Work From Office (WFO)</SelectItem>
@@ -348,7 +373,7 @@ export function WorkScheduleForm({
                                 {/* CheckClock Location */}
                                 <div>
                                     <div className="flex items-center gap-2 mb-4">
-                                        <MapPin className="h-5 w-5 text-gray-500"/>
+                                        <MapPin className="h-5 w-5 text-gray-500" />
                                         <h3 className="font-semibold text-lg text-gray-800">
                                             Check-Clock Location
                                         </h3>
@@ -363,7 +388,7 @@ export function WorkScheduleForm({
                                         >
                                             <SelectTrigger
                                                 className="w-full text-sm font-normal text-gray-700 border-gray-300 hover:border-gray-400 z-10">
-                                                <SelectValue placeholder="Select Location"/>
+                                                <SelectValue placeholder="Select Location" />
                                             </SelectTrigger>
                                             <SelectContent>
                                                 {locationsList.map((loc) => (
@@ -445,14 +470,16 @@ export function WorkScheduleForm({
                     variant="outline"
                     onClick={() => router.back()}
                     className="hover:bg-gray-100"
+                    disabled={isLoading} // Added disabled state
                 >
                     Cancel
                 </Button>
                 <Button
                     type="submit"
                     className="bg-[#6B9AC4] hover:bg-[#5A89B3] text-white"
+                    disabled={isLoading} // Added disabled state
                 >
-                    {isEditMode ? "Update Schedule" : "Save Schedule"}
+                    {isLoading ? (isEditMode ? "Updating..." : "Saving...") : (isEditMode ? "Update Schedule" : "Save Schedule")} {/* Added loading text */}
                 </Button>
             </div>
         </form>

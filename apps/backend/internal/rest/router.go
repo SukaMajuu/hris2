@@ -3,27 +3,47 @@ package rest
 import (
 	"github.com/SukaMajuu/hris/apps/backend/internal/rest/handler"
 	"github.com/SukaMajuu/hris/apps/backend/internal/rest/middleware"
-	"github.com/SukaMajuu/hris/apps/backend/internal/usecase/auth"
-	"github.com/SukaMajuu/hris/apps/backend/internal/usecase/employee"
-	"github.com/SukaMajuu/hris/apps/backend/internal/usecase/location"
+	auth "github.com/SukaMajuu/hris/apps/backend/internal/usecase/auth"
+	checkclocksettingsusecase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/checkclock_settings"
+	document "github.com/SukaMajuu/hris/apps/backend/internal/usecase/document"
+	employee "github.com/SukaMajuu/hris/apps/backend/internal/usecase/employee"
+	location "github.com/SukaMajuu/hris/apps/backend/internal/usecase/location"
+	"github.com/SukaMajuu/hris/apps/backend/internal/usecase/subscription"
+	work_Schedule "github.com/SukaMajuu/hris/apps/backend/internal/usecase/work_schedule"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
 type Router struct {
-	authHandler     *handler.AuthHandler
-	locationHandler *handler.LocationHandler
-	authMiddleware  *middleware.AuthMiddleware
-	employeeHandler *handler.EmployeeHandler
-	//workScheduleHandler *handler.WorkScheduleHandler
+	authHandler               *handler.AuthHandler
+	locationHandler           *handler.LocationHandler
+	authMiddleware            *middleware.AuthMiddleware
+	employeeHandler           *handler.EmployeeHandler
+	workScheduleHandler       *handler.WorkScheduleHandler
+	checkclockSettingsHandler *handler.CheckclockSettingsHandler
+	subscriptionHandler       *handler.SubscriptionHandler
+	documentHandler           *handler.DocumentHandler
 }
 
-func NewRouter(authUseCase *auth.AuthUseCase, employeeUseCase *employee.EmployeeUseCase, locationUseCase *location.LocationUseCase) *Router {
+func NewRouter(
+	authUseCase *auth.AuthUseCase,
+	employeeUseCase *employee.EmployeeUseCase,
+	locationUseCase *location.LocationUseCase,
+	workScheduleUseCase *work_Schedule.WorkScheduleUseCase,
+	checkclockSettingsUseCase *checkclocksettingsusecase.CheckclockSettingsUseCase,
+	subscriptionUseCase *subscription.SubscriptionUseCase,
+	documentUseCase *document.DocumentUseCase,
+) *Router {
 	return &Router{
-		authHandler:     handler.NewAuthHandler(authUseCase),
-		authMiddleware:  middleware.NewAuthMiddleware(authUseCase, employeeUseCase),
-		employeeHandler: handler.NewEmployeeHandler(employeeUseCase),
-		locationHandler: handler.NewLocationHandler(locationUseCase),
+		authHandler:               handler.NewAuthHandler(authUseCase),
+		authMiddleware:            middleware.NewAuthMiddleware(authUseCase, employeeUseCase),
+		employeeHandler:           handler.NewEmployeeHandler(employeeUseCase),
+		locationHandler:           handler.NewLocationHandler(locationUseCase),
+		workScheduleHandler:       handler.NewWorkScheduleHandler(workScheduleUseCase),
+		checkclockSettingsHandler: handler.NewCheckclockSettingsHandler(checkclockSettingsUseCase),
+		subscriptionHandler:       handler.NewSubscriptionHandler(subscriptionUseCase),
+		documentHandler:           handler.NewDocumentHandler(documentUseCase),
 	}
 }
 
@@ -81,6 +101,44 @@ func (r *Router) Setup() *gin.Engine {
 				locations.PUT("/:id", r.locationHandler.UpdateLocation)
 				locations.DELETE("/:id", r.locationHandler.DeleteLocation)
 			}
+
+			workScheduleRoutes := api.Group("/work-schedules")
+			{
+				workScheduleRoutes.POST("", r.workScheduleHandler.CreateWorkSchedule)
+				workScheduleRoutes.GET("", r.workScheduleHandler.ListWorkSchedules)
+			}
+
+			checkclockSettings := api.Group("/checkclock-settings")
+			{
+				checkclockSettings.POST("", r.checkclockSettingsHandler.CreateCheckclockSettings)
+			}
+
+      documents := api.Group("/documents")
+			{
+				documents.POST("/upload", r.authMiddleware.Authenticate(), r.documentHandler.UploadDocument)
+				documents.GET("", r.authMiddleware.Authenticate(), r.documentHandler.GetDocuments)
+				documents.DELETE("/:id", r.authMiddleware.Authenticate(), r.documentHandler.DeleteDocument)
+			}
+
+			subscription := api.Group("/subscription")
+			{
+				subscription.GET("/plans", r.subscriptionHandler.GetSubscriptionPlans)
+				subscription.GET("/plans/:subscription_plan_id/seat-plans", r.subscriptionHandler.GetSeatPlans)
+				subscription.GET("/checkout/:session_id", r.subscriptionHandler.GetCheckoutSession)
+
+				protected := subscription.Group("")
+				{
+					protected.GET("/me", r.subscriptionHandler.GetUserSubscription)
+					protected.POST("/checkout/trial", r.subscriptionHandler.InitiateTrialCheckout)
+					protected.POST("/checkout/paid", r.subscriptionHandler.InitiatePaidCheckout)
+					protected.POST("/checkout/complete-trial", r.subscriptionHandler.CompleteTrialCheckout)
+				}
+			}
+		}
+
+		webhooks := v1.Group("/webhooks")
+		{
+			webhooks.POST("/xendit", r.subscriptionHandler.ProcessWebhook)
 		}
 	}
 

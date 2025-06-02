@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -14,10 +15,12 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Eye, EyeOff } from "lucide-react";
 import { useLogin } from "./_hooks/useLogin";
 
 export default function LoginPage() {
 	const { loginForm, login, initiateGoogleLogin, isLoading } = useLogin();
+	const [showPassword, setShowPassword] = useState(false);
 
 	return (
 		<div className="h-full w-full flex flex-col">
@@ -75,12 +78,40 @@ export default function LoginPage() {
 								<FormItem className="min-h-20 relative">
 									<FormLabel>Password</FormLabel>
 									<FormControl>
-										<Input
-											className="h-12 px-4 text-base"
-											type="password"
-											placeholder="Enter your password"
-											{...field}
-										/>
+										<div className="relative">
+											<Input
+												className="h-12 px-4 pr-12 text-base"
+												type={
+													showPassword
+														? "text"
+														: "password"
+												}
+												placeholder="Enter your password"
+												{...field}
+											/>
+											<Button
+												size="icon"
+												type="button"
+												variant="ghost"
+												className="absolute h-12 right-0 top-0 hover:bg-transparent"
+												onClick={() =>
+													setShowPassword(
+														!showPassword
+													)
+												}
+												aria-label={
+													showPassword
+														? "Hide password"
+														: "Show password"
+												}
+											>
+												{showPassword ? (
+													<EyeOff className="h-6 w-6 text-black" />
+												) : (
+													<Eye className="h-6 w-6 text-black" />
+												)}
+											</Button>
+										</div>
 									</FormControl>
 									<FormMessage className="absolute -bottom-4" />
 								</FormItem>

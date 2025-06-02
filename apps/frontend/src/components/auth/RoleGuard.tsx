@@ -20,7 +20,6 @@ export function RoleGuard({
 }: RoleGuardProps) {
 	const router = useRouter();
 	const user = useAuthStore((state) => state.user);
-	const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 	const isAuthStoreLoading = useAuthStore((state) => state.isLoading);
 
 	const userRole = user?.role as Role | undefined;
@@ -31,17 +30,11 @@ export function RoleGuard({
 			return;
 		}
 
-		if (!isAuthenticated) {
-			router.replace("/login");
-			return;
-		}
-
-		if (isAuthenticated && !isAuthorized) {
+		if (!isAuthorized) {
 			toast.error("You are not authorized to view this page.");
 			router.replace(fallbackPath);
 		}
 	}, [
-		isAuthenticated,
 		isAuthorized,
 		userRole,
 		allowedRoles,
@@ -51,10 +44,6 @@ export function RoleGuard({
 	]);
 
 	if (isAuthStoreLoading) {
-		return <FullPageLoader />;
-	}
-
-	if (!isAuthenticated) {
 		return <FullPageLoader />;
 	}
 

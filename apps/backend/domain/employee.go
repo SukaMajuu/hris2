@@ -16,6 +16,7 @@ type Employee struct {
     Position         Position          `gorm:"foreignKey:PositionID"`
     EmploymentStatus bool              `gorm:"type:boolean;default:true;not null"`
 
+
     // Nullable Fields (Optional)
     LastName              *string               `gorm:"type:varchar(255)"`
     EmployeeCode          *string               `gorm:"type:varchar(255);unique"`
@@ -35,7 +36,9 @@ type Employee struct {
     TaxStatus             *enums.TaxStatus      `gorm:"type:tax_status"`
     ProfilePhotoURL       *string               `gorm:"type:varchar(255)"`
 
-    // Auto-Timestamps
+    SubscriptionID   *uint             `gorm:"type:uint"`
+    Subscription     *Subscription     `gorm:"foreignKey:SubscriptionID"`
+
     CreatedAt time.Time `gorm:"autoCreateTime"`
     UpdatedAt time.Time `gorm:"autoUpdateTime"`
 }

@@ -87,7 +87,7 @@ export const menuItems: MenuItemConfig[] = [
     title: "Settings",
     href: "/settings",
     icon: Settings,
-    roles: [ROLES.admin, ROLES.user],
+    roles: [ROLES.admin],
     type: "footer"
   },
   {

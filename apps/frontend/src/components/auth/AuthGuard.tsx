@@ -5,11 +5,13 @@ import { useAuthStore } from "@/stores/auth.store";
 import { usePathname, useRouter } from "next/navigation";
 import FullPageLoader from "@/components/ui/full-page-loader";
 
-const AUTH_FLOW_PAGES_TO_REDIRECT_FROM = [
+// Pages that don't require authentication
+const PUBLIC_PAGES = [
+	"/", // Root path for password recovery redirects
 	"/login",
 	"/register",
 	"/forgot-password",
-	// "/reset-password",
+	"/reset-password",
 	"/login/id-employee",
 	"/check-email",
 	"/link-expired",
@@ -22,21 +24,44 @@ interface AuthGuardProps {
 export function AuthGuard({ children }: AuthGuardProps) {
 	const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 	const isAuthStoreLoading = useAuthStore((state) => state.isLoading);
+	const isPasswordRecovery = useAuthStore(
+		(state) => state.isPasswordRecovery
+	);
 	const router = useRouter();
 	const pathname = usePathname();
+
+	const isPublicPage = PUBLIC_PAGES.includes(pathname);
 
 	useEffect(() => {
 		if (isAuthStoreLoading) {
 			return;
 		}
 
-		if (
-			isAuthenticated &&
-			AUTH_FLOW_PAGES_TO_REDIRECT_FROM.includes(pathname)
-		) {
-			router.replace("/dashboard");
+		if (pathname === "/" && !isAuthenticated) {
+			return;
 		}
-	}, [isAuthStoreLoading, isAuthenticated, router, pathname]);
+
+		if (isPasswordRecovery && pathname === "/reset-password") {
+			return;
+		}
+
+		if (isAuthenticated && isPublicPage && pathname !== "/") {
+			router.replace("/dashboard");
+			return;
+		}
+
+		if (!isAuthenticated && !isPublicPage) {
+			router.replace("/login");
+			return;
+		}
+	}, [
+		isAuthStoreLoading,
+		isAuthenticated,
+		isPublicPage,
+		isPasswordRecovery,
+		router,
+		pathname,
+	]);
 
 	if (isAuthStoreLoading) {
 		return <FullPageLoader />;
@@ -44,8 +69,14 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
 	if (
 		isAuthenticated &&
-		AUTH_FLOW_PAGES_TO_REDIRECT_FROM.includes(pathname)
+		isPublicPage &&
+		pathname !== "/" &&
+		!(isPasswordRecovery && pathname === "/reset-password")
 	) {
+		return <FullPageLoader />;
+	}
+
+	if (!isAuthenticated && !isPublicPage) {
 		return <FullPageLoader />;
 	}
 

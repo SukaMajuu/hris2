@@ -41,7 +41,7 @@ func (r *locationRepository) List(ctx context.Context, paginationParams domain.P
 	return locations, totalItems, nil
 }
 
-func (r *locationRepository) GetByID(ctx context.Context, id string) (*domain.Location, error) {
+func (r *locationRepository) GetByID(ctx context.Context, id uint) (*domain.Location, error) {
 	var location domain.Location
 	if err := r.db.WithContext(ctx).Where("id = ?", id).First(&location).Error; err != nil {
 		return nil, err
@@ -49,7 +49,7 @@ func (r *locationRepository) GetByID(ctx context.Context, id string) (*domain.Lo
 	return &location, nil
 }
 
-func (r *locationRepository) Update(ctx context.Context, id string, location *domain.Location) (*domain.Location, error) {
+func (r *locationRepository) Update(ctx context.Context, id uint, location *domain.Location) (*domain.Location, error) {
 	if err := r.db.WithContext(ctx).Where("id = ?", id).Updates(location).Error; err != nil {
 		return nil, err
 	}
@@ -60,6 +60,19 @@ func (r *locationRepository) Update(ctx context.Context, id string, location *do
 	return &updatedLocation, nil
 }
 
-func (r *locationRepository) Delete(ctx context.Context, id string) error {
+func (r *locationRepository) Delete(ctx context.Context, id uint) error {
 	return r.db.WithContext(ctx).Where("id = ?", id).Delete(&domain.Location{}).Error
+}
+
+// Exists checks if a location with the given ID exists.
+func (r *locationRepository) Exists(ctx context.Context, id uint) (bool, error) {
+	var location domain.Location
+	err := r.db.WithContext(ctx).Model(&domain.Location{}).Where("id = ?", id).First(&location).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return false, nil // Record not found means it doesn't exist
+		}
+		return false, err // Other error
+	}
+	return true, nil // Record found
 }

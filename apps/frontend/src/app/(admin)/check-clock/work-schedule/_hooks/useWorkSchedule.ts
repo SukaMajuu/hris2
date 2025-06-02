@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { WorkSchedule, WorkScheduleDetailItem } from "@/types/work-schedule.types";
+import { WorkSchedule, WorkScheduleDetailItem, CreateWorkScheduleRequest } from "@/types/work-schedule.types";
 import { useWorkSchedules, useWorkScheduleDetail } from "@/api/queries/work-schedule.queries";
 import { useCreateWorkSchedule, useUpdateWorkSchedule, useDeleteWorkSchedule } from "@/api/mutations/work-schedule.mutation";
 import { useWorkScheduleStore } from "@/stores/work-schedule.store";
@@ -136,10 +136,8 @@ export function useWorkScheduleMutations() {
     const router = useRouter();
     const createMutation = useCreateWorkSchedule();
     const updateMutation = useUpdateWorkSchedule();
-    const deleteMutation = useDeleteWorkSchedule();
-
-    // Create work schedule
-    const handleCreate = useCallback(async (data: Partial<WorkSchedule>) => {
+    const deleteMutation = useDeleteWorkSchedule();    // Create work schedule
+    const handleCreate = useCallback(async (data: CreateWorkScheduleRequest) => {
         try {
             await createMutation.mutateAsync(data);
             toast({
@@ -163,9 +161,9 @@ export function useWorkScheduleMutations() {
     }, [createMutation, router]);
 
     // Update work schedule
-    const handleUpdate = useCallback(async (id: number, data: Partial<WorkSchedule>) => {
+    const handleUpdate = useCallback(async (id: number, data: CreateWorkScheduleRequest) => {
         try {
-            await updateMutation.mutateAsync({ id, ...data });
+            await updateMutation.mutateAsync({ id, data });
             toast({
                 title: "Success",
                 description: "Work schedule successfully updated",

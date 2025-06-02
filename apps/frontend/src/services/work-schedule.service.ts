@@ -1,6 +1,6 @@
-import { WorkSchedule } from "@/types/work-schedule.types";
+import { WorkSchedule, CreateWorkScheduleRequest } from "@/types/work-schedule.types";
 import { ApiService, PaginatedResponse } from "@/services/api.service";
-import { API_ROUTES } from "@/config/api.routes"; // Import API_ROUTES
+import { API_ROUTES } from "@/config/api.routes";
 
 export class WorkScheduleService {
     private api: ApiService;
@@ -22,15 +22,16 @@ export class WorkScheduleService {
         // Use API_ROUTES for the endpoint
         const response = await this.api.get<{ data: WorkSchedule }>(API_ROUTES.v1.api.workSchedules.detail(id));
         return response.data.data;
-    }
-
-    async create(data: Partial<WorkSchedule>): Promise<WorkSchedule> {
+    }    // Updated create method to use CreateWorkScheduleRequest - matches backend CreateWithDetails
+    async create(data: CreateWorkScheduleRequest): Promise<WorkSchedule> {
         // Use API_ROUTES for the endpoint
         const response = await this.api.post<{ data: WorkSchedule }>(API_ROUTES.v1.api.workSchedules.create, data);
         return response.data.data;
     }
 
-    async update(id: number, data: Partial<WorkSchedule>): Promise<WorkSchedule> {
+    // Update method untuk edit - tetap menggunakan Partial<WorkSchedule> untuk backward compatibility
+    // Namun dalam implementasi nyata, bisa juga menggunakan CreateWorkScheduleRequest
+    async update(id: number, data: CreateWorkScheduleRequest): Promise<WorkSchedule> {
         // Use API_ROUTES for the endpoint
         const response = await this.api.put<{ data: WorkSchedule }>(API_ROUTES.v1.api.workSchedules.update(id), data);
         return response.data.data;

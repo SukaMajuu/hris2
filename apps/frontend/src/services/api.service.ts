@@ -28,22 +28,10 @@ export class ApiService {
 
 	constructor() {
 		const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-		console.log("=== API SERVICE DEBUG ===");
-		console.log("Raw NEXT_PUBLIC_API_URL:", apiUrl);
-		console.log("Type of NEXT_PUBLIC_API_URL:", typeof apiUrl);
-		console.log(
-			"Current window location:",
-			typeof window !== "undefined"
-				? window.location.href
-				: "Server-side render"
-		);
-
 		if (!apiUrl) {
 			console.warn("NEXT_PUBLIC_API_URL is not set, using default URL");
 		}
 		this.baseURL = apiUrl || "http://localhost:8080/v1";
-		console.log("Final API Service base URL:", this.baseURL);
-		console.log("========================");
 	}
 
 	private processQueue(error: Error | null = null) {
@@ -64,18 +52,10 @@ export class ApiService {
 		data?: unknown,
 		config?: AxiosRequestConfig
 	): Promise<AxiosResponse<T>> {
-		const fullUrl = `${this.baseURL}${url}`;
-		console.log(`=== API REQUEST DEBUG ===`);
-		console.log(`Method: ${method}`);
-		console.log(`Endpoint: ${url}`);
-		console.log(`Base URL: ${this.baseURL}`);
-		console.log(`Full URL: ${fullUrl}`);
-		console.log(`=========================`);
-
 		const originalConfig = {
 			...config,
 			method,
-			url: fullUrl,
+			url: `${this.baseURL}${url}`,
 			data,
 		};
 

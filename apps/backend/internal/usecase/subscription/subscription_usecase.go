@@ -354,9 +354,10 @@ func (uc *SubscriptionUseCase) GetUserSubscription(ctx context.Context, userID u
 
 	var adminUserID uint
 
-	if user.Role == enums.RoleAdmin {
+	switch user.Role {
+	case enums.RoleAdmin:
 		adminUserID = userID
-	} else if user.Role == enums.RoleUser {
+	case enums.RoleUser:
 		employee, err := uc.employeeRepo.GetByUserID(ctx, userID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get employee: %w", err)
@@ -366,7 +367,7 @@ func (uc *SubscriptionUseCase) GetUserSubscription(ctx context.Context, userID u
 		if err != nil {
 			return nil, fmt.Errorf("failed to find admin user: %w", err)
 		}
-	} else {
+	default:
 		return nil, fmt.Errorf("invalid user role: %s", user.Role)
 	}
 

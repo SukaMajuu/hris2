@@ -82,7 +82,6 @@ func (h *EmployeeHandler) CreateEmployee(c *gin.Context) {
 
 	creatorEmployee, err := h.employeeUseCase.GetEmployeeByUserID(c.Request.Context(), creatorUserID)
 	if err != nil {
-		log.Printf("EmployeeHandler: Error getting creator employee for user ID %d: %v", creatorUserID, err)
 		response.InternalServerError(c, fmt.Errorf("failed to get creator employee information: %w", err))
 		return
 	}
@@ -118,7 +117,6 @@ func (h *EmployeeHandler) CreateEmployee(c *gin.Context) {
 	if reqDTO.ResignationDate != nil && *reqDTO.ResignationDate != "" {
 		parsedDate, err := time.Parse("2006-01-02", *reqDTO.ResignationDate)
 		if err != nil {
-			log.Printf("EmployeeHandler: Error parsing ResignationDate '%s': %v", *reqDTO.ResignationDate, err)
 			response.BadRequest(c, fmt.Sprintf("Invalid ResignationDate format. Please use YYYY-MM-DD. Value: %s", *reqDTO.ResignationDate), err)
 			return
 		}
@@ -128,7 +126,6 @@ func (h *EmployeeHandler) CreateEmployee(c *gin.Context) {
 	if reqDTO.HireDate != nil && *reqDTO.HireDate != "" {
 		parsedDate, err := time.Parse("2006-01-02", *reqDTO.HireDate)
 		if err != nil {
-			log.Printf("EmployeeHandler: Error parsing HireDate '%s': %v", *reqDTO.HireDate, err)
 			response.BadRequest(c, fmt.Sprintf("Invalid HireDate format. Please use YYYY-MM-DD. Value: %s", *reqDTO.HireDate), err)
 			return
 		}
@@ -143,7 +140,6 @@ func (h *EmployeeHandler) CreateEmployee(c *gin.Context) {
 
 	createdEmployee, err := h.employeeUseCase.Create(c.Request.Context(), employeeDomain, creatorEmployee.ID)
 	if err != nil {
-		log.Printf("EmployeeHandler: Error creating employee from use case: %v", err)
 		if errors.Is(err, domain.ErrUserAlreadyExists) || errors.Is(err, domain.ErrEmailAlreadyExists) {
 			response.Error(c, http.StatusConflict, "Failed to create employee: user or email already exists.", err)
 		} else {
@@ -292,7 +288,6 @@ func (h *EmployeeHandler) mapUpdateDTOToDomain(employeeID uint, reqDTO *employee
 	if reqDTO.ResignationDate != nil && *reqDTO.ResignationDate != "" {
 		parsedDate, err := time.Parse("2006-01-02", *reqDTO.ResignationDate)
 		if err != nil {
-			log.Printf("EmployeeHandler: Error parsing ResignationDate '%s': %v", *reqDTO.ResignationDate, err)
 			return nil, fmt.Errorf("invalid ResignationDate format. Please use YYYY-MM-DD. Value: %s", *reqDTO.ResignationDate)
 		}
 		employeeUpdatePayload.ResignationDate = &parsedDate
@@ -300,7 +295,6 @@ func (h *EmployeeHandler) mapUpdateDTOToDomain(employeeID uint, reqDTO *employee
 	if reqDTO.HireDate != nil && *reqDTO.HireDate != "" {
 		parsedDate, err := time.Parse("2006-01-02", *reqDTO.HireDate)
 		if err != nil {
-			log.Printf("EmployeeHandler: Error parsing HireDate '%s': %v", *reqDTO.HireDate, err)
 			return nil, fmt.Errorf("invalid HireDate format. Please use YYYY-MM-DD. Value: %s", *reqDTO.HireDate)
 		}
 		employeeUpdatePayload.HireDate = &parsedDate

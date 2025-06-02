@@ -37,14 +37,22 @@ func NewAuthUseCase(
 	}
 }
 
-func (uc *AuthUseCase) issueTokensAndStoreRefresh(ctx context.Context, user *domain.User) (string, string, error) {
+func (uc *AuthUseCase) issueTokensAndStoreRefresh(ctx context.Context, user *domain.User, rememberMe bool) (string, string, error) {
 	var accessToken, refreshToken string
 	var refreshTokenHash string
 	var err error
 
-	refreshDuration, errParseDur := time.ParseDuration(uc.config.JWT.RefreshDuration)
+	var refreshDuration time.Duration
+	var errParseDur error
+
+	if rememberMe {
+		refreshDuration, errParseDur = time.ParseDuration(uc.config.JWT.RememberMeDuration)
+	} else {
+		refreshDuration, errParseDur = time.ParseDuration(uc.config.JWT.RefreshDuration)
+	}
+
 	if errParseDur != nil {
-		log.Printf("Error parsing refresh duration from config: %v", errParseDur)
+		log.Printf("Error parsing refresh duration: %v", errParseDur)
 		return "", "", fmt.Errorf("invalid refresh token duration configuration")
 	}
 
@@ -116,7 +124,7 @@ func (uc *AuthUseCase) RegisterAdminWithForm(ctx context.Context, user *domain.U
 		return nil, "", "", fmt.Errorf("failed to register admin: %w", err)
 	}
 
-	accessToken, refreshToken, err := uc.issueTokensAndStoreRefresh(ctx, user)
+	accessToken, refreshToken, err := uc.issueTokensAndStoreRefresh(ctx, user, false)
 	if err != nil {
 		return nil, "", "", fmt.Errorf("token issuance failed after registration: %w", err)
 	}
@@ -150,7 +158,7 @@ func (uc *AuthUseCase) RegisterAdminWithGoogle(ctx context.Context, token string
 		return nil, "", "", fmt.Errorf("internal error: user object not available after registration/login attempt")
 	}
 
-	accessToken, refreshToken, err := uc.issueTokensAndStoreRefresh(ctx, userToProcess)
+	accessToken, refreshToken, err := uc.issueTokensAndStoreRefresh(ctx, userToProcess, false)
 	if err != nil {
 		return nil, "", "", fmt.Errorf("token issuance failed after google registration/login: %w", err)
 	}
@@ -160,7 +168,7 @@ func (uc *AuthUseCase) RegisterAdminWithGoogle(ctx context.Context, token string
 
 // --- Login Methods ---
 
-func (uc *AuthUseCase) LoginWithIdentifier(ctx context.Context, identifier, password string) (*domain.User, string, string, error) {
+func (uc *AuthUseCase) LoginWithIdentifier(ctx context.Context, identifier, password string, rememberMe bool) (*domain.User, string, string, error) {
 	var user *domain.User
 	var err error
 
@@ -176,7 +184,7 @@ func (uc *AuthUseCase) LoginWithIdentifier(ctx context.Context, identifier, pass
 		return nil, "", "", fmt.Errorf("login failed: %w", err)
 	}
 
-	accessToken, refreshToken, err := uc.issueTokensAndStoreRefresh(ctx, user)
+	accessToken, refreshToken, err := uc.issueTokensAndStoreRefresh(ctx, user, rememberMe)
 	if err != nil {
 		return nil, "", "", fmt.Errorf("token issuance failed after login: %w", err)
 	}
@@ -194,7 +202,7 @@ func (uc *AuthUseCase) LoginWithGoogle(ctx context.Context, token string) (*doma
 		return nil, "", "", fmt.Errorf("google login failed: %w", err)
 	}
 
-	accessToken, refreshToken, err := uc.issueTokensAndStoreRefresh(ctx, user)
+	accessToken, refreshToken, err := uc.issueTokensAndStoreRefresh(ctx, user, false)
 	if err != nil {
 		return nil, "", "", fmt.Errorf("token issuance failed after google login: %w", err)
 	}

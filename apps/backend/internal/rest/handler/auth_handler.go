@@ -16,23 +16,33 @@ import (
 )
 
 type AuthHandler struct {
-	authUseCase *authUseCase.AuthUseCase
+	authUseCase                *authUseCase.AuthUseCase
 	refreshTokenCookieDuration time.Duration
+	rememberMeCookieDuration   time.Duration
 }
 
 func NewAuthHandler(authUseCase *authUseCase.AuthUseCase) *AuthHandler {
 	cookieDuration := 7 * 24 * time.Hour
+	rememberMeDuration := 30 * 24 * time.Hour // 30 days
 	return &AuthHandler{
-		authUseCase:              authUseCase,
+		authUseCase:                authUseCase,
 		refreshTokenCookieDuration: cookieDuration,
+		rememberMeCookieDuration:   rememberMeDuration,
 	}
 }
 
-func (h *AuthHandler) setRefreshTokenCookie(c *gin.Context, token string) {
+func (h *AuthHandler) setRefreshTokenCookie(c *gin.Context, token string, rememberMe bool) {
+	var maxAge int
+	if rememberMe {
+		maxAge = int(h.rememberMeCookieDuration.Seconds())
+	} else {
+		maxAge = int(h.refreshTokenCookieDuration.Seconds())
+	}
+
 	c.SetCookie(
 		"refresh_token",
 		token,
-		int(h.refreshTokenCookieDuration.Seconds()),
+		maxAge,
 		"/v1/auth",
 		"",
 		true,
@@ -78,7 +88,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	h.setRefreshTokenCookie(c, refreshToken)
+	h.setRefreshTokenCookie(c, refreshToken, false)
 
 	response.Success(c, http.StatusCreated, "User registered and logged in successfully", gin.H{
 		"access_token": accessToken,
@@ -97,7 +107,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	user, accessToken, refreshToken, err := h.authUseCase.LoginWithIdentifier(c.Request.Context(), req.Identifier, req.Password)
+	user, accessToken, refreshToken, err := h.authUseCase.LoginWithIdentifier(c.Request.Context(), req.Identifier, req.Password, req.RememberMe)
 	if err != nil {
 		if errors.Is(err, domain.ErrInvalidCredentials) {
 			response.Unauthorized(c, "Invalid credentials", err)
@@ -107,7 +117,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	h.setRefreshTokenCookie(c, refreshToken)
+	h.setRefreshTokenCookie(c, refreshToken, req.RememberMe)
 
 	response.Success(c, http.StatusOK, "Login successful", gin.H{
 		"access_token": accessToken,
@@ -135,7 +145,7 @@ func (h *AuthHandler) GoogleLogin(c *gin.Context) {
 		}
 	}
 
-	h.setRefreshTokenCookie(c, refreshToken)
+	h.setRefreshTokenCookie(c, refreshToken, false)
 
 	response.Success(c, http.StatusOK, "Google authentication successful", gin.H{
 		"access_token": accessToken,
@@ -213,7 +223,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 		return
 	}
 
-	h.setRefreshTokenCookie(c, newRefreshToken)
+	h.setRefreshTokenCookie(c, newRefreshToken, false)
 
 	response.Success(c, http.StatusOK, "Token refreshed successfully", gin.H{
 		"access_token": newAccessToken,

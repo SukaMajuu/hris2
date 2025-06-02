@@ -2,29 +2,40 @@ package employee
 
 import (
 	"context"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"log"
+	"math/big"
+	"mime/multipart"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
 	dtoemployee "github.com/SukaMajuu/hris/apps/backend/domain/dto/employee"
 	"github.com/SukaMajuu/hris/apps/backend/domain/interfaces"
+	"github.com/supabase-community/supabase-go"
 	"gorm.io/gorm"
 )
 
+const bucketNamePhoto = "photo"
+
 type EmployeeUseCase struct {
-	employeeRepo interfaces.EmployeeRepository
-	authRepo     interfaces.AuthRepository
+	employeeRepo   interfaces.EmployeeRepository
+	authRepo       interfaces.AuthRepository
+	supabaseClient *supabase.Client
 }
 
 func NewEmployeeUseCase(
 	employeeRepo interfaces.EmployeeRepository,
 	authRepo interfaces.AuthRepository,
+	supabaseClient *supabase.Client,
 ) *EmployeeUseCase {
 	return &EmployeeUseCase{
-		employeeRepo: employeeRepo,
-		authRepo:     authRepo,
+		employeeRepo:   employeeRepo,
+		authRepo:       authRepo,
+		supabaseClient: supabaseClient,
 	}
 }
 
@@ -380,4 +391,103 @@ func (uc *EmployeeUseCase) GetStatistics(ctx context.Context) (*dtoemployee.Empl
 		totalEmployees, newEmployees, activeEmployees, resignedEmployees, permanentEmployees, contractEmployees, freelanceEmployees)
 
 	return response, nil
+}
+
+func (uc *EmployeeUseCase) UploadProfilePhoto(ctx context.Context, employeeID uint, file *multipart.FileHeader) (*domain.Employee, error) {
+	log.Printf("EmployeeUseCase: UploadProfilePhoto called for employee ID: %d", employeeID)
+
+	employee, err := uc.employeeRepo.GetByID(ctx, employeeID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get employee: %w", err)
+	}
+
+	fileName := uc.generatePhotoFileName(employee, file.Filename)
+
+	src, err := file.Open()
+	if err != nil {
+		return nil, fmt.Errorf("failed to open uploaded file: %w", err)
+	}
+	defer func() {
+		if closeErr := src.Close(); closeErr != nil {
+			fmt.Printf("Warning: failed to close file: %v", closeErr)
+		}
+	}()
+
+	if uc.supabaseClient == nil || uc.supabaseClient.Storage == nil {
+		return nil, fmt.Errorf("storage client not available")
+	}
+
+	var oldFileName string
+	if employee.ProfilePhotoURL != nil && *employee.ProfilePhotoURL != "" {
+		oldFileName = uc.extractFileNameFromURL(*employee.ProfilePhotoURL)
+		log.Printf("EmployeeUseCase: Found existing photo, will delete after successful upload: %s", oldFileName)
+	}
+
+	_, err = uc.supabaseClient.Storage.UploadFile(bucketNamePhoto, fileName, src)
+	if err != nil {
+		log.Printf("EmployeeUseCase: Upload failed with error: %v", err)
+		return nil, fmt.Errorf("failed to upload file to storage: %w", err)
+	}
+
+	log.Printf("EmployeeUseCase: Photo upload successful! File: %s", fileName)
+
+	publicURL := uc.supabaseClient.Storage.GetPublicUrl(bucketNamePhoto, fileName)
+	log.Printf("EmployeeUseCase: Generated public URL: %s", publicURL.SignedURL)
+
+	employee.ProfilePhotoURL = &publicURL.SignedURL
+
+	err = uc.employeeRepo.Update(ctx, employee)
+	if err != nil {
+
+		log.Printf("EmployeeUseCase: Database update failed, cleaning up uploaded file: %s", fileName)
+		if _, removeErr := uc.supabaseClient.Storage.RemoveFile(bucketNamePhoto, []string{fileName}); removeErr != nil {
+			log.Printf("Warning: failed to cleanup uploaded file: %v", removeErr)
+		}
+		return nil, fmt.Errorf("failed to update employee photo URL: %w", err)
+	}
+
+	if oldFileName != "" {
+		log.Printf("EmployeeUseCase: Deleting old photo file: %s", oldFileName)
+		if _, removeErr := uc.supabaseClient.Storage.RemoveFile(bucketNamePhoto, []string{oldFileName}); removeErr != nil {
+			log.Printf("Warning: failed to remove old photo file '%s': %v", oldFileName, removeErr)
+		} else {
+			log.Printf("EmployeeUseCase: Successfully deleted old photo file: %s", oldFileName)
+		}
+	}
+
+	log.Printf("EmployeeUseCase: Successfully updated employee photo URL for ID: %d", employeeID)
+	return employee, nil
+}
+
+func (uc *EmployeeUseCase) generatePhotoFileName(employee *domain.Employee, originalFilename string) string {
+	ext := filepath.Ext(originalFilename)
+
+	var lastName string
+	if employee.LastName != nil {
+		lastName = *employee.LastName
+	}
+
+	baseName := fmt.Sprintf("%s_%s_Photo", employee.FirstName, lastName)
+	baseName = strings.ReplaceAll(baseName, " ", "_")
+
+	min := big.NewInt(100000000000000)
+	max := big.NewInt(999999999999999)
+	rangeNum := new(big.Int).Sub(max, min)
+
+	randomInRange, err := rand.Int(rand.Reader, rangeNum)
+	if err != nil {
+		randomInRange = big.NewInt(123456789012345)
+	}
+
+	randomNumber := new(big.Int).Add(randomInRange, min)
+
+	return fmt.Sprintf("%s_%s%s", baseName, randomNumber.String(), ext)
+}
+
+func (uc *EmployeeUseCase) extractFileNameFromURL(url string) string {
+	parts := strings.Split(url, "/")
+	if len(parts) > 0 {
+		return parts[len(parts)-1]
+	}
+	return ""
 }

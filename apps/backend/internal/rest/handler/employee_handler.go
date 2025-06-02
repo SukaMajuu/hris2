@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
@@ -65,8 +66,21 @@ func (h *EmployeeHandler) ListEmployees(c *gin.Context) {
 func (h *EmployeeHandler) CreateEmployee(c *gin.Context) {
 	var reqDTO employeeDTO.CreateEmployeeRequestDTO
 
-	if bindAndValidate(c, &reqDTO) {
+	if err := c.ShouldBind(&reqDTO); err != nil {
+		log.Printf("EmployeeHandler: Error binding form data for create: %v", err)
+		response.BadRequest(c, "Invalid request format", err)
 		return
+	}
+
+	if reqDTO.PhotoFile != nil {
+		mimeType := reqDTO.PhotoFile.Header.Get("Content-Type")
+		log.Printf("EmployeeHandler: Photo file MIME type detected: %s", mimeType)
+
+		if !isAllowedPhotoMimeType(mimeType) {
+			log.Printf("EmployeeHandler: Photo MIME type not allowed: %s", mimeType)
+			response.BadRequest(c, fmt.Sprintf("Photo file type not allowed. Detected: %s. Allowed types: %s", mimeType, strings.Join(allowedPhotoMimeTypes, ", ")), nil)
+			return
+		}
 	}
 
 	userDomain := domain.User{
@@ -142,6 +156,19 @@ func (h *EmployeeHandler) CreateEmployee(c *gin.Context) {
 			response.InternalServerError(c, fmt.Errorf("failed to create employee: %w", err))
 		}
 		return
+	}
+
+	if reqDTO.PhotoFile != nil {
+		log.Printf("EmployeeHandler: Uploading photo for newly created employee ID: %d", createdEmployee.ID)
+
+		updatedEmployee, err := h.employeeUseCase.UploadProfilePhoto(c.Request.Context(), createdEmployee.ID, reqDTO.PhotoFile)
+		if err != nil {
+			log.Printf("EmployeeHandler: Error uploading photo for new employee: %v", err)
+			log.Printf("EmployeeHandler: Employee created successfully but photo upload failed")
+		} else {
+			createdEmployee = updatedEmployee
+			log.Printf("EmployeeHandler: Photo uploaded successfully for new employee")
+		}
 	}
 
 	var genderStrPointer *string
@@ -401,10 +428,22 @@ func (h *EmployeeHandler) UpdateEmployee(c *gin.Context) {
 	}
 
 	var reqDTO employeeDTO.UpdateEmployeeRequestDTO
-	if err := c.ShouldBindJSON(&reqDTO); err != nil {
-		log.Printf("EmployeeHandler: Error binding JSON for update: %v", err)
+	if err := c.ShouldBind(&reqDTO); err != nil {
+		log.Printf("EmployeeHandler: Error binding form data for update: %v", err)
 		response.BadRequest(c, "Invalid request payload", err)
 		return
+	}
+
+	// Validate photo file type if provided
+	if reqDTO.PhotoFile != nil {
+		mimeType := reqDTO.PhotoFile.Header.Get("Content-Type")
+		log.Printf("EmployeeHandler: Photo file MIME type detected: %s", mimeType)
+
+		if !isAllowedPhotoMimeType(mimeType) {
+			log.Printf("EmployeeHandler: Photo MIME type not allowed: %s", mimeType)
+			response.BadRequest(c, fmt.Sprintf("Photo file type not allowed. Detected: %s. Allowed types: %s", mimeType, strings.Join(allowedPhotoMimeTypes, ", ")), nil)
+			return
+		}
 	}
 
 	employeeUpdatePayload, err := h.mapUpdateDTOToDomain(uint(id), &reqDTO)
@@ -422,6 +461,21 @@ func (h *EmployeeHandler) UpdateEmployee(c *gin.Context) {
 		log.Printf("EmployeeHandler: Error updating employee from use case: %v", err)
 		response.InternalServerError(c, fmt.Errorf("failed to update employee: %w", err))
 		return
+	}
+
+	// If photo file is provided, upload it after employee update
+	if reqDTO.PhotoFile != nil {
+		log.Printf("EmployeeHandler: Uploading photo for updated employee ID: %d", uint(id))
+
+		updatedEmployeeWithPhoto, err := h.employeeUseCase.UploadProfilePhoto(c.Request.Context(), uint(id), reqDTO.PhotoFile)
+		if err != nil {
+			log.Printf("EmployeeHandler: Error uploading photo for updated employee: %v", err)
+			// Don't fail the whole update, just log the error
+			log.Printf("EmployeeHandler: Employee updated successfully but photo upload failed")
+		} else {
+			updatedEmployee = updatedEmployeeWithPhoto
+			log.Printf("EmployeeHandler: Photo uploaded successfully for updated employee")
+		}
 	}
 
 	respDTO := h.mapDomainToResponseDTO(updatedEmployee)
@@ -449,6 +503,67 @@ func (h *EmployeeHandler) ResignEmployee(c *gin.Context) {
 	}
 
 	response.Success(c, http.StatusOK, "Employee resigned successfully", nil)
+}
+
+var allowedPhotoMimeTypes = []string{
+	"image/jpeg",
+	"image/jpg",
+	"image/png",
+	"image/gif",
+	"image/webp",
+}
+
+func isAllowedPhotoMimeType(mimeType string) bool {
+	for _, allowed := range allowedPhotoMimeTypes {
+		if strings.EqualFold(mimeType, allowed) {
+			return true
+		}
+	}
+	return false
+}
+
+func (h *EmployeeHandler) UploadEmployeePhoto(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		response.BadRequest(c, "Invalid employee ID format", err)
+		return
+	}
+
+	var reqDTO employeeDTO.UploadEmployeePhotoRequestDTO
+	if err := c.ShouldBind(&reqDTO); err != nil {
+		log.Printf("EmployeeHandler: Error binding photo upload request: %v", err)
+		response.BadRequest(c, "Invalid request format", err)
+		return
+	}
+
+	// Validate file type
+	if reqDTO.File != nil {
+		mimeType := reqDTO.File.Header.Get("Content-Type")
+		log.Printf("EmployeeHandler: Photo file MIME type detected: %s", mimeType)
+
+		if !isAllowedPhotoMimeType(mimeType) {
+			log.Printf("EmployeeHandler: Photo MIME type not allowed: %s", mimeType)
+			response.BadRequest(c, fmt.Sprintf("File type not allowed. Detected: %s. Allowed types: %s", mimeType, strings.Join(allowedPhotoMimeTypes, ", ")), nil)
+			return
+		}
+	}
+
+	log.Printf("EmployeeHandler: Uploading photo for employee ID: %d", id)
+
+	updatedEmployee, err := h.employeeUseCase.UploadProfilePhoto(c.Request.Context(), uint(id), reqDTO.File)
+	if err != nil {
+		if errors.Is(err, domain.ErrEmployeeNotFound) {
+			response.NotFound(c, "Employee not found", err)
+			return
+		}
+		log.Printf("EmployeeHandler: Error uploading photo: %v", err)
+		response.InternalServerError(c, fmt.Errorf("failed to upload photo"))
+		return
+	}
+
+	respDTO := h.mapDomainToResponseDTO(updatedEmployee)
+	response.Success(c, http.StatusOK, "Photo uploaded successfully", respDTO)
 }
 
 func (h *EmployeeHandler) GetEmployeeStatistics(c *gin.Context) {

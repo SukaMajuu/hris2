@@ -100,6 +100,7 @@ func (r *Router) Setup() *gin.Engine {
 				employee.POST("", r.employeeHandler.CreateEmployee)
 				employee.PATCH("/:id", r.employeeHandler.UpdateEmployee)
 				employee.PATCH("/:id/status", r.employeeHandler.ResignEmployee)
+				// employee.POST("/:id/photo", r.authMiddleware.Authenticate(), r.employeeHandler.UploadEmployeePhoto)
 			}
 
 			branches := api.Group("/branches")

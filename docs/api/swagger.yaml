@@ -181,6 +181,10 @@ components:
                     format: url
                     nullable: true
                     description: URL to the employee's profile photo (optional).
+                photo_file:
+                    type: string
+                    format: binary
+                    description: "Profile photo file to upload (JPEG, PNG, GIF, WebP only). Alternative to profile_photo_url."
                 created_at:
                     type: string
                     format: date-time
@@ -1694,41 +1698,30 @@ paths:
         post:
             tags: [Employees]
             summary: Create new employee
+            description: Create a new employee with optional profile photo upload. All employee data and photo can be submitted in a single request using multipart/form-data.
             requestBody:
                 required: true
                 content:
-                    application/json:
+                    multipart/form-data:
                         schema:
                             type: object
                             required:
+                                - email
                                 - first_name
                                 - position_id
-                                - email
                             properties:
                                 email:
                                     type: string
                                     format: email
-                                    description: "User's email address for the new account."
-                                    example: "new.employee@example.com"
+                                    example: "john.doe@example.com"
                                 password:
                                     type: string
                                     format: password
                                     minLength: 8
-                                    description: "Password for the new user account."
-                                    example: "strongpassword123"
+                                    example: "password123"
                                 phone:
                                     type: string
-                                    nullable: true
-                                    pattern: '^\\+?[1-9]\\d{1,14}$'
-                                    description: "User's phone number for the new account (optional)."
-                                    example: "+6281234567891"
-                                user_id:
-                                    type: integer
-                                    format: uint
-                                    nullable: true
-                                    description: "(Read-only for creation as user is auto-created) Foreign key referencing the associated User ID."
-                                    example: 1
-                                    readOnly: true
+                                    example: "+1234567890"
                                 first_name:
                                     type: string
                                     maxLength: 255
@@ -1742,30 +1735,20 @@ paths:
                                     type: integer
                                     format: uint
                                     example: 1
-                                employment_status:
-                                    type: boolean
-                                    nullable: true
-                                    description: "Employee's employment status. Defaults to true if not provided."
-                                    example: true
                                 employee_code:
                                     type: string
                                     maxLength: 50
-                                    nullable: true
-                                    pattern: "^[a-zA-Z0-9]*$"
                                     example: "EMP001"
                                 branch_id:
                                     type: integer
                                     format: uint
-                                    nullable: true
                                     example: 1
                                 gender:
                                     type: string
-                                    nullable: true
-                                    enum: [Male, Female]
-                                    example: "Male"
+                                    enum: [male, female]
+                                    example: "male"
                                 nik:
                                     type: string
-                                    nullable: true
                                     pattern: "^[0-9]*$"
                                     maxLength: 16
                                     example: "1234567890123456"
@@ -1809,7 +1792,6 @@ paths:
                                     type: string
                                     nullable: true
                                     enum: [permanent, contract, freelance]
-                                    description: "Type of employment contract (optional)."
                                     example: "permanent"
                                 hire_date:
                                     type: string
@@ -1857,11 +1839,14 @@ paths:
                                     example: "K/0"
                                 profile_photo_url:
                                     type: string
-                                    maxLength: 255
                                     format: url
                                     nullable: true
                                     description: "URL to the employee's profile photo (optional)."
                                     example: "https://example.com/profile.jpg"
+                                photo_file:
+                                    type: string
+                                    format: binary
+                                    description: "Profile photo file to upload (JPEG, PNG, GIF, WebP only). Alternative to profile_photo_url."
             responses:
                 "201":
                     description: Employee created successfully
@@ -2246,6 +2231,7 @@ paths:
         patch:
             tags: [Employees]
             summary: Update employee details
+            description: Update employee details with optional profile photo upload. All employee data and photo can be submitted in a single request using multipart/form-data.
             security:
                 - bearerAuth: []
             parameters:
@@ -2260,7 +2246,7 @@ paths:
             requestBody:
                 required: true
                 content:
-                    application/json:
+                    multipart/form-data:
                         schema:
                             type: object
                             properties:
@@ -2387,6 +2373,10 @@ paths:
                                     nullable: true
                                     description: "URL to the employee's profile photo (optional)."
                                     example: "https://example.com/new_profile.jpg"
+                                photo_file:
+                                    type: string
+                                    format: binary
+                                    description: "Profile photo file to upload (JPEG, PNG, GIF, WebP only). Alternative to profile_photo_url."
                                 employment_status:
                                     type: boolean
                                     example: true
@@ -3967,7 +3957,7 @@ paths:
                                         example: "File type not allowed"
                                     error:
                                         type: string
-                                        example: "File type not allowed. Detected: application/zip. Allowed types: application/pdf, application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                                        example: "File type not allowed. Allowed types: application/pdf, application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                 401:
                     description: Unauthorized
                 500:

@@ -74,6 +74,7 @@ func main() {
 	employeeUseCase := employeeUseCase.NewEmployeeUseCase(
 		employeeRepo,
 		authRepo,
+		supabaseClient,
 	)
 
 	branchUseCase := branchUseCase.NewBranchUseCase(branchRepo)

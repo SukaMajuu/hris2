@@ -78,7 +78,11 @@ func (r *PostgresRepository) List(ctx context.Context, filters map[string]interf
 	return employees, totalItems, nil
 }
 
-func (r *PostgresRepository) GetStatistics(ctx context.Context) (totalEmployees, newEmployees, activeEmployees, resignedEmployees, permanentEmployees, contractEmployees, freelanceEmployees int64, err error) {
+func (r *PostgresRepository) GetStatistics(ctx context.Context) (
+	totalEmployees, newEmployees, activeEmployees, resignedEmployees,
+	permanentEmployees, contractEmployees, freelanceEmployees int64,
+	err error,
+) {
 
 	err = r.db.WithContext(ctx).Model(&domain.Employee{}).Count(&totalEmployees).Error
 	if err != nil {

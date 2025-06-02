@@ -1,107 +1,56 @@
 "use client";
 
-import React, { useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import React, { Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
-import {
-	useSubscriptionPlans,
-	useSeatPlans,
-} from "@/api/queries/subscription.queries";
-import { Loader2, AlertCircle } from "lucide-react";
-
-interface BillingOption {
-	id: string;
-	label: string;
-	pricePerUser: number;
-	type: "yearly" | "monthly";
-	suffix: string;
-}
+import { AlertCircle } from "lucide-react";
+import { useCheckout } from "./_hooks/useCheckout";
+import CheckoutPageSkeleton from "./_components/CheckoutPageSkeleton";
 
 const formatCurrency = (value: number) => {
 	return `Rp ${value.toLocaleString("id-ID")}`;
 };
 
 function CheckoutPageContent() {
-	const searchParams = useSearchParams();
-	const planIdParam = searchParams.get("planId");
-	const seatPlanIdParam = searchParams.get("seatPlanId");
-
-	const planId = planIdParam ? parseInt(planIdParam) : null;
-	const seatPlanId = seatPlanIdParam ? parseInt(seatPlanIdParam) : null;
-
-	const [selectedBillingOptionId, setSelectedBillingOptionId] = useState<
-		string
-	>("monthly");
-	const [taxRate] = useState(0.0);
-
-	// API calls
 	const {
-		data: subscriptionPlans,
-		isLoading: isLoadingPlans,
-		error: plansError,
-	} = useSubscriptionPlans();
-	const {
-		data: seatPlans,
-		isLoading: isLoadingSeatPlans,
-		error: seatPlansError,
-	} = useSeatPlans(planId || 0);
+		// URL Parameters
+		planId,
+		seatPlanId,
 
-	// Find the selected plan and seat plan
-	const selectedPlan = subscriptionPlans?.find((plan) => plan.id === planId);
-	const selectedSeatPlan = seatPlans?.find(
-		(seatPlan) => seatPlan.id === seatPlanId
-	);
+		// Selected data
+		selectedPlan,
+		selectedSeatPlan,
+		selectedBillingOption,
 
-	// Generate billing options based on selected seat plan
-	const billingOptions: BillingOption[] = React.useMemo(() => {
-		if (!selectedSeatPlan) return [];
+		// Billing options
+		billingOptions,
+		selectedBillingOptionId,
+		setSelectedBillingOptionId,
 
-		return [
-			{
-				id: "monthly",
-				label: "Monthly",
-				pricePerUser: selectedSeatPlan.price_per_month,
-				type: "monthly",
-				suffix: "/ Month",
-			},
-			{
-				id: "yearly",
-				label: "Yearly",
-				pricePerUser: selectedSeatPlan.price_per_year,
-				type: "yearly",
-				suffix: "/ Year",
-			},
-		];
-	}, [selectedSeatPlan]);
+		// Price calculations
+		pricePerUser,
+		subtotal,
+		taxAmount,
+		totalAtRenewal,
+		taxRate,
 
-	const selectedBillingOption = billingOptions.find(
-		(bo) => bo.id === selectedBillingOptionId
-	);
+		// Validation
+		isValidCheckout,
 
-	const pricePerUser = selectedBillingOption?.pricePerUser || 0;
-	const subtotal = pricePerUser;
-	const taxAmount = subtotal * taxRate;
-	const totalAtRenewal = subtotal + taxAmount;
+		// Loading and error states
+		isLoading,
+		hasError,
+	} = useCheckout();
 
 	// Loading state
-	if (isLoadingPlans || isLoadingSeatPlans) {
-		return (
-			<div className="min-h-screen bg-slate-100 dark:bg-slate-950 p-4 md:p-8">
-				<div className="max-w-5xl mx-auto flex items-center justify-center min-h-96">
-					<div className="flex items-center space-x-2">
-						<Loader2 className="h-4 w-4 animate-spin" />
-						<span>Loading checkout details...</span>
-					</div>
-				</div>
-			</div>
-		);
+	if (isLoading) {
+		return <CheckoutPageSkeleton />;
 	}
 
 	// Error state
-	if (plansError || seatPlansError) {
+	if (hasError) {
 		return (
 			<div className="min-h-screen bg-slate-100 dark:bg-slate-950 p-4 md:p-8">
 				<div className="max-w-5xl mx-auto flex items-center justify-center min-h-96">
@@ -122,7 +71,7 @@ function CheckoutPageContent() {
 			<div className="container mx-auto p-8 text-center">
 				Plan ID or Seat Plan ID missing.{" "}
 				<Link
-					href="/settings/subscription"
+					href="/subscription"
 					className="text-blue-500 hover:underline"
 				>
 					Go back to plans
@@ -132,12 +81,12 @@ function CheckoutPageContent() {
 		);
 	}
 
-	if (!selectedPlan || !selectedSeatPlan) {
+	if (!isValidCheckout) {
 		return (
 			<div className="container mx-auto p-8 text-center">
 				Invalid plan or seat plan selected.{" "}
 				<Link
-					href="/settings/subscription"
+					href="/subscription"
 					className="text-blue-500 hover:underline"
 				>
 					Go back to plans
@@ -152,10 +101,10 @@ function CheckoutPageContent() {
 			<div className="max-w-5xl mx-auto grid md:grid-cols-3 gap-8 items-start">
 				<div className="md:col-span-2 bg-white dark:bg-slate-900 p-6 rounded-lg shadow-lg">
 					<h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100 mb-1">
-						{selectedPlan.name}
+						{selectedPlan!.name}
 					</h1>
 					<p className="text-slate-600 dark:text-slate-400 mb-2">
-						{selectedPlan.description}
+						{selectedPlan!.description}
 					</p>
 					<Button
 						variant="outline"
@@ -214,40 +163,41 @@ function CheckoutPageContent() {
 						</p>
 						<div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border">
 							<p className="font-medium text-slate-700 dark:text-slate-200">
-								{selectedSeatPlan.min_employees} -{" "}
-								{selectedSeatPlan.max_employees} Employees
+								{selectedSeatPlan!.min_employees} -{" "}
+								{selectedSeatPlan!.max_employees} Employees
 							</p>
 						</div>
 					</div>
 
 					{/* Display Features */}
-					{selectedPlan.features && selectedPlan.features.length > 0 && (
-						<div className="mt-8">
-							<h2 className="text-xl font-semibold text-slate-700 dark:text-slate-200 mb-3">
-								Included Features
-							</h2>
-							<ul className="space-y-2">
-								{selectedPlan.features.map((feature) => (
-									<li
-										key={feature.id}
-										className="flex items-start space-x-2"
-									>
-										<div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-										<div>
-											<p className="font-medium text-slate-700 dark:text-slate-200">
-												{feature.name}
-											</p>
-											{feature.description && (
-												<p className="text-sm text-slate-500 dark:text-slate-400">
-													{feature.description}
+					{selectedPlan!.features &&
+						selectedPlan!.features.length > 0 && (
+							<div className="mt-8">
+								<h2 className="text-xl font-semibold text-slate-700 dark:text-slate-200 mb-3">
+									Included Features
+								</h2>
+								<ul className="space-y-2">
+									{selectedPlan!.features.map((feature) => (
+										<li
+											key={feature.id}
+											className="flex items-start space-x-2"
+										>
+											<div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+											<div>
+												<p className="font-medium text-slate-700 dark:text-slate-200">
+													{feature.name}
 												</p>
-											)}
-										</div>
-									</li>
-								))}
-							</ul>
-						</div>
-					)}
+												{feature.description && (
+													<p className="text-sm text-slate-500 dark:text-slate-400">
+														{feature.description}
+													</p>
+												)}
+											</div>
+										</li>
+									))}
+								</ul>
+							</div>
+						)}
 				</div>
 
 				{/* Right Column: Order Summary */}
@@ -261,7 +211,7 @@ function CheckoutPageContent() {
 							Package:
 						</span>
 						<span className="font-medium text-slate-700 dark:text-slate-200">
-							{selectedPlan.name}
+							{selectedPlan!.name}
 						</span>
 					</div>
 					<div className="flex justify-between text-sm">
@@ -277,8 +227,8 @@ function CheckoutPageContent() {
 							Team Size:
 						</span>
 						<span className="font-medium text-slate-700 dark:text-slate-200">
-							{selectedSeatPlan.min_employees}-
-							{selectedSeatPlan.max_employees}
+							{selectedSeatPlan!.min_employees}-
+							{selectedSeatPlan!.max_employees}
 						</span>
 					</div>
 					<div className="flex justify-between text-sm">
@@ -334,13 +284,7 @@ function CheckoutPageContent() {
 
 export default function CheckoutPage() {
 	return (
-		<Suspense
-			fallback={
-				<div className="container mx-auto p-8 text-center">
-					Loading page...
-				</div>
-			}
-		>
+		<Suspense fallback={<CheckoutPageSkeleton />}>
 			<CheckoutPageContent />
 		</Suspense>
 	);

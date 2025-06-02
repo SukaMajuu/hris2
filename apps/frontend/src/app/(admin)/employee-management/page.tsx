@@ -14,7 +14,6 @@ import { DataTable } from '@/components/dataTable';
 import { PaginationComponent } from '@/components/pagination';
 import { PageSizeComponent } from '@/components/pageSize';
 import { useEmployeeManagement } from './_hooks/useEmployeeManagement';
-import { useEmployeeStats } from './_hooks/useEmployeeStats';
 import { TableColumns } from './_components/TableColumns';
 import { TableHeader } from './_components/TableHeader';
 import { StatsSection } from './_components/StatsSection';
@@ -46,8 +45,6 @@ export default function EmployeeManagementPage() {
     handleResignEmployee: apiHandleResignEmployee,
     refetchEmployees,
   } = useEmployeeManagement(pagination.pageIndex + 1, pagination.pageSize, filters);
-
-  const { stats, loading: statsLoading, error: statsError } = useEmployeeStats();
 
   const handleResignEmployee = useCallback(
     async (id: number) => {
@@ -91,7 +88,7 @@ export default function EmployeeManagementPage() {
     }
   }, [nameSearch, columnFilters, setColumnFilters]);
 
-  if (loading || statsLoading) {
+  if (loading) {
     return (
       <main>
         <p>Loading...</p>
@@ -99,21 +96,17 @@ export default function EmployeeManagementPage() {
     );
   }
 
-  if (error || statsError) {
+  if (error) {
     return (
       <main>
-        <p>Error loading data: {(error || statsError)?.message}</p>
+        <p>Error loading data: {error.message}</p>
       </main>
     );
   }
 
   return (
     <main>
-      <StatsSection
-        totalEmployees={totalEmployees}
-        totalNewHire={stats.totalNewHire}
-        currentPeriod={stats.currentPeriod}
-      />
+      <StatsSection />
 
       <Card className='mb-6 border border-gray-100 dark:border-gray-800'>
         <CardContent>

@@ -9,8 +9,13 @@ export interface EmployeeApiResponse {
 }
 
 export interface EmployeeStatsData {
-  totalNewHire: number;
-  currentPeriod: string;
+  total_employees: number;
+  new_employees: number;
+  active_employees: number;
+  resigned_employees: number;
+  permanent_employees: number;
+  contract_employees: number;
+  freelance_employees: number;
 }
 
 interface ApiResponse<T> {
@@ -55,40 +60,10 @@ export class EmployeeService {
   }
 
   async getEmployeeStats(): Promise<EmployeeStatsData> {
-    const params = new URLSearchParams();
-    params.append('page', '1');
-    params.append('page_size', '100');
-
-    const url = `${API_ROUTES.v1.api.employees.list}?${params.toString()}`;
-    const response = await this.api.get<ApiResponse<PaginatedResponse<Employee>>>(url);
-
-    if (!response.data?.data?.items || !Array.isArray(response.data.data.items)) {
-      throw new Error('Unexpected API response structure');
-    }
-
-    const currentDate = new Date();
-    const currentMonth = currentDate.getMonth() + 1;
-    const currentYear = currentDate.getFullYear();
-    const currentPeriod = currentDate.toLocaleString('en-US', {
-      month: 'long',
-      year: 'numeric',
-    });
-
-    const employees: Employee[] = response.data.data.items;
-    const totalNewHire = employees.filter((emp) => {
-      if (!emp.hire_date) return false;
-
-      const hireDate = new Date(emp.hire_date);
-      const hireMonth = hireDate.getMonth() + 1;
-      const hireYear = hireDate.getFullYear();
-
-      return hireMonth === currentMonth && hireYear === currentYear;
-    }).length;
-
-    return {
-      totalNewHire,
-      currentPeriod,
-    };
+    const response = await this.api.get<ApiResponse<EmployeeStatsData>>(
+      `${API_ROUTES.v1.api.employees.list}/statistics`,
+    );
+    return response.data.data;
   }
 
   async resignEmployee(id: number): Promise<void> {

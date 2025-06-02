@@ -1,13 +1,15 @@
 import { CalendarIcon, UsersIcon, UserPlusIcon, BriefcaseIcon } from 'lucide-react';
 import { StatCard } from './StatCard';
+import { useEmployeeStatsQuery } from '@/api/queries/employee.queries';
 
-interface StatsSectionProps {
-  totalEmployees: number;
-  totalNewHire: number;
-  currentPeriod: string;
-}
+export function StatsSection() {
+  const { data: employeeStats, isLoading: isLoadingStats } = useEmployeeStatsQuery();
 
-export function StatsSection({ totalEmployees, totalNewHire, currentPeriod }: StatsSectionProps) {
+  const currentPeriod = new Date().toLocaleString('en-US', {
+    month: 'long',
+    year: 'numeric',
+  });
+
   return (
     <div className='mb-6'>
       <div className='grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4'>
@@ -19,13 +21,13 @@ export function StatsSection({ totalEmployees, totalNewHire, currentPeriod }: St
         />
         <StatCard
           label='Total Employee'
-          value={totalEmployees}
+          value={isLoadingStats ? '...' : employeeStats?.total_employees?.toString() || '0'}
           icon={<UsersIcon className='h-5 w-5' />}
           trend={{ value: 5, label: 'from last month' }}
         />
         <StatCard
           label='Total New Hire'
-          value={totalNewHire}
+          value={isLoadingStats ? '...' : employeeStats?.new_employees?.toString() || '0'}
           icon={<UserPlusIcon className='h-5 w-5' />}
           trend={{ value: 15, label: 'from last month' }}
         />

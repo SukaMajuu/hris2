@@ -31,27 +31,27 @@ func TestSubscriptionUseCase_GetSubscriptionPlans(t *testing.T) {
 	}
 
 	mockSeatPlan := domain.SeatPlan{
-		ID:               1,
+		ID:                 1,
 		SubscriptionPlanID: 1,
-		SizeTierID:       "small",
-		MinEmployees:     1,
-		MaxEmployees:     10,
-		PricePerMonth:    decimal.NewFromInt(500000),
-		PricePerYear:     decimal.NewFromInt(5000000),
-		IsActive:         true,
-		CreatedAt:        time.Now(),
+		SizeTierID:         "small",
+		MinEmployees:       1,
+		MaxEmployees:       10,
+		PricePerMonth:      decimal.NewFromInt(500000),
+		PricePerYear:       decimal.NewFromInt(5000000),
+		IsActive:           true,
+		CreatedAt:          time.Now(),
 	}
 
 	repoError := errors.New("repository database error")
 
 	tests := []struct {
-		name                string
-		mockPlans           []domain.SubscriptionPlan
-		mockSeatPlans       []domain.SeatPlan
-		mockPlansError      error
-		mockSeatPlansError  error
-		expectedResponse    []subscriptionDto.SubscriptionPlanResponse
-		expectedErrorMsg    string
+		name               string
+		mockPlans          []domain.SubscriptionPlan
+		mockSeatPlans      []domain.SeatPlan
+		mockPlansError     error
+		mockSeatPlansError error
+		expectedResponse   []subscriptionDto.SubscriptionPlanResponse
+		expectedErrorMsg   string
 	}{
 		{
 			name:               "successful retrieval",
@@ -108,7 +108,9 @@ func TestSubscriptionUseCase_GetSubscriptionPlans(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockXenditRepo := new(mocks.XenditRepository)
 			mockXenditClient := new(mocks.XenditClient)
-			uc := NewSubscriptionUseCase(mockXenditRepo, mockXenditClient)
+			mockEmployeeRepo := new(mocks.EmployeeRepository)
+			mockAuthRepo := new(mocks.AuthRepository)
+			uc := NewSubscriptionUseCase(mockXenditRepo, mockXenditClient, mockEmployeeRepo, mockAuthRepo)
 
 			mockXenditRepo.On("GetSubscriptionPlans", ctx).
 				Return(tt.mockPlans, tt.mockPlansError).Once()
@@ -142,25 +144,25 @@ func TestSubscriptionUseCase_InitiateTrialCheckout(t *testing.T) {
 	seatPlanID := uint(1)
 
 	mockSeatPlan := &domain.SeatPlan{
-		ID:               1,
+		ID:                 1,
 		SubscriptionPlanID: 1,
-		SizeTierID:       "small",
-		MinEmployees:     1,
-		MaxEmployees:     10,
-		PricePerMonth:    decimal.NewFromInt(500000),
-		PricePerYear:     decimal.NewFromInt(5000000),
-		IsActive:         true,
+		SizeTierID:         "small",
+		MinEmployees:       1,
+		MaxEmployees:       10,
+		PricePerMonth:      decimal.NewFromInt(500000),
+		PricePerYear:       decimal.NewFromInt(5000000),
+		IsActive:           true,
 	}
 
 	repoError := errors.New("repository database error")
 
 	tests := []struct {
-		name                       string
-		mockSeatPlan               *domain.SeatPlan
-		mockGetSeatPlanError       error
-		mockCreateCheckoutError    error
-		expectedSessionNonNil      bool
-		expectedErrorMsg           string
+		name                    string
+		mockSeatPlan            *domain.SeatPlan
+		mockGetSeatPlanError    error
+		mockCreateCheckoutError error
+		expectedSessionNonNil   bool
+		expectedErrorMsg        string
 	}{
 		{
 			name:                    "successful trial checkout initiation",
@@ -192,7 +194,9 @@ func TestSubscriptionUseCase_InitiateTrialCheckout(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockXenditRepo := new(mocks.XenditRepository)
 			mockXenditClient := new(mocks.XenditClient)
-			uc := NewSubscriptionUseCase(mockXenditRepo, mockXenditClient)
+			mockEmployeeRepo := new(mocks.EmployeeRepository)
+			mockAuthRepo := new(mocks.AuthRepository)
+			uc := NewSubscriptionUseCase(mockXenditRepo, mockXenditClient, mockEmployeeRepo, mockAuthRepo)
 
 			mockXenditRepo.On("GetSeatPlan", ctx, seatPlanID).
 				Return(tt.mockSeatPlan, tt.mockGetSeatPlanError).Once()
@@ -260,15 +264,15 @@ func TestSubscriptionUseCase_InitiatePaidCheckout(t *testing.T) {
 	xenditError := errors.New("xendit service error")
 
 	tests := []struct {
-		name                       string
-		mockSeatPlan               *domain.SeatPlan
-		mockGetSeatPlanError       error
-		mockCreateCheckoutError    error
-		mockXenditInvoice          *interfaces.XenditInvoice
-		mockXenditError            error
-		mockUpdateCheckoutError    error
-		expectedResponseNonNil     bool
-		expectedErrorMsg           string
+		name                    string
+		mockSeatPlan            *domain.SeatPlan
+		mockGetSeatPlanError    error
+		mockCreateCheckoutError error
+		mockXenditInvoice       *interfaces.XenditInvoice
+		mockXenditError         error
+		mockUpdateCheckoutError error
+		expectedResponseNonNil  bool
+		expectedErrorMsg        string
 	}{
 		{
 			name:                    "successful paid checkout initiation",
@@ -309,7 +313,9 @@ func TestSubscriptionUseCase_InitiatePaidCheckout(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockXenditRepo := new(mocks.XenditRepository)
 			mockXenditClient := new(mocks.XenditClient)
-			uc := NewSubscriptionUseCase(mockXenditRepo, mockXenditClient)
+			mockEmployeeRepo := new(mocks.EmployeeRepository)
+			mockAuthRepo := new(mocks.AuthRepository)
+			uc := NewSubscriptionUseCase(mockXenditRepo, mockXenditClient, mockEmployeeRepo, mockAuthRepo)
 
 			mockXenditRepo.On("GetSeatPlan", ctx, seatPlanID).
 				Return(tt.mockSeatPlan, tt.mockGetSeatPlanError).Once()
@@ -440,7 +446,9 @@ func TestSubscriptionUseCase_CompleteTrialCheckout(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockXenditRepo := new(mocks.XenditRepository)
 			mockXenditClient := new(mocks.XenditClient)
-			uc := NewSubscriptionUseCase(mockXenditRepo, mockXenditClient)
+			mockEmployeeRepo := new(mocks.EmployeeRepository)
+			mockAuthRepo := new(mocks.AuthRepository)
+			uc := NewSubscriptionUseCase(mockXenditRepo, mockXenditClient, mockEmployeeRepo, mockAuthRepo)
 
 			mockXenditRepo.On("GetCheckoutSession", ctx, tt.sessionID).
 				Return(tt.mockCheckoutSession, tt.mockGetSessionError).Once()
@@ -515,7 +523,9 @@ func TestSubscriptionUseCase_ProcessPaymentWebhook(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockXenditRepo := new(mocks.XenditRepository)
 			mockXenditClient := new(mocks.XenditClient)
-			uc := NewSubscriptionUseCase(mockXenditRepo, mockXenditClient)
+			mockEmployeeRepo := new(mocks.EmployeeRepository)
+			mockAuthRepo := new(mocks.AuthRepository)
+			uc := NewSubscriptionUseCase(mockXenditRepo, mockXenditClient, mockEmployeeRepo, mockAuthRepo)
 
 			actualErr := uc.ProcessPaymentWebhook(ctx, tt.webhookData)
 

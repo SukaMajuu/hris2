@@ -86,6 +86,8 @@ func main() {
 	subscriptionUseCase := subscriptionUseCase.NewSubscriptionUseCase(
 		xenditRepo,
 		xenditClient,
+		employeeRepo,
+		authRepo,
 	)
 
 	documentUseCase := documentUseCase.NewDocumentUseCase(

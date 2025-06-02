@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, Users } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { Button } from '../ui/button';
 
 const Header: React.FC = () => {
@@ -28,7 +28,13 @@ const Header: React.FC = () => {
       <div className='container mx-auto flex items-center justify-between px-4'>
         <div className='flex items-center'>
           <div className='mr-2 text-blue-800'>
-            <Users size={28} />
+            <img
+              src='/logo2.png'
+              alt='HRIS Logo'
+              width={40}
+              height={40}
+              className='h-10 w-5'
+            />                    
           </div>
           <span className='text-xl font-bold text-gray-900'>HRIS</span>
         </div>

@@ -43,7 +43,7 @@ const Hero: React.FC = () => {
           <div className="md:w-1/2">
             <div className="relative">
               <div className="absolute -top-6 -left-6 w-32 h-32 bg-blue-100 rounded-full opacity-70"></div>
-              <div className="absolute -bottom-8 -right-8 w-40 h-40 bg-teal-100 rounded-full opacity-70"></div>
+              {/* <div className="absolute -bottom-8 -right-8 w-40 h-40 bg-teal-100 rounded-full opacity-70"></div> */}
               <Image
                 src="https://images.pexels.com/photos/3184398/pexels-photo-3184398.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"
                 alt="HR professionals in meeting"

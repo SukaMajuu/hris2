@@ -1,109 +1,46 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { Suspense } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeftIcon, AlertCircle, Loader2 } from "lucide-react";
+import { ArrowLeftIcon, AlertCircle } from "lucide-react";
 import Link from "next/link";
-import { useSearchParams, useRouter } from "next/navigation";
-import {
-	useSubscriptionPlans,
-	useUserSubscription,
-	useSeatPlans,
-} from "@/api/queries/subscription.queries";
 import PlanCardComponent from "./_components/PlanCardComponent";
-import SeatTierCardComponent, {
-	SeatTier,
-} from "./_components/SeatTierCardComponent";
+import SeatTierCardComponent from "./_components/SeatTierCardComponent";
+import SubscriptionPageSkeleton from "./_components/SubscriptionPageSkeleton";
+import SeatTierCardSkeleton from "./_components/SeatTierCardSkeleton";
+import { useSubscription } from "./_hooks/useSubscription";
 
 function SubscriptionPageContent() {
-	const searchParams = useSearchParams();
-	const router = useRouter();
-	const initialStepQueryParam = searchParams.get("view");
-
-	const [activeView, setActiveView] = useState<"package" | "seat">(
-		initialStepQueryParam === "seat" ? "seat" : "package"
-	);
-	const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
-
-	// API calls
 	const {
-		data: subscriptionPlans,
-		isLoading: isLoadingPlans,
-		error: plansError,
-	} = useSubscriptionPlans();
+		// State
+		activeView,
+		selectedPlanId,
 
-	const {
-		data: userSubscription,
-		isLoading: isLoadingUserSubscription,
-		error: userSubscriptionError,
-	} = useUserSubscription();
+		// Data
+		subscriptionPlans,
+		userSubscription,
+		transformedSeatTiers,
+		selectedPlanName,
 
-	const {
-		data: seatPlans,
-		isLoading: isLoadingSeatPlans,
-		error: seatPlansError,
-	} = useSeatPlans(selectedPlanId || 0);
+		// Loading states
+		isLoading,
+		isLoadingSeatPlans,
+		hasError,
+		seatPlansError,
 
-	// Set initial selected plan based on user subscription or view param
-	useEffect(() => {
-		if (
-			initialStepQueryParam === "seat" &&
-			userSubscription?.subscription_plan
-		) {
-			setSelectedPlanId(userSubscription.subscription_plan.id);
-			setActiveView("seat");
-		} else if (
-			initialStepQueryParam === "seat" &&
-			!userSubscription?.subscription_plan
-		) {
-			setActiveView("package");
-		}
-	}, [initialStepQueryParam, userSubscription]);
-
-	const handleSelectPlan = (planId: number) => {
-		setSelectedPlanId(planId);
-		setActiveView("seat");
-	};
-
-	const handleSelectSeatTier = (planId: number, seatPlanId: number) => {
-		router.push(
-			`/subscription/checkout?planId=${planId}&seatPlanId=${seatPlanId}`
-		);
-	};
-
-	// Transform seat plans data for UI
-	const transformedSeatTiers: SeatTier[] = React.useMemo(() => {
-		if (!seatPlans || !selectedPlanId) return [];
-
-		const selectedPlan = subscriptionPlans?.find(
-			(p) => p.id === selectedPlanId
-		);
-
-		return seatPlans.map((seatPlan) => ({
-			id: seatPlan.id,
-			packageName: selectedPlan?.name.toUpperCase() || "",
-			employeeRangeDescription: `For ${seatPlan.min_employees}-${seatPlan.max_employees} Employees`,
-			planId: selectedPlanId,
-			sizeTierName: seatPlan.name,
-			pricePerMonth: seatPlan.price_per_month,
-			pricePerYear: seatPlan.price_per_year,
-		}));
-	}, [seatPlans, selectedPlanId, subscriptionPlans]);
+		// Event handlers
+		handleSelectPlan,
+		handleSelectSeatTier,
+		handleViewChange,
+	} = useSubscription();
 
 	// Loading state
-	if (isLoadingPlans || isLoadingUserSubscription) {
-		return (
-			<div className="max-w-5xl mx-auto flex items-center justify-center min-h-96">
-				<div className="flex items-center space-x-2">
-					<Loader2 className="h-4 w-4 animate-spin" />
-					<span>Loading subscription plans...</span>
-				</div>
-			</div>
-		);
+	if (isLoading) {
+		return <SubscriptionPageSkeleton view={activeView} />;
 	}
 
 	// Error state
-	if (plansError || userSubscriptionError) {
+	if (hasError) {
 		return (
 			<div className="max-w-5xl mx-auto">
 				<div className="flex items-center justify-center min-h-96">
@@ -136,11 +73,7 @@ function SubscriptionPageContent() {
 				<p className="mt-4 text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
 					{activeView === "package"
 						? "Step 1: Choose the plan that best suits your business features."
-						: `Step 2: Select an employee tier for the ${
-								subscriptionPlans?.find(
-									(p) => p.id === selectedPlanId
-								)?.name || ""
-						  } plan.`}
+						: `Step 2: Select an employee tier for the ${selectedPlanName} plan.`}
 				</p>
 			</header>
 
@@ -148,10 +81,7 @@ function SubscriptionPageContent() {
 				<div className="inline-flex bg-slate-200 dark:bg-slate-700 rounded-lg p-1">
 					<Button
 						variant={activeView === "package" ? "default" : "ghost"}
-						onClick={() => {
-							setActiveView("package");
-							setSelectedPlanId(null);
-						}}
+						onClick={() => handleViewChange("package")}
 						className={`px-6 py-2 rounded-md text-sm font-medium
 							${
 								activeView === "package"
@@ -195,11 +125,10 @@ function SubscriptionPageContent() {
 			{activeView === "seat" && selectedPlanId && (
 				<>
 					{isLoadingSeatPlans ? (
-						<div className="flex items-center justify-center min-h-48">
-							<div className="flex items-center space-x-2">
-								<Loader2 className="h-4 w-4 animate-spin" />
-								<span>Loading seat plans...</span>
-							</div>
+						<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+							{[...Array(6)].map((_, index) => (
+								<SeatTierCardSkeleton key={index} />
+							))}
 						</div>
 					) : seatPlansError ? (
 						<div className="flex items-center justify-center min-h-48">
@@ -235,7 +164,7 @@ function SubscriptionPageContent() {
 					<p>Please select a package first to see seat options.</p>
 					<Button
 						variant="link"
-						onClick={() => setActiveView("package")}
+						onClick={() => handleViewChange("package")}
 					>
 						Go to Package Selection
 					</Button>
@@ -247,7 +176,7 @@ function SubscriptionPageContent() {
 
 export default function SubscriptionPage() {
 	return (
-		<Suspense fallback={<div>Loading subscription options...</div>}>
+		<Suspense fallback={<SubscriptionPageSkeleton />}>
 			<SubscriptionPageContent />
 		</Suspense>
 	);

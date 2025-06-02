@@ -1,27 +1,33 @@
-// sementara doang, nanti dihapus
-export interface Employee {
-	id: number;
-	name: string;
-	employeeCode: string;
-	nik?: string;
-	email?: string;
-	gender: string;
-	placeOfBirth?: string;
-	dateOfBirth?: string;
-	phone: string;
-	address?: string;
-	branch: string;
-	position: string;
-	employmentStatus?: string;
-	department?: string;
-	grade: string;
-	joinDate?: string;
-	bankName?: string;
-	bankAccountHolder?: string;
-	bankAccountNumber?: string;
-	profilePicture?: string;
-	lastEducation?: string;
-	contractType?: string;
-	sp?: string;
-	documentMetadata?: { name: string; url: string; uploadedAt?: string }[];
-}
+// // sementara doang, nanti dihapus
+// export interface Employee {
+//   id: number;
+//   email?: string;
+//   phone?: string;
+//   first_name?: string;
+//   last_name?: string;
+//   employee_code: string;
+//   branch_id?: number;
+//   branch_name?: string;
+//   position_id?: number;
+//   position_name?: string;
+//   gender?: string;
+//   nik?: string;
+//   place_of_birth?: string;
+//   date_of_birth?: string;
+//   last_education?: string;
+//   grade?: string;
+//   contract_type?: string;
+//   employment_status: boolean;
+//   employmentStatus?: string;
+//   hire_date?: string;
+//   resignation_date?: string | null;
+//   bank_name?: string;
+//   bank_account_number?: string;
+//   bank_account_holder_name?: string;
+//   tax_status?: string;
+//   profile_photo_url?: string;
+//   created_at?: string;
+//   updated_at?: string;
+//   sp?: string;
+//   documentMetadata?: { name: string; url: string; uploadedAt?: string }[];
+// }

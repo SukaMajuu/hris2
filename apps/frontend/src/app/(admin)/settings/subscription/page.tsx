@@ -3,138 +3,76 @@
 import React, { useState, useEffect, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckIcon, ArrowRightIcon, ArrowLeftIcon } from "lucide-react";
+import {
+	CheckIcon,
+	ArrowRightIcon,
+	ArrowLeftIcon,
+	AlertCircle,
+	Loader2,
+} from "lucide-react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
-
-interface PricingPlan {
-	id: string;
-	name: string;
-	description: string;
-	features: string[];
-}
+import {
+	useSubscriptionPlans,
+	useUserSubscription,
+	useSeatPlans,
+} from "@/api/queries/subscription.queries";
+import { SubscriptionPlan } from "@/types/subscription";
 
 interface SeatTier {
-	id: string; // e.g., standard-tier1-50
-	packageName: string; // e.g., STANDARD, PREMIUM, ULTRA - for display
-	employeeRangeDescription: string; // e.g., "For 1-50 Employees"
-	planId: string; // e.g., "standard"
-	sizeTierId: string; // e.g., "std-tier1-50" - for checkout query param
+	id: number;
+	packageName: string;
+	employeeRangeDescription: string;
+	planId: number;
+	sizeTierName: string;
+	pricePerMonth: number;
+	pricePerYear: number;
 }
 
-const ADMIN_CURRENT_PLAN_ID = "premium";
-// This should map to a dynamically generated ID if we want to show a seat tier as current
-// e.g., if admin's current setup is Premium plan and 51-100 tier, this would be 'premium-tier51-100'
-const ADMIN_CURRENT_SEAT_ID_FOR_SELECTED_PLAN = "premium-tier51-100"; // Example ID, will be generated
-
-const plansData: PricingPlan[] = [
-	{
-		id: "standard",
-		name: "Standard",
-		description: "Best for small business",
-		features: [
-			"Employee database view & export",
-			"Manual admin attendance",
-			"Clock-in/out (manual + approval)",
-			"Attendance status (on-time/late)",
-			"Leave requests (sick, permit, annual)",
-			"Employee dashboard (working hours, leave, status)",
-		],
-	},
-	{
-		id: "premium",
-		name: "Premium",
-		description: "Best for growing business",
-		features: [
-			"Admin dashboard & employee analytics",
-			"GPS-based attendance",
-			"Work schedule & shift management",
-			"Tax & overtime calculation",
-			"Fingerprint integration",
-			"Detailed attendance reports",
-		],
-	},
-	{
-		id: "ultra",
-		name: "Ultra",
-		description: "Small businesses & startups",
-		features: [
-			"Face recognition attendance",
-			"Auto check-out",
-			"Turnover analytics",
-			"Custom HR dashboards",
-			"Custom overtime rules",
-			"HR letters/contracts",
-			"Manage subscription & seat plans",
-		],
-	},
-];
-
-// Helper to generate seat tiers for a given plan
-const generateSeatTiersForPlan = (
-	planId: string,
-	planName: string
-): SeatTier[] => {
-	const tierRanges = [
-		{
-			idSuffix: "tier1-50",
-			label: "1-50 Employees",
-			checkoutSizeTierIdPrefix: planId.substring(0, 3),
-		},
-		{
-			idSuffix: "tier51-100",
-			label: "51-100 Employees",
-			checkoutSizeTierIdPrefix: planId.substring(0, 3),
-		},
-		{
-			idSuffix: "tier101-250",
-			label: "101-250 Employees",
-			checkoutSizeTierIdPrefix: planId.substring(0, 3),
-		},
-	];
-
-	return tierRanges.map((range) => ({
-		id: `${planId}-${range.idSuffix}`,
-		packageName: planName.toUpperCase(),
-		employeeRangeDescription: `For ${range.label}`,
-		planId: planId,
-		sizeTierId: `${range.checkoutSizeTierIdPrefix}-${range.idSuffix}`,
-	}));
-};
-
 interface PlanCardComponentProps {
-	plan: PricingPlan;
-	currentAdminPlanId: string;
-	onSelectPlan: (planId: string) => void;
+	plan: SubscriptionPlan;
+	currentUserPlan: SubscriptionPlan | null;
+	onSelectPlan: (planId: number) => void;
 }
 
 const PlanCardComponent: React.FC<PlanCardComponentProps> = ({
 	plan,
-	currentAdminPlanId,
+	currentUserPlan,
 	onSelectPlan,
 }) => {
-	const isActuallyCurrentPlan = plan.id === currentAdminPlanId;
+	const isCurrentPlan = currentUserPlan?.id === plan.id;
+	const isInactive = plan.is_active === false;
 
 	const cardClasses = `
-    rounded-xl p-6 flex flex-col h-full shadow-lg relative
-    ${
-		isActuallyCurrentPlan
-			? "border-2 border-pink-500"
-			: "border border-slate-200 dark:border-slate-700"
-	}
-  `;
-	const textColor = "text-slate-700 dark:text-slate-300";
+		rounded-xl p-6 flex flex-col h-full shadow-lg relative
+		${
+			isCurrentPlan
+				? "border-2 border-primary"
+				: "border border-slate-200 dark:border-slate-700"
+		}
+		${isInactive ? "opacity-60 bg-slate-50 dark:bg-slate-800/50" : ""}
+	`;
+	const textColor = `text-slate-700 dark:text-slate-300 ${
+		isInactive ? "opacity-70" : ""
+	}`;
 
 	return (
 		<Card className={cardClasses}>
-			{isActuallyCurrentPlan && (
-				<div className="absolute top-3 right-3 bg-pink-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full">
+			{isCurrentPlan && (
+				<div className="absolute top-3 right-3 bg-primary text-white text-xs font-semibold px-2.5 py-1 rounded-full">
 					Current Package
+				</div>
+			)}
+			{isInactive && !isCurrentPlan && (
+				<div className="absolute top-3 right-3 bg-slate-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full">
+					Not Available
 				</div>
 			)}
 			<CardHeader className="p-0 pt-2">
 				<CardTitle
-					className={`text-4xl font-bold text-slate-900 dark:text-slate-100`}
+					className={`text-4xl font-bold text-slate-900 dark:text-slate-100 ${
+						isInactive ? "opacity-70" : ""
+					}`}
 				>
 					{plan.name}
 				</CardTitle>
@@ -142,30 +80,55 @@ const PlanCardComponent: React.FC<PlanCardComponentProps> = ({
 			</CardHeader>
 			<CardContent className="p-0 flex-grow">
 				<ul className="space-y-4 border-t border-slate-200 dark:border-slate-700 pt-4 mt-4">
-					{plan.features.map((feature, index) => (
-						<li
-							key={index}
-							className={`flex items-center justify-between gap-2 ${textColor}`}
-						>
-							<span>{feature}</span>
-							<CheckIcon className="w-4 h-4 bg-green-500 text-white rounded-full p-0.5 flex-shrink-0" />
+					{plan.features &&
+					plan.features.length > 0 &&
+					!isInactive ? (
+						plan.features.map((feature, index) => (
+							<li
+								key={
+									typeof feature === "object"
+										? feature.id
+										: index
+								}
+								className={`flex items-center justify-between gap-2 ${textColor}`}
+							>
+								<span>
+									{typeof feature === "object"
+										? feature.name
+										: feature}
+								</span>
+								<CheckIcon
+									className={`w-4 h-4 bg-green-500 text-white rounded-full p-0.5 flex-shrink-0 ${
+										isInactive ? "opacity-50" : ""
+									}`}
+								/>
+							</li>
+						))
+					) : (
+						<li className={`${textColor} text-center py-4`}>
+							No features available
 						</li>
-					))}
+					)}
 				</ul>
 			</CardContent>
 			<div className="mt-6">
 				<Button
-					onClick={() => onSelectPlan(plan.id)}
+					onClick={() => !isInactive && onSelectPlan(plan.id)}
+					disabled={isInactive}
 					className={`w-full font-semibold py-3 text-white ${
-						isActuallyCurrentPlan
-							? "bg-blue-600 hover:bg-blue-700"
-							: "bg-pink-600 hover:bg-pink-700"
+						isCurrentPlan
+							? "bg-primary hover:bg-primary/80"
+							: isInactive
+							? "bg-slate-400 dark:bg-slate-600 cursor-not-allowed"
+							: "bg-primary hover:bg-primary/80"
 					}`}
 				>
-					{isActuallyCurrentPlan
+					{isInactive
+						? "Not Available Right Now"
+						: isCurrentPlan
 						? "Configure Seats"
 						: "Select a Package"}
-					<ArrowRightIcon className="ml-2 w-4 h-4" />
+					{!isInactive && <ArrowRightIcon className="ml-2 w-4 h-4" />}
 				</Button>
 			</div>
 		</Card>
@@ -174,24 +137,28 @@ const PlanCardComponent: React.FC<PlanCardComponentProps> = ({
 
 interface SeatTierCardComponentProps {
 	tier: SeatTier;
-	isCurrentAdminTier: boolean;
-	onSelectSeatTier: (planId: string, sizeTierId: string) => void;
+	isCurrentTier: boolean;
+	onSelectSeatTier: (planId: number, seatPlanId: number) => void;
 }
 
 const SeatTierCardComponent: React.FC<SeatTierCardComponentProps> = ({
 	tier,
-	isCurrentAdminTier,
+	isCurrentTier,
 	onSelectSeatTier,
 }) => {
+	const formatCurrency = (value: number) => {
+		return `Rp ${value.toLocaleString("id-ID")}`;
+	};
+
 	return (
 		<Card
 			className={`
-    rounded-lg p-6 flex flex-col h-full shadow-md bg-slate-50 dark:bg-slate-800
-    border border-slate-200 dark:border-slate-700 hover:ring-2 hover:ring-pink-500
-  `}
+				rounded-lg p-6 flex flex-col h-full shadow-md bg-slate-50 dark:bg-slate-800
+				border border-slate-200 dark:border-slate-700 hover:ring-2 hover:ring-primary relative
+			`}
 		>
-			{isCurrentAdminTier && (
-				<div className="absolute top-3 right-3 bg-pink-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full">
+			{isCurrentTier && (
+				<div className="absolute top-3 right-3 bg-primary text-white text-xs font-semibold px-2.5 py-1 rounded-full">
 					Current Tier
 				</div>
 			)}
@@ -202,21 +169,27 @@ const SeatTierCardComponent: React.FC<SeatTierCardComponentProps> = ({
 				<p className="text-lg font-medium text-slate-700 dark:text-slate-200 mt-2">
 					{tier.employeeRangeDescription}
 				</p>
+				<div className="mt-2 space-y-1">
+					<p className="text-sm text-slate-600 dark:text-slate-400">
+						Monthly: {formatCurrency(tier.pricePerMonth)}
+					</p>
+					<p className="text-sm text-slate-600 dark:text-slate-400">
+						Yearly: {formatCurrency(tier.pricePerYear)}
+					</p>
+				</div>
 			</CardHeader>
 			<div className="mt-auto">
 				<Button
-					onClick={() =>
-						onSelectSeatTier(tier.planId, tier.sizeTierId)
-					}
+					onClick={() => onSelectSeatTier(tier.planId, tier.id)}
 					className={`w-full font-semibold py-2.5 text-sm ${
-						isCurrentAdminTier
+						isCurrentTier
 							? "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
 							: "bg-slate-600 hover:bg-slate-700 dark:bg-slate-500 dark:hover:bg-slate-600 text-white"
 					}`}
-					disabled={isCurrentAdminTier}
+					disabled={isCurrentTier}
 				>
-					{isCurrentAdminTier ? "Current Tier" : "Select Tier"}
-					{!isCurrentAdminTier && (
+					{isCurrentTier ? "Current Tier" : "Select Tier"}
+					{!isCurrentTier && (
 						<ArrowRightIcon className="ml-1.5 w-4 h-4" />
 					)}
 				</Button>
@@ -229,43 +202,104 @@ function SubscriptionPageContent() {
 	const searchParams = useSearchParams();
 	const router = useRouter();
 	const initialStepQueryParam = searchParams.get("view");
+
 	const [activeView, setActiveView] = useState<"package" | "seat">(
 		initialStepQueryParam === "seat" ? "seat" : "package"
 	);
-	const [selectedPlanId, setSelectedPlanId] = useState<string | null>(() => {
-		// If linked directly to seat view, try to get planId from settings or default to null
-		// This part might need actual data from settings page if we want to pre-select plan when view=seat
-		return initialStepQueryParam === "seat" ? ADMIN_CURRENT_PLAN_ID : null;
-	});
+	const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
 
-	const [currentSeatTiers, setCurrentSeatTiers] = useState<SeatTier[]>([]);
+	// API calls
+	const {
+		data: subscriptionPlans,
+		isLoading: isLoadingPlans,
+		error: plansError,
+	} = useSubscriptionPlans();
 
+	const {
+		data: userSubscription,
+		isLoading: isLoadingUserSubscription,
+		error: userSubscriptionError,
+	} = useUserSubscription();
+
+	const {
+		data: seatPlans,
+		isLoading: isLoadingSeatPlans,
+		error: seatPlansError,
+	} = useSeatPlans(selectedPlanId || 0);
+
+	// Set initial selected plan based on user subscription or view param
 	useEffect(() => {
-		if (initialStepQueryParam === "seat" && !selectedPlanId) {
-			// If trying to go to seats but no plan is selected (e.g. direct link without prior selection)
-			// and no admin current plan to default to, go to package selection.
-			// Or, if we have ADMIN_CURRENT_PLAN_ID, we could set it here.
+		if (
+			initialStepQueryParam === "seat" &&
+			userSubscription?.subscription_plan
+		) {
+			setSelectedPlanId(userSubscription.subscription_plan.id);
+			setActiveView("seat");
+		} else if (
+			initialStepQueryParam === "seat" &&
+			!userSubscription?.subscription_plan
+		) {
 			setActiveView("package");
-		} else if (selectedPlanId) {
-			const plan = plansData.find((p) => p.id === selectedPlanId);
-			if (plan) {
-				setCurrentSeatTiers(
-					generateSeatTiersForPlan(plan.id, plan.name)
-				);
-			}
 		}
-	}, [initialStepQueryParam, selectedPlanId]);
+	}, [initialStepQueryParam, userSubscription]);
 
-	const handleSelectPlan = (planId: string) => {
+	const handleSelectPlan = (planId: number) => {
 		setSelectedPlanId(planId);
 		setActiveView("seat");
 	};
 
-	const handleSelectSeatTier = (planId: string, sizeTierId: string) => {
+	const handleSelectSeatTier = (planId: number, seatPlanId: number) => {
 		router.push(
-			`/settings/subscription/checkout?planId=${planId}&sizeTierId=${sizeTierId}`
+			`/settings/subscription/checkout?planId=${planId}&seatPlanId=${seatPlanId}`
 		);
 	};
+
+	// Transform seat plans data for UI
+	const transformedSeatTiers: SeatTier[] = React.useMemo(() => {
+		if (!seatPlans || !selectedPlanId) return [];
+
+		const selectedPlan = subscriptionPlans?.find(
+			(p) => p.id === selectedPlanId
+		);
+
+		return seatPlans.map((seatPlan) => ({
+			id: seatPlan.id,
+			packageName: selectedPlan?.name.toUpperCase() || "",
+			employeeRangeDescription: `For ${seatPlan.min_employees}-${seatPlan.max_employees} Employees`,
+			planId: selectedPlanId,
+			sizeTierName: seatPlan.name,
+			pricePerMonth: seatPlan.price_per_month,
+			pricePerYear: seatPlan.price_per_year,
+		}));
+	}, [seatPlans, selectedPlanId, subscriptionPlans]);
+
+	// Loading state
+	if (isLoadingPlans || isLoadingUserSubscription) {
+		return (
+			<div className="max-w-5xl mx-auto flex items-center justify-center min-h-96">
+				<div className="flex items-center space-x-2">
+					<Loader2 className="h-4 w-4 animate-spin" />
+					<span>Loading subscription plans...</span>
+				</div>
+			</div>
+		);
+	}
+
+	// Error state
+	if (plansError || userSubscriptionError) {
+		return (
+			<div className="max-w-5xl mx-auto">
+				<div className="flex items-center justify-center min-h-96">
+					<div className="text-center">
+						<AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
+						<p className="text-red-600 dark:text-red-400">
+							Failed to load subscription data. Please try again.
+						</p>
+					</div>
+				</div>
+			</div>
+		);
+	}
 
 	return (
 		<div className="max-w-5xl mx-auto">
@@ -286,11 +320,9 @@ function SubscriptionPageContent() {
 					{activeView === "package"
 						? "Step 1: Choose the plan that best suits your business features."
 						: `Step 2: Select an employee tier for the ${
-								selectedPlanId
-									? plansData.find(
-											(p) => p.id === selectedPlanId
-									  )?.name
-									: ""
+								subscriptionPlans?.find(
+									(p) => p.id === selectedPlanId
+								)?.name || ""
 						  } plan.`}
 				</p>
 			</header>
@@ -329,11 +361,13 @@ function SubscriptionPageContent() {
 
 			{activeView === "package" && (
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
-					{plansData.map((plan) => (
+					{subscriptionPlans?.map((plan) => (
 						<div key={plan.id} className="md:col-span-1">
 							<PlanCardComponent
 								plan={plan}
-								currentAdminPlanId={ADMIN_CURRENT_PLAN_ID}
+								currentUserPlan={
+									userSubscription?.subscription_plan || null
+								}
 								onSelectPlan={handleSelectPlan}
 							/>
 						</div>
@@ -342,21 +376,43 @@ function SubscriptionPageContent() {
 			)}
 
 			{activeView === "seat" && selectedPlanId && (
-				<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-					{currentSeatTiers.map((tier) => (
-						<SeatTierCardComponent
-							key={tier.id}
-							tier={tier}
-							isCurrentAdminTier={
-								tier.id ===
-									ADMIN_CURRENT_SEAT_ID_FOR_SELECTED_PLAN &&
-								tier.planId === ADMIN_CURRENT_PLAN_ID
-							}
-							onSelectSeatTier={handleSelectSeatTier}
-						/>
-					))}
-				</div>
+				<>
+					{isLoadingSeatPlans ? (
+						<div className="flex items-center justify-center min-h-48">
+							<div className="flex items-center space-x-2">
+								<Loader2 className="h-4 w-4 animate-spin" />
+								<span>Loading seat plans...</span>
+							</div>
+						</div>
+					) : seatPlansError ? (
+						<div className="flex items-center justify-center min-h-48">
+							<div className="text-center">
+								<AlertCircle className="h-6 w-6 text-red-500 mx-auto mb-2" />
+								<p className="text-red-600 dark:text-red-400">
+									Failed to load seat plans. Please try again.
+								</p>
+							</div>
+						</div>
+					) : (
+						<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+							{transformedSeatTiers.map((tier) => (
+								<SeatTierCardComponent
+									key={tier.id}
+									tier={tier}
+									isCurrentTier={
+										userSubscription?.seat_plan?.id ===
+											tier.id &&
+										userSubscription?.subscription_plan
+											?.id === selectedPlanId
+									}
+									onSelectSeatTier={handleSelectSeatTier}
+								/>
+							))}
+						</div>
+					)}
+				</>
 			)}
+
 			{activeView === "seat" && !selectedPlanId && (
 				<div className="text-center text-slate-500 dark:text-slate-400">
 					<p>Please select a package first to see seat options.</p>

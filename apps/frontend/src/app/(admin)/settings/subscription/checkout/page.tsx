@@ -1,114 +1,24 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
+import {
+	useSubscriptionPlans,
+	useSeatPlans,
+} from "@/api/queries/subscription.queries";
+import { Loader2, AlertCircle } from "lucide-react";
 
 interface BillingOption {
 	id: string;
 	label: string;
 	pricePerUser: number;
-	type: "single" | "monthly";
+	type: "yearly" | "monthly";
 	suffix: string;
 }
-
-interface SizeTier {
-	id: string;
-	label: string;
-	maxEmployees: number;
-}
-
-interface PlanCheckoutDetails {
-	planId: string;
-	planName: string;
-	planSubtitle: string;
-	billingOptions: BillingOption[];
-	sizeTiers: SizeTier[];
-}
-
-const MOCK_CHECKOUT_DATA: Record<string, PlanCheckoutDetails> = {
-	standard: {
-		planId: "standard",
-		planName: "Standard Plan",
-		planSubtitle: "Review your Standard Plan options",
-		billingOptions: [
-			{
-				id: "std-single",
-				label: "Single Payment",
-				pricePerUser: 16000,
-				type: "single",
-				suffix: "/ User",
-			},
-			{
-				id: "std-monthly",
-				label: "Monthly",
-				pricePerUser: 15000,
-				type: "monthly",
-				suffix: "/ User",
-			},
-		],
-		sizeTiers: [
-			{ id: "std-tier1-50", label: "1-50", maxEmployees: 50 },
-			{ id: "std-tier51-100", label: "51-100", maxEmployees: 100 },
-			{ id: "std-tier101-250", label: "101-250", maxEmployees: 250 },
-		],
-	},
-	premium: {
-		planId: "premium",
-		planName: "Premium Plan",
-		planSubtitle: "Upgrade to Premium (Pro Plan)",
-		billingOptions: [
-			{
-				id: "prem-single",
-				label: "Single Payment",
-				pricePerUser: 18000,
-				type: "single",
-				suffix: "/ User",
-			},
-			{
-				id: "prem-monthly",
-				label: "Monthly",
-				pricePerUser: 17000,
-				type: "monthly",
-				suffix: "/ User",
-			},
-		],
-		sizeTiers: [
-			{ id: "pre-tier1-50", label: "1-50", maxEmployees: 50 },
-			{ id: "pre-tier51-100", label: "51-100", maxEmployees: 100 },
-			{ id: "pre-tier101-250", label: "101-250", maxEmployees: 250 },
-		],
-	},
-	ultra: {
-		planId: "ultra",
-		planName: "Ultra Plan",
-		planSubtitle: "Configure your Ultra Plan",
-		billingOptions: [
-			{
-				id: "ultra-single",
-				label: "Single Payment",
-				pricePerUser: 22000,
-				type: "single",
-				suffix: "/ User",
-			},
-			{
-				id: "ultra-monthly",
-				label: "Monthly",
-				pricePerUser: 20000,
-				type: "monthly",
-				suffix: "/ User",
-			},
-		],
-		sizeTiers: [
-			{ id: "ult-tier1-50", label: "1-50", maxEmployees: 50 },
-			{ id: "ult-tier51-100", label: "51-100", maxEmployees: 100 },
-			{ id: "ult-tier101-250", label: "101-250", maxEmployees: 250 },
-		],
-	},
-};
 
 const formatCurrency = (value: number) => {
 	return `Rp ${value.toLocaleString("id-ID")}`;
@@ -116,45 +26,59 @@ const formatCurrency = (value: number) => {
 
 function CheckoutPageContent() {
 	const searchParams = useSearchParams();
-	const planId = searchParams.get("planId");
-	const sizeTierIdFromQuery = searchParams.get("sizeTierId");
+	const planIdParam = searchParams.get("planId");
+	const seatPlanIdParam = searchParams.get("seatPlanId");
 
-	const [planDetails, setPlanDetails] = useState<PlanCheckoutDetails | null>(
-		null
-	);
+	const planId = planIdParam ? parseInt(planIdParam) : null;
+	const seatPlanId = seatPlanIdParam ? parseInt(seatPlanIdParam) : null;
+
 	const [selectedBillingOptionId, setSelectedBillingOptionId] = useState<
-		string | undefined
-	>(undefined);
-	const [selectedSizeTierId, setSelectedSizeTierId] = useState<
-		string | undefined
-	>(undefined);
+		string
+	>("monthly");
 	const [taxRate] = useState(0.0);
 
-	useEffect(() => {
-		if (planId && MOCK_CHECKOUT_DATA[planId]) {
-			const details = MOCK_CHECKOUT_DATA[planId];
-			setPlanDetails(details);
-			if (details.billingOptions && details.billingOptions.length > 0) {
-				setSelectedBillingOptionId(details?.billingOptions[0]?.id);
-			}
-			if (
-				sizeTierIdFromQuery &&
-				details.sizeTiers.find((st) => st.id === sizeTierIdFromQuery)
-			) {
-				setSelectedSizeTierId(sizeTierIdFromQuery);
-			} else if (details.sizeTiers && details.sizeTiers.length > 0) {
-				setSelectedSizeTierId(details?.sizeTiers[0]?.id);
-			}
-		} else {
-			setPlanDetails(null);
-		}
-	}, [planId, sizeTierIdFromQuery]);
+	// API calls
+	const {
+		data: subscriptionPlans,
+		isLoading: isLoadingPlans,
+		error: plansError,
+	} = useSubscriptionPlans();
+	const {
+		data: seatPlans,
+		isLoading: isLoadingSeatPlans,
+		error: seatPlansError,
+	} = useSeatPlans(planId || 0);
 
-	const selectedBillingOption = planDetails?.billingOptions?.find(
-		(bo) => bo.id === selectedBillingOptionId
+	// Find the selected plan and seat plan
+	const selectedPlan = subscriptionPlans?.find((plan) => plan.id === planId);
+	const selectedSeatPlan = seatPlans?.find(
+		(seatPlan) => seatPlan.id === seatPlanId
 	);
-	const selectedSizeTier = planDetails?.sizeTiers?.find(
-		(st) => st.id === selectedSizeTierId
+
+	// Generate billing options based on selected seat plan
+	const billingOptions: BillingOption[] = React.useMemo(() => {
+		if (!selectedSeatPlan) return [];
+
+		return [
+			{
+				id: "monthly",
+				label: "Monthly",
+				pricePerUser: selectedSeatPlan.price_per_month,
+				type: "monthly",
+				suffix: "/ Month",
+			},
+			{
+				id: "yearly",
+				label: "Yearly",
+				pricePerUser: selectedSeatPlan.price_per_year,
+				type: "yearly",
+				suffix: "/ Year",
+			},
+		];
+	}, [selectedSeatPlan]);
+
+	const selectedBillingOption = billingOptions.find(
+		(bo) => bo.id === selectedBillingOptionId
 	);
 
 	const pricePerUser = selectedBillingOption?.pricePerUser || 0;
@@ -162,10 +86,41 @@ function CheckoutPageContent() {
 	const taxAmount = subtotal * taxRate;
 	const totalAtRenewal = subtotal + taxAmount;
 
-	if (!planId) {
+	// Loading state
+	if (isLoadingPlans || isLoadingSeatPlans) {
+		return (
+			<div className="min-h-screen bg-slate-100 dark:bg-slate-950 p-4 md:p-8">
+				<div className="max-w-5xl mx-auto flex items-center justify-center min-h-96">
+					<div className="flex items-center space-x-2">
+						<Loader2 className="h-4 w-4 animate-spin" />
+						<span>Loading checkout details...</span>
+					</div>
+				</div>
+			</div>
+		);
+	}
+
+	// Error state
+	if (plansError || seatPlansError) {
+		return (
+			<div className="min-h-screen bg-slate-100 dark:bg-slate-950 p-4 md:p-8">
+				<div className="max-w-5xl mx-auto flex items-center justify-center min-h-96">
+					<div className="text-center">
+						<AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
+						<p className="text-red-600 dark:text-red-400">
+							Failed to load checkout data. Please try again.
+						</p>
+					</div>
+				</div>
+			</div>
+		);
+	}
+
+	// Validation
+	if (!planId || !seatPlanId) {
 		return (
 			<div className="container mx-auto p-8 text-center">
-				Plan ID missing.{" "}
+				Plan ID or Seat Plan ID missing.{" "}
 				<Link
 					href="/settings/subscription"
 					className="text-blue-500 hover:underline"
@@ -176,17 +131,11 @@ function CheckoutPageContent() {
 			</div>
 		);
 	}
-	if (!planDetails && planId && MOCK_CHECKOUT_DATA[planId]) {
+
+	if (!selectedPlan || !selectedSeatPlan) {
 		return (
 			<div className="container mx-auto p-8 text-center">
-				Loading plan details...
-			</div>
-		);
-	}
-	if (!planDetails) {
-		return (
-			<div className="container mx-auto p-8 text-center">
-				Invalid plan selected.{" "}
+				Invalid plan or seat plan selected.{" "}
 				<Link
 					href="/settings/subscription"
 					className="text-blue-500 hover:underline"
@@ -203,10 +152,10 @@ function CheckoutPageContent() {
 			<div className="max-w-5xl mx-auto grid md:grid-cols-3 gap-8 items-start">
 				<div className="md:col-span-2 bg-white dark:bg-slate-900 p-6 rounded-lg shadow-lg">
 					<h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100 mb-1">
-						{planDetails.planName}
+						{selectedPlan.name}
 					</h1>
 					<p className="text-slate-600 dark:text-slate-400 mb-2">
-						{planDetails.planSubtitle}
+						{selectedPlan.description}
 					</p>
 					<Button
 						variant="outline"
@@ -226,7 +175,7 @@ function CheckoutPageContent() {
 							onValueChange={setSelectedBillingOptionId}
 							className="grid grid-cols-1 sm:grid-cols-2 gap-4"
 						>
-							{planDetails.billingOptions.map((option) => (
+							{billingOptions.map((option) => (
 								<Label
 									key={option.id}
 									htmlFor={option.id}
@@ -258,35 +207,47 @@ function CheckoutPageContent() {
 
 					<div className="mt-8">
 						<h2 className="text-xl font-semibold text-slate-700 dark:text-slate-200 mb-1">
-							Size Matters
+							Team Size
 						</h2>
 						<p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
-							Choose the right fit for your team!
+							Your selected employee range
 						</p>
-						<RadioGroup
-							value={selectedSizeTierId}
-							onValueChange={setSelectedSizeTierId}
-							className="flex space-x-4"
-						>
-							{planDetails.sizeTiers.map((tier) => (
-								<div
-									key={tier.id}
-									className="flex items-center space-x-2"
-								>
-									<RadioGroupItem
-										value={tier.id}
-										id={tier.id}
-									/>
-									<Label
-										htmlFor={tier.id}
-										className="font-medium text-slate-700 dark:text-slate-200 cursor-pointer"
-									>
-										{tier.label}
-									</Label>
-								</div>
-							))}
-						</RadioGroup>
+						<div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border">
+							<p className="font-medium text-slate-700 dark:text-slate-200">
+								{selectedSeatPlan.min_employees} -{" "}
+								{selectedSeatPlan.max_employees} Employees
+							</p>
+						</div>
 					</div>
+
+					{/* Display Features */}
+					{selectedPlan.features && selectedPlan.features.length > 0 && (
+						<div className="mt-8">
+							<h2 className="text-xl font-semibold text-slate-700 dark:text-slate-200 mb-3">
+								Included Features
+							</h2>
+							<ul className="space-y-2">
+								{selectedPlan.features.map((feature) => (
+									<li
+										key={feature.id}
+										className="flex items-start space-x-2"
+									>
+										<div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+										<div>
+											<p className="font-medium text-slate-700 dark:text-slate-200">
+												{feature.name}
+											</p>
+											{feature.description && (
+												<p className="text-sm text-slate-500 dark:text-slate-400">
+													{feature.description}
+												</p>
+											)}
+										</div>
+									</li>
+								))}
+							</ul>
+						</div>
+					)}
 				</div>
 
 				{/* Right Column: Order Summary */}
@@ -300,7 +261,7 @@ function CheckoutPageContent() {
 							Package:
 						</span>
 						<span className="font-medium text-slate-700 dark:text-slate-200">
-							{planDetails.planName.replace(" Plan", "")}
+							{selectedPlan.name}
 						</span>
 					</div>
 					<div className="flex justify-between text-sm">
@@ -308,8 +269,7 @@ function CheckoutPageContent() {
 							Billing Period:
 						</span>
 						<span className="font-medium text-slate-700 dark:text-slate-200">
-							{selectedBillingOption?.label.split(" - ")[0] ||
-								"N/A"}
+							{selectedBillingOption?.label || "N/A"}
 						</span>
 					</div>
 					<div className="flex justify-between text-sm">
@@ -317,12 +277,13 @@ function CheckoutPageContent() {
 							Team Size:
 						</span>
 						<span className="font-medium text-slate-700 dark:text-slate-200">
-							{selectedSizeTier?.label || "N/A"}
+							{selectedSeatPlan.min_employees}-
+							{selectedSeatPlan.max_employees}
 						</span>
 					</div>
 					<div className="flex justify-between text-sm">
 						<span className="text-slate-600 dark:text-slate-400">
-							Price per User:
+							Price:
 						</span>
 						<span className="font-medium text-slate-700 dark:text-slate-200">
 							{formatCurrency(pricePerUser)}
@@ -352,7 +313,7 @@ function CheckoutPageContent() {
 
 					<div className="flex justify-between text-lg font-bold">
 						<span className="text-slate-800 dark:text-slate-100">
-							Total at Renewal:
+							Total:
 						</span>
 						<span className="text-slate-800 dark:text-slate-100">
 							{formatCurrency(totalAtRenewal)}
@@ -363,7 +324,7 @@ function CheckoutPageContent() {
 						size="lg"
 						className="w-full mt-6 bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white text-base py-3"
 					>
-						Confirm and upgrade
+						Continue to Payment
 					</Button>
 				</div>
 			</div>

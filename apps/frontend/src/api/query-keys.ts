@@ -14,9 +14,18 @@ export const queryKeys = {
 	},
 	workSchedules: {
 		list: ["workSchedules", "list"] as const,
-		detail: (id: number | string) => ["workSchedules", "detail", id] as const,
+		detail: (id: number | string) =>
+			["workSchedules", "detail", id] as const,
 		create: ["workSchedules", "create"] as const,
 		update: ["workSchedules", "update"] as const,
 		delete: ["workSchedules", "delete"] as const,
+	},
+	subscription: {
+		plans: ["subscription", "plans"] as const,
+		seatPlans: (planId: number) =>
+			["subscription", "seatPlans", planId] as const,
+		userSubscription: ["subscription", "userSubscription"] as const,
+		checkoutSession: (sessionId: string) =>
+			["subscription", "checkoutSession", sessionId] as const,
 	},
 } as const;

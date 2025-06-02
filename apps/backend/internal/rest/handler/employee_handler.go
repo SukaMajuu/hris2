@@ -69,6 +69,24 @@ func (h *EmployeeHandler) CreateEmployee(c *gin.Context) {
 		return
 	}
 
+	userIDCtx, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User ID not found in context", fmt.Errorf("missing userID in context"))
+		return
+	}
+	creatorUserID, ok := userIDCtx.(uint)
+	if !ok {
+		response.InternalServerError(c, fmt.Errorf("invalid user ID type in context"))
+		return
+	}
+
+	creatorEmployee, err := h.employeeUseCase.GetEmployeeByUserID(c.Request.Context(), creatorUserID)
+	if err != nil {
+		log.Printf("EmployeeHandler: Error getting creator employee for user ID %d: %v", creatorUserID, err)
+		response.InternalServerError(c, fmt.Errorf("failed to get creator employee information: %w", err))
+		return
+	}
+
 	userDomain := domain.User{
 		Email:    reqDTO.Email,
 		Password: reqDTO.Password,
@@ -123,7 +141,7 @@ func (h *EmployeeHandler) CreateEmployee(c *gin.Context) {
 		employeeDomain.EmploymentStatus = true
 	}
 
-	createdEmployee, err := h.employeeUseCase.Create(c.Request.Context(), employeeDomain)
+	createdEmployee, err := h.employeeUseCase.Create(c.Request.Context(), employeeDomain, creatorEmployee.ID)
 	if err != nil {
 		log.Printf("EmployeeHandler: Error creating employee from use case: %v", err)
 		if errors.Is(err, domain.ErrUserAlreadyExists) || errors.Is(err, domain.ErrEmailAlreadyExists) {

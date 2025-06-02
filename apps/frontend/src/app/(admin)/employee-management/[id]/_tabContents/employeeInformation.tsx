@@ -25,8 +25,6 @@ interface EmployeeInformationProps {
   setDateOfBirth: (value: string) => void;
   phone: string;
   setPhone: (value: string) => void;
-  address: string;
-  setAddress: (value: string) => void;
   lastEducation: string;
   setLastEducation: (value: string) => void;
   editPersonal: boolean;
@@ -59,8 +57,6 @@ const EmployeeInformation: React.FC<EmployeeInformationProps> = ({
   setDateOfBirth,
   phone,
   setPhone,
-  address,
-  setAddress,
   lastEducation,
   setLastEducation,
   editPersonal,
@@ -247,23 +243,8 @@ const EmployeeInformation: React.FC<EmployeeInformationProps> = ({
               </SelectContent>
             </Select>
           </div>
-          <div className='sm:col-span-2'>
-            <Label
-              htmlFor='address'
-              className='text-sm font-medium text-slate-600 dark:text-slate-400'
-            >
-              Address
-            </Label>
-            <Input
-              id='address'
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              disabled={!editPersonal}
-              className='mt-1 border-slate-300 bg-slate-50 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-70 dark:border-slate-600 dark:bg-slate-800'
-            />
-          </div>
           {editPersonal && (
-            <div className='text-right sm:col-span-2'>
+            <div className='text-right'>
               <Button
                 onClick={handleSavePersonal}
                 className='bg-blue-600 text-white hover:bg-blue-700'
@@ -340,7 +321,7 @@ const EmployeeInformation: React.FC<EmployeeInformationProps> = ({
               </div>
             </div>
             {editBank && (
-              <div className='text-right sm:col-span-2'>
+              <div className='text-right'>
                 <Button
                   onClick={handleSaveBank}
                   className='bg-blue-600 text-white hover:bg-blue-700'
@@ -353,7 +334,7 @@ const EmployeeInformation: React.FC<EmployeeInformationProps> = ({
         </Card>
 
         {/* Account Actions Card */}
-        <Card className='border border-slate-100 bg-white shadow-lg xl:col-span-2 dark:border-slate-700 dark:bg-slate-900'>
+        <Card className='border border-slate-100 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900'>
           <CardHeader className='flex flex-row items-center justify-between border-b pb-3 dark:border-slate-700'>
             <CardTitle className='text-lg font-semibold text-slate-800 dark:text-slate-100'>
               Account Actions

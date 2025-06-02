@@ -33,8 +33,6 @@ export default function Page() {
     setPosition,
     employmentStatus,
     setEmploymentStatus,
-    department,
-    setDepartment,
     grade,
     setGrade,
     joinDate,
@@ -57,8 +55,6 @@ export default function Page() {
     setDateOfBirth,
     phone,
     setPhone,
-    address,
-    setAddress,
     lastEducation,
     setLastEducation,
     editPersonal,
@@ -254,24 +250,6 @@ export default function Page() {
                 </div>
                 <div>
                   <Label
-                    htmlFor='departmentTop'
-                    className='font-semibold text-slate-600 dark:text-slate-400'
-                  >
-                    Department
-                  </Label>
-                  {editJob ? (
-                    <Input
-                      id='departmentTop'
-                      value={department}
-                      onChange={(e) => setDepartment(e.target.value)}
-                      className='mt-1 h-8 border-slate-300 bg-slate-50 text-sm focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800'
-                    />
-                  ) : (
-                    <p className='text-slate-700 dark:text-slate-300'>{department}</p>
-                  )}
-                </div>
-                <div>
-                  <Label
                     htmlFor='gradeTop'
                     className='font-semibold text-slate-600 dark:text-slate-400'
                   >
@@ -376,8 +354,6 @@ export default function Page() {
             setDateOfBirth={setDateOfBirth}
             phone={phone}
             setPhone={setPhone}
-            address={address}
-            setAddress={setAddress}
             lastEducation={lastEducation}
             setLastEducation={setLastEducation}
             editPersonal={editPersonal}

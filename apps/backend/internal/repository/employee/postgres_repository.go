@@ -71,7 +71,7 @@ func (r *PostgresRepository) List(ctx context.Context, filters map[string]interf
 	}
 
 	offset := (pagination.Page - 1) * pagination.PageSize
-	if err := query.Offset(offset).Limit(pagination.PageSize).Preload("User").Preload("Branch").Preload("Position").Find(&employees).Error; err != nil {
+	if err := query.Offset(offset).Limit(pagination.PageSize).Order("id ASC").Preload("User").Preload("Branch").Preload("Position").Find(&employees).Error; err != nil {
 		return nil, 0, err
 	}
 

@@ -12,6 +12,7 @@ type EmployeeResponseDTO struct {
 	Gender                *string `json:"gender,omitempty"`
 	NIK                   *string `json:"nik,omitempty"`
 	PlaceOfBirth          *string `json:"place_of_birth,omitempty"`
+	DateOfBirth           *string `json:"date_of_birth,omitempty"`
 	LastEducation         *string `json:"last_education,omitempty"`
 	Grade                 *string `json:"grade,omitempty"`
 	ContractType          *string `json:"contract_type,omitempty"`

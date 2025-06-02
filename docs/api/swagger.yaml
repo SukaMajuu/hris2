@@ -124,6 +124,11 @@ components:
                     maxLength: 255
                     nullable: true
                     description: Place where the employee was born (optional).
+                date_of_birth:
+                    type: string
+                    format: date
+                    nullable: true
+                    description: Date when the employee was born (optional).
                 last_education:
                     type: string
                     nullable: true
@@ -1538,6 +1543,11 @@ paths:
                                                             type: string
                                                             nullable: true
                                                             example: "EMP001"
+                                                        date_of_birth:
+                                                            type: string
+                                                            format: date
+                                                            nullable: true
+                                                            example: "1990-05-15"
                                             pagination:
                                                 type: object
                                                 properties:
@@ -1660,6 +1670,12 @@ paths:
                                     nullable: true
                                     description: "Place where the employee was born (optional)."
                                     example: "Jakarta"
+                                date_of_birth:
+                                    type: string
+                                    format: date
+                                    nullable: true
+                                    description: "Date when the employee was born (optional)."
+                                    example: "1990-05-15"
                                 last_education:
                                     type: string
                                     nullable: true
@@ -1813,6 +1829,11 @@ paths:
                                                 maxLength: 255
                                                 nullable: true
                                                 example: "Jakarta"
+                                            date_of_birth:
+                                                type: string
+                                                format: date
+                                                nullable: true
+                                                example: "1990-05-15"
                                             last_education:
                                                 type: string
                                                 nullable: true
@@ -1893,6 +1914,12 @@ paths:
                                                 type: string
                                                 format: date-time
                                                 readOnly: true
+                                            email:
+                                                type: string
+                                                format: email
+                                                nullable: true
+                                                description: "Updated email of the associated user account, if changed."
+                                                example: "new.employee.email@example.com"
                 "400":
                     description: Bad request
                     content:
@@ -2034,6 +2061,33 @@ paths:
                                                 type: string
                                                 format: date-time
                                                 readOnly: true
+                                            place_of_birth:
+                                                type: string
+                                                maxLength: 255
+                                                nullable: true
+                                                example: "Jakarta"
+                                            date_of_birth:
+                                                type: string
+                                                format: date
+                                                nullable: true
+                                                example: "1990-05-15"
+                                            last_education:
+                                                type: string
+                                                nullable: true
+                                                enum:
+                                                    [
+                                                        SD,
+                                                        SMP,
+                                                        SMA/SMK,
+                                                        D1,
+                                                        D2,
+                                                        D3,
+                                                        S1/D4,
+                                                        S2,
+                                                        S3,
+                                                        Other,
+                                                    ]
+                                                example: "SMA/SMK"
 
                 "400":
                     description: Invalid ID supplied
@@ -2145,6 +2199,11 @@ paths:
                                     maxLength: 255
                                     nullable: true
                                     example: "Jakarta"
+                                date_of_birth:
+                                    type: string
+                                    format: date
+                                    nullable: true
+                                    example: "1990-05-15"
                                 last_education:
                                     type: string
                                     nullable: true
@@ -2291,6 +2350,19 @@ paths:
                                             employment_status:
                                                 type: boolean
                                                 example: true
+                                            nik:
+                                                type: string
+                                                nullable: true
+                                                example: "9876543210987654"
+                                            place_of_birth:
+                                                type: string
+                                                nullable: true
+                                                example: "Jakarta"
+                                            date_of_birth:
+                                                type: string
+                                                format: date
+                                                nullable: true
+                                                example: "1990-05-15"
                                             email:
                                                 type: string
                                                 format: email

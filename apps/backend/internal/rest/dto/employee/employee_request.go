@@ -23,6 +23,7 @@ type CreateEmployeeRequestDTO struct {
 	Gender                *enums.Gender         `json:"gender,omitempty" binding:"omitempty"`
 	NIK                   *string               `json:"nik,omitempty" binding:"omitempty,numeric"`
 	PlaceOfBirth          *string               `json:"place_of_birth,omitempty"`
+	DateOfBirth           *string               `json:"date_of_birth,omitempty"`
 	LastEducation         *enums.EducationLevel `json:"last_education,omitempty"`
 	Grade                 *string               `json:"grade,omitempty"`
 	ContractType          *enums.ContractType   `json:"contract_type,omitempty"`
@@ -47,6 +48,7 @@ type UpdateEmployeeRequestDTO struct {
 	Gender                *enums.Gender         `json:"gender,omitempty" binding:"omitempty"`
 	NIK                   *string               `json:"nik,omitempty" binding:"omitempty,numeric"`
 	PlaceOfBirth          *string               `json:"place_of_birth,omitempty"`
+	DateOfBirth           *string               `json:"date_of_birth,omitempty"`
 	LastEducation         *enums.EducationLevel `json:"last_education,omitempty"`
 	Grade                 *string               `json:"grade,omitempty"`
 	ContractType          *enums.ContractType   `json:"contract_type,omitempty"`

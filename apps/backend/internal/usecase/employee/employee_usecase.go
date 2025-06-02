@@ -82,6 +82,10 @@ func (uc *EmployeeUseCase) List(ctx context.Context, filters map[string]interfac
 			taxStatusStr := string(*emp.TaxStatus)
 			employeeDTOs[i].TaxStatus = &taxStatusStr
 		}
+		if emp.DateOfBirth != nil {
+			dateOfBirthStr := emp.DateOfBirth.Format("2006-01-02")
+			employeeDTOs[i].DateOfBirth = &dateOfBirthStr
+		}
 		if emp.HireDate != nil {
 			hireDateStr := emp.HireDate.Format("2006-01-02")
 			employeeDTOs[i].HireDate = &hireDateStr
@@ -200,6 +204,10 @@ func (uc *EmployeeUseCase) GetByID(ctx context.Context, id uint) (*dtoemployee.E
 		taxStatusStr := string(*employee.TaxStatus)
 		employeeDTO.TaxStatus = &taxStatusStr
 	}
+	if employee.DateOfBirth != nil {
+		dateOfBirthStr := employee.DateOfBirth.Format("2006-01-02")
+		employeeDTO.DateOfBirth = &dateOfBirthStr
+	}
 	if employee.HireDate != nil {
 		hireDateStr := employee.HireDate.Format("2006-01-02")
 		employeeDTO.HireDate = &hireDateStr
@@ -248,6 +256,9 @@ func (uc *EmployeeUseCase) Update(ctx context.Context, employee *domain.Employee
 	}
 	if employee.PlaceOfBirth != nil {
 		existingEmployee.PlaceOfBirth = employee.PlaceOfBirth
+	}
+	if employee.DateOfBirth != nil {
+		existingEmployee.DateOfBirth = employee.DateOfBirth
 	}
 	if employee.LastEducation != nil {
 		existingEmployee.LastEducation = employee.LastEducation

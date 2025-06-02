@@ -97,6 +97,16 @@ func (h *EmployeeHandler) CreateEmployee(c *gin.Context) {
 		ProfilePhotoURL:       reqDTO.ProfilePhotoURL,
 	}
 
+	if reqDTO.DateOfBirth != nil && *reqDTO.DateOfBirth != "" {
+		parsedDate, err := time.Parse("2006-01-02", *reqDTO.DateOfBirth)
+		if err != nil {
+			log.Printf("EmployeeHandler: Error parsing DateOfBirth '%s': %v", *reqDTO.DateOfBirth, err)
+			response.BadRequest(c, fmt.Sprintf("Invalid DateOfBirth format. Please use YYYY-MM-DD. Value: %s", *reqDTO.DateOfBirth), err)
+			return
+		}
+		employeeDomain.DateOfBirth = &parsedDate
+	}
+
 	if reqDTO.ResignationDate != nil && *reqDTO.ResignationDate != "" {
 		parsedDate, err := time.Parse("2006-01-02", *reqDTO.ResignationDate)
 		if err != nil {
@@ -182,6 +192,10 @@ func (h *EmployeeHandler) CreateEmployee(c *gin.Context) {
 		taxStatusStr := string(*createdEmployee.TaxStatus)
 		respDTO.TaxStatus = &taxStatusStr
 	}
+	if createdEmployee.DateOfBirth != nil {
+		dateOfBirthStr := createdEmployee.DateOfBirth.Format("2006-01-02")
+		respDTO.DateOfBirth = &dateOfBirthStr
+	}
 	if createdEmployee.HireDate != nil {
 		hireDateStr := createdEmployee.HireDate.Format("2006-01-02")
 		respDTO.HireDate = &hireDateStr
@@ -261,6 +275,14 @@ func (h *EmployeeHandler) mapUpdateDTOToDomain(employeeID uint, reqDTO *employee
 	}
 	if reqDTO.PlaceOfBirth != nil {
 		employeeUpdatePayload.PlaceOfBirth = reqDTO.PlaceOfBirth
+	}
+	if reqDTO.DateOfBirth != nil && *reqDTO.DateOfBirth != "" {
+		parsedDate, err := time.Parse("2006-01-02", *reqDTO.DateOfBirth)
+		if err != nil {
+			log.Printf("EmployeeHandler: Error parsing DateOfBirth '%s': %v", *reqDTO.DateOfBirth, err)
+			return nil, fmt.Errorf("invalid DateOfBirth format. Please use YYYY-MM-DD. Value: %s", *reqDTO.DateOfBirth)
+		}
+		employeeUpdatePayload.DateOfBirth = &parsedDate
 	}
 	if reqDTO.LastEducation != nil {
 		employeeUpdatePayload.LastEducation = reqDTO.LastEducation
@@ -351,6 +373,10 @@ func (h *EmployeeHandler) mapDomainToResponseDTO(employee *domain.Employee) *dom
 	if employee.TaxStatus != nil {
 		taxStatusStr := string(*employee.TaxStatus)
 		respDTO.TaxStatus = &taxStatusStr
+	}
+	if employee.DateOfBirth != nil {
+		dateOfBirthStr := employee.DateOfBirth.Format("2006-01-02")
+		respDTO.DateOfBirth = &dateOfBirthStr
 	}
 	if employee.HireDate != nil {
 		hireDateStr := employee.HireDate.Format("2006-01-02")

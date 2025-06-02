@@ -10,7 +10,11 @@ export const useCreateLocation = () => {
     mutationFn: (data: CreateLocationRequest) =>
       locationService.createLocation(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.locations.list });
+      // Invalidate all queries that start with the locations list key
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.locations.list,
+        exact: false
+      });
     },
   });
 };
@@ -18,14 +22,20 @@ export const useCreateLocation = () => {
 export const useUpdateLocation = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationKey: queryKeys.locations.update("any"), // bisa pakai "any" atau hapus mutationKey jika dinamis
+    mutationKey: queryKeys.locations.update("any"),
     mutationFn: (data: { id: string; payload: UpdateLocationRequest }) =>
       locationService.updateLocation(data.id, data.payload),
-    onSuccess: (_, variables) => {
+    onSuccess: (updatedData, variables) => {
+      // Update specific location detail cache
       queryClient.invalidateQueries({
         queryKey: queryKeys.locations.detail(variables.id),
       });
-      queryClient.invalidateQueries({ queryKey: queryKeys.locations.list });
+
+      // Invalidate all queries that start with the locations list key
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.locations.list,
+        exact: false
+      });
     },
   });
 };
@@ -36,7 +46,11 @@ export const useDeleteLocation = () => {
     mutationKey: queryKeys.locations.delete("any"),
     mutationFn: (id: string) => locationService.deleteLocation(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.locations.list });
+      // Invalidate all queries that start with the locations list key
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.locations.list,
+        exact: false
+      });
     },
   });
 };

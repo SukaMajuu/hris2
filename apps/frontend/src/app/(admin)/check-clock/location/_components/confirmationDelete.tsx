@@ -15,12 +15,14 @@ interface ConfirmationDeleteProps {
 	handleCloseDeleteDialog: () => void;
 	handleConfirmDelete: () => void;
 	locationToDelete: Location | null;
+	isDeleting?: boolean;
 }
 const ConfirmationDelete = ({
 	isDeleteDialogOpen,
 	handleCloseDeleteDialog,
 	handleConfirmDelete,
 	locationToDelete,
+	isDeleting = false,
 }: ConfirmationDeleteProps) => {
 	return (
 		<AlertDialog
@@ -36,16 +38,26 @@ const ConfirmationDelete = ({
 						<strong>{locationToDelete?.locationName || ""}</strong>
 						&quot; and all associated data.
 					</AlertDialogDescription>
-				</AlertDialogHeader>
-				<AlertDialogFooter>
-					<AlertDialogCancel onClick={handleCloseDeleteDialog}>
+				</AlertDialogHeader>				<AlertDialogFooter>
+					<AlertDialogCancel
+						onClick={handleCloseDeleteDialog}
+						disabled={isDeleting}
+					>
 						Cancel
 					</AlertDialogCancel>
 					<AlertDialogAction
 						className="bg-destructive hover:bg-destructive/90 text-white"
 						onClick={handleConfirmDelete}
+						disabled={isDeleting}
 					>
-						Delete Location
+						{isDeleting ? (
+							<>
+								<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+								Deleting...
+							</>
+						) : (
+							"Delete Location"
+						)}
 					</AlertDialogAction>
 				</AlertDialogFooter>
 			</AlertDialogContent>

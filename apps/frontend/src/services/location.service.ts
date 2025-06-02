@@ -13,19 +13,23 @@ export interface BaseResponse<T> {
 }
 
 export interface PaginatedResponse<T> {
-  data: T[];
-  meta: {
-    current_page: number;
-    total: number;
-    per_page: number;
-    last_page: number;
+  data: {
+    items: T[];
+    pagination: {
+      total_items: number;
+      total_pages: number;
+      current_page: number;
+      page_size: number;
+      has_next_page: boolean;
+      has_prev_page: boolean;
+    };
   };
   message: string;
   success: boolean;
 }
 
 class LocationService {
-  constructor(private apiService: ApiService) {}
+  constructor(private apiService: ApiService) { }
 
   public async getLocations(
     params: Record<string, string | number>
@@ -38,9 +42,9 @@ class LocationService {
   }
 
   public async getLocationById(id: string): Promise<BaseResponse<LocationResponse>> {
-  const url = API_ROUTES.v1.locations.detail(id);
-  const response = await this.apiService.get<BaseResponse<LocationResponse>>(url);
-  return response.data;
+    const url = API_ROUTES.v1.locations.detail(id);
+    const response = await this.apiService.get<BaseResponse<LocationResponse>>(url);
+    return response.data;
   }
 
   public async createLocation(
@@ -54,19 +58,19 @@ class LocationService {
   }
 
   public async updateLocation(
-  id: string,
-  data: UpdateLocationRequest
-): Promise<BaseResponse<LocationResponse>> {
-  const url = API_ROUTES.v1.locations.update(id);
-  const response = await this.apiService.put<BaseResponse<LocationResponse>>(url, data);
-  return response.data;
-}
+    id: string,
+    data: UpdateLocationRequest
+  ): Promise<BaseResponse<LocationResponse>> {
+    const url = API_ROUTES.v1.locations.update(id);
+    const response = await this.apiService.put<BaseResponse<LocationResponse>>(url, data);
+    return response.data;
+  }
 
-public async deleteLocation(id: string): Promise<BaseResponse<null>> {
-  const url = API_ROUTES.v1.locations.delete(id);
-  const response = await this.apiService.delete<BaseResponse<null>>(url);
-  return response.data;
-}
+  public async deleteLocation(id: string): Promise<BaseResponse<null>> {
+    const url = API_ROUTES.v1.locations.delete(id);
+    const response = await this.apiService.delete<BaseResponse<null>>(url);
+    return response.data;
+  }
 }
 
 // Inisialisasi instance ApiService

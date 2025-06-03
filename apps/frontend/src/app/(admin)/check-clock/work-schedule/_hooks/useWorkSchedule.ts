@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { WorkSchedule, WorkScheduleDetailItem } from "@/types/work-schedule.types";
+import { WorkSchedule, WorkScheduleDetailItem, CreateWorkScheduleRequest, UpdateWorkScheduleRequest } from "@/types/work-schedule.types";
 import { useWorkSchedules, useWorkScheduleDetail } from "@/api/queries/work-schedule.queries";
 import { useCreateWorkSchedule, useUpdateWorkSchedule, useDeleteWorkSchedule } from "@/api/mutations/work-schedule.mutation";
 import { useWorkScheduleStore } from "@/stores/work-schedule.store";
@@ -25,16 +25,28 @@ export function useWorkSchedulesList(page: number, pageSize: number) {
 
     const queryResult = useWorkSchedules(page, pageSize);
 
+    // Process and sort data when it changes
+    const sortedWorkSchedules = React.useMemo(() => {
+        if (!queryResult.data?.items) return [];
+
+        // Sort by ID ascending to ensure consistent ordering
+        return [...queryResult.data.items].sort((a, b) => {
+            const idA = a.id || 0;
+            const idB = b.id || 0;
+            return idA - idB;
+        });
+    }, [queryResult.data?.items]);
+
     // Update store when data changes
     React.useEffect(() => {
-        if (queryResult.data?.items) {
-            setWorkSchedules(queryResult.data.items);
+        if (sortedWorkSchedules.length > 0) {
+            setWorkSchedules(sortedWorkSchedules);
         }
-    }, [queryResult.data, setWorkSchedules]);
+    }, [sortedWorkSchedules, setWorkSchedules]);
 
     return {
         ...queryResult,
-        workSchedules: queryResult.data?.items || [],
+        workSchedules: sortedWorkSchedules,
         totalItems: queryResult.data?.pagination?.total_items || 0,
         totalPages: queryResult.data?.pagination?.total_pages || 0,
         currentPage: queryResult.data?.pagination?.current_page || 1,
@@ -136,10 +148,8 @@ export function useWorkScheduleMutations() {
     const router = useRouter();
     const createMutation = useCreateWorkSchedule();
     const updateMutation = useUpdateWorkSchedule();
-    const deleteMutation = useDeleteWorkSchedule();
-
-    // Create work schedule
-    const handleCreate = useCallback(async (data: Partial<WorkSchedule>) => {
+    const deleteMutation = useDeleteWorkSchedule();    // Create work schedule
+    const handleCreate = useCallback(async (data: CreateWorkScheduleRequest) => {
         try {
             await createMutation.mutateAsync(data);
             toast({
@@ -160,12 +170,10 @@ export function useWorkScheduleMutations() {
             });
             throw error;
         }
-    }, [createMutation, router]);
-
-    // Update work schedule
-    const handleUpdate = useCallback(async (id: number, data: Partial<WorkSchedule>) => {
+    }, [createMutation, router]);    // Update work schedule
+    const handleUpdate = useCallback(async (id: number, data: UpdateWorkScheduleRequest) => {
         try {
-            await updateMutation.mutateAsync({ id, ...data });
+            await updateMutation.mutateAsync({ id, data });
             toast({
                 title: "Success",
                 description: "Work schedule successfully updated",

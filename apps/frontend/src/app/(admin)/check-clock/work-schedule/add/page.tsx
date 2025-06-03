@@ -3,12 +3,16 @@
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { WorkScheduleForm } from "@/app/(admin)/check-clock/work-schedule/_components/WorkScheduleForm";
 import { useWorkScheduleMutations } from "@/app/(admin)/check-clock/work-schedule/_hooks/useWorkSchedule";
-import { WorkSchedule } from "@/types/work-schedule.types";
+import { CreateWorkScheduleRequest, UpdateWorkScheduleRequest } from "@/types/work-schedule.types"; // Import both request types
 
 export default function AddWorkSchedulePage() {
-    const { handleCreate, isCreating } = useWorkScheduleMutations(); const handleSave = async (data: Partial<WorkSchedule>) => {
+    const { handleCreate, isCreating } = useWorkScheduleMutations();
+
+    // Updated handleSave to accept both types but cast to CreateWorkScheduleRequest for create mode
+    const handleSave = async (data: CreateWorkScheduleRequest | UpdateWorkScheduleRequest) => {
         console.log("Saving new work schedule data:", data);
-        await handleCreate(data);
+        // Type assertion since we know this will be CreateWorkScheduleRequest in create mode
+        await handleCreate(data as CreateWorkScheduleRequest);
     };
 
     return (
@@ -19,10 +23,12 @@ export default function AddWorkSchedulePage() {
                         Add Work Schedule
                     </CardTitle>
                 </CardHeader>
-            </Card>            <WorkScheduleForm
+            </Card>
+            {/* Pass undefined for initialData as it's a new schedule */}
+            <WorkScheduleForm
                 onSubmit={handleSave}
                 isEditMode={false}
-                initialData={{}}
+                initialData={undefined} // Explicitly pass undefined for a new form
                 isLoading={isCreating}
             />
         </div>

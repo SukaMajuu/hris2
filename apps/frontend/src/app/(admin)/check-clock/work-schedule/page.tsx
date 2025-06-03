@@ -56,22 +56,23 @@ export default function WorkSchedulePage() {
     } = useWorkScheduleOperations(
         pagination.pageIndex + 1, // API is 1-based, table is 0-based
         pagination.pageSize,
-    );
-
-    const handleEdit = useCallback((id: number) => {
+    ); const handleEdit = useCallback((id: number) => {
         handleEditNavigation(id);
+    }, [handleEditNavigation]); const handleRowClick = useCallback((row: { original: WorkSchedule }) => {
+        const workSchedule = row.original;
+        if (workSchedule.id) {
+            handleEditNavigation(workSchedule.id);
+        }
     }, [handleEditNavigation]);
 
     const handleOpenDelete = useCallback((data: WorkSchedule) => {
         handleOpenDeleteDialog(data);
     }, [handleOpenDeleteDialog]);
-    
+
     const handleView = useCallback((data: WorkSchedule) => {
         handleOpenViewDialog(data);
-    }, [handleOpenViewDialog]);
-
-    const handleConfirmDelete = useCallback(async () => {
-        if (workScheduleToDelete) {
+    }, [handleOpenViewDialog]); const handleConfirmDelete = useCallback(async () => {
+        if (workScheduleToDelete?.id) {
             try {
                 await handleDelete(workScheduleToDelete.id);
                 handleCloseDeleteDialog();
@@ -128,10 +129,11 @@ export default function WorkSchedulePage() {
                         <Button
                             size="sm"
                             variant="outline"
-                            className="h-9 px-3 bg-[#FFA500] text-white hover:bg-[#E69500] border-none hover:cursor-pointer"
-                            onClick={(e) => {
+                            className="h-9 px-3 bg-[#FFA500] text-white hover:bg-[#E69500] border-none hover:cursor-pointer" onClick={(e) => {
                                 e.stopPropagation();
-                                handleEdit(row.original.id);
+                                if (row.original.id) {
+                                    handleEdit(row.original.id);
+                                }
                             }}
                         >
                             <Edit className="h-4 w-4 mr-1" />
@@ -226,7 +228,7 @@ export default function WorkSchedulePage() {
                         </div>
                     </header>
 
-                    <DataTable table={table} />
+                    <DataTable table={table} onRowClick={handleRowClick} />
 
                     <footer className="flex flex-col md:flex-row items-center justify-between mt-4 gap-4">
                         <PageSizeComponent table={table} />

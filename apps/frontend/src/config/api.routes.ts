@@ -1,23 +1,23 @@
 export const API_ROUTES = {
-  v1: {
-    auth: {
-      register: '/auth/register',
-      login: '/auth/login',
-      google: '/auth/google',
-      logout: '/auth/logout',
-      refresh: '/auth/refresh',
-      password: {
-        change: '/auth/password/change',
-        reset: '/auth/password/reset',
-      },
-    },
-    api: {
-      base: '/api',
-      users: {
-        base: '/api/users',
-        list: '/api/users',
-        detail: (id: number) => `/api/users/${id}`,
-      },
+	v1: {
+		auth: {
+			register: "/auth/register",
+			login: "/auth/login",
+			google: "/auth/google",
+			logout: "/auth/logout",
+			refresh: "/auth/refresh",
+			password: {
+				change: "/auth/password/change",
+				reset: "/auth/password/reset",
+			},
+		},
+		api: {
+			base: "/api",
+			users: {
+				base: "/api/users",
+				list: "/api/users",
+				detail: (id: number) => `/api/users/${id}`,
+			},
 			workSchedules: {
 				base: "/api/work-schedules",
 				list: "/api/work-schedules", // For listing, query params will be added by the service

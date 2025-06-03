@@ -7,11 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from "
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { WorkSchedule, WorkScheduleDetailRow } from "@/types/work-schedule.types"; // Updated import
-import { CalendarClock, CalendarCog, MapPin } from "lucide-react";
+import { WorkScheduleFormType, WorkScheduleDetailRow, CreateWorkScheduleRequest, UpdateWorkScheduleRequest, transformFormToCreateRequest, transformFormToUpdateRequest, transformWorkScheduleToForm, WorkSchedule } from "@/types/work-schedule.types";
+import { CalendarClock, CalendarCog, MapPin, PlusCircle, Trash2 } from "lucide-react"; // Added PlusCircle, Trash2
 import { MultiSelect } from "@/components/multiSelect";
-
-// import {WorkTypeChildrenEnum} from "@/schemas/checkclock.schema";
 
 interface Location {
     value: string;
@@ -21,10 +19,10 @@ interface Location {
 }
 
 interface WorkScheduleFormProps {
-    initialData?: Partial<WorkSchedule>;
-    onSubmit: (data: Partial<WorkSchedule>) => void;
+    initialData?: WorkSchedule; // API type
+    onSubmit: (data: CreateWorkScheduleRequest | UpdateWorkScheduleRequest) => void; // Accepts both types
     isEditMode?: boolean;
-    isLoading?: boolean; // Added isLoading prop
+    isLoading?: boolean;
     locations?: Location[];
     MapComponent?: React.ComponentType<{
         latitude?: number;
@@ -35,7 +33,7 @@ interface WorkScheduleFormProps {
 }
 
 // Default empty work schedule detail untuk inisialisasi
-const emptyWorkScheduleDetail: WorkScheduleDetailRow = { // Updated type, ensure it matches the adjusted WorkScheduleDetailRow
+const emptyWorkScheduleDetail: WorkScheduleDetailRow = {
     workTypeChildren: "",
     workDays: [],
     checkInStart: "",
@@ -64,29 +62,62 @@ const daysOfWeek = [
 
 // Default locations jika tidak ada props
 const defaultLocations: Location[] = [
-    { value: "malang", label: "Kota Malang", latitude: "-7.983908", longitude: "112.621391" },
-    { value: "jakarta", label: "Jakarta", latitude: "-6.2088", longitude: "106.8456" },
+    { value: "1", label: "Default Office 1 (Malang)", latitude: "-7.983908", longitude: "112.621391" },
+    { value: "2", label: "Default Office 2 (Jakarta)", latitude: "-6.2088", longitude: "106.8456" },
 ];
 
 export function WorkScheduleForm({
-    initialData = {},
+    initialData,
     onSubmit,
     isEditMode = false,
-    isLoading = false, // Added isLoading prop
+    isLoading = false,
     locations = [],
     MapComponent,
 }: WorkScheduleFormProps) {
     const router = useRouter();
     const formRefs = useRef<(HTMLDivElement | null)[]>([]);
+    const isDataLoaded = useRef(false); // Prevent multiple data loads
+    const lastProcessedId = useRef<number | undefined>(undefined); // Track last processed ID
 
-    // Inisialisasi state form dengan data awal atau detail kosong
-    const [formData, setFormData] = useState<Partial<WorkSchedule>>({
-        ...initialData,
-        workScheduleDetails: (initialData.workScheduleDetails && initialData.workScheduleDetails.length > 0)
-            ? initialData.workScheduleDetails
-            : [{ ...emptyWorkScheduleDetail }], // Gunakan shallow copy
-    });
+    // Track deleted details for update requests
+    const [deletedDetailIds, setDeletedDetailIds] = useState<number[]>([]);
 
+    // Initialize with transformed data if available, otherwise use defaults
+    const [formData, setFormData] = useState<WorkScheduleFormType>(() => {
+        if (initialData?.id) {
+            return transformWorkScheduleToForm(initialData);
+        }
+        return {
+            nama: "",
+            workType: "",
+            workScheduleDetails: [{ ...emptyWorkScheduleDetail }]
+        };
+    });    // Update form data when initialData changes (for edit mode)
+    useEffect(() => {
+        // Only process if we have valid data and haven't processed this ID yet
+        if (!initialData?.id) {
+            return;
+        }
+
+        // Check if this is the same ID we already processed
+        if (lastProcessedId.current === initialData.id) {
+            return;
+        }
+
+        try {
+            const transformedData = transformWorkScheduleToForm(initialData);
+
+            // Update tracking refs before setting state
+            lastProcessedId.current = initialData.id;
+            isDataLoaded.current = true;
+
+            setFormData(transformedData);
+            // Reset deleted details when loading new data
+            setDeletedDetailIds([]);
+        } catch (error) {
+            console.error("Error transforming data:", error);
+        }
+    }, [initialData]);
     // Update referensi DOM saat jumlah detail berubah
     useEffect(() => {
         formRefs.current = formRefs.current.slice(0, formData.workScheduleDetails?.length || 0);
@@ -98,19 +129,11 @@ export function WorkScheduleForm({
     /**
      * Handler untuk mengubah satu field dari detail jadwal kerja
      */
-    const handleDetailChange = (idx: number, key: keyof WorkScheduleDetailRow, value: string | string[]) => { // Updated type
+    const handleDetailChange = (idx: number, key: keyof WorkScheduleDetailRow, value: string | string[]) => {
         setFormData((prev) => {
-            const details = [...(prev.workScheduleDetails || [])];
-
-            // Gunakan nilai yang sudah ada atau default kosong
+            const details = [...prev.workScheduleDetails];
             const currentDetail = details[idx] || { ...emptyWorkScheduleDetail };
-
-            // Update field yang spesifik
-            details[idx] = {
-                ...currentDetail,
-                [key]: value
-            };
-
+            details[idx] = { ...currentDetail, [key]: value };
             return { ...prev, workScheduleDetails: details };
         });
     };
@@ -121,366 +144,532 @@ export function WorkScheduleForm({
      */
     const handleLocationChange = (idx: number, locationId: string) => {
         const selectedLocation = locationsList.find((loc) => loc.value === locationId);
-
         if (!selectedLocation) return;
 
         setFormData((prev) => {
-            const details = [...(prev.workScheduleDetails || [])];
+            const details = [...prev.workScheduleDetails];
             const currentDetail = details[idx] || { ...emptyWorkScheduleDetail };
-
             details[idx] = {
                 ...currentDetail,
                 locationId,
                 locationName: selectedLocation.label,
                 latitude: selectedLocation.latitude || "",
                 longitude: selectedLocation.longitude || "",
-                addressDetails: selectedLocation.label || "",
+                addressDetails: selectedLocation.label || "", // Or a more specific address if available
             };
-
             return { ...prev, workScheduleDetails: details };
         });
-    };
-
-    /**
+    };    /**
      * Menambahkan detail jadwal baru
      */
     const handleAddDetail = () => {
         setFormData((prev) => {
-            const newDetails = [
-                ...(prev.workScheduleDetails || []),
-                { ...emptyWorkScheduleDetail }
-            ];
+            const newDetail = { ...emptyWorkScheduleDetail };
 
-            // Scroll ke form baru setelah render
+            // Auto-set work type based on main work type
+            if (prev.workType === "WFO") {
+                newDetail.workTypeChildren = "WFO";
+            } else if (prev.workType === "WFA") {
+                newDetail.workTypeChildren = "WFA";
+            } else if (prev.workType === "Hybrid") {
+                // For hybrid, check what types are missing
+                const hasWFO = prev.workScheduleDetails.some(detail => detail?.workTypeChildren === "WFO");
+                const hasWFA = prev.workScheduleDetails.some(detail => detail?.workTypeChildren === "WFA");
+
+                // Default to the missing type, or WFO if both exist
+                if (!hasWFO) {
+                    newDetail.workTypeChildren = "WFO";
+                } else if (!hasWFA) {
+                    newDetail.workTypeChildren = "WFA";
+                } else {
+                    newDetail.workTypeChildren = "WFO"; // Default if both exist
+                }
+            }
+
+            const newDetails = [...prev.workScheduleDetails, newDetail];
             setTimeout(() => {
-                const newIndex = newDetails.length - 1;
-                formRefs.current[newIndex]?.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start'
-                });
+                formRefs.current[newDetails.length - 1]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }, 100);
-
-            return {
-                ...prev,
-                workScheduleDetails: newDetails,
-            };
+            return { ...prev, workScheduleDetails: newDetails };
         });
-    };
-
-    /**
+    };    /**
      * Menghapus detail jadwal
      */
     const handleRemoveDetail = (idx: number) => {
         setFormData((prev) => {
-            const details = [...(prev.workScheduleDetails || [])];
-            details.splice(idx, 1);
+            // Check if removing this detail would violate Hybrid rules
+            if (prev.workType === "Hybrid") {
+                const remainingDetails = prev.workScheduleDetails.filter((_, index) => index !== idx);
+
+                if (remainingDetails.length < 2) {
+                    alert("Hybrid work type requires at least 2 work schedule details.");
+                    return prev;
+                }
+
+                const hasWFO = remainingDetails.some(detail => detail?.workTypeChildren === "WFO");
+                const hasWFA = remainingDetails.some(detail => detail?.workTypeChildren === "WFA");
+
+                if (!hasWFO || !hasWFA) {
+                    alert("Cannot remove this detail. Hybrid work type must have at least one WFO and one WFA detail.");
+                    return prev;
+                }
+            }
+
+            const detailToRemove = prev.workScheduleDetails[idx];
+
+            // If this is an existing detail (has an ID), add it to deleted list
+            if (detailToRemove?.id && isEditMode) {
+                setDeletedDetailIds(currentDeleted => [...currentDeleted, detailToRemove.id!]);
+            }
+
+            const details = prev.workScheduleDetails.filter((_, index) => index !== idx);
+            // Ensure at least one detail row remains
+            if (details.length === 0) {
+                return { ...prev, workScheduleDetails: [{ ...emptyWorkScheduleDetail }] };
+            }
+            return { ...prev, workScheduleDetails: details };
+        });
+    };/**
+     * Handler untuk perubahan main work type
+     * Mengatur logika work schedule detail berdasarkan main work type
+     */
+    const handleMainWorkTypeChange = (value: string) => {
+        setFormData((prev) => {
+            let updatedDetails = [...prev.workScheduleDetails];
+
+            if (value === "WFO") {
+                // Jika main work type WFO, semua detail harus WFO
+                updatedDetails = updatedDetails.map(detail => ({
+                    ...detail,
+                    workTypeChildren: "WFO",
+                    // Clear location data jika sebelumnya WFA
+                    locationId: detail.workTypeChildren === "WFA" ? "" : detail.locationId,
+                    locationName: detail.workTypeChildren === "WFA" ? "" : detail.locationName,
+                    latitude: detail.workTypeChildren === "WFA" ? "" : detail.latitude,
+                    longitude: detail.workTypeChildren === "WFA" ? "" : detail.longitude,
+                    addressDetails: detail.workTypeChildren === "WFA" ? "" : detail.addressDetails,
+                }));
+            } else if (value === "WFA") {
+                // Jika main work type WFA, semua detail harus WFA
+                updatedDetails = updatedDetails.map(detail => ({
+                    ...detail,
+                    workTypeChildren: "WFA",
+                    // Clear location data untuk WFA
+                    locationId: "",
+                    locationName: "",
+                    latitude: "",
+                    longitude: "",
+                    addressDetails: "",
+                }));
+            } else if (value === "Hybrid") {
+                // Jika Hybrid, pastikan minimal ada 2 detail dengan WFO dan WFA
+                if (updatedDetails.length === 1 && updatedDetails[0]) {
+                    // Tambah detail kedua dengan work type berbeda
+                    const firstDetailType = updatedDetails[0].workTypeChildren;
+                    const secondType = firstDetailType === "WFO" ? "WFA" : "WFO";
+
+                    const newDetail = { ...emptyWorkScheduleDetail, workTypeChildren: secondType };
+                    updatedDetails.push(newDetail);
+                } else if (updatedDetails.length >= 2) {
+                    // Pastikan ada minimal 1 WFO dan 1 WFA
+                    const hasWFO = updatedDetails.some(detail => detail?.workTypeChildren === "WFO");
+                    const hasWFA = updatedDetails.some(detail => detail?.workTypeChildren === "WFA");
+
+                    if (!hasWFO && updatedDetails[0]) {
+                        updatedDetails[0] = {
+                            ...updatedDetails[0],
+                            workTypeChildren: "WFO",
+                            workDays: updatedDetails[0].workDays || []
+                        };
+                    }
+                    if (!hasWFA) {
+                        const wfaIndex = updatedDetails.findIndex(detail => detail?.workTypeChildren !== "WFO");
+                        if (wfaIndex >= 0 && updatedDetails[wfaIndex]) {
+                            updatedDetails[wfaIndex] = {
+                                ...updatedDetails[wfaIndex],
+                                workTypeChildren: "WFA",
+                                workDays: updatedDetails[wfaIndex]?.workDays || [],
+                                // Clear location data untuk WFA
+                                locationId: "",
+                                locationName: "",
+                                latitude: "",
+                                longitude: "",
+                                addressDetails: "",
+                            };
+                        }
+                    }
+                }
+            }
+
+            return { ...prev, workType: value, workScheduleDetails: updatedDetails };
+        });
+    };
+
+    /**
+     * Handler untuk perubahan work type pada detail
+     * Menangani validasi dan update location data sesuai work type
+     */
+    const handleDetailWorkTypeChange = (idx: number, value: string) => {
+        setFormData((prev) => {
+            const details = [...prev.workScheduleDetails];
+            const currentDetail = details[idx] || { ...emptyWorkScheduleDetail };
+
+            let updatedDetail = { ...currentDetail, workTypeChildren: value };
+
+            // Clear location data jika berubah ke WFA
+            if (value === "WFA") {
+                updatedDetail = {
+                    ...updatedDetail,
+                    locationId: "",
+                    locationName: "",
+                    latitude: "",
+                    longitude: "",
+                    addressDetails: "",
+                };
+            }
+
+            details[idx] = updatedDetail;
             return { ...prev, workScheduleDetails: details };
         });
     };
 
     /**
-     * Mengirim form
+     * Menentukan opsi work type yang diizinkan untuk detail berdasarkan main work type
+     */
+    const getAllowedWorkTypes = (detailIndex: number): string[] => {
+        const mainWorkType = formData.workType;
+
+        if (mainWorkType === "WFO") {
+            return ["WFO"];
+        } else if (mainWorkType === "WFA") {
+            return ["WFA"];
+        } else if (mainWorkType === "Hybrid") {
+            // Untuk Hybrid, pastikan minimal ada 1 WFO dan 1 WFA
+            const otherDetails = formData.workScheduleDetails.filter((_, idx) => idx !== detailIndex);
+            const hasOtherWFO = otherDetails.some(detail => detail?.workTypeChildren === "WFO");
+            const hasOtherWFA = otherDetails.some(detail => detail?.workTypeChildren === "WFA");
+
+            // Jika ini adalah satu-satunya WFO atau WFA, tidak bisa diubah
+            const currentDetail = formData.workScheduleDetails[detailIndex];
+            const isOnlyWFO = currentDetail?.workTypeChildren === "WFO" && !hasOtherWFO;
+            const isOnlyWFA = currentDetail?.workTypeChildren === "WFA" && !hasOtherWFA;
+
+            if (isOnlyWFO) {
+                return ["WFO"];
+            } else if (isOnlyWFA) {
+                return ["WFA"];
+            } else {
+                return ["WFO", "WFA"];
+            }
+        }
+
+        return ["WFO", "WFA"];
+    };
+
+    /**
+     * Validasi enhanced untuk form
+     */
+    const validateForm = (): { isValid: boolean; errors: string[] } => {
+        const errors: string[] = [];
+
+        if (!formData.nama) {
+            errors.push("Schedule Name is required.");
+        }
+
+        if (!formData.workType) {
+            errors.push("Main Work Type is required.");
+        }
+
+        if (!formData.workScheduleDetails || formData.workScheduleDetails.length === 0) {
+            errors.push("At least one work schedule detail is required.");
+        }
+
+        // Validasi untuk Hybrid work type
+        if (formData.workType === "Hybrid") {
+            if (formData.workScheduleDetails.length < 2) {
+                errors.push("Hybrid work type requires at least 2 work schedule details.");
+            }
+
+            const hasWFO = formData.workScheduleDetails.some(detail => detail?.workTypeChildren === "WFO");
+            const hasWFA = formData.workScheduleDetails.some(detail => detail?.workTypeChildren === "WFA");
+
+            if (!hasWFO || !hasWFA) {
+                errors.push("Hybrid work type must have at least one WFO and one WFA detail.");
+            }
+        }
+
+        // Validasi untuk detail WFO atau WFA
+        if (formData.workType === "WFO") {
+            const hasNonWFO = formData.workScheduleDetails.some(detail => detail?.workTypeChildren !== "WFO");
+            if (hasNonWFO) {
+                errors.push("All work schedule details must be WFO when main work type is WFO.");
+            }
+        }
+
+        if (formData.workType === "WFA") {
+            const hasNonWFA = formData.workScheduleDetails.some(detail => detail?.workTypeChildren !== "WFA");
+            if (hasNonWFA) {
+                errors.push("All work schedule details must be WFA when main work type is WFA.");
+            }
+        }
+
+        // Validasi detail individu
+        for (const [index, detail] of formData.workScheduleDetails.entries()) {
+            if (!detail.workTypeChildren) {
+                errors.push(`Detail #${index + 1}: Work Type is required.`);
+            }
+
+            if (!detail.workDays || detail.workDays.length === 0) {
+                errors.push(`Detail #${index + 1}: At least one work day is required.`);
+            }
+
+            if (detail.workTypeChildren === "WFO" && !detail.locationId) {
+                errors.push(`Detail #${index + 1}: Location is required for WFO details.`);
+            }
+        }
+
+        return {
+            isValid: errors.length === 0,
+            errors
+        };
+    };    /**
+     * Submit handler yang mentransform data form ke format API
      */
     const handleSave = (e: React.FormEvent) => {
         e.preventDefault();
-        onSubmit(formData);
+
+        // Enhanced validation
+        const validation = validateForm();
+        if (!validation.isValid) {
+            alert(validation.errors.join('\n'));
+            return;
+        }
+
+        // Use the appropriate transformation based on edit mode
+        if (isEditMode) {
+            const updateRequest = transformFormToUpdateRequest(formData, deletedDetailIds);
+            onSubmit(updateRequest);
+        } else {
+            const createRequest = transformFormToCreateRequest(formData);
+            onSubmit(createRequest);
+        }
     };
 
     return (
         <form onSubmit={handleSave} className="space-y-6 max-w-4xl mx-auto">
-            {/* Basic Information di tengah */}
-            <div className="flex justify-center">
-                <div className="w-full md:w-2/3">
-                    <Card className="border-none shadow-sm">
-                        <CardContent className="p-6">
-                            <div className="flex items-center gap-2 mb-6">
-                                <CalendarClock className="h-6 w-6 text-[#6B9AC4]" />
-                                <h3 className="font-semibold text-xl text-gray-800">
-                                    Work Schedule
-                                </h3>
-                            </div>
-                            <div className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="nama" className="text-sm font-medium">Schedule Name</Label>
-                                    <Input
-                                        id="nama"
-                                        value={formData.nama ?? ""}
-                                        onChange={(e) => setFormData((prev) => ({ ...prev, nama: e.target.value }))}
-                                        placeholder="Enter Schedule Name"
-                                        className="focus-visible:ring-[#6B9AC4] focus-visible:border-[#6B9AC4]"
-                                    />
+            {/* Basic Information */}
+            <Card className="border-gray-200 shadow-sm">
+                <CardContent className="p-6">
+                    <div className="flex items-center gap-2 mb-6">
+                        <CalendarClock className="h-6 w-6 text-[#6B9AC4]" />
+                        <h3 className="font-semibold text-xl text-gray-800">
+                            Work Schedule Information
+                        </h3>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                            <Label htmlFor="nama" className="text-sm font-medium">Schedule Name <span className="text-red-500">*</span></Label>
+                            <Input
+                                id="nama"
+                                value={formData.nama ?? ""}
+                                onChange={(e) => setFormData((prev) => ({ ...prev, nama: e.target.value }))}
+                                placeholder="Enter Schedule Name"
+                                className="focus-visible:ring-[#6B9AC4] focus-visible:border-[#6B9AC4]"
+                                required
+                            />
+                        </div>                        <div className="space-y-2">
+                            <Label htmlFor="workType" className="text-sm font-medium">Main Work Type <span className="text-red-500">*</span></Label>
+                            <Select
+                                value={formData.workType ?? ""}
+                                onValueChange={handleMainWorkTypeChange}
+                                required
+                            >
+                                <SelectTrigger className="w-full bg-white border-gray-300">
+                                    <SelectValue placeholder="Select main work type" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-white">
+                                    <SelectItem value="WFO">Work From Office (WFO)</SelectItem>
+                                    <SelectItem value="WFA">Work From Anywhere (WFA)</SelectItem>
+                                    <SelectItem value="Hybrid">Hybrid</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            {/* Helper text for work type rules */}
+                            {formData.workType && (
+                                <div className="text-xs text-gray-500 mt-1">
+                                    {formData.workType === "WFO" && "All work schedule details will be set to WFO"}
+                                    {formData.workType === "WFA" && "All work schedule details will be set to WFA"}
+                                    {formData.workType === "Hybrid" && "Requires at least 2 details with both WFO and WFA"}
                                 </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="workType" className="text-sm font-medium">Work Type</Label>
-                                    <Select
-                                        value={formData.workType ?? ""}
-                                        onValueChange={(value) => setFormData((prev) => ({ ...prev, workType: value }))}
-                                    >
-                                        <SelectTrigger
-                                            className="w-full text-sm font-normal bg-white border-gray-300 hover:border-[#6B9AC4] focus:border-[#6B9AC4] focus:ring-[#6B9AC4]">
-                                            <SelectValue placeholder="Select work type" />
-                                        </SelectTrigger>
-                                        <SelectContent className="bg-white">
-                                            <SelectItem value="WFO" className="hover:bg-[#EEF2F6]">Work From Office
-                                                (WFO)</SelectItem>
-                                            <SelectItem value="WFA" className="hover:bg-[#EEF2F6]">Work From Anywhere
-                                                (WFA)</SelectItem>
-                                            <SelectItem value="HYBRID"
-                                                className="hover:bg-[#EEF2F6]">Hybrid</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-            </div>
+                            )}
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
 
-            {/* Dynamic Work Schedule Details & CheckClock Location */}
-            {(formData.workScheduleDetails || []).map((detail, idx) => (
+            {/* Dynamic Work Schedule Details */}
+            {formData.workScheduleDetails.map((detail, idx) => (
                 <div
                     key={idx}
-                    className="relative"
-                    ref={el => {
-                        formRefs.current[idx] = el; // Menyimpan referensi elemen
-                    }}
+                    className="relative border border-gray-200 rounded-lg shadow-sm"
+                    ref={el => { formRefs.current[idx] = el; }}
                 >
-                    {/* Card Gabungan */}
-                    <Card className="border-none shadow-sm">
-                        {/* Header Card dengan Tombol */}
-                        <div className="flex items-center justify-between p-6 pb-0">
-                            <div className="text-lg font-semibold text-gray-800">
-                                Work Schedule Detail #{idx + 1}
+                    <Card className="border-none">
+                        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-t-lg">
+                            <div className="flex items-center gap-2">
+                                <CalendarCog className="h-5 w-5 text-gray-600" />
+                                <h4 className="font-semibold text-md text-gray-700">
+                                    Schedule Detail #{idx + 1}
+                                </h4>
                             </div>
-                            <div className="flex items-center gap-3">
-                                {((formData.workScheduleDetails?.length ?? 1) > 1) && (
-                                    <Button
-                                        type="button"
-                                        variant="destructive"
-                                        size="sm"
-                                        onClick={() => handleRemoveDetail(idx)}
-                                    >
-                                        Remove
-                                    </Button>
-                                )}
-                                {((formData.workScheduleDetails?.length ?? 1) === idx + 1) && (
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        className="bg-[#6B9AC4] hover:bg-[#5A89B3] text-white"
-                                        onClick={handleAddDetail}
-                                    >
-                                        Add Data
-                                    </Button>
-                                )}
-                            </div>
+                            {formData.workScheduleDetails.length > 1 && (
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleRemoveDetail(idx)}
+                                    className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                >
+                                    <Trash2 className="h-4 w-4 mr-1" /> Remove Detail
+                                </Button>
+                            )}
                         </div>
 
                         <CardContent className="p-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {/* Work Schedule Details */}
-                                <div>
-                                    <div className="flex items-center gap-2 mb-4">
-                                        <CalendarCog className="h-5 w-5 text-gray-500" />
-                                        <h3 className="font-semibold text-lg text-gray-800">
-                                            Work Schedule Details
-                                        </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">                                <div className="space-y-2">
+                                <Label htmlFor={`workTypeChildren-${idx}`} className="text-sm font-medium">Detail Work Type <span className="text-red-500">*</span></Label>
+                                <Select
+                                    value={detail.workTypeChildren}
+                                    onValueChange={(value) => handleDetailWorkTypeChange(idx, value)}
+                                    required
+                                >
+                                    <SelectTrigger className="w-full bg-white border-gray-300">
+                                        <SelectValue placeholder="Select detail work type" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-white">
+                                        {getAllowedWorkTypes(idx).includes("WFO") && (
+                                            <SelectItem value="WFO">Work From Office (WFO)</SelectItem>
+                                        )}
+                                        {getAllowedWorkTypes(idx).includes("WFA") && (
+                                            <SelectItem value="WFA">Work From Anywhere (WFA)</SelectItem>
+                                        )}
+                                    </SelectContent>
+                                </Select>
+                                {/* Show constraint info for Hybrid mode */}
+                                {formData.workType === "Hybrid" && getAllowedWorkTypes(idx).length === 1 && (
+                                    <div className="text-xs text-amber-600 mt-1">
+                                        🔒 Required to maintain Hybrid balance (need both WFO and WFA)
                                     </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                                        <div className="space-y-1.5">
-                                            <Label htmlFor={`workTypeChildren-${idx}`}>Work Type Detail</Label>
-                                            <Select
-                                                value={detail.workTypeChildren ?? ""}
-                                                onValueChange={(value) => handleDetailChange(idx, "workTypeChildren", value)}
-                                            >
-                                                <SelectTrigger
-                                                    className="w-full text-sm font-normal text-gray-700 border-gray-300 hover:border-gray-400">
-                                                    <SelectValue placeholder="Select work type detail" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="WFO">Work From Office (WFO)</SelectItem>
-                                                    <SelectItem value="WFA">Work From Anywhere (WFA)</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <Label htmlFor={`workDays-${idx}`}>Work Days</Label>
-                                            <MultiSelect
-                                                options={daysOfWeek}
-                                                value={detail.workDays || []}
-                                                onChange={(selectedDays) => handleDetailChange(idx, "workDays", selectedDays)}
-                                                placeholder="Select work days"
-                                                className="w-full text-sm font-normal text-gray-700 border-gray-300 hover:border-gray-400"
-                                            />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <Label htmlFor={`checkInStart-${idx}`}>Check-in Start</Label>
-                                            <Input
-                                                id={`checkInStart-${idx}`}
-                                                type="time"
-                                                value={detail.checkInStart ?? ""}
-                                                onChange={(e) => handleDetailChange(idx, "checkInStart", e.target.value)}
-                                            />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <Label htmlFor={`checkInEnd-${idx}`}>Check-in End</Label>
-                                            <Input
-                                                id={`checkInEnd-${idx}`}
-                                                type="time"
-                                                value={detail.checkInEnd ?? ""}
-                                                onChange={(e) => handleDetailChange(idx, "checkInEnd", e.target.value)}
-                                            />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <Label htmlFor={`breakStart-${idx}`}>Break Start</Label>
-                                            <Input
-                                                id={`breakStart-${idx}`}
-                                                type="time"
-                                                value={detail.breakStart ?? ""}
-                                                onChange={(e) => handleDetailChange(idx, "breakStart", e.target.value)}
-                                            />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <Label htmlFor={`breakEnd-${idx}`}>Break End</Label>
-                                            <Input
-                                                id={`breakEnd-${idx}`}
-                                                type="time"
-                                                value={detail.breakEnd ?? ""}
-                                                onChange={(e) => handleDetailChange(idx, "breakEnd", e.target.value)}
-                                            />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <Label htmlFor={`checkOutStart-${idx}`}>Check-out Start</Label>
-                                            <Input
-                                                id={`checkOutStart-${idx}`}
-                                                type="time"
-                                                value={detail.checkOutStart ?? ""}
-                                                onChange={(e) => handleDetailChange(idx, "checkOutStart", e.target.value)}
-                                            />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <Label htmlFor={`checkOutEnd-${idx}`}>Check-out End</Label>
-                                            <Input
-                                                id={`checkOutEnd-${idx}`}
-                                                type="time"
-                                                value={detail.checkOutEnd ?? ""}
-                                                onChange={(e) => handleDetailChange(idx, "checkOutEnd", e.target.value)}
-                                            />
-                                        </div>
+                                )}
+                            </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor={`workDays-${idx}`} className="text-sm font-medium">Work Days <span className="text-red-500">*</span></Label>
+                                    <MultiSelect
+                                        options={daysOfWeek}
+                                        value={detail.workDays} // Changed from selected to value
+                                        onChange={(selected) => handleDetailChange(idx, "workDays", selected)}
+                                        placeholder="Select work days"
+                                        className="bg-white border-gray-300"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Time Inputs */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                                <div className="space-y-2">
+                                    <Label htmlFor={`checkIn-${idx}`} className="text-sm font-medium">Check-in (Start - End)</Label>
+                                    <div className="flex gap-2">
+                                        <Input type="time" value={detail.checkInStart} onChange={(e) => handleDetailChange(idx, "checkInStart", e.target.value)} className="bg-white" />
+                                        <Input type="time" value={detail.checkInEnd} onChange={(e) => handleDetailChange(idx, "checkInEnd", e.target.value)} className="bg-white" />
                                     </div>
                                 </div>
-
-                                {/* CheckClock Location */}
-                                <div>
-                                    <div className="flex items-center gap-2 mb-4">
-                                        <MapPin className="h-5 w-5 text-gray-500" />
-                                        <h3 className="font-semibold text-lg text-gray-800">
-                                            Check-Clock Location
-                                        </h3>
+                                <div className="space-y-2">
+                                    <Label htmlFor={`break-${idx}`} className="text-sm font-medium">Break (Start - End)</Label>
+                                    <div className="flex gap-2">
+                                        <Input type="time" value={detail.breakStart} onChange={(e) => handleDetailChange(idx, "breakStart", e.target.value)} className="bg-white" />
+                                        <Input type="time" value={detail.breakEnd} onChange={(e) => handleDetailChange(idx, "breakEnd", e.target.value)} className="bg-white" />
                                     </div>
-                                    <div className="mb-4">
-                                        <Label className="block text-sm font-medium text-gray-700 mb-1.5">
-                                            Location
-                                        </Label>
-                                        <Select
-                                            value={detail.locationId ?? ""}
-                                            onValueChange={(value) => handleLocationChange(idx, value)}
-                                        >
-                                            <SelectTrigger
-                                                className="w-full text-sm font-normal text-gray-700 border-gray-300 hover:border-gray-400 z-10">
-                                                <SelectValue placeholder="Select Location" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {locationsList.map((loc) => (
-                                                    <SelectItem key={loc.value} value={loc.value}>
-                                                        {loc.label}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 relative">
-                                        <div className="mb-3 text-xs text-gray-500 italic">
-                                            Location details (auto-filled by system)
-                                        </div>
-                                        <div
-                                            className="h-48 rounded-md overflow-hidden border border-slate-300 mb-4 z-0">
-                                            {MapComponent ? (
-                                                <MapComponent
-                                                    latitude={detail.latitude ? Number(detail.latitude) : undefined}
-                                                    longitude={detail.longitude ? Number(detail.longitude) : undefined}
-                                                    radius={10}
-                                                    interactive={false}
-                                                />
-                                            ) : (
-                                                <div
-                                                    className="flex items-center justify-center h-full text-gray-400">Map
-                                                    Preview</div>
-                                            )}
-                                        </div>
-                                        <div className="grid grid-cols-1 gap-4">
-                                            <div>
-                                                <Label className="block text-sm font-medium text-gray-700 mb-1.5">
-                                                    Address Details
-                                                </Label>
-                                                <Input
-                                                    value={detail.addressDetails ?? ""}
-                                                    readOnly
-                                                    tabIndex={-1}
-                                                    className="bg-slate-100 mt-0 text-sm text-gray-600 cursor-not-allowed border-slate-300"
-                                                />
-                                            </div>
-                                            <div className="flex flex-col sm:flex-row justify-between gap-4">
-                                                <div className="w-full">
-                                                    <Label className="block text-sm font-medium text-gray-700 mb-1.5">
-                                                        Latitude
-                                                    </Label>
-                                                    <Input
-                                                        value={detail.latitude ?? ""}
-                                                        readOnly
-                                                        tabIndex={-1}
-                                                        placeholder="Lat Location"
-                                                        className="bg-slate-100 mt-0 text-sm text-gray-600 cursor-not-allowed border-slate-300"
-                                                    />
-                                                </div>
-                                                <div className="w-full">
-                                                    <Label className="block text-sm font-medium text-gray-700 mb-1.5">
-                                                        Longitude
-                                                    </Label>
-                                                    <Input
-                                                        value={detail.longitude ?? ""}
-                                                        readOnly
-                                                        tabIndex={-1}
-                                                        placeholder="Long Location"
-                                                        className="bg-slate-100 mt-0 text-sm text-gray-600 cursor-not-allowed border-slate-300"
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor={`checkOut-${idx}`} className="text-sm font-medium">Check-out (Start - End)</Label>
+                                    <div className="flex gap-2">
+                                        <Input type="time" value={detail.checkOutStart} onChange={(e) => handleDetailChange(idx, "checkOutStart", e.target.value)} className="bg-white" />
+                                        <Input type="time" value={detail.checkOutEnd} onChange={(e) => handleDetailChange(idx, "checkOutEnd", e.target.value)} className="bg-white" />
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Location Section - Conditional */}
+                            {detail.workTypeChildren === "WFO" && (
+                                <div className="space-y-4 border-t border-gray-200 pt-6">
+                                    <div className="flex items-center gap-2">
+                                        <MapPin className="h-5 w-5 text-gray-600" />
+                                        <h5 className="font-semibold text-md text-gray-700">Location (for WFO) <span className="text-red-500">*</span></h5>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="space-y-2">
+                                            <Label htmlFor={`location-${idx}`} className="text-sm font-medium">Select Location</Label>
+                                            <Select
+                                                value={detail.locationId || ""}
+                                                onValueChange={(value) => handleLocationChange(idx, value)}
+                                                required={detail.workTypeChildren === "WFO"}
+                                            >
+                                                <SelectTrigger className="w-full bg-white border-gray-300">
+                                                    <SelectValue placeholder="Select location" />
+                                                </SelectTrigger>
+                                                <SelectContent className="bg-white">
+                                                    {locationsList.map(loc => (
+                                                        <SelectItem key={loc.value} value={loc.value}>{loc.label}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        {detail.locationName && (
+                                            <div className="space-y-2">
+                                                <Label className="text-sm font-medium">Selected Location Details</Label>
+                                                <p className="text-sm p-2 border border-gray-200 rounded-md bg-gray-50">
+                                                    {detail.locationName}<br />
+                                                    <span className="text-xs text-gray-500">
+                                                        Lat: {detail.latitude || "N/A"}, Long: {detail.longitude || "N/A"} <br />
+                                                        Address: {detail.addressDetails || "N/A"}
+                                                    </span>
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                    {MapComponent && detail.latitude && detail.longitude && (
+                                        <div className="mt-4 h-48 w-full rounded-md overflow-hidden border border-gray-300">
+                                            <MapComponent
+                                                latitude={parseFloat(detail.latitude)}
+                                                longitude={parseFloat(detail.longitude)}
+                                                radius={50} // Example radius
+                                                interactive={false}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </div>
             ))}
-            <div className="flex justify-end space-x-3 pt-4">
+
+            <div className="flex justify-between items-center mt-6">
                 <Button
                     type="button"
                     variant="outline"
-                    onClick={() => router.back()}
-                    className="hover:bg-gray-100"
-                    disabled={isLoading} // Added disabled state
+                    onClick={handleAddDetail}
+                    className="border-dashed border-[#6B9AC4] text-[#6B9AC4] hover:bg-[#6B9AC4]/10"
                 >
-                    Cancel
+                    <PlusCircle className="h-4 w-4 mr-2" /> Add Another Detail
                 </Button>
-                <Button
-                    type="submit"
-                    className="bg-[#6B9AC4] hover:bg-[#5A89B3] text-white"
-                    disabled={isLoading} // Added disabled state
-                >
-                    {isLoading ? (isEditMode ? "Updating..." : "Saving...") : (isEditMode ? "Update Schedule" : "Save Schedule")} {/* Added loading text */}
-                </Button>
+                <div className="flex gap-3">
+                    <Button type="button" variant="outline" onClick={() => router.back()} disabled={isLoading}>
+                        Cancel
+                    </Button>
+                    <Button type="submit" className="bg-[#6B9AC4] hover:bg-[#5A89B3] text-white" disabled={isLoading}>
+                        {isLoading ? "Saving..." : (isEditMode ? "Save Changes" : "Create Schedule")}
+                    </Button>
+                </div>
             </div>
         </form>
     );

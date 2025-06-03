@@ -44,6 +44,7 @@ func NewPostgresDB(cfg *config.Config) (*gorm.DB, error) {
 
 	db, err := gorm.Open(postgres.Open(dbURL), &gorm.Config{
 		PrepareStmt: true, // Enable prepared statements
+		// PrepareStmt: false, // Enable prepared statements
 		Logger: logger.Default.LogMode(logger.Info),
 	})
 	if err != nil {

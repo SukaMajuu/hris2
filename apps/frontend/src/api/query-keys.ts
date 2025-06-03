@@ -1,4 +1,9 @@
 import type { EmployeeFilters } from '@/types/employee';
+import {
+  CheckClockOverviewFilters,
+  CheckClockApprovalFilters,
+  CheckClockEmployeeFilters
+} from "@/types/check-clock-overview.types"; 
 
 export const queryKeys = {
   auth: {
@@ -35,4 +40,15 @@ export const queryKeys = {
     stats: ['employees', 'stats'] as const,
     resign: ['employees', 'resign'] as const,
   },
+      checkClock: {
+        overviewList: (filters?: CheckClockOverviewFilters) => ["checkClock", "overview", "list", filters] as const,
+        detail: (id: number | string) => ["checkClock", "detail", id] as const,
+        create: ["checkClock", "create"] as const,
+        update: (id: number | string) => ["checkClock", "update", id] as const,
+        delete: (id: number | string) => ["checkClock", "delete", id] as const,
+        approvalList: (filters?: CheckClockApprovalFilters) => ["checkClock", "approval", "list", filters] as const,
+        approveReject: (id: number | string) => ["checkClock", "approveReject", id] as const,
+        employeeCheckClocks: (employeeId: string, filters?: CheckClockEmployeeFilters) => ["checkClock", "employee", employeeId, "list", filters] as const,
+    },
 } as const;
+

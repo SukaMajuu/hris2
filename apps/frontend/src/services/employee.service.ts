@@ -66,6 +66,29 @@ export interface CreateEmployeeRequest {
   photo_file?: File;
 }
 
+export interface UpdateEmployeeRequest {
+  email?: string;
+  phone?: string;
+  first_name?: string;
+  last_name?: string;
+  position_id?: number;
+  employee_code?: string;
+  branch_id?: number;
+  gender?: string;
+  nik?: string;
+  place_of_birth?: string;
+  date_of_birth?: string;
+  last_education?: string;
+  grade?: string;
+  contract_type?: string;
+  hire_date?: string;
+  tax_status?: string;
+  bank_name?: string;
+  bank_account_number?: string;
+  bank_account_holder_name?: string;
+  photo_file?: File;
+}
+
 export class EmployeeService {
   private api: ApiService;
 
@@ -164,6 +187,55 @@ export class EmployeeService {
       return response.data.data;
     } catch (error) {
       console.error('Error creating employee:', error);
+      throw error;
+    }
+  }
+
+  async updateEmployee(id: number, data: UpdateEmployeeRequest): Promise<Employee> {
+    try {
+      console.log('Updating employee with data:', data);
+
+      // Create FormData for multipart/form-data
+      const formData = new FormData();
+
+      // Add optional fields if they exist
+      if (data.email) formData.append('email', data.email);
+      if (data.first_name) formData.append('first_name', data.first_name);
+      if (data.last_name) formData.append('last_name', data.last_name);
+      if (data.position_id) formData.append('position_id', data.position_id.toString());
+      if (data.phone) formData.append('phone', data.phone);
+      if (data.employee_code) formData.append('employee_code', data.employee_code);
+      if (data.branch_id) formData.append('branch_id', data.branch_id.toString());
+      if (data.gender) formData.append('gender', data.gender);
+      if (data.nik) formData.append('nik', data.nik);
+      if (data.place_of_birth) formData.append('place_of_birth', data.place_of_birth);
+      if (data.date_of_birth) formData.append('date_of_birth', data.date_of_birth);
+      if (data.last_education) formData.append('last_education', data.last_education);
+      if (data.grade) formData.append('grade', data.grade);
+      if (data.contract_type) formData.append('contract_type', data.contract_type);
+      if (data.hire_date) formData.append('hire_date', data.hire_date);
+      if (data.tax_status) formData.append('tax_status', data.tax_status);
+      if (data.bank_name) formData.append('bank_name', data.bank_name);
+      if (data.bank_account_number)
+        formData.append('bank_account_number', data.bank_account_number);
+      if (data.bank_account_holder_name)
+        formData.append('bank_account_holder_name', data.bank_account_holder_name);
+      if (data.photo_file) formData.append('photo_file', data.photo_file);
+
+      const response = await this.api.patch<SingleEmployeeApiResponse>(
+        API_ROUTES.v1.api.employees.detail(id),
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        },
+      );
+
+      console.log('Employee updated successfully:', response.data);
+      return response.data.data;
+    } catch (error) {
+      console.error('Error updating employee:', error);
       throw error;
     }
   }

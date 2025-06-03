@@ -1,5 +1,9 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useEmployeeDetailQuery } from '@/api/queries/employee.queries';
+import { useUpdateEmployee } from '@/api/mutations/employee.mutations';
+import { useGetMyBranches } from '@/api/queries/branch.queries';
+import { useGetMyPositions } from '@/api/queries/position.queries';
+import { useToast } from '@/components/ui/use-toast';
 
 export interface ClientDocument {
   name: string;
@@ -16,6 +20,11 @@ export function useDetailEmployee(employeeId: number) {
     isError,
   } = useEmployeeDetailQuery(employeeId, !!employeeId);
 
+  const updateEmployeeMutation = useUpdateEmployee();
+  const { data: branches = [] } = useGetMyBranches();
+  const { data: positions = [] } = useGetMyPositions();
+  const { toast } = useToast();
+
   // Profile image states
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [profileFile, setProfileFile] = useState<File | null>(null);
@@ -25,6 +34,8 @@ export function useDetailEmployee(employeeId: number) {
   const [employeeCode, setEmployeeCode] = useState('');
   const [branch, setBranch] = useState('');
   const [position, setPosition] = useState('');
+  const [branchId, setBranchId] = useState<number | null>(null);
+  const [positionId, setPositionId] = useState<number | null>(null);
   const [grade, setGrade] = useState('');
   const [joinDate, setJoinDate] = useState('');
   const [contractType, setContractType] = useState('');
@@ -68,6 +79,8 @@ export function useDetailEmployee(employeeId: number) {
       setAddress(''); // Address field not in API response
       setBranch(employee.branch_name || '');
       setPosition(employee.position_name || '');
+      setBranchId(employee.branch_id || null);
+      setPositionId(employee.position_id || null);
       setGrade(employee.grade || '');
       setJoinDate(employee.hire_date || '');
       setBankName(employee.bank_name || '');
@@ -88,17 +101,30 @@ export function useDetailEmployee(employeeId: number) {
     }
   }, [employee]);
 
-  const handleProfileImageChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
-    if (file) {
-      setProfileFile(file);
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        setProfileImage(ev.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  }, []);
+  const handleProfileImageChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      // Only allow photo change when in edit mode
+      if (!editJob) {
+        toast({
+          title: 'Info',
+          description: 'Please enable edit mode first to change profile photo.',
+          variant: 'default',
+        });
+        return;
+      }
+
+      const file = e.target.files?.[0] || null;
+      if (file) {
+        setProfileFile(file);
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          setProfileImage(ev.target?.result as string);
+        };
+        reader.readAsDataURL(file);
+      }
+    },
+    [editJob, toast],
+  );
 
   const handleAddNewDocument = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -140,18 +166,64 @@ export function useDetailEmployee(employeeId: number) {
     }
   }, []);
 
-  const handleSaveJob = useCallback(() => {
-    console.log('Saving job info...', {
-      employeeCode,
-      branch,
-      position,
-      grade,
-      joinDate,
-      contractType,
-    });
-
+  const handleCancelEdit = useCallback(() => {
+    // Reset profile image and file if edit was cancelled
+    if (profileFile) {
+      setProfileImage(employee?.profile_photo_url || null);
+      setProfileFile(null);
+    }
     setEditJob(false);
-  }, [employeeCode, branch, position, grade, joinDate, contractType]);
+  }, [profileFile, employee?.profile_photo_url, setProfileImage, setProfileFile]);
+
+  const handleSaveJob = useCallback(async () => {
+    if (!employee) return;
+
+    try {
+      const updateData = {
+        employee_code: employeeCode,
+        branch_id: branchId || undefined,
+        position_id: positionId || undefined,
+        grade: grade || undefined,
+        hire_date: joinDate,
+        contract_type: contractType,
+        // Include photo file if user selected a new one
+        photo_file: profileFile || undefined,
+      };
+
+      await updateEmployeeMutation.mutateAsync({
+        id: employee.id,
+        data: updateData,
+      });
+
+      toast({
+        title: 'Success',
+        description: 'Job information updated successfully!',
+      });
+
+      // Reset profile file state after successful save
+      setProfileFile(null);
+      setEditJob(false);
+    } catch (error) {
+      console.error('Error updating job info:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update job information. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  }, [
+    employee,
+    employeeCode,
+    branchId,
+    positionId,
+    grade,
+    joinDate,
+    contractType,
+    profileFile,
+    updateEmployeeMutation,
+    toast,
+    setProfileFile,
+  ]);
 
   const handleSavePersonal = useCallback(() => {
     console.log('Saving personal info...', {
@@ -216,6 +288,10 @@ export function useDetailEmployee(employeeId: number) {
     setBranch,
     position,
     setPosition,
+    branchId,
+    setBranchId,
+    positionId,
+    setPositionId,
     grade,
     setGrade,
     joinDate,
@@ -258,6 +334,9 @@ export function useDetailEmployee(employeeId: number) {
     currentDocuments,
     setCurrentDocuments,
 
+    branches,
+    positions,
+
     handleProfileImageChange,
     handleAddNewDocument,
     handleDeleteDocument,
@@ -266,5 +345,6 @@ export function useDetailEmployee(employeeId: number) {
     handleSavePersonal,
     handleSaveBank,
     handleResetPassword,
+    handleCancelEdit,
   };
 }

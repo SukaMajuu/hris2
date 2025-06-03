@@ -8,6 +8,13 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Pencil, ArrowLeft } from 'lucide-react';
 import DocumentManagement from './_tabContents/documentManagement';
@@ -31,6 +38,10 @@ export default function Page() {
     setBranch,
     position,
     setPosition,
+    branchId,
+    setBranchId,
+    positionId,
+    setPositionId,
     grade,
     setGrade,
     joinDate,
@@ -65,6 +76,8 @@ export default function Page() {
     setBankAccountNumber,
     editBank,
     setEditBank,
+    branches,
+    positions,
     currentDocuments,
     handleProfileImageChange,
     handleAddNewDocument,
@@ -74,6 +87,7 @@ export default function Page() {
     handleSavePersonal,
     handleSaveBank,
     handleResetPassword,
+    handleCancelEdit,
   } = useDetailEmployee(id);
 
   const [activeTab, setActiveTab] = useState<'personal' | 'document'>('personal');
@@ -118,7 +132,7 @@ export default function Page() {
           <Button
             variant='ghost'
             size='sm'
-            onClick={() => setEditJob(!editJob)}
+            onClick={() => (editJob ? handleCancelEdit() : setEditJob(true))}
             className='rounded-md px-4 py-2 text-blue-600 transition-colors duration-150 hover:bg-slate-100 hover:text-blue-700 dark:text-blue-400 dark:hover:bg-slate-700/50 dark:hover:text-blue-300'
           >
             <Pencil className='mr-2 h-4 w-4' />
@@ -127,7 +141,9 @@ export default function Page() {
         </CardHeader>
         <CardContent className='p-6'>
           <div className='flex flex-col items-start gap-6 md:flex-row md:items-center'>
-            <div className='group relative mx-auto flex-shrink-0 md:mx-0'>
+            <div
+              className={`group relative mx-auto flex-shrink-0 md:mx-0 ${editJob ? 'cursor-pointer' : 'cursor-default'}`}
+            >
               <Image
                 src={profileImage || '/logo.png'}
                 alt='Profile Photo'
@@ -135,15 +151,17 @@ export default function Page() {
                 height={120}
                 className='h-[120px] w-[120px] rounded-full border-4 border-slate-200 object-cover shadow-md dark:border-slate-700'
               />
-              <label className='bg-opacity-50 absolute inset-0 flex cursor-pointer items-center justify-center rounded-full bg-black opacity-0 transition-opacity duration-200 group-hover:opacity-100'>
-                <Pencil className='h-6 w-6 text-white' />
-                <Input
-                  type='file'
-                  accept='image/*'
-                  className='hidden'
-                  onChange={handleProfileImageChange}
-                />
-              </label>
+              {editJob && (
+                <label className='bg-opacity-50 absolute inset-0 flex cursor-pointer items-center justify-center rounded-full bg-black opacity-0 transition-opacity duration-200 group-hover:opacity-100'>
+                  <Pencil className='h-6 w-6 text-white' />
+                  <Input
+                    type='file'
+                    accept='image/*'
+                    className='hidden'
+                    onChange={handleProfileImageChange}
+                  />
+                </label>
+              )}
             </div>
             <div className='flex-1 space-y-4'>
               <div>
@@ -160,7 +178,7 @@ export default function Page() {
                     htmlFor='employeeCodeTop'
                     className='font-semibold text-slate-600 dark:text-slate-400'
                   >
-                    Employee Code:
+                    Employee Code
                   </Label>
                   {editJob ? (
                     <Input
@@ -181,12 +199,27 @@ export default function Page() {
                     Position
                   </Label>
                   {editJob ? (
-                    <Input
-                      id='positionTop'
-                      value={position}
-                      onChange={(e) => setPosition(e.target.value)}
-                      className='mt-1 h-8 border-slate-300 bg-slate-50 text-sm focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800'
-                    />
+                    <Select
+                      value={positionId?.toString() || ''}
+                      onValueChange={(value) => {
+                        const selectedPosition = positions.find((p) => p.id.toString() === value);
+                        if (selectedPosition) {
+                          setPositionId(selectedPosition.id);
+                          setPosition(selectedPosition.name);
+                        }
+                      }}
+                    >
+                      <SelectTrigger className='mt-1 h-8 w-full border-slate-300 bg-slate-50 text-sm focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800'>
+                        <SelectValue placeholder={position || 'Select position'} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {positions.map((pos) => (
+                          <SelectItem key={pos.id} value={pos.id.toString()}>
+                            {pos.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   ) : (
                     <p className='text-slate-700 dark:text-slate-300'>{position}</p>
                   )}
@@ -199,12 +232,27 @@ export default function Page() {
                     Branch
                   </Label>
                   {editJob ? (
-                    <Input
-                      id='branchTop'
-                      value={branch}
-                      onChange={(e) => setBranch(e.target.value)}
-                      className='mt-1 h-8 border-slate-300 bg-slate-50 text-sm focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800'
-                    />
+                    <Select
+                      value={branchId?.toString() || ''}
+                      onValueChange={(value) => {
+                        const selectedBranch = branches.find((b) => b.id.toString() === value);
+                        if (selectedBranch) {
+                          setBranchId(selectedBranch.id);
+                          setBranch(selectedBranch.name);
+                        }
+                      }}
+                    >
+                      <SelectTrigger className='mt-1 h-8 w-full border-slate-300 bg-slate-50 text-sm focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800'>
+                        <SelectValue placeholder={branch || 'Select branch'} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {branches.map((branch) => (
+                          <SelectItem key={branch.id} value={branch.id.toString()}>
+                            {branch.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   ) : (
                     <p className='text-slate-700 dark:text-slate-300'>{branch}</p>
                   )}
@@ -254,12 +302,16 @@ export default function Page() {
                     Contract Type
                   </Label>
                   {editJob ? (
-                    <Input
-                      id='contractTypeTop'
-                      value={contractType}
-                      onChange={(e) => setContractType(e.target.value)}
-                      className='mt-1 h-8 border-slate-300 bg-slate-50 text-sm focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800'
-                    />
+                    <Select value={contractType} onValueChange={(value) => setContractType(value)}>
+                      <SelectTrigger className='mt-1 h-8 w-full border-slate-300 bg-slate-50 text-sm focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800'>
+                        <SelectValue placeholder={contractType || 'Select contract type'} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value='permanent'>Permanent</SelectItem>
+                        <SelectItem value='contract'>Contract</SelectItem>
+                        <SelectItem value='freelance'>Freelance</SelectItem>
+                      </SelectContent>
+                    </Select>
                   ) : (
                     <p className='text-slate-700 dark:text-slate-300'>{contractType}</p>
                   )}

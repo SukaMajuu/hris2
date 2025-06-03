@@ -268,7 +268,7 @@ const EmployeeInformation: React.FC<EmployeeInformationProps> = ({
               >
                 <SelectTrigger
                   id='lastEducation'
-                  className='mt-1 border-slate-300 bg-slate-50 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-70 dark:border-slate-600 dark:bg-slate-800'
+                  className='mt-1 h-8 w-full border-slate-300 bg-slate-50 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-70 dark:border-slate-600 dark:bg-slate-800'
                 >
                   <SelectValue placeholder='Select education level' />
                 </SelectTrigger>

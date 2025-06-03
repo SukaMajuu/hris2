@@ -66,3 +66,12 @@ func (m *EmployeeRepository) List(ctx context.Context, filters map[string]interf
 	}
 	return employees, totalItems, args.Error(2)
 }
+
+func (m *EmployeeRepository) GetStatistics(ctx context.Context) (
+	totalEmployees, newEmployees, activeEmployees, resignedEmployees,
+	permanentEmployees, contractEmployees, freelanceEmployees int64,
+	err error,
+) {
+	args := m.Called(ctx)
+	return args.Get(0).(int64), args.Get(1).(int64), args.Get(2).(int64), args.Get(3).(int64), args.Get(4).(int64), args.Get(5).(int64), args.Get(6).(int64), args.Error(7)
+}

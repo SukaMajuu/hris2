@@ -2,6 +2,7 @@ package employee
 
 import (
 	"context"
+	"time"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
 	"github.com/SukaMajuu/hris/apps/backend/domain/interfaces"
@@ -70,9 +71,57 @@ func (r *PostgresRepository) List(ctx context.Context, filters map[string]interf
 	}
 
 	offset := (pagination.Page - 1) * pagination.PageSize
-	if err := query.Offset(offset).Limit(pagination.PageSize).Preload("User").Preload("Branch").Preload("Position").Find(&employees).Error; err != nil {
+	if err := query.Offset(offset).Limit(pagination.PageSize).Order("id ASC").Preload("User").Preload("Branch").Preload("Position").Find(&employees).Error; err != nil {
 		return nil, 0, err
 	}
 
 	return employees, totalItems, nil
+}
+
+func (r *PostgresRepository) GetStatistics(ctx context.Context) (
+	totalEmployees, newEmployees, activeEmployees, resignedEmployees,
+	permanentEmployees, contractEmployees, freelanceEmployees int64,
+	err error,
+) {
+
+	err = r.db.WithContext(ctx).Model(&domain.Employee{}).Count(&totalEmployees).Error
+	if err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, err
+	}
+
+	err = r.db.WithContext(ctx).Model(&domain.Employee{}).Where("employment_status = ?", true).Count(&activeEmployees).Error
+	if err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, err
+	}
+
+	err = r.db.WithContext(ctx).Model(&domain.Employee{}).Where("employment_status = ?", false).Count(&resignedEmployees).Error
+	if err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, err
+	}
+	now := time.Now()
+	thirtyDaysAgo := now.AddDate(0, 0, -30)
+
+	err = r.db.WithContext(ctx).Model(&domain.Employee{}).
+		Where("hire_date >= ?", thirtyDaysAgo).
+		Count(&newEmployees).Error
+	if err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, err
+	}
+
+	err = r.db.WithContext(ctx).Model(&domain.Employee{}).Where("contract_type = ?", "permanent").Count(&permanentEmployees).Error
+	if err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, err
+	}
+
+	err = r.db.WithContext(ctx).Model(&domain.Employee{}).Where("contract_type = ?", "contract").Count(&contractEmployees).Error
+	if err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, err
+	}
+
+	err = r.db.WithContext(ctx).Model(&domain.Employee{}).Where("contract_type = ?", "freelance").Count(&freelanceEmployees).Error
+	if err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, err
+	}
+
+	return totalEmployees, newEmployees, activeEmployees, resignedEmployees, permanentEmployees, contractEmployees, freelanceEmployees, nil
 }

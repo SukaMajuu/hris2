@@ -45,9 +45,6 @@ export default function WorkSchedulePage() {
 		viewDialogOpen,
 		viewedSchedule,
 
-		// Loading states
-		isDeleting,
-
 		// Handlers
 		handleOpenDeleteDialog,
 		handleCloseDeleteDialog,

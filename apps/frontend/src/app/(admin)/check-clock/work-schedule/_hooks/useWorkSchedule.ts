@@ -1,10 +1,6 @@
 import { useState, useCallback } from "react";
 import { useWorkSchedules } from "@/api/queries/work-schedule.queries";
-import {
-	useCreateWorkSchedule,
-	useUpdateWorkSchedule,
-	useDeleteWorkSchedule,
-} from "@/api/mutations/work-schedule.mutation";
+import { useDeleteWorkSchedule } from "@/api/mutations/work-schedule.mutation";
 import { toast } from "sonner";
 import { WorkSchedule } from "@/types/work-schedule.types";
 
@@ -22,8 +18,6 @@ export const useWorkSchedule = (page = 1, pageSize = 10) => {
 
 	// Queries and mutations
 	const workSchedulesQuery = useWorkSchedules(page, pageSize);
-	const createMutation = useCreateWorkSchedule();
-	const updateMutation = useUpdateWorkSchedule();
 	const deleteMutation = useDeleteWorkSchedule();
 
 	// Sort work schedules by ID
@@ -99,11 +93,6 @@ export const useWorkSchedule = (page = 1, pageSize = 10) => {
 		workScheduleToDelete,
 		viewDialogOpen,
 		viewedSchedule,
-
-		// Loading states
-		isCreating: createMutation.isPending,
-		isUpdating: updateMutation.isPending,
-		isDeleting: deleteMutation.isPending,
 
 		// Handlers
 		handleOpenDeleteDialog,

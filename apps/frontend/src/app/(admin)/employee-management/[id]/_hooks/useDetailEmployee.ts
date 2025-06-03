@@ -25,12 +25,9 @@ export function useDetailEmployee(employeeId: number) {
   const [employeeCode, setEmployeeCode] = useState('');
   const [branch, setBranch] = useState('');
   const [position, setPosition] = useState('');
-  const [employmentStatus, setEmploymentStatus] = useState('');
-  const [department, setDepartment] = useState('');
   const [grade, setGrade] = useState('');
   const [joinDate, setJoinDate] = useState('');
   const [contractType, setContractType] = useState('');
-  const [sp, setSp] = useState('');
   const [editJob, setEditJob] = useState(false);
 
   // Personal information states
@@ -42,6 +39,7 @@ export function useDetailEmployee(employeeId: number) {
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [lastEducation, setLastEducation] = useState('');
+  const [taxStatus, setTaxStatus] = useState('');
   const [editPersonal, setEditPersonal] = useState(false);
 
   // Bank information states
@@ -70,8 +68,6 @@ export function useDetailEmployee(employeeId: number) {
       setAddress(''); // Address field not in API response
       setBranch(employee.branch_name || '');
       setPosition(employee.position_name || '');
-      setEmploymentStatus(employee.employment_status ? 'Active' : 'Inactive');
-      setDepartment(''); // Department field not in API response
       setGrade(employee.grade || '');
       setJoinDate(employee.hire_date || '');
       setBankName(employee.bank_name || '');
@@ -79,8 +75,8 @@ export function useDetailEmployee(employeeId: number) {
       setBankAccountNumber(employee.bank_account_number || '');
       setProfileImage(employee.profile_photo_url || null);
       setLastEducation(employee.last_education || '');
+      setTaxStatus(employee.tax_status || '');
       setContractType(employee.contract_type || '');
-      setSp(employee.sp || '');
       setCurrentDocuments(
         employee.documentMetadata?.map((doc) => ({
           name: doc.name,
@@ -149,26 +145,13 @@ export function useDetailEmployee(employeeId: number) {
       employeeCode,
       branch,
       position,
-      employmentStatus,
-      department,
       grade,
       joinDate,
       contractType,
-      sp,
     });
 
     setEditJob(false);
-  }, [
-    employeeCode,
-    branch,
-    position,
-    employmentStatus,
-    department,
-    grade,
-    joinDate,
-    contractType,
-    sp,
-  ]);
+  }, [employeeCode, branch, position, grade, joinDate, contractType]);
 
   const handleSavePersonal = useCallback(() => {
     console.log('Saving personal info...', {
@@ -180,11 +163,23 @@ export function useDetailEmployee(employeeId: number) {
       phone,
       address,
       lastEducation,
+      taxStatus,
       name,
     });
     // TODO: Make API call to update employee data
     setEditPersonal(false);
-  }, [nik, email, gender, placeOfBirth, dateOfBirth, phone, address, lastEducation, name]);
+  }, [
+    nik,
+    email,
+    gender,
+    placeOfBirth,
+    dateOfBirth,
+    phone,
+    address,
+    lastEducation,
+    taxStatus,
+    name,
+  ]);
 
   const handleSaveBank = useCallback(() => {
     console.log('Saving bank info...', {
@@ -221,18 +216,12 @@ export function useDetailEmployee(employeeId: number) {
     setBranch,
     position,
     setPosition,
-    employmentStatus,
-    setEmploymentStatus,
-    department,
-    setDepartment,
     grade,
     setGrade,
     joinDate,
     setJoinDate,
     contractType,
     setContractType,
-    sp,
-    setSp,
     editJob,
     setEditJob,
 
@@ -252,6 +241,8 @@ export function useDetailEmployee(employeeId: number) {
     setAddress,
     lastEducation,
     setLastEducation,
+    taxStatus,
+    setTaxStatus,
     editPersonal,
     setEditPersonal,
 

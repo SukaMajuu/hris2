@@ -27,6 +27,8 @@ interface EmployeeInformationProps {
   setPhone: (value: string) => void;
   lastEducation: string;
   setLastEducation: (value: string) => void;
+  taxStatus: string;
+  setTaxStatus: (value: string) => void;
   editPersonal: boolean;
   setEditPersonal: (value: boolean) => void;
   handleSavePersonal: () => void;
@@ -59,6 +61,8 @@ const EmployeeInformation: React.FC<EmployeeInformationProps> = ({
   setPhone,
   lastEducation,
   setLastEducation,
+  taxStatus,
+  setTaxStatus,
   editPersonal,
   setEditPersonal,
   handleSavePersonal,
@@ -141,107 +145,147 @@ const EmployeeInformation: React.FC<EmployeeInformationProps> = ({
               className='mt-1 border-slate-300 bg-slate-50 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-70 dark:border-slate-600 dark:bg-slate-800'
             />
           </div>
-          <div>
-            <Label
-              htmlFor='gender'
-              className='text-sm font-medium text-slate-600 dark:text-slate-400'
-            >
-              Gender
-            </Label>
-            <Select
-              value={gender}
-              onValueChange={(value) => setGender(value)}
-              disabled={!editPersonal}
-            >
-              <SelectTrigger
-                id='gender'
-                className='mt-1 w-full border-slate-300 bg-slate-50 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-70 dark:border-slate-600 dark:bg-slate-800'
+          <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
+            <div>
+              <Label
+                htmlFor='gender'
+                className='text-sm font-medium text-slate-600 dark:text-slate-400'
               >
-                <SelectValue placeholder='Select gender' />
-              </SelectTrigger>
-              <SelectContent className='bg-white dark:bg-slate-800'>
-                <SelectItem value='Male'>Male</SelectItem>
-                <SelectItem value='Female'>Female</SelectItem>
-              </SelectContent>
-            </Select>
+                Gender
+              </Label>
+              <Select
+                value={gender}
+                onValueChange={(value) => setGender(value)}
+                disabled={!editPersonal}
+              >
+                <SelectTrigger
+                  id='gender'
+                  className='mt-1 w-full border-slate-300 bg-slate-50 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-70 dark:border-slate-600 dark:bg-slate-800'
+                >
+                  <SelectValue placeholder='Select gender' />
+                </SelectTrigger>
+                <SelectContent className='bg-white dark:bg-slate-800'>
+                  <SelectItem value='Male'>Male</SelectItem>
+                  <SelectItem value='Female'>Female</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label
+                htmlFor='taxStatus'
+                className='text-sm font-medium text-slate-600 dark:text-slate-400'
+              >
+                Tax Status
+              </Label>
+              <Select
+                value={taxStatus}
+                onValueChange={(value) => setTaxStatus(value)}
+                disabled={!editPersonal}
+              >
+                <SelectTrigger
+                  id='taxStatus'
+                  className='mt-1 w-full border-slate-300 bg-slate-50 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-70 dark:border-slate-600 dark:bg-slate-800'
+                >
+                  <SelectValue placeholder='Select tax status' />
+                </SelectTrigger>
+                <SelectContent className='bg-white dark:bg-slate-800'>
+                  <SelectItem value='TK/0'>TK/0</SelectItem>
+                  <SelectItem value='TK/1'>TK/1</SelectItem>
+                  <SelectItem value='TK/2'>TK/2</SelectItem>
+                  <SelectItem value='TK/3'>TK/3</SelectItem>
+                  <SelectItem value='K/0'>K/0</SelectItem>
+                  <SelectItem value='K/1'>K/1</SelectItem>
+                  <SelectItem value='K/2'>K/2</SelectItem>
+                  <SelectItem value='K/3'>K/3</SelectItem>
+                  <SelectItem value='K/I/0'>K/I/0</SelectItem>
+                  <SelectItem value='K/I/1'>K/I/1</SelectItem>
+                  <SelectItem value='K/I/2'>K/I/2</SelectItem>
+                  <SelectItem value='K/I/3'>K/I/3</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <div>
-            <Label
-              htmlFor='placeOfBirth'
-              className='text-sm font-medium text-slate-600 dark:text-slate-400'
-            >
-              Place of Birth
-            </Label>
-            <Input
-              id='placeOfBirth'
-              value={placeOfBirth}
-              onChange={(e) => setPlaceOfBirth(e.target.value)}
-              disabled={!editPersonal}
-              className='mt-1 border-slate-300 bg-slate-50 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-70 dark:border-slate-600 dark:bg-slate-800'
-            />
-          </div>
-          <div>
-            <Label
-              htmlFor='dateOfBirth'
-              className='text-sm font-medium text-slate-600 dark:text-slate-400'
-            >
-              Date of Birth
-            </Label>
-            <Input
-              id='dateOfBirth'
-              type='date'
-              value={dateOfBirth}
-              onChange={(e) => setDateOfBirth(e.target.value)}
-              disabled={!editPersonal}
-              className='mt-1 border-slate-300 bg-slate-50 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-70 dark:border-slate-600 dark:bg-slate-800'
-            />
-          </div>
-          <div>
-            <Label
-              htmlFor='phone'
-              className='text-sm font-medium text-slate-600 dark:text-slate-400'
-            >
-              Phone Number
-            </Label>
-            <Input
-              id='phone'
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              disabled={!editPersonal}
-              className='mt-1 border-slate-300 bg-slate-50 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-70 dark:border-slate-600 dark:bg-slate-800'
-            />
-          </div>
-          <div>
-            <Label
-              htmlFor='lastEducation'
-              className='text-sm font-medium text-slate-600 dark:text-slate-400'
-            >
-              Last Education
-            </Label>
-            <Select
-              value={lastEducation}
-              onValueChange={(value) => setLastEducation(value)}
-              disabled={!editPersonal}
-            >
-              <SelectTrigger
-                id='lastEducation'
+          <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
+            <div>
+              <Label
+                htmlFor='placeOfBirth'
+                className='text-sm font-medium text-slate-600 dark:text-slate-400'
+              >
+                Place of Birth
+              </Label>
+              <Input
+                id='placeOfBirth'
+                value={placeOfBirth}
+                onChange={(e) => setPlaceOfBirth(e.target.value)}
+                disabled={!editPersonal}
                 className='mt-1 border-slate-300 bg-slate-50 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-70 dark:border-slate-600 dark:bg-slate-800'
+              />
+            </div>
+            <div>
+              <Label
+                htmlFor='dateOfBirth'
+                className='text-sm font-medium text-slate-600 dark:text-slate-400'
               >
-                <SelectValue placeholder='Select education level' />
-              </SelectTrigger>
-              <SelectContent className='bg-white dark:bg-slate-800'>
-                <SelectItem value='SD'>SD</SelectItem>
-                <SelectItem value='SMP'>SMP</SelectItem>
-                <SelectItem value='SMA/SMK'>SMA/SMK</SelectItem>
-                <SelectItem value='D1'>D1</SelectItem>
-                <SelectItem value='D2'>D2</SelectItem>
-                <SelectItem value='D3'>D3</SelectItem>
-                <SelectItem value='S1/D4'>S1/D4</SelectItem>
-                <SelectItem value='S2'>S2</SelectItem>
-                <SelectItem value='S3'>S3</SelectItem>
-                <SelectItem value='Other'>Other</SelectItem>
-              </SelectContent>
-            </Select>
+                Date of Birth
+              </Label>
+              <Input
+                id='dateOfBirth'
+                type='date'
+                value={dateOfBirth}
+                onChange={(e) => setDateOfBirth(e.target.value)}
+                disabled={!editPersonal}
+                className='mt-1 border-slate-300 bg-slate-50 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-70 dark:border-slate-600 dark:bg-slate-800'
+              />
+            </div>
+          </div>
+          <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
+            <div>
+              <Label
+                htmlFor='phone'
+                className='text-sm font-medium text-slate-600 dark:text-slate-400'
+              >
+                Phone Number
+              </Label>
+              <Input
+                id='phone'
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                disabled={!editPersonal}
+                className='mt-1 border-slate-300 bg-slate-50 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-70 dark:border-slate-600 dark:bg-slate-800'
+              />
+            </div>
+            <div>
+              <Label
+                htmlFor='lastEducation'
+                className='text-sm font-medium text-slate-600 dark:text-slate-400'
+              >
+                Last Education
+              </Label>
+              <Select
+                value={lastEducation}
+                onValueChange={(value) => setLastEducation(value)}
+                disabled={!editPersonal}
+              >
+                <SelectTrigger
+                  id='lastEducation'
+                  className='mt-1 border-slate-300 bg-slate-50 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-70 dark:border-slate-600 dark:bg-slate-800'
+                >
+                  <SelectValue placeholder='Select education level' />
+                </SelectTrigger>
+                <SelectContent className='bg-white dark:bg-slate-800'>
+                  <SelectItem value='SD'>SD</SelectItem>
+                  <SelectItem value='SMP'>SMP</SelectItem>
+                  <SelectItem value='SMA/SMK'>SMA/SMK</SelectItem>
+                  <SelectItem value='D1'>D1</SelectItem>
+                  <SelectItem value='D2'>D2</SelectItem>
+                  <SelectItem value='D3'>D3</SelectItem>
+                  <SelectItem value='S1/D4'>S1/D4</SelectItem>
+                  <SelectItem value='S2'>S2</SelectItem>
+                  <SelectItem value='S3'>S3</SelectItem>
+                  <SelectItem value='Other'>Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           {editPersonal && (
             <div className='text-right'>

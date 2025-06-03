@@ -22,7 +22,7 @@ export default function Page() {
     initialEmployeeData: employee,
     isLoading,
     error,
-    // profileImage,
+    profileImage,
     name,
     setName,
     employeeCode,
@@ -31,16 +31,12 @@ export default function Page() {
     setBranch,
     position,
     setPosition,
-    employmentStatus,
-    setEmploymentStatus,
     grade,
     setGrade,
     joinDate,
     setJoinDate,
     contractType,
     setContractType,
-    sp,
-    setSp,
     editJob,
     setEditJob,
     nik,
@@ -57,6 +53,8 @@ export default function Page() {
     setPhone,
     lastEducation,
     setLastEducation,
+    taxStatus,
+    setTaxStatus,
     editPersonal,
     setEditPersonal,
     bankName,
@@ -131,7 +129,7 @@ export default function Page() {
           <div className='flex flex-col items-start gap-6 md:flex-row md:items-center'>
             <div className='group relative mx-auto flex-shrink-0 md:mx-0'>
               <Image
-                src={'/logo.png'}
+                src={profileImage || '/logo.png'}
                 alt='Profile Photo'
                 width={120}
                 height={120}
@@ -213,24 +211,6 @@ export default function Page() {
                 </div>
                 <div>
                   <Label
-                    htmlFor='employmentStatusTop'
-                    className='font-semibold text-slate-600 dark:text-slate-400'
-                  >
-                    Employment Status
-                  </Label>
-                  {editJob ? (
-                    <Input
-                      id='employmentStatusTop'
-                      value={employmentStatus}
-                      onChange={(e) => setEmploymentStatus(e.target.value)}
-                      className='mt-1 h-8 border-slate-300 bg-slate-50 text-sm focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800'
-                    />
-                  ) : (
-                    <p className='text-slate-700 dark:text-slate-300'>{employmentStatus}</p>
-                  )}
-                </div>
-                <div>
-                  <Label
                     htmlFor='joinDateTop'
                     className='font-semibold text-slate-600 dark:text-slate-400'
                   >
@@ -282,24 +262,6 @@ export default function Page() {
                     />
                   ) : (
                     <p className='text-slate-700 dark:text-slate-300'>{contractType}</p>
-                  )}
-                </div>
-                <div>
-                  <Label
-                    htmlFor='spTop'
-                    className='font-semibold text-slate-600 dark:text-slate-400'
-                  >
-                    Warning Letter (SP)
-                  </Label>
-                  {editJob ? (
-                    <Input
-                      id='spTop'
-                      value={sp}
-                      onChange={(e) => setSp(e.target.value)}
-                      className='mt-1 h-8 border-slate-300 bg-slate-50 text-sm focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800'
-                    />
-                  ) : (
-                    <p className='text-slate-700 dark:text-slate-300'>{sp}</p>
                   )}
                 </div>
               </div>
@@ -356,6 +318,8 @@ export default function Page() {
             setPhone={setPhone}
             lastEducation={lastEducation}
             setLastEducation={setLastEducation}
+            taxStatus={taxStatus}
+            setTaxStatus={setTaxStatus}
             editPersonal={editPersonal}
             setEditPersonal={setEditPersonal}
             handleSavePersonal={handleSavePersonal}

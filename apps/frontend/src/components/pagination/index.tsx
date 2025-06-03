@@ -128,8 +128,6 @@ export function PaginationComponent<TData>({
 		return uniqueItems;
 	};
 
-	if (totalPages <= 1) return null;
-
 	return (
 		<Pagination>
 			<PaginationContent className="flex items-center gap-1 sm:gap-2">

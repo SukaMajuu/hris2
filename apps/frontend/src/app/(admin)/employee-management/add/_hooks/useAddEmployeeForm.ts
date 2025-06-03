@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
@@ -16,20 +16,31 @@ import { useToast } from '@/components/ui/use-toast';
 import { useGetMyBranches } from '@/api/queries/branch.queries';
 import { useGetMyPositions } from '@/api/queries/position.queries';
 
+const getTodaysDate = (): string => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const initialFormData: EmployeeFormData = {
   firstName: '',
   lastName: '',
   email: '',
   nik: '',
   phoneNumber: '',
-  gender: 'Male',
-  lastEducation: 'SMA/SMK',
+  gender: 'Male' as const,
+  lastEducation: 'SMA/SMK' as const,
   placeOfBirth: '',
   dateOfBirth: '',
+  taxStatus: 'TK/0' as const,
   employeeId: '',
   branch: '',
   position: '',
   grade: '',
+  contractType: 'permanent' as const,
+  hireDate: getTodaysDate(),
   profilePhoto: undefined,
   profilePhotoPreview: null,
   bankName: '',
@@ -60,6 +71,10 @@ export function useAddEmployeeForm() {
     getValues,
   } = form;
   const formData = watch();
+
+  useEffect(() => {
+    setValue('hireDate', getTodaysDate());
+  }, [setValue]);
 
   const steps = [
     { label: 'Personal Information', schema: personalInfoSchema },
@@ -108,7 +123,6 @@ export function useAddEmployeeForm() {
       return true;
     } catch (error) {
       console.log('Step validation failed:', error);
-      // Don't show toast, let the inline errors handle it
       return false;
     }
   };
@@ -127,8 +141,9 @@ export function useAddEmployeeForm() {
         'lastEducation',
         'placeOfBirth',
         'dateOfBirth',
+        'taxStatus',
       ] as const,
-      2: ['employeeId', 'branch', 'position'] as const,
+      2: ['employeeId', 'branch', 'position', 'contractType', 'hireDate'] as const,
       3: ['bankName', 'bankAccountHolder', 'bankAccountNumber'] as const,
       4: [] as const, // Review step has no validation
     };
@@ -209,6 +224,9 @@ export function useAddEmployeeForm() {
         date_of_birth: validData.dateOfBirth,
         last_education: validData.lastEducation,
         grade: validData.grade || undefined,
+        contract_type: validData.contractType,
+        hire_date: validData.hireDate,
+        tax_status: validData.taxStatus,
         bank_name: validData.bankName,
         bank_account_number: validData.bankAccountNumber,
         bank_account_holder_name: validData.bankAccountHolder,
@@ -240,20 +258,92 @@ export function useAddEmployeeForm() {
     }
   };
 
-  const goToStep = (stepNumber: number) => {
-    setActiveStep(stepNumber);
+  const goToStep = async (stepNumber: number) => {
+    // Allow backward navigation without validation
+    if (stepNumber <= activeStep) {
+      setActiveStep(stepNumber);
+      return;
+    }
+
+    // For forward navigation, validate all steps between current and target
+    let canProceed = true;
+
+    for (let step = activeStep; step < stepNumber; step++) {
+      const stepFields = {
+        1: [
+          'firstName',
+          'email',
+          'nik',
+          'phoneNumber',
+          'gender',
+          'lastEducation',
+          'placeOfBirth',
+          'dateOfBirth',
+          'taxStatus',
+        ] as const,
+        2: ['employeeId', 'branch', 'position', 'contractType', 'hireDate'] as const,
+        3: ['bankName', 'bankAccountHolder', 'bankAccountNumber'] as const,
+        4: [] as const,
+      };
+
+      const currentStepFields = stepFields[step as keyof typeof stepFields];
+
+      if (currentStepFields && currentStepFields.length > 0) {
+        const isValid = await form.trigger(currentStepFields);
+        if (!isValid) {
+          console.log(`Step ${step} validation failed`);
+          canProceed = false;
+          break;
+        }
+      }
+    }
+
+    if (canProceed) {
+      setActiveStep(stepNumber);
+    }
   };
 
   const isStepValid = (stepIndex: number) => {
-    const stepSchema = steps[stepIndex]?.schema;
-    if (!stepSchema) return false;
+    const stepNumber = stepIndex + 1;
 
-    try {
-      stepSchema.parse(getValues());
+    const stepFields = {
+      1: [
+        'firstName',
+        'email',
+        'nik',
+        'phoneNumber',
+        'gender',
+        'lastEducation',
+        'placeOfBirth',
+        'dateOfBirth',
+        'taxStatus',
+      ] as const,
+      2: ['employeeId', 'branch', 'position', 'contractType', 'hireDate'] as const,
+      3: ['bankName', 'bankAccountHolder', 'bankAccountNumber'] as const,
+      4: [] as const,
+    };
+
+    const currentStepFields = stepFields[stepNumber as keyof typeof stepFields];
+
+    if (!currentStepFields || currentStepFields.length === 0) {
       return true;
-    } catch {
-      return false;
     }
+
+    const currentData = getValues();
+
+    for (const field of currentStepFields) {
+      const value = currentData[field];
+
+      if (!value || (typeof value === 'string' && value.trim() === '')) {
+        return false;
+      }
+
+      if (errors[field]) {
+        return false;
+      }
+    }
+
+    return true;
   };
 
   return {

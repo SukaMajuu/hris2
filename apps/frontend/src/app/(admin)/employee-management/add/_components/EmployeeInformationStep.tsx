@@ -110,7 +110,7 @@ export function EmployeeInformationStep({
               value={formData.employeeId}
               onChange={onInputChange}
               placeholder='Enter employee ID'
-              className={`focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800 ${
+              className={`focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:placeholder:text-slate-500 ${
                 errors.employeeId ? 'border-red-500 focus:border-red-500' : ''
               }`}
             />
@@ -247,11 +247,63 @@ export function EmployeeInformationStep({
               value={formData.grade}
               onChange={onInputChange}
               placeholder='Enter grade'
-              className={`focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800 ${
+              className={`focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:placeholder:text-slate-500 ${
                 errors.grade ? 'border-red-500 focus:border-red-500' : ''
               }`}
             />
             {errors.grade && <p className='mt-1 text-sm text-red-500'>{errors.grade.message}</p>}
+          </div>
+          <div>
+            <label
+              htmlFor='contractType'
+              className='mb-1 block text-sm font-medium text-slate-600 dark:text-slate-400'
+            >
+              Contract Type *
+            </label>
+            <Select
+              value={formData.contractType}
+              onValueChange={(value) => onSelectChange('contractType', value)}
+            >
+              <SelectTrigger
+                className={`focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800 ${
+                  errors.contractType ? 'border-red-500 focus:border-red-500' : ''
+                }`}
+              >
+                <SelectValue placeholder='Select contract type' />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value='permanent'>Permanent</SelectItem>
+                <SelectItem value='contract'>Contract</SelectItem>
+                <SelectItem value='freelance'>Freelance</SelectItem>
+              </SelectContent>
+            </Select>
+            {errors.contractType && (
+              <p className='mt-1 text-sm text-red-500'>{errors.contractType.message}</p>
+            )}
+          </div>
+          <div>
+            <label
+              htmlFor='hireDate'
+              className='mb-1 block text-sm font-medium text-slate-600 dark:text-slate-400'
+            >
+              Hire Date *
+            </label>
+            <Input
+              id='hireDate'
+              name='hireDate'
+              type='date'
+              value={formData.hireDate}
+              readOnly
+              className={`focus:ring-primary focus:border-primary mt-1 w-full cursor-not-allowed border-slate-300 bg-slate-100 dark:border-slate-600 dark:bg-slate-700 ${
+                errors.hireDate ? 'border-red-500 focus:border-red-500' : ''
+              }`}
+            />
+            <p className='mt-1 text-xs text-slate-500 dark:text-slate-400'>
+              Hire date is automatically set to today&apos;s date, you can change it later in Detail
+            </p>
+            {errors.hireDate && (
+              <p className='mt-1 text-sm text-red-500'>{errors.hireDate.message}</p>
+            )}
           </div>
         </div>
       </form>

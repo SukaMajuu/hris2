@@ -13,7 +13,7 @@ export const employeeFormSchema = z.object({
   phoneNumber: z
     .string()
     .min(10, 'Phone number must be at least 10 digits')
-    .regex(/^\+?[\d\s-()]+$/, 'Invalid phone number format'),
+    .regex(/^\+[1-9]\d{1,14}$/, 'Phone number must start with country code (e.g., +62812345678)'),
   gender: z.enum(['Male', 'Female'], { required_error: 'Gender is required' }),
   lastEducation: z.enum(['SD', 'SMP', 'SMA/SMK', 'D1', 'D2', 'D3', 'S1/D4', 'S2', 'S3', 'Other'], {
     required_error: 'Education level is required',
@@ -38,12 +38,33 @@ export const employeeFormSchema = z.object({
 
       return actualAge >= 16 && actualAge <= 70;
     }, 'Age must be between 16 and 70 years'),
+  taxStatus: z.enum(
+    [
+      'TK/0',
+      'TK/1',
+      'TK/2',
+      'TK/3',
+      'K/0',
+      'K/1',
+      'K/2',
+      'K/3',
+      'K/I/0',
+      'K/I/1',
+      'K/I/2',
+      'K/I/3',
+    ],
+    { required_error: 'Tax status is required' },
+  ),
 
   // Employee Information
   employeeId: z.string().min(1, 'Employee ID is required'),
   branch: z.string().min(1, 'Branch is required'),
   position: z.string().min(1, 'Position is required'),
   grade: z.string().optional(),
+  contractType: z.enum(['permanent', 'contract', 'freelance'], {
+    required_error: 'Contract type is required',
+  }),
+  hireDate: z.string().min(1, 'Hire date is required'),
   profilePhoto: z.instanceof(File).optional(),
 
   // Bank Information
@@ -70,13 +91,33 @@ export const personalInfoSchema = z.object({
     .min(16, 'NIK must be 16 digits')
     .max(16, 'NIK must be 16 digits')
     .regex(/^\d+$/, 'NIK must only contain numbers'),
-  phoneNumber: z.string().min(10, 'Phone number must be at least 10 digits'),
+  phoneNumber: z
+    .string()
+    .min(10, 'Phone number must be at least 10 digits')
+    .regex(/^\+[1-9]\d{1,14}$/, 'Phone number must start with country code (e.g., +62812345678)'),
   gender: z.enum(['Male', 'Female'], { required_error: 'Gender is required' }),
   lastEducation: z.enum(['SD', 'SMP', 'SMA/SMK', 'D1', 'D2', 'D3', 'S1/D4', 'S2', 'S3', 'Other'], {
     required_error: 'Education level is required',
   }),
   placeOfBirth: z.string().min(1, 'Place of birth is required'),
   dateOfBirth: z.string().min(1, 'Date of birth is required'),
+  taxStatus: z.enum(
+    [
+      'TK/0',
+      'TK/1',
+      'TK/2',
+      'TK/3',
+      'K/0',
+      'K/1',
+      'K/2',
+      'K/3',
+      'K/I/0',
+      'K/I/1',
+      'K/I/2',
+      'K/I/3',
+    ],
+    { required_error: 'Tax status is required' },
+  ),
 });
 
 export const employeeInfoSchema = z.object({
@@ -84,6 +125,10 @@ export const employeeInfoSchema = z.object({
   branch: z.string().min(1, 'Branch is required'),
   position: z.string().min(1, 'Position is required'),
   grade: z.string().optional(),
+  contractType: z.enum(['permanent', 'contract', 'freelance'], {
+    required_error: 'Contract type is required',
+  }),
+  hireDate: z.string().min(1, 'Hire date is required'),
   profilePhoto: z.instanceof(File).optional(),
 });
 

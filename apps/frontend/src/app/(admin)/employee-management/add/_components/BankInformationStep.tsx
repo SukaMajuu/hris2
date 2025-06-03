@@ -37,7 +37,7 @@ export function BankInformationStep({ formData, errors, onInputChange }: BankInf
               value={formData.bankName}
               onChange={onInputChange}
               placeholder='Enter bank name'
-              className={`focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800 ${
+              className={`focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:placeholder:text-slate-500 ${
                 errors.bankName ? 'border-red-500 focus:border-red-500' : ''
               }`}
             />
@@ -58,7 +58,7 @@ export function BankInformationStep({ formData, errors, onInputChange }: BankInf
               value={formData.bankAccountHolder}
               onChange={onInputChange}
               placeholder='Enter account holder name'
-              className={`focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800 ${
+              className={`focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:placeholder:text-slate-500 ${
                 errors.bankAccountHolder ? 'border-red-500 focus:border-red-500' : ''
               }`}
             />
@@ -79,7 +79,7 @@ export function BankInformationStep({ formData, errors, onInputChange }: BankInf
               value={formData.bankAccountNumber}
               onChange={onInputChange}
               placeholder='Enter account number'
-              className={`focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800 ${
+              className={`focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:placeholder:text-slate-500 ${
                 errors.bankAccountNumber ? 'border-red-500 focus:border-red-500' : ''
               }`}
             />

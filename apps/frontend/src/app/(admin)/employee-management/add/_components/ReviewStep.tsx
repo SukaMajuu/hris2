@@ -4,6 +4,8 @@ import React from 'react';
 import { Separator } from '@/components/ui/separator';
 import Image from 'next/image';
 import type { EmployeeFormData } from '../_hooks/useAddEmployeeForm';
+import { useGetMyBranches } from '@/api/queries/branch.queries';
+import { useGetMyPositions } from '@/api/queries/position.queries';
 
 interface ReviewStepProps {
   formData: EmployeeFormData;
@@ -24,6 +26,12 @@ function ReviewItem({ label, value }: ReviewItemProps) {
 }
 
 export function ReviewStep({ formData }: ReviewStepProps) {
+  const { data: branches = [] } = useGetMyBranches();
+  const { data: positions = [] } = useGetMyPositions();
+
+  const selectedBranch = branches.find((b) => b.id.toString() === formData.branch);
+  const selectedPosition = positions.find((p) => p.id.toString() === formData.position);
+
   return (
     <>
       <h2 className='text-center text-xl font-semibold text-slate-800 dark:text-slate-100'>
@@ -50,6 +58,7 @@ export function ReviewStep({ formData }: ReviewStepProps) {
             <ReviewItem label='Last Education' value={formData.lastEducation} />
             <ReviewItem label='Place of Birth' value={formData.placeOfBirth} />
             <ReviewItem label='Date of Birth' value={formData.dateOfBirth} />
+            <ReviewItem label='Tax Status' value={formData.taxStatus} />
           </div>
         </div>
 
@@ -60,9 +69,11 @@ export function ReviewStep({ formData }: ReviewStepProps) {
           </h3>
           <div className='grid grid-cols-1 gap-x-6 gap-y-3 text-sm md:grid-cols-2'>
             <ReviewItem label='Employee ID' value={formData.employeeId} />
-            <ReviewItem label='Branch' value={formData.branch} />
-            <ReviewItem label='Position' value={formData.position} />
+            <ReviewItem label='Branch' value={selectedBranch?.name || formData.branch} />
+            <ReviewItem label='Position' value={selectedPosition?.name || formData.position} />
             <ReviewItem label='Grade' value={formData.grade} />
+            <ReviewItem label='Contract Type' value={formData.contractType} />
+            <ReviewItem label='Hire Date' value={formData.hireDate} />
             {formData.profilePhotoPreview && (
               <div className='mt-2 md:col-span-2'>
                 <p className='text-xs font-medium text-slate-500 dark:text-slate-400'>

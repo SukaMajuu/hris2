@@ -124,11 +124,11 @@ func (r *WorkScheduleRepository) ListWithPagination(ctx context.Context, paginat
 	if err != nil {
 		return nil, 0, err
 	}
-
-	// Retrieve paginated items with details preloaded
+	// Retrieve paginated items with details preloaded, ordered by ID
 	err = r.db.WithContext(ctx).Model(&domain.WorkSchedule{}).
 		Preload("Details").
 		Preload("Details.Location"). // Preload location for each detail
+		Order("id ASC").             // Add ordering by ID ascending
 		Offset(offset).
 		Limit(paginationParams.PageSize).
 		Find(&workSchedules).Error

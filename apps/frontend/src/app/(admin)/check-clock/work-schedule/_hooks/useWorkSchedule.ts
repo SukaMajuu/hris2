@@ -25,16 +25,28 @@ export function useWorkSchedulesList(page: number, pageSize: number) {
 
     const queryResult = useWorkSchedules(page, pageSize);
 
+    // Process and sort data when it changes
+    const sortedWorkSchedules = React.useMemo(() => {
+        if (!queryResult.data?.items) return [];
+
+        // Sort by ID ascending to ensure consistent ordering
+        return [...queryResult.data.items].sort((a, b) => {
+            const idA = a.id || 0;
+            const idB = b.id || 0;
+            return idA - idB;
+        });
+    }, [queryResult.data?.items]);
+
     // Update store when data changes
     React.useEffect(() => {
-        if (queryResult.data?.items) {
-            setWorkSchedules(queryResult.data.items);
+        if (sortedWorkSchedules.length > 0) {
+            setWorkSchedules(sortedWorkSchedules);
         }
-    }, [queryResult.data, setWorkSchedules]);
+    }, [sortedWorkSchedules, setWorkSchedules]);
 
     return {
         ...queryResult,
-        workSchedules: queryResult.data?.items || [],
+        workSchedules: sortedWorkSchedules,
         totalItems: queryResult.data?.pagination?.total_items || 0,
         totalPages: queryResult.data?.pagination?.total_pages || 0,
         currentPage: queryResult.data?.pagination?.current_page || 1,

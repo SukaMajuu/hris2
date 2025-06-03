@@ -8,8 +8,14 @@ export const useCreateWorkSchedule = () => {
     return useMutation({
         mutationKey: queryKeys.workSchedules.create,
         mutationFn: (data: CreateWorkScheduleRequest) => workScheduleService.create(data),
-        onSuccess: () => {
+        onSuccess: (newData) => {
+            // Invalidate list queries to refetch with proper sorting from backend
             queryClient.invalidateQueries({ queryKey: queryKeys.workSchedules.list });
+
+            // Set the new data in the detail query cache if ID is available
+            if (newData.id) {
+                queryClient.setQueryData(queryKeys.workSchedules.detail(newData.id), newData);
+            }
         },
     });
 };
@@ -19,8 +25,15 @@ export const useUpdateWorkSchedule = () => {
     return useMutation({
         mutationKey: queryKeys.workSchedules.update,
         mutationFn: ({ id, data }: { id: number; data: UpdateWorkScheduleRequest }) => workScheduleService.update(id, data),
-        onSuccess: () => {
+        onSuccess: (updatedData, variables) => {
+            // Invalidate list queries to refetch with proper sorting from backend
             queryClient.invalidateQueries({ queryKey: queryKeys.workSchedules.list });
+
+            // Also invalidate the specific detail query for this item
+            queryClient.invalidateQueries({ queryKey: queryKeys.workSchedules.detail(variables.id) });
+
+            // Set the updated data in the detail query cache
+            queryClient.setQueryData(queryKeys.workSchedules.detail(variables.id), updatedData);
         },
     });
 };
@@ -30,8 +43,12 @@ export const useDeleteWorkSchedule = () => {
     return useMutation({
         mutationKey: queryKeys.workSchedules.delete,
         mutationFn: (id: number) => workScheduleService.delete(id),
-        onSuccess: () => {
+        onSuccess: (_, deletedId) => {
+            // Invalidate list queries to refetch with proper sorting from backend
             queryClient.invalidateQueries({ queryKey: queryKeys.workSchedules.list });
+
+            // Remove the deleted item from detail query cache
+            queryClient.removeQueries({ queryKey: queryKeys.workSchedules.detail(deletedId) });
         },
     });
 };

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, X } from 'lucide-react';
-import { Button } from '../ui/button';
+import { Button } from '../../../components/ui/button';
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -28,13 +28,7 @@ const Header: React.FC = () => {
       <div className='container mx-auto flex items-center justify-between px-4'>
         <div className='flex items-center'>
           <div className='mr-2 text-blue-800'>
-            <img
-              src='/logo2.png'
-              alt='HRIS Logo'
-              width={40}
-              height={40}
-              className='h-10 w-5'
-            />                    
+            <img src='/logo2.png' alt='HRIS Logo' width={40} height={40} className='h-10 w-5' />
           </div>
           <span className='text-xl font-bold text-gray-900'>HRIS</span>
         </div>
@@ -47,9 +41,9 @@ const Header: React.FC = () => {
           <a href='#benefits' className='font-medium text-gray-700 hover:text-blue-800'>
             Benefits
           </a>
-          <a href='#testimonials' className='font-medium text-gray-700 hover:text-blue-800'>
+          {/* <a href='#testimonials' className='font-medium text-gray-700 hover:text-blue-800'>
             Testimonials
-          </a>
+          </a> */}
           <a href='#pricing' className='font-medium text-gray-700 hover:text-blue-800'>
             Pricing
           </a>
@@ -58,11 +52,11 @@ const Header: React.FC = () => {
               Log In
             </Button>
           </a>
-           <a href="#contact">
-                <Button size='sm' className='flex-1'>
-                  Request Demo
-                </Button>
-              </a>     
+          <a href='#contact'>
+            <Button size='sm' className='flex-1'>
+              Request Demo
+            </Button>
+          </a>
         </nav>
 
         {/* Mobile Menu Button */}
@@ -109,11 +103,11 @@ const Header: React.FC = () => {
                   Log In
                 </Button>
               </a>
-              <a href="#contact">
+              <a href='#contact'>
                 <Button size='sm' className='flex-1'>
                   Request Demo
                 </Button>
-              </a>              
+              </a>
             </div>
           </div>
         </div>

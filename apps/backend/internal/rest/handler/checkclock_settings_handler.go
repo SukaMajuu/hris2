@@ -26,87 +26,86 @@ func (h *CheckclockSettingsHandler) CreateCheckclockSettings(c *gin.Context) {
 		return
 	}
 
-	domainModel := &domain.CheckclockSettings{
+	createdSetting, err := h.useCase.Create(c.Request.Context(), &domain.CheckclockSettings{
 		EmployeeID:     req.EmployeeID,
 		WorkScheduleID: req.WorkScheduleID,
-	}
+	})
 
-	createdSetting, err := h.useCase.Create(c.Request.Context(), domainModel)
-	if err != nil {
-		response.BadRequest(c, err.Error(), nil)
-		return
-	}
-
-	response.Created(c, "Check clock setting created successfully", createdSetting)
-}
-
-func (h *CheckclockSettingsHandler) GetCheckclockSettingsByID(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		response.BadRequest(c, "Invalid ID parameter", nil)
-		return
-	}
-
-	setting, err := h.useCase.GetByID(c.Request.Context(), uint(id))
-	if err != nil {
-		response.NotFound(c, err.Error(), nil)
-		return
-	}
-
-	response.Success(c, 200, "Check clock setting retrieved successfully", setting)
-}
-
-func (h *CheckclockSettingsHandler) GetCheckclockSettingsByEmployeeID(c *gin.Context) {
-	employeeID, err := strconv.ParseUint(c.Param("employee_id"), 10, 32)
-	if err != nil {
-		response.BadRequest(c, "Invalid employee ID parameter", nil)
-		return
-	}
-
-	setting, err := h.useCase.GetByEmployeeID(c.Request.Context(), uint(employeeID))
-	if err != nil {
-		response.NotFound(c, err.Error(), nil)
-		return
-	}
-
-	response.Success(c, 200, "Check clock setting retrieved successfully", setting)
-}
-
-func (h *CheckclockSettingsHandler) GetAllCheckclockSettings(c *gin.Context) {
-	// Define pagination parameters with defaults
-	page := 1
-	pageSize := 10
-
-	// Parse query parameters
-	if pageStr := c.Query("page"); pageStr != "" {
-		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
-			page = p
-		}
-	}
-	if pageSizeStr := c.Query("page_size"); pageSizeStr != "" {
-		if ps, err := strconv.Atoi(pageSizeStr); err == nil && ps > 0 {
-			pageSize = ps
-		}
-	}
-
-	settings, meta, err := h.useCase.GetAll(c.Request.Context(), page, pageSize)
 	if err != nil {
 		response.InternalServerError(c, err)
 		return
 	}
 
-	responseData := map[string]interface{}{
-		"data": settings,
-		"meta": meta,
+	response.Created(c, "Checkclock setting created successfully", createdSetting)
+}
+
+func (h *CheckclockSettingsHandler) GetCheckclockSettingsByID(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		response.BadRequest(c, "Invalid ID format", err)
+		return
 	}
 
-	response.Success(c, 200, "Check clock settings retrieved successfully", responseData)
+	setting, err := h.useCase.GetByID(c.Request.Context(), uint(id))
+	if err != nil {
+		response.NotFound(c, "Checkclock setting not found", err)
+		return
+	}
+
+	response.OK(c, "Successfully retrieved checkclock setting", setting)
+}
+
+func (h *CheckclockSettingsHandler) GetCheckclockSettingsByEmployeeID(c *gin.Context) {
+	employeeIDStr := c.Param("employee_id")
+	employeeID, err := strconv.ParseUint(employeeIDStr, 10, 32)
+	if err != nil {
+		response.BadRequest(c, "Invalid employee ID format", err)
+		return
+	}
+
+	setting, err := h.useCase.GetByEmployeeID(c.Request.Context(), uint(employeeID))
+	if err != nil {
+		response.NotFound(c, "Checkclock setting not found for employee", err)
+		return
+	}
+
+	response.OK(c, "Successfully retrieved checkclock setting", setting)
+}
+
+func (h *CheckclockSettingsHandler) GetAllCheckclockSettings(c *gin.Context) {
+	var queryDTO checkclocksettingsdto.ListCheckclockSettingsRequestQuery
+
+	if bindAndValidateQuery(c, &queryDTO) {
+		return
+	}
+
+	paginationParams := domain.PaginationParams{
+		Page:     queryDTO.Page,
+		PageSize: queryDTO.PageSize,
+	}
+
+	if paginationParams.Page == 0 {
+		paginationParams.Page = 1
+	}
+	if paginationParams.PageSize == 0 {
+		paginationParams.PageSize = 10
+	}
+
+	settingsData, err := h.useCase.GetAll(c.Request.Context(), paginationParams)
+	if err != nil {
+		response.InternalServerError(c, err)
+		return
+	}
+
+	response.OK(c, "Successfully retrieved checkclock settings", settingsData)
 }
 
 func (h *CheckclockSettingsHandler) UpdateCheckclockSettings(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
-		response.BadRequest(c, "Invalid ID parameter", nil)
+		response.BadRequest(c, "Invalid ID format", err)
 		return
 	}
 
@@ -115,32 +114,32 @@ func (h *CheckclockSettingsHandler) UpdateCheckclockSettings(c *gin.Context) {
 		return
 	}
 
-	updateData := &domain.CheckclockSettings{
+	updatedSetting, err := h.useCase.Update(c.Request.Context(), uint(id), &domain.CheckclockSettings{
 		EmployeeID:     req.EmployeeID,
 		WorkScheduleID: req.WorkScheduleID,
-	}
+	})
 
-	updatedSetting, err := h.useCase.Update(c.Request.Context(), uint(id), updateData)
 	if err != nil {
-		response.BadRequest(c, err.Error(), nil)
+		response.InternalServerError(c, err)
 		return
 	}
 
-	response.Success(c, 200, "Check clock setting updated successfully", updatedSetting)
+	response.OK(c, "Successfully updated checkclock setting", updatedSetting)
 }
 
 func (h *CheckclockSettingsHandler) DeleteCheckclockSettings(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
-		response.BadRequest(c, "Invalid ID parameter", nil)
+		response.BadRequest(c, "Invalid ID format", err)
 		return
 	}
 
 	err = h.useCase.Delete(c.Request.Context(), uint(id))
 	if err != nil {
-		response.BadRequest(c, err.Error(), nil)
+		response.InternalServerError(c, err)
 		return
 	}
 
-	response.Success(c, 200, "Check clock setting deleted successfully", nil)
+	response.OK(c, "Successfully deleted checkclock setting", nil)
 }

@@ -98,13 +98,11 @@ func (r *PostgresRepository) GetStatistics(ctx context.Context) (
 	if err != nil {
 		return 0, 0, 0, 0, 0, 0, 0, err
 	}
-
 	now := time.Now()
-	startOfMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
-	endOfMonth := startOfMonth.AddDate(0, 1, 0).Add(-time.Nanosecond)
+	thirtyDaysAgo := now.AddDate(0, 0, -30)
 
 	err = r.db.WithContext(ctx).Model(&domain.Employee{}).
-		Where("hire_date >= ? AND hire_date <= ?", startOfMonth, endOfMonth).
+		Where("hire_date >= ?", thirtyDaysAgo).
 		Count(&newEmployees).Error
 	if err != nil {
 		return 0, 0, 0, 0, 0, 0, 0, err

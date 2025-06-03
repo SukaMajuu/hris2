@@ -33,6 +33,7 @@ export function ReviewStep({ formData }: ReviewStepProps) {
         orientation='horizontal'
         className='mx-auto my-6 w-48 bg-slate-300 dark:bg-slate-700'
       />
+
       <div className='space-y-6'>
         {/* Personal Information Review */}
         <div>
@@ -42,6 +43,7 @@ export function ReviewStep({ formData }: ReviewStepProps) {
           <div className='grid grid-cols-1 gap-x-6 gap-y-3 text-sm md:grid-cols-2'>
             <ReviewItem label='First Name' value={formData.firstName} />
             <ReviewItem label='Last Name' value={formData.lastName} />
+            <ReviewItem label='Email' value={formData.email} />
             <ReviewItem label='NIK' value={formData.nik} />
             <ReviewItem label='Phone Number' value={formData.phoneNumber} />
             <ReviewItem label='Gender' value={formData.gender} />

@@ -11,15 +11,18 @@ import {
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import type { EmployeeFormData } from '../_hooks/useAddEmployeeForm';
+import { FieldErrors } from 'react-hook-form';
 
 interface PersonalInformationStepProps {
   formData: EmployeeFormData;
+  errors: FieldErrors<EmployeeFormData>;
   onInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onSelectChange: (name: string, value: string) => void;
 }
 
 export function PersonalInformationStep({
   formData,
+  errors,
   onInputChange,
   onSelectChange,
 }: PersonalInformationStepProps) {
@@ -39,7 +42,7 @@ export function PersonalInformationStep({
               htmlFor='firstName'
               className='mb-1 block text-sm font-medium text-slate-600 dark:text-slate-400'
             >
-              First Name
+              First Name *
             </label>
             <Input
               id='firstName'
@@ -47,8 +50,13 @@ export function PersonalInformationStep({
               value={formData.firstName}
               onChange={onInputChange}
               placeholder='Enter first name'
-              className='focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800'
+              className={`focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800 ${
+                errors.firstName ? 'border-red-500 focus:border-red-500' : ''
+              }`}
             />
+            {errors.firstName && (
+              <p className='mt-1 text-sm text-red-500'>{errors.firstName.message}</p>
+            )}
           </div>
           <div>
             <label
@@ -60,34 +68,63 @@ export function PersonalInformationStep({
             <Input
               id='lastName'
               name='lastName'
-              value={formData.lastName}
+              value={formData.lastName || ''}
               onChange={onInputChange}
               placeholder='Enter last name'
-              className='focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800'
+              className={`focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800 ${
+                errors.lastName ? 'border-red-500 focus:border-red-500' : ''
+              }`}
             />
+            {errors.lastName && (
+              <p className='mt-1 text-sm text-red-500'>{errors.lastName.message}</p>
+            )}
+          </div>
+          <div>
+            <label
+              htmlFor='email'
+              className='mb-1 block text-sm font-medium text-slate-600 dark:text-slate-400'
+            >
+              Email *
+            </label>
+            <Input
+              id='email'
+              name='email'
+              type='email'
+              value={formData.email}
+              onChange={onInputChange}
+              placeholder='Enter email address'
+              className={`focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800 ${
+                errors.email ? 'border-red-500 focus:border-red-500' : ''
+              }`}
+            />
+            {errors.email && <p className='mt-1 text-sm text-red-500'>{errors.email.message}</p>}
           </div>
           <div>
             <label
               htmlFor='nik'
               className='mb-1 block text-sm font-medium text-slate-600 dark:text-slate-400'
             >
-              NIK
+              NIK *
             </label>
             <Input
               id='nik'
               name='nik'
               value={formData.nik}
               onChange={onInputChange}
-              placeholder='Enter NIK'
-              className='focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800'
+              placeholder='Enter NIK (16 digits)'
+              maxLength={16}
+              className={`focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800 ${
+                errors.nik ? 'border-red-500 focus:border-red-500' : ''
+              }`}
             />
+            {errors.nik && <p className='mt-1 text-sm text-red-500'>{errors.nik.message}</p>}
           </div>
           <div>
             <label
               htmlFor='phoneNumber'
               className='mb-1 block text-sm font-medium text-slate-600 dark:text-slate-400'
             >
-              Phone Number
+              Phone Number *
             </label>
             <Input
               id='phoneNumber'
@@ -95,35 +132,43 @@ export function PersonalInformationStep({
               value={formData.phoneNumber}
               onChange={onInputChange}
               placeholder='Enter phone number'
-              className='focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800'
+              className={`focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800 ${
+                errors.phoneNumber ? 'border-red-500 focus:border-red-500' : ''
+              }`}
             />
+            {errors.phoneNumber && (
+              <p className='mt-1 text-sm text-red-500'>{errors.phoneNumber.message}</p>
+            )}
           </div>
           <div>
             <label
               htmlFor='gender'
               className='mb-1 block text-sm font-medium text-slate-600 dark:text-slate-400'
             >
-              Gender
+              Gender *
             </label>
             <Select value={formData.gender} onValueChange={(v) => onSelectChange('gender', v)}>
               <SelectTrigger
                 id='gender'
-                className='focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800'
+                className={`focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800 ${
+                  errors.gender ? 'border-red-500 focus:border-red-500' : ''
+                }`}
               >
                 <SelectValue placeholder='Choose gender' />
               </SelectTrigger>
               <SelectContent className='bg-white dark:bg-slate-800'>
-                <SelectItem value='male'>Male</SelectItem>
-                <SelectItem value='female'>Female</SelectItem>
+                <SelectItem value='Male'>Male</SelectItem>
+                <SelectItem value='Female'>Female</SelectItem>
               </SelectContent>
             </Select>
+            {errors.gender && <p className='mt-1 text-sm text-red-500'>{errors.gender.message}</p>}
           </div>
           <div>
             <label
               htmlFor='lastEducation'
               className='mb-1 block text-sm font-medium text-slate-600 dark:text-slate-400'
             >
-              Last Education
+              Last Education *
             </label>
             <Select
               value={formData.lastEducation}
@@ -131,7 +176,9 @@ export function PersonalInformationStep({
             >
               <SelectTrigger
                 id='lastEducation'
-                className='focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800'
+                className={`focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800 ${
+                  errors.lastEducation ? 'border-red-500 focus:border-red-500' : ''
+                }`}
               >
                 <SelectValue placeholder='Choose education' />
               </SelectTrigger>
@@ -148,13 +195,16 @@ export function PersonalInformationStep({
                 <SelectItem value='Other'>Other</SelectItem>
               </SelectContent>
             </Select>
+            {errors.lastEducation && (
+              <p className='mt-1 text-sm text-red-500'>{errors.lastEducation.message}</p>
+            )}
           </div>
           <div>
             <label
               htmlFor='placeOfBirth'
               className='mb-1 block text-sm font-medium text-slate-600 dark:text-slate-400'
             >
-              Place of Birth
+              Place of Birth *
             </label>
             <Input
               id='placeOfBirth'
@@ -162,15 +212,20 @@ export function PersonalInformationStep({
               value={formData.placeOfBirth}
               onChange={onInputChange}
               placeholder='Enter place of birth'
-              className='focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800'
+              className={`focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800 ${
+                errors.placeOfBirth ? 'border-red-500 focus:border-red-500' : ''
+              }`}
             />
+            {errors.placeOfBirth && (
+              <p className='mt-1 text-sm text-red-500'>{errors.placeOfBirth.message}</p>
+            )}
           </div>
           <div>
             <label
               htmlFor='dateOfBirth'
               className='mb-1 block text-sm font-medium text-slate-600 dark:text-slate-400'
             >
-              Date of Birth
+              Date of Birth *
             </label>
             <Input
               id='dateOfBirth'
@@ -178,8 +233,13 @@ export function PersonalInformationStep({
               type='date'
               value={formData.dateOfBirth}
               onChange={onInputChange}
-              className='focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800'
+              className={`focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800 ${
+                errors.dateOfBirth ? 'border-red-500 focus:border-red-500' : ''
+              }`}
             />
+            {errors.dateOfBirth && (
+              <p className='mt-1 text-sm text-red-500'>{errors.dateOfBirth.message}</p>
+            )}
           </div>
         </div>
       </form>

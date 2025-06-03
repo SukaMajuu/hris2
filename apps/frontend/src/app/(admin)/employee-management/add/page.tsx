@@ -15,6 +15,8 @@ export default function AddEmployeePage() {
     activeStep,
     formData,
     steps,
+    errors,
+    isSubmitting,
     profilePhotoInputRef,
     handleInputChange,
     handleSelectChange,
@@ -23,6 +25,7 @@ export default function AddEmployeePage() {
     handleRemovePhoto,
     handleSubmit,
     goToStep,
+    isStepValid,
   } = useAddEmployeeForm();
 
   const renderStepContent = () => {
@@ -31,6 +34,7 @@ export default function AddEmployeePage() {
         return (
           <PersonalInformationStep
             formData={formData}
+            errors={errors}
             onInputChange={handleInputChange}
             onSelectChange={handleSelectChange}
           />
@@ -39,6 +43,7 @@ export default function AddEmployeePage() {
         return (
           <EmployeeInformationStep
             formData={formData}
+            errors={errors}
             onInputChange={handleInputChange}
             onSelectChange={handleSelectChange}
             onRemovePhoto={handleRemovePhoto}
@@ -46,7 +51,13 @@ export default function AddEmployeePage() {
           />
         );
       case 3:
-        return <BankInformationStep formData={formData} onInputChange={handleInputChange} />;
+        return (
+          <BankInformationStep
+            formData={formData}
+            errors={errors}
+            onInputChange={handleInputChange}
+          />
+        );
       case 4:
         return <ReviewStep formData={formData} />;
       default:
@@ -66,13 +77,19 @@ export default function AddEmployeePage() {
         </div>
 
         <div className='p-6 sm:p-8'>
-          <StepNavigator steps={steps} activeStep={activeStep} onStepClick={goToStep} />
+          <StepNavigator
+            steps={steps}
+            activeStep={activeStep}
+            onStepClick={goToStep}
+            isStepValid={isStepValid}
+          />
 
           <div className='mt-8'>{renderStepContent()}</div>
 
           <FormNavigation
             activeStep={activeStep}
             totalSteps={steps.length}
+            isSubmitting={isSubmitting}
             onBack={handleBackStep}
             onNext={handleNextStep}
             onSubmit={handleSubmit}

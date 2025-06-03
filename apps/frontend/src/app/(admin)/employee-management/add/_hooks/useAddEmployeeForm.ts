@@ -1,86 +1,152 @@
 'use client';
 
 import { useState, useRef } from 'react';
-
-export interface EmployeeFormData {
-  firstName: string;
-  lastName: string;
-  nik: string;
-  phoneNumber: string;
-  gender: string;
-  lastEducation: string;
-  placeOfBirth: string;
-  dateOfBirth: string;
-  employeeId: string;
-  branch: string;
-  position: string;
-  grade: string;
-  profilePhoto: File | null;
-  profilePhotoPreview: string | null;
-  bankName: string;
-  bankAccountHolder: string;
-  bankAccountNumber: string;
-  zzz: string;
-}
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { useRouter } from 'next/navigation';
+import {
+  employeeFormSchema,
+  type EmployeeFormData,
+  personalInfoSchema,
+  employeeInfoSchema,
+  bankInfoSchema,
+} from '@/schemas/employee.schema';
+import { useCreateEmployee } from '@/api/mutations/employee.mutations';
+import { useToast } from '@/components/ui/use-toast';
+import { useGetMyBranches } from '@/api/queries/branch.queries';
+import { useGetMyPositions } from '@/api/queries/position.queries';
 
 const initialFormData: EmployeeFormData = {
   firstName: '',
   lastName: '',
+  email: '',
   nik: '',
   phoneNumber: '',
-  gender: '',
-  lastEducation: '',
+  gender: 'Male',
+  lastEducation: 'SMA/SMK',
   placeOfBirth: '',
   dateOfBirth: '',
   employeeId: '',
   branch: '',
   position: '',
   grade: '',
-  profilePhoto: null,
+  profilePhoto: undefined,
   profilePhotoPreview: null,
   bankName: '',
   bankAccountHolder: '',
   bankAccountNumber: '',
-  zzz: '',
 };
 
 export function useAddEmployeeForm() {
   const [activeStep, setActiveStep] = useState(1);
-  const [formData, setFormData] = useState<EmployeeFormData>(initialFormData);
   const profilePhotoInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const createEmployeeMutation = useCreateEmployee();
+  const { data: branches = [] } = useGetMyBranches();
+  const { data: positions = [] } = useGetMyPositions();
+
+  const form = useForm<EmployeeFormData>({
+    resolver: zodResolver(employeeFormSchema),
+    defaultValues: initialFormData,
+    mode: 'onChange',
+  });
+
+  const {
+    formState: { errors },
+    watch,
+    setValue,
+    getValues,
+  } = form;
+  const formData = watch();
 
   const steps = [
-    { label: 'Personal Information' },
-    { label: 'Employee Information' },
-    { label: 'Bank Information' },
-    { label: 'Review & Submit' },
+    { label: 'Personal Information', schema: personalInfoSchema },
+    { label: 'Employee Information', schema: employeeInfoSchema },
+    { label: 'Bank Information', schema: bankInfoSchema },
+    { label: 'Review & Submit', schema: employeeFormSchema },
   ];
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, files } = e.target;
+
     if (type === 'file') {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: files && files[0] ? files[0] : null,
-        [`${name}Preview`]: files && files[0] ? URL.createObjectURL(files[0]) : null,
-      }));
-      if (name === 'profilePhoto' && (!files || !files[0])) {
-        if (profilePhotoInputRef.current) profilePhotoInputRef.current.value = '';
+      const file = files?.[0];
+      setValue(name as keyof EmployeeFormData, file as File);
+
+      if (name === 'profilePhoto') {
+        if (file) {
+          const previewUrl = URL.createObjectURL(file);
+          setValue('profilePhotoPreview', previewUrl);
+        } else {
+          setValue('profilePhotoPreview', null);
+          if (profilePhotoInputRef.current) {
+            profilePhotoInputRef.current.value = '';
+          }
+        }
       }
     } else {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
+      setValue(name as keyof EmployeeFormData, value);
     }
   };
 
   const handleSelectChange = (name: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setValue(name as keyof EmployeeFormData, value);
   };
 
-  const handleNextStep = () => {
+  const validateCurrentStep = async () => {
+    const currentStepSchema = steps[activeStep - 1]?.schema;
+    if (!currentStepSchema) return false;
+
+    const currentData = getValues();
+    console.log('Validating step', activeStep, 'with data:', currentData);
+
+    try {
+      currentStepSchema.parse(currentData);
+      console.log('Step validation successful');
+      return true;
+    } catch (error) {
+      console.log('Step validation failed:', error);
+      // Don't show toast, let the inline errors handle it
+      return false;
+    }
+  };
+
+  const handleNextStep = async () => {
+    console.log('HandleNextStep called for step:', activeStep);
+
+    // Define fields for each step
+    const stepFields = {
+      1: [
+        'firstName',
+        'email',
+        'nik',
+        'phoneNumber',
+        'gender',
+        'lastEducation',
+        'placeOfBirth',
+        'dateOfBirth',
+      ] as const,
+      2: ['employeeId', 'branch', 'position'] as const,
+      3: ['bankName', 'bankAccountHolder', 'bankAccountNumber'] as const,
+      4: [] as const, // Review step has no validation
+    };
+
+    const currentStepFields = stepFields[activeStep as keyof typeof stepFields];
+
+    if (currentStepFields) {
+      // Validate only current step fields
+      const isValid = await form.trigger(currentStepFields);
+
+      if (!isValid) {
+        console.log('Current step validation failed');
+        return;
+      }
+    }
+
     if (activeStep < steps.length) {
+      console.log('Moving to next step:', activeStep + 1);
       setActiveStep((prev) => prev + 1);
     }
   };
@@ -92,22 +158,102 @@ export function useAddEmployeeForm() {
   };
 
   const handleRemovePhoto = () => {
-    setFormData((prev) => ({
-      ...prev,
-      profilePhoto: null,
-      profilePhotoPreview: null,
-    }));
-    if (profilePhotoInputRef.current) profilePhotoInputRef.current.value = '';
+    setValue('profilePhoto', undefined);
+    setValue('profilePhotoPreview', null);
+    if (profilePhotoInputRef.current) {
+      profilePhotoInputRef.current.value = '';
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('Form Submitted:', formData);
-    alert('Employee data submitted! (Check console for data)');
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+
+    try {
+      // Validate entire form
+      const validData = employeeFormSchema.parse(getValues());
+
+      // Find branch and position IDs
+      const selectedBranch = branches.find((b) => b.id.toString() === validData.branch);
+      const selectedPosition = positions.find((p) => p.id.toString() === validData.position);
+
+      if (!selectedBranch) {
+        toast({
+          title: 'Error',
+          description: 'Selected branch not found',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (!selectedPosition) {
+        toast({
+          title: 'Error',
+          description: 'Selected position not found',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Prepare data for API
+      const createData = {
+        email: validData.email,
+        phone: validData.phoneNumber,
+        first_name: validData.firstName,
+        last_name: validData.lastName || undefined,
+        position_id: selectedPosition.id,
+        employee_code: validData.employeeId,
+        branch_id: selectedBranch.id,
+        gender: validData.gender,
+        nik: validData.nik,
+        place_of_birth: validData.placeOfBirth,
+        date_of_birth: validData.dateOfBirth,
+        last_education: validData.lastEducation,
+        grade: validData.grade || undefined,
+        bank_name: validData.bankName,
+        bank_account_number: validData.bankAccountNumber,
+        bank_account_holder_name: validData.bankAccountHolder,
+        photo_file: validData.profilePhoto,
+      };
+
+      console.log('Submitting employee data:', createData);
+
+      await createEmployeeMutation.mutateAsync(createData);
+
+      toast({
+        title: 'Success',
+        description: 'Employee created successfully!',
+      });
+
+      // Redirect to employee list
+      router.push('/employee-management');
+    } catch (error) {
+      console.error('Form submission error:', error);
+
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to create employee. Please try again.';
+
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+    }
   };
 
   const goToStep = (stepNumber: number) => {
     setActiveStep(stepNumber);
+  };
+
+  const isStepValid = (stepIndex: number) => {
+    const stepSchema = steps[stepIndex]?.schema;
+    if (!stepSchema) return false;
+
+    try {
+      stepSchema.parse(getValues());
+      return true;
+    } catch {
+      return false;
+    }
   };
 
   return {
@@ -115,6 +261,8 @@ export function useAddEmployeeForm() {
     formData,
     steps,
     profilePhotoInputRef,
+    errors,
+    isSubmitting: createEmployeeMutation.isPending,
     handleInputChange,
     handleSelectChange,
     handleNextStep,
@@ -122,5 +270,10 @@ export function useAddEmployeeForm() {
     handleRemovePhoto,
     handleSubmit,
     goToStep,
+    isStepValid,
+    validateCurrentStep,
+    form,
   };
 }
+
+export type { EmployeeFormData };

@@ -18,9 +18,11 @@ import { useGetMyBranches } from '@/api/queries/branch.queries';
 import { useGetMyPositions } from '@/api/queries/position.queries';
 import { BranchManageDialog } from './BranchManageDialog';
 import { PositionManageDialog } from './PositionManageDialog';
+import { FieldErrors } from 'react-hook-form';
 
 interface EmployeeInformationStepProps {
   formData: EmployeeFormData;
+  errors: FieldErrors<EmployeeFormData>;
   onInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onSelectChange: (name: string, value: string) => void;
   onRemovePhoto: () => void;
@@ -29,6 +31,7 @@ interface EmployeeInformationStepProps {
 
 export function EmployeeInformationStep({
   formData,
+  errors,
   onInputChange,
   onSelectChange,
   onRemovePhoto,
@@ -99,7 +102,7 @@ export function EmployeeInformationStep({
               htmlFor='employeeId'
               className='mb-1 block text-sm font-medium text-slate-600 dark:text-slate-400'
             >
-              Employee ID
+              Employee ID *
             </label>
             <Input
               id='employeeId'
@@ -107,8 +110,13 @@ export function EmployeeInformationStep({
               value={formData.employeeId}
               onChange={onInputChange}
               placeholder='Enter employee ID'
-              className='focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800'
+              className={`focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800 ${
+                errors.employeeId ? 'border-red-500 focus:border-red-500' : ''
+              }`}
             />
+            {errors.employeeId && (
+              <p className='mt-1 text-sm text-red-500'>{errors.employeeId.message}</p>
+            )}
           </div>
           <div>
             <div className='mb-1 flex items-center justify-between'>
@@ -116,7 +124,7 @@ export function EmployeeInformationStep({
                 htmlFor='branch'
                 className='block text-sm font-medium text-slate-600 dark:text-slate-400'
               >
-                Branch
+                Branch *
               </label>
               <Button
                 type='button'
@@ -134,7 +142,11 @@ export function EmployeeInformationStep({
               onValueChange={(value) => onSelectChange('branch', value)}
               disabled={branchesLoading}
             >
-              <SelectTrigger className='focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800'>
+              <SelectTrigger
+                className={`focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800 ${
+                  errors.branch ? 'border-red-500 focus:border-red-500' : ''
+                }`}
+              >
                 <SelectValue
                   placeholder={branchesLoading ? 'Loading branches...' : 'Select branch'}
                 />
@@ -161,6 +173,7 @@ export function EmployeeInformationStep({
                 )}
               </SelectContent>
             </Select>
+            {errors.branch && <p className='mt-1 text-sm text-red-500'>{errors.branch.message}</p>}
           </div>
           <div>
             <div className='mb-1 flex items-center justify-between'>
@@ -168,7 +181,7 @@ export function EmployeeInformationStep({
                 htmlFor='position'
                 className='block text-sm font-medium text-slate-600 dark:text-slate-400'
               >
-                Position
+                Position *
               </label>
               <Button
                 type='button'
@@ -186,7 +199,11 @@ export function EmployeeInformationStep({
               onValueChange={(value) => onSelectChange('position', value)}
               disabled={positionsLoading}
             >
-              <SelectTrigger className='focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800'>
+              <SelectTrigger
+                className={`focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800 ${
+                  errors.position ? 'border-red-500 focus:border-red-500' : ''
+                }`}
+              >
                 <SelectValue
                   placeholder={positionsLoading ? 'Loading positions...' : 'Select position'}
                 />
@@ -213,6 +230,9 @@ export function EmployeeInformationStep({
                 )}
               </SelectContent>
             </Select>
+            {errors.position && (
+              <p className='mt-1 text-sm text-red-500'>{errors.position.message}</p>
+            )}
           </div>
           <div>
             <label
@@ -227,8 +247,11 @@ export function EmployeeInformationStep({
               value={formData.grade}
               onChange={onInputChange}
               placeholder='Enter grade'
-              className='focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800'
+              className={`focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800 ${
+                errors.grade ? 'border-red-500 focus:border-red-500' : ''
+              }`}
             />
+            {errors.grade && <p className='mt-1 text-sm text-red-500'>{errors.grade.message}</p>}
           </div>
         </div>
       </form>

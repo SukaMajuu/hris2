@@ -4,13 +4,15 @@ import React from 'react';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import type { EmployeeFormData } from '../_hooks/useAddEmployeeForm';
+import { FieldErrors } from 'react-hook-form';
 
 interface BankInformationStepProps {
   formData: EmployeeFormData;
+  errors: FieldErrors<EmployeeFormData>;
   onInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
-export function BankInformationStep({ formData, onInputChange }: BankInformationStepProps) {
+export function BankInformationStep({ formData, errors, onInputChange }: BankInformationStepProps) {
   return (
     <>
       <h2 className='text-center text-xl font-semibold text-slate-800 dark:text-slate-100'>
@@ -27,7 +29,7 @@ export function BankInformationStep({ formData, onInputChange }: BankInformation
               htmlFor='bankName'
               className='mb-1 block text-sm font-medium text-slate-600 dark:text-slate-400'
             >
-              Bank Name
+              Bank Name *
             </label>
             <Input
               id='bankName'
@@ -35,15 +37,20 @@ export function BankInformationStep({ formData, onInputChange }: BankInformation
               value={formData.bankName}
               onChange={onInputChange}
               placeholder='Enter bank name'
-              className='focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800'
+              className={`focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800 ${
+                errors.bankName ? 'border-red-500 focus:border-red-500' : ''
+              }`}
             />
+            {errors.bankName && (
+              <p className='mt-1 text-sm text-red-500'>{errors.bankName.message}</p>
+            )}
           </div>
           <div>
             <label
               htmlFor='bankAccountHolder'
               className='mb-1 block text-sm font-medium text-slate-600 dark:text-slate-400'
             >
-              Account Holder Name
+              Account Holder Name *
             </label>
             <Input
               id='bankAccountHolder'
@@ -51,15 +58,20 @@ export function BankInformationStep({ formData, onInputChange }: BankInformation
               value={formData.bankAccountHolder}
               onChange={onInputChange}
               placeholder='Enter account holder name'
-              className='focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800'
+              className={`focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800 ${
+                errors.bankAccountHolder ? 'border-red-500 focus:border-red-500' : ''
+              }`}
             />
+            {errors.bankAccountHolder && (
+              <p className='mt-1 text-sm text-red-500'>{errors.bankAccountHolder.message}</p>
+            )}
           </div>
           <div className='md:col-span-2'>
             <label
               htmlFor='bankAccountNumber'
               className='mb-1 block text-sm font-medium text-slate-600 dark:text-slate-400'
             >
-              Account Number
+              Account Number *
             </label>
             <Input
               id='bankAccountNumber'
@@ -67,8 +79,13 @@ export function BankInformationStep({ formData, onInputChange }: BankInformation
               value={formData.bankAccountNumber}
               onChange={onInputChange}
               placeholder='Enter account number'
-              className='focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800'
+              className={`focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800 ${
+                errors.bankAccountNumber ? 'border-red-500 focus:border-red-500' : ''
+              }`}
             />
+            {errors.bankAccountNumber && (
+              <p className='mt-1 text-sm text-red-500'>{errors.bankAccountNumber.message}</p>
+            )}
           </div>
         </div>
       </form>

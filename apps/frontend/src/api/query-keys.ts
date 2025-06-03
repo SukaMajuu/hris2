@@ -51,14 +51,21 @@ export const queryKeys = {
     reject: (id: number) => ["checkClockEmployees", "reject", id] as const,
   },
   checkClock: {
-    overviewList: (filters?: CheckClockOverviewFilters) => ["checkClock", "overview", "list", filters] as const,
-    detail: (id: number | string) => ["checkClock", "detail", id] as const,
-    create: ["checkClock", "create"] as const,
-    update: (id: number | string) => ["checkClock", "update", id] as const,
-    delete: (id: number | string) => ["checkClock", "delete", id] as const,
-    approvalList: (filters?: CheckClockApprovalFilters) => ["checkClock", "approval", "list", filters] as const,
-    approveReject: (id: number | string) => ["checkClock", "approveReject", id] as const,
-    employeeCheckClocks: (employeeId: string, filters?: CheckClockEmployeeFilters) => ["checkClock", "employee", employeeId, "list", filters] as const,
+    overviewList: (filters?: CheckClockOverviewFilters) =>
+      ['checkClock', 'overview', 'list', filters] as const,
+    detail: (id: number | string) => ['checkClock', 'detail', id] as const,
+    create: ['checkClock', 'create'] as const,
+    update: (id: number | string) => ['checkClock', 'update', id] as const,
+    delete: (id: number | string) => ['checkClock', 'delete', id] as const,
+    approvalList: (filters?: CheckClockApprovalFilters) =>
+      ['checkClock', 'approval', 'list', filters] as const,
+    approveReject: (id: number | string) => ['checkClock', 'approveReject', id] as const,
+    employeeCheckClocks: (employeeId: string, filters?: CheckClockEmployeeFilters) =>
+      ['checkClock', 'employee', employeeId, 'list', filters] as const,
+  },
+  documents: {
+    byEmployee: (employeeId: number) => ['documents', 'employee', employeeId] as const,
+    upload: ['documents', 'upload'] as const,
+    delete: (id: number) => ['documents', 'delete', id] as const,
   },
 } as const;
-

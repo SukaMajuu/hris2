@@ -173,3 +173,57 @@ func (uc *DocumentUseCase) getContentTypeFromExtension(filename string) string {
 		return mimeTypeOctet
 	}
 }
+
+func (uc *DocumentUseCase) UploadDocumentForEmployee(ctx context.Context, employeeID uint, file *multipart.FileHeader) (*domain.Document, error) {
+	employee, err := uc.employeeRepo.GetByID(ctx, employeeID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get employee: %w", err)
+	}
+
+	fileName := uc.generateFileName(employee, file.Filename)
+
+	src, err := file.Open()
+	if err != nil {
+		return nil, fmt.Errorf("failed to open uploaded file: %w", err)
+	}
+	defer func() {
+		if closeErr := src.Close(); closeErr != nil {
+			fmt.Printf("Warning: failed to close file: %v", closeErr)
+		}
+	}()
+
+	if uc.supabaseClient == nil || uc.supabaseClient.Storage == nil {
+		return nil, fmt.Errorf("storage client not available")
+	}
+
+	_, err = uc.supabaseClient.Storage.UploadFile(bucketName, fileName, src, storage.FileOptions{
+		ContentType: &[]string{uc.getContentTypeFromExtension(file.Filename)}[0],
+		Upsert:      &[]bool{true}[0],
+	})
+	if err != nil {
+		fmt.Printf("UseCase: Upload failed with error: %v\n", err)
+		return nil, fmt.Errorf("failed to upload file to storage: %w", err)
+	}
+
+	fmt.Printf("UseCase: Upload successful!\n")
+
+	publicURL := uc.supabaseClient.Storage.GetPublicUrl(bucketName, fileName)
+
+	document := &domain.Document{
+		EmployeeID: employee.ID,
+		Name:       fileName,
+		URL:        publicURL.SignedURL,
+	}
+
+	err = uc.documentRepo.Create(ctx, document)
+	if err != nil {
+		if uc.supabaseClient != nil && uc.supabaseClient.Storage != nil {
+			if _, removeErr := uc.supabaseClient.Storage.RemoveFile(bucketName, []string{fileName}); removeErr != nil {
+				fmt.Printf("Warning: failed to cleanup uploaded file: %v", removeErr)
+			}
+		}
+		return nil, fmt.Errorf("failed to create document record: %w", err)
+	}
+
+	return document, nil
+}

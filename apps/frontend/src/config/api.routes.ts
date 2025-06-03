@@ -67,6 +67,12 @@ export const API_ROUTES = {
 				approveReject: (id: number | string) => `/api/check-clock/approval/${id}`, // Standardized path
 				employeeRecords: (employeeId: string) => `/api/employees/${employeeId}/check-clock` // Standardized path
 			},
+      documents: {
+        base: '/api/documents',
+        upload: '/api/documents/upload',
+        list: '/api/documents',
+        delete: (id: number) => `/api/documents/${id}`,
+      },
 			// Add other API routes as they are implemented
 			// employees: {
 			//   base: '/api/employees',

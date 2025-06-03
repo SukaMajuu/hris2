@@ -68,14 +68,6 @@ func (r *PostgresRepository) List(ctx context.Context, filters map[string]interf
 			query = query.Where("manager_id = ?", value)
 		case "employment_status":
 			query = query.Where("employment_status = ?", value)
-		case "status":
-			if statusStr, ok := value.(string); ok {
-				if statusStr == "active" {
-					query = query.Where("employment_status = ?", true)
-				} else if statusStr == "inactive" {
-					query = query.Where("employment_status = ?", false)
-				}
-			}
 		default:
 			query = query.Where(key+" = ?", value)
 		}

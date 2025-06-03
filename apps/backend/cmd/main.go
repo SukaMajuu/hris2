@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -39,6 +38,33 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
+// isValidCertPath validates that the file path is within allowed certificate directories
+func isValidCertPath(filePath string, allowedPaths []string) bool {
+	absPath, err := filepath.Abs(filePath)
+	if err != nil {
+		return false
+	}
+	
+	// Clean the path to prevent directory traversal
+	cleanPath := filepath.Clean(absPath)
+	
+	// Check if the path is within one of the allowed directories
+	for _, allowedPath := range allowedPaths {
+		absAllowedPath, err := filepath.Abs(allowedPath)
+		if err != nil {
+			continue
+		}
+		cleanAllowedPath := filepath.Clean(absAllowedPath)
+		
+		// Check if the file path starts with the allowed path
+		if strings.HasPrefix(cleanPath, cleanAllowedPath) {
+			return true
+		}
+	}
+	
+	return false
+}
+
 func loadAzureCertificates(certPool *x509.CertPool) {
 	// Common Azure Web App certificate paths
 	azureCertPaths := []string{
@@ -58,16 +84,18 @@ func loadAzureCertificates(certPool *x509.CertPool) {
 			err := filepath.Walk(certPath, func(path string, info os.FileInfo, err error) error {
 				if err != nil {
 					return nil // Continue walking
-				}
-
-				// Look for certificate files
+				}				// Look for certificate files
 				if strings.HasSuffix(strings.ToLower(info.Name()), ".crt") ||
 					strings.HasSuffix(strings.ToLower(info.Name()), ".cer") ||
-					strings.HasSuffix(strings.ToLower(info.Name()), ".pem") {
+					strings.HasSuffix(strings.ToLower(info.Name()), ".pem") {					// Validate that the path is within allowed certificate directories
+					if !isValidCertPath(path, azureCertPaths) {
+						log.Printf("Skipping certificate file outside allowed paths: %s", path)
+						return nil
+					}
 
 					log.Printf("Found certificate file: %s", path)
 
-					certData, err := ioutil.ReadFile(path)
+					certData, err := os.ReadFile(path) // #nosec G304 - path is validated above
 					if err != nil {
 						log.Printf("Failed to read certificate %s: %v", path, err)
 						return nil
@@ -111,7 +139,7 @@ func setupTLSConfiguration() {
 		systemRoots = x509.NewCertPool()
 	}
 
-	log.Printf("Initial system cert pool contains %d certificates", len(systemRoots.Subjects()))
+	log.Printf("System cert pool loaded successfully")
 
 	// Check if we're running on Azure Web App
 	websiteCerts := os.Getenv("WEBSITE_LOAD_CERTIFICATES")
@@ -122,10 +150,14 @@ func setupTLSConfiguration() {
 		loadAzureCertificates(systemRoots)
 
 		// Set additional environment variables that might help
-		os.Setenv("SSL_CERT_DIR", "/var/ssl/certs")
-		os.Setenv("SSL_CERT_FILE", "")
+		if err := os.Setenv("SSL_CERT_DIR", "/var/ssl/certs"); err != nil {
+			log.Printf("Warning: Failed to set SSL_CERT_DIR environment variable: %v", err)
+		}
+		if err := os.Setenv("SSL_CERT_FILE", ""); err != nil {
+			log.Printf("Warning: Failed to set SSL_CERT_FILE environment variable: %v", err)
+		}
 
-		log.Printf("After Azure cert loading, cert pool contains %d certificates", len(systemRoots.Subjects()))
+		log.Printf("Azure certificate loading completed")
 		log.Printf("System certificates will be used for TLS verification")
 
 		// For debugging: List some environment variables
@@ -180,7 +212,11 @@ func testTLSConnection(url string) {
 		log.Printf("TLS test failed: %v", err)
 		return
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("Warning: Failed to close response body: %v", err)
+		}
+	}()
 
 	log.Printf("TLS test successful. Status: %s", resp.Status)
 }

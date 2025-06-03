@@ -6,6 +6,10 @@ import (
 	"github.com/joho/godotenv"
 )
 
+const (
+	trueValue = "true"
+)
+
 type Config struct {
 	Database DatabaseConfig
 	Supabase SupabaseConfig
@@ -90,10 +94,9 @@ func Load() (*Config, error) {
 			BaseURL:     getEnv("XENDIT_BASE_URL", "https://api.xendit.co"),
 			Environment: getEnv("XENDIT_ENVIRONMENT", "test"),
 			WebhookURL:  getEnv("XENDIT_WEBHOOK_URL", ""),
-		},
-		TLS: TLSConfig{
-			SkipVerify: getEnv("SKIP_TLS_VERIFY", "") == "true",
-			Debug:      getEnv("TLS_DEBUG", "") == "true",
+		},		TLS: TLSConfig{
+			SkipVerify: getEnv("SKIP_TLS_VERIFY", "") == trueValue,
+			Debug:      getEnv("TLS_DEBUG", "") == trueValue,
 		},
 	}, nil
 }

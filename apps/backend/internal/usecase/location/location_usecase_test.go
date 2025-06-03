@@ -36,7 +36,7 @@ func TestLocationUseCase_List(t *testing.T) {
 		Radius:        float64(mockDomainLoc.RadiusM),
 	}
 
-	expectedSuccessResponseData := &domain.LocationListResponseData{
+	expectedSuccessResponseData := &dtolocation.LocationListResponseData{
 		Items: []*dtolocation.LocationResponseDTO{expectedLocationDTO},
 		Pagination: domain.Pagination{
 			TotalItems:  mockTotalItems,
@@ -55,7 +55,7 @@ func TestLocationUseCase_List(t *testing.T) {
 		mockRepoLocations  []*domain.Location
 		mockRepoTotalItems int64
 		mockRepoError      error
-		expectedResponse   *domain.LocationListResponseData
+		expectedResponse   *dtolocation.LocationListResponseData
 		expectedErrorMsg   string
 		checkErrorIs       error
 	}{
@@ -81,7 +81,7 @@ func TestLocationUseCase_List(t *testing.T) {
 			mockRepoLocations:  []*domain.Location{},
 			mockRepoTotalItems: 0,
 			mockRepoError:      nil,
-			expectedResponse: &domain.LocationListResponseData{
+			expectedResponse: &dtolocation.LocationListResponseData{
 				Items: []*dtolocation.LocationResponseDTO{},
 				Pagination: domain.Pagination{
 					TotalItems:  0,

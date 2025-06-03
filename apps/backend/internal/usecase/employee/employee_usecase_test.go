@@ -48,7 +48,7 @@ func TestEmployeeUseCase_List(t *testing.T) {
 		expectedEmployeeDTO.BranchName = &mockDomainEmp.Branch.Name
 	}
 
-	expectedSuccessResponseData := &domain.EmployeeListResponseData{
+	expectedSuccessResponseData := &dtoemployee.EmployeeListResponseData{
 		Items: []*dtoemployee.EmployeeResponseDTO{expectedEmployeeDTO},
 		Pagination: domain.Pagination{
 			TotalItems:  mockTotalItems,
@@ -67,7 +67,7 @@ func TestEmployeeUseCase_List(t *testing.T) {
 		mockRepoEmployees  []*domain.Employee
 		mockRepoTotalItems int64
 		mockRepoError      error
-		expectedResponse   *domain.EmployeeListResponseData
+		expectedResponse   *dtoemployee.EmployeeListResponseData
 		expectedErrorMsg   string
 		checkErrorIs       error
 		checkErrorContains string
@@ -94,7 +94,7 @@ func TestEmployeeUseCase_List(t *testing.T) {
 			mockRepoEmployees:  []*domain.Employee{},
 			mockRepoTotalItems: 0,
 			mockRepoError:      nil,
-			expectedResponse: &domain.EmployeeListResponseData{
+			expectedResponse: &dtoemployee.EmployeeListResponseData{
 				Items: []*dtoemployee.EmployeeResponseDTO{},
 				Pagination: domain.Pagination{
 					TotalItems:  0,

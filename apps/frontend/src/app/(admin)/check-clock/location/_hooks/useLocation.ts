@@ -8,7 +8,6 @@ import {
 import { toast } from "sonner";
 import { CreateLocationRequest, UpdateLocationRequest } from "@/types/location";
 import { Location } from "@/types/location";
-import { calculatePaginationResult, PaginationResult } from "@/lib/pagination";
 
 export const useLocation = (page = 1, pageSize = 10) => {
 	// State management
@@ -26,27 +25,21 @@ export const useLocation = (page = 1, pageSize = 10) => {
 	const updateMutation = useUpdateLocation();
 	const deleteMutation = useDeleteLocation();
 
-	// Transform server pagination data using utility function
-	const paginationResult: PaginationResult<Location> = locationsQuery.data
-		?.data
-		? calculatePaginationResult<Location>(
-				locationsQuery.data.data.pagination,
-				"items"
-		  )
-		: {
-				totalItems: 0,
-				totalPages: 0,
-				currentPage: 1,
-				pageSize: 10,
-				hasNextPage: false,
-				hasPrevPage: false,
-				items: [],
-		  };
+	// Extract data from server response
+	const locationData = locationsQuery.data?.data;
+	const locations = locationData?.items || [];
 
-	// Override items with actual location data
-	if (locationsQuery.data?.data?.items) {
-		paginationResult.items = locationsQuery.data.data.items;
-	}
+	// Create pagination result from server response
+	const paginationInfo = locationData?.pagination;
+	const pagination = {
+		totalItems: paginationInfo?.total_items || 0,
+		totalPages: paginationInfo?.total_pages || 0,
+		currentPage: paginationInfo?.current_page || 1,
+		pageSize: paginationInfo?.page_size || 10,
+		hasNextPage: paginationInfo?.has_next_page || false,
+		hasPrevPage: paginationInfo?.has_prev_page || false,
+		items: locations,
+	};
 
 	// Form handlers
 	const handleChange = useCallback(
@@ -145,8 +138,8 @@ export const useLocation = (page = 1, pageSize = 10) => {
 
 	return {
 		// Data with normalized pagination
-		locations: paginationResult.items,
-		pagination: paginationResult,
+		locations,
+		pagination,
 		isLoading: locationsQuery.isLoading,
 		isError: locationsQuery.isError,
 		error: locationsQuery.error,

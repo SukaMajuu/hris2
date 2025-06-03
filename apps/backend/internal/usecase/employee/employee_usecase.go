@@ -46,7 +46,7 @@ func NewEmployeeUseCase(
 	}
 }
 
-func (uc *EmployeeUseCase) List(ctx context.Context, filters map[string]interface{}, paginationParams domain.PaginationParams) (*domain.EmployeeListResponseData, error) {
+func (uc *EmployeeUseCase) List(ctx context.Context, filters map[string]interface{}, paginationParams domain.PaginationParams) (*dtoemployee.EmployeeListResponseData, error) {
 	domainEmployees, totalItems, err := uc.employeeRepo.List(ctx, filters, paginationParams)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list employees from repository: %w", err)
@@ -128,7 +128,7 @@ func (uc *EmployeeUseCase) List(ctx context.Context, filters map[string]interfac
 		totalPages = 0
 	}
 
-	response := &domain.EmployeeListResponseData{
+	response := &dtoemployee.EmployeeListResponseData{
 		Items: employeeDTOs,
 		Pagination: domain.Pagination{
 			TotalItems:  totalItems,

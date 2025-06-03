@@ -1,7 +1,11 @@
 package main
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"log"
+	"net/http"
+	"os"
 
 	"github.com/SukaMajuu/hris/apps/backend/internal/repository/auth"
 	"github.com/SukaMajuu/hris/apps/backend/internal/repository/checkclock_settings"
@@ -27,7 +31,37 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
+func setupTLSConfiguration() {
+	systemRoots, err := x509.SystemCertPool()
+	if err != nil {
+		log.Printf("Warning: Failed to load system cert pool: %v", err)
+		systemRoots = x509.NewCertPool()
+	}
+
+	if websiteCerts := os.Getenv("WEBSITE_LOAD_CERTIFICATES"); websiteCerts != "" {
+		log.Printf("Azure Web App detected with WEBSITE_LOAD_CERTIFICATES: %s", websiteCerts)
+		log.Printf("System certificates will be used for TLS verification")
+	}
+
+	tlsConfig := &tls.Config{
+		RootCAs:            systemRoots,
+		InsecureSkipVerify: false,
+	}
+
+	transport := &http.Transport{
+		TLSClientConfig: tlsConfig,
+	}
+
+	http.DefaultClient = &http.Client{
+		Transport: transport,
+	}
+
+	log.Printf("TLS configuration updated to use system certificate pool")
+}
+
 func main() {
+	setupTLSConfiguration()
+
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatal("Failed to load config:", err)

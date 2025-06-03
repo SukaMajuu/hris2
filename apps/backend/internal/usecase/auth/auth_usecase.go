@@ -117,7 +117,6 @@ func (uc *AuthUseCase) issueTokensAndStoreRefresh(ctx context.Context, user *dom
 
 func (uc *AuthUseCase) RegisterAdminWithForm(ctx context.Context, user *domain.User, employee *domain.Employee) (*domain.User, string, string, error) {
 	user.Role = enums.RoleAdmin
-	employee.PositionID = 9
 
 	err := uc.authRepo.RegisterAdminWithForm(ctx, user, employee)
 	if err != nil {

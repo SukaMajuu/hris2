@@ -206,8 +206,8 @@ func (h *EmployeeHandler) mapUpdateDTOToDomain(employeeID uint, reqDTO *employee
 	if reqDTO.LastName != nil {
 		employeeUpdatePayload.LastName = reqDTO.LastName
 	}
-	if reqDTO.PositionID != nil {
-		employeeUpdatePayload.PositionID = *reqDTO.PositionID
+	if reqDTO.PositionName != nil {
+		employeeUpdatePayload.PositionName = *reqDTO.PositionName
 	}
 	if reqDTO.EmploymentStatus != nil {
 		employeeUpdatePayload.EmploymentStatus = *reqDTO.EmploymentStatus
@@ -215,8 +215,8 @@ func (h *EmployeeHandler) mapUpdateDTOToDomain(employeeID uint, reqDTO *employee
 	if reqDTO.EmployeeCode != nil {
 		employeeUpdatePayload.EmployeeCode = reqDTO.EmployeeCode
 	}
-	if reqDTO.BranchID != nil {
-		employeeUpdatePayload.BranchID = reqDTO.BranchID
+	if reqDTO.Branch != nil {
+		employeeUpdatePayload.Branch = reqDTO.Branch
 	}
 	if reqDTO.Gender != nil {
 		employeeUpdatePayload.Gender = reqDTO.Gender
@@ -294,7 +294,8 @@ func (h *EmployeeHandler) mapDomainToResponseDTO(employee *domain.Employee) *dom
 		FirstName:             employee.FirstName,
 		LastName:              employee.LastName,
 		EmployeeCode:          employee.EmployeeCode,
-		PositionName:          employee.Position.Name,
+		PositionName:          employee.PositionName,
+		Branch:                employee.Branch,
 		Gender:                genderDTO,
 		NIK:                   employee.NIK,
 		PlaceOfBirth:          employee.PlaceOfBirth,
@@ -308,9 +309,6 @@ func (h *EmployeeHandler) mapDomainToResponseDTO(employee *domain.Employee) *dom
 		UpdatedAt:             employee.UpdatedAt.Format(time.RFC3339),
 	}
 
-	if employee.Branch != nil {
-		respDTO.BranchName = &employee.Branch.Name
-	}
 	if employee.LastEducation != nil {
 		lastEducationStr := string(*employee.LastEducation)
 		respDTO.LastEducation = &lastEducationStr

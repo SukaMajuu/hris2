@@ -72,7 +72,8 @@ func (uc *EmployeeUseCase) List(ctx context.Context, filters map[string]interfac
 			FirstName:             emp.FirstName,
 			LastName:              emp.LastName,
 			EmployeeCode:          emp.EmployeeCode,
-			PositionName:          emp.Position.Name,
+			PositionName:          emp.PositionName,
+			Branch:                emp.Branch,
 			Gender:                genderDTO,
 			NIK:                   emp.NIK,
 			PlaceOfBirth:          emp.PlaceOfBirth,
@@ -82,10 +83,6 @@ func (uc *EmployeeUseCase) List(ctx context.Context, filters map[string]interfac
 			BankAccountNumber:     emp.BankAccountNumber,
 			BankAccountHolderName: emp.BankAccountHolderName,
 			ProfilePhotoURL:       emp.ProfilePhotoURL,
-		}
-
-		if emp.Branch != nil {
-			employeeDTOs[i].BranchName = &emp.Branch.Name
 		}
 
 		if emp.LastEducation != nil {
@@ -196,7 +193,8 @@ func (uc *EmployeeUseCase) GetByID(ctx context.Context, id uint) (*dtoemployee.E
 		FirstName:             employee.FirstName,
 		LastName:              employee.LastName,
 		EmployeeCode:          employee.EmployeeCode,
-		PositionName:          employee.Position.Name,
+		PositionName:          employee.PositionName,
+		Branch:                employee.Branch,
 		Gender:                genderDTO,
 		NIK:                   employee.NIK,
 		PlaceOfBirth:          employee.PlaceOfBirth,
@@ -206,10 +204,6 @@ func (uc *EmployeeUseCase) GetByID(ctx context.Context, id uint) (*dtoemployee.E
 		BankAccountNumber:     employee.BankAccountNumber,
 		BankAccountHolderName: employee.BankAccountHolderName,
 		ProfilePhotoURL:       employee.ProfilePhotoURL,
-	}
-
-	if employee.Branch != nil {
-		employeeDTO.BranchName = &employee.Branch.Name
 	}
 
 	if employee.LastEducation != nil {
@@ -281,8 +275,8 @@ func (uc *EmployeeUseCase) Update(ctx context.Context, employee *domain.Employee
 	if employee.EmployeeCode != nil {
 		existingEmployee.EmployeeCode = employee.EmployeeCode
 	}
-	if employee.BranchID != nil {
-		existingEmployee.BranchID = employee.BranchID
+	if employee.Branch != nil {
+		existingEmployee.Branch = employee.Branch
 	}
 	if employee.Gender != nil {
 		existingEmployee.Gender = employee.Gender
@@ -327,8 +321,8 @@ func (uc *EmployeeUseCase) Update(ctx context.Context, employee *domain.Employee
 		existingEmployee.ProfilePhotoURL = employee.ProfilePhotoURL
 	}
 
-	if employee.PositionID != 0 {
-		existingEmployee.PositionID = employee.PositionID
+	if employee.PositionName != "" {
+		existingEmployee.PositionName = employee.PositionName
 	}
 
 	if employee.User.Email != "" {

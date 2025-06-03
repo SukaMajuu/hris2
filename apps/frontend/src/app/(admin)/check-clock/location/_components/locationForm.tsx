@@ -13,8 +13,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import dynamic from "next/dynamic";
-import type { Location } from "../_hooks/useLocation";
-import { LocationInput, LocationSchema } from "@/schemas/checkclock.schema";
+import { Location } from "@/types/location";
+import { toast } from "sonner";
 
 const MapComponent = dynamic(
 	() =>
@@ -37,8 +37,11 @@ interface LocationFormProps {
 	isEditing: boolean;
 	formData: Partial<Location>;
 	setFormDataAction: React.Dispatch<React.SetStateAction<Partial<Location>>>;
-	handleChangeAction: (field: keyof Location, value: string | number) => void;
-	handleSaveAction: (data?: LocationInput) => void;
+	handleChangeAction: (
+		field: string | number | symbol,
+		value: string | number
+	) => void;
+	handleSaveAction: () => void;
 	onMapPositionChangeAction: (lat: number, lng: number) => void;
 	isLoading?: boolean;
 }
@@ -50,29 +53,17 @@ export function LocationForm({
 	formData,
 	setFormDataAction,
 	handleChangeAction,
-	handleSaveAction: parentHandleSave,
+	handleSaveAction,
 	onMapPositionChangeAction,
 	isLoading = false,
 }: LocationFormProps) {
-	// State untuk mengelola error validasi
-	const [validationErrors, setValidationErrors] = useState<
-		{ path: string[]; message: string }[]
-	>([]);
+	const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
-	// Reset validasi errors saat dialog dibuka/ditutup
 	useEffect(() => {
 		if (!dialogOpen) {
-			// Reset errors saat dialog ditutup
 			setValidationErrors([]);
 		}
 	}, [dialogOpen]);
-
-	// Fungsi untuk mendapatkan error berdasarkan field name
-	const getFieldError = (fieldName: string) => {
-		return validationErrors.find(
-			(error) => error.path[error.path.length - 1] === fieldName
-		)?.message;
-	};
 
 	const handleUseCurrentLocation = () => {
 		if (navigator.geolocation) {
@@ -80,162 +71,68 @@ export function LocationForm({
 				(position) => {
 					const newLat = position.coords.latitude;
 					const newLng = position.coords.longitude;
-					setFormDataAction((prev: Partial<Location>) => ({
+					setFormDataAction((prev) => ({
 						...prev,
 						latitude: newLat,
 						longitude: newLng,
 					}));
 				},
 				(error) => {
-					console.error("Error getting location:", error);
-					alert(
+					toast.error(
 						"Could not get your current location. Please check your browser settings."
 					);
 				}
 			);
 		} else {
-			alert("Geolocation is not supported by your browser.");
+			toast.error("Geolocation is not supported by your browser.");
 		}
 	};
 
 	const handleResetLocation = () => {
-		setFormDataAction((prev: Partial<Location>) => ({
+		setFormDataAction((prev) => ({
 			...prev,
 			latitude: undefined,
 			longitude: undefined,
 		}));
 	};
 
-	// Handle Save dengan validasi Zod
-	// Di dalam komponen LocationForm
+	const validateForm = () => {
+		const errors: string[] = [];
 
-	// ... (state dan fungsi lainnya tetap sama) ...
-	// Fungsi validasi manual untuk latitude/longitude agar hanya bisa terisi via map/geo
-	const latlngFromMapOrGeo = (lat: unknown, lng: unknown): boolean =>
-		typeof lat === "number" &&
-		typeof lng === "number" &&
-		!isNaN(lat) &&
-		!isNaN(lng);
-
-	const handleSave = () => {
-		// Kumpulkan semua error untuk ditampilkan sekaligus
-		const errors: { path: string[]; message: string }[] = [];
-
-		// Validate required fields before calling Zod
-		if (!formData.locationName?.trim()) {
-			errors.push({
-				path: ["locationName"],
-				message: "Location name is required.",
-			});
-		}
-
-		if (!latlngFromMapOrGeo(formData.latitude, formData.longitude)) {
-			errors.push({
-				path: ["latitude"],
-				message:
-					'Please select a point on the map or click the "Use Current Location" button.',
-			});
+		if (!formData.name?.trim()) {
+			errors.push("Location name is required.");
 		}
 
 		if (
-			formData.radius === undefined ||
-			formData.radius === null ||
-			String(formData.radius).trim() === ""
+			typeof formData.latitude !== "number" ||
+			typeof formData.longitude !== "number"
 		) {
-			errors.push({
-				path: ["radius"],
-				message: "Radius is required.",
-			});
-		} else if (formData.radius <= 0) {
-			errors.push({
-				path: ["radius"],
-				message: "Radius must be a positive value.",
-			});
+			errors.push(
+				'Please select a point on the map or click "Use Current Location".'
+			);
 		}
 
-		// Jika ada error dari validasi awal, tampilkan dan hentikan proses
+		if (!formData.radius_m || formData.radius_m <= 0) {
+			errors.push("Radius must be a positive number.");
+		}
+
+		return errors;
+	};
+
+	const handleSave = () => {
+		const errors = validateForm();
+
 		if (errors.length > 0) {
 			setValidationErrors(errors);
 			return;
 		}
 
-		// Helper untuk konversi ke angka, atau undefined jika input tidak valid/kosong
-		const parseToNumberOrUndefined = (
-			value: unknown
-		): number | undefined => {
-			// Jika value undefined, null, atau string kosong setelah trim
-			if (
-				value === undefined ||
-				value === null ||
-				String(value).trim() === ""
-			) {
-				return undefined;
-			}
-			// Coba konversi ke angka
-			const num = Number(value);
-			// Jika hasilnya NaN (Not-a-Number), kembalikan undefined agar Zod bisa menangkapnya
-			// sebagai tipe yang salah atau field yang kosong (jika required)
-			return isNaN(num) ? undefined : num;
-		};
-
-		// Persiapkan data untuk validasi Zod
-		const dataToValidate = {
-			id: formData.id?.toString(),
-			locationName: formData.locationName, // Biarkan Zod yang validasi .min(1)
-			addressDetails: formData.addressDetails, // Zod akan handle optional
-			radius: parseToNumberOrUndefined(formData.radius),
-			// Perubahan krusial ada di sini:
-			latitude: parseToNumberOrUndefined(formData.latitude),
-			longitude: parseToNumberOrUndefined(formData.longitude),
-		};
-
-		// Validasi dengan Zod
-		// LocationSchema akan memvalidasi dataToValidate sesuai skema yang ditetapkan
-		const result = LocationSchema.safeParse(dataToValidate);
-
-		if (!result.success) {
-			const formattedErrors = result.error.errors.map((err) => ({
-				path: err.path.map((p) => String(p)),
-				message: err.message,
-			}));
-			setValidationErrors(formattedErrors);
-			// Untuk debugging, bisa lihat apa yang dikirim dan errornya:
-			// console.log("Data sent to Zod:", dataToValidate);
-			// console.log("Zod Errors:", result.error.flatten().fieldErrors);
-			return;
-		}
-
-		// Jika validasi berhasil, hapus error
 		setValidationErrors([]);
-
-		// Update formData dengan data yang sudah divalidasi (jika diperlukan)
-		// Catatan: Ini opsional, tergantung pada logika Anda
-		if (result.success) {
-			const validatedData = result.data;
-			// Konversi ID ke tipe yang tepat jika ada
-			setFormDataAction((prev) => ({
-				...prev,
-				locationName: validatedData.locationName,
-				addressDetails: validatedData.addressDetails,
-				radius: validatedData.radius,
-				latitude: validatedData.latitude,
-				longitude: validatedData.longitude,
-				// Untuk id, tetap gunakan id asli dari prev (jika ada)
-				// atau konversi id string menjadi number jika perlu
-				id:
-					prev.id ||
-					(validatedData.id ? Number(validatedData.id) : undefined),
-			}));
-		}
-
-		// Panggil fungsi parentHandleSave tanpa parameter
-		parentHandleSave();
+		handleSaveAction();
 	};
 
-	// Fungsi untuk menutup dialog dan membersihkan error
 	const handleDialogChange = (open: boolean) => {
 		if (!open) {
-			// Reset errors saat dialog ditutup
 			setValidationErrors([]);
 		}
 		setDialogOpenAction(open);
@@ -258,10 +155,12 @@ export function LocationForm({
 				{/* Display errors if any */}
 				{validationErrors.length > 0 && (
 					<div className="px-6 py-2 text-red-600 bg-red-50 rounded-md border border-red-200">
-						<p className="font-medium">There are several errors:</p>
+						<p className="font-medium">
+							Please fix the following errors:
+						</p>
 						<ul className="list-disc ml-5 mt-1">
 							{validationErrors.map((error, index) => (
-								<li key={index}>{error.message}</li>
+								<li key={index}>{error}</li>
 							))}
 						</ul>
 					</div>
@@ -277,7 +176,7 @@ export function LocationForm({
 							<MapComponent
 								latitude={formData.latitude}
 								longitude={formData.longitude}
-								radius={formData.radius || 100} // Default radius if undefined
+								radius={formData.radius_m || 100}
 								onPositionChange={onMapPositionChangeAction}
 								interactive={true}
 							/>
@@ -297,77 +196,50 @@ export function LocationForm({
 								onClick={handleResetLocation}
 								className="border-gray-300 hover:bg-gray-100"
 							>
-								Reset Pinned Location
+								Reset Location
 							</Button>
 						</div>
-
-						{/* Error untuk latitude/longitude */}
-						{(getFieldError("latitude") ||
-							getFieldError("longitude")) && (
-								<div className="text-red-600 text-sm">
-									{getFieldError("latitude") ||
-										getFieldError("longitude")}
-								</div>
-							)}
 					</div>
 
 					{/* Right Column: Form Inputs */}
 					<div className="space-y-6">
 						<div className="space-y-1.5">
 							<Label
-								htmlFor="locationName"
+								htmlFor="name"
 								className="text-sm font-medium text-gray-700"
 							>
-								Location Name
+								Location Name *
 							</Label>
 							<Input
-								id="locationName"
-								value={formData.locationName ?? ""}
+								id="name"
+								value={formData.name ?? ""}
 								onChange={(e) =>
-									handleChangeAction(
-										"locationName",
-										e.target.value
-									)
+									handleChangeAction("name", e.target.value)
 								}
 								placeholder="e.g., Main Office, Branch Kemang"
-								className={`w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 ${getFieldError("locationName")
-										? "border-red-500"
-										: ""
-									}`}
+								className="w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500"
 							/>
-							{getFieldError("locationName") && (
-								<p className="text-red-600 text-sm mt-1">
-									{getFieldError("locationName")}
-								</p>
-							)}
 						</div>
+
 						<div className="space-y-1.5">
 							<Label
-								htmlFor="addressDetails"
+								htmlFor="address_detail"
 								className="text-sm font-medium text-gray-700"
 							>
 								Address Details
 							</Label>
 							<Input
-								id="addressDetails"
-								value={formData.addressDetails ?? ""}
+								id="address_detail"
+								value={formData.address_detail ?? ""}
 								onChange={(e) =>
 									handleChangeAction(
-										"addressDetails",
+										"address_detail",
 										e.target.value
 									)
 								}
 								placeholder="e.g., Jl. Merdeka No. 1, Jakarta"
-								className={`w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 ${getFieldError("addressDetails")
-										? "border-red-500"
-										: ""
-									}`}
+								className="w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500"
 							/>
-							{getFieldError("addressDetails") && (
-								<p className="text-red-600 text-sm mt-1">
-									{getFieldError("addressDetails")}
-								</p>
-							)}
 						</div>
 
 						<div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -383,7 +255,7 @@ export function LocationForm({
 									value={formData.latitude ?? ""}
 									disabled
 									className="w-full bg-slate-100 border-slate-300 text-gray-600 cursor-not-allowed"
-									placeholder="Select on map or use current"
+									placeholder="Select on map"
 								/>
 							</div>
 							<div className="space-y-1.5">
@@ -398,44 +270,38 @@ export function LocationForm({
 									value={formData.longitude ?? ""}
 									disabled
 									className="w-full bg-slate-100 border-slate-300 text-gray-600 cursor-not-allowed"
-									placeholder="Select on map or use current"
+									placeholder="Select on map"
 								/>
 							</div>
 						</div>
 
 						<div className="space-y-1.5">
 							<Label
-								htmlFor="radius"
+								htmlFor="radius_m"
 								className="text-sm font-medium text-gray-700"
 							>
-								Geofence Radius (meters)
+								Geofence Radius (meters) *
 							</Label>
 							<Input
-								id="radius"
-								value={formData.radius ?? ""}
+								id="radius_m"
+								value={formData.radius_m ?? ""}
 								onChange={(e) => {
 									const val = e.target.value;
 									handleChangeAction(
-										"radius",
+										"radius_m",
 										val === "" ? "" : parseFloat(val) || 0
 									);
 								}}
 								type="number"
 								min="0"
-								placeholder="e.g., 100 for 100 meters"
-								className={`w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 ${getFieldError("radius")
-										? "border-red-500"
-										: ""
-									}`}
+								placeholder="e.g., 100"
+								className="w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500"
 							/>
-							{getFieldError("radius") && (
-								<p className="text-red-600 text-sm mt-1">
-									{getFieldError("radius")}
-								</p>
-							)}
 						</div>
 					</div>
-				</div>				<DialogFooter className="px-6 py-4 bg-gray-50 border-t border-gray-200 mt-auto">
+				</div>
+
+				<DialogFooter className="px-6 py-4 bg-gray-50 border-t border-gray-200 mt-auto">
 					<Button
 						variant="outline"
 						onClick={() => setDialogOpenAction(false)}
@@ -455,7 +321,11 @@ export function LocationForm({
 								{isEditing ? "Updating..." : "Saving..."}
 							</>
 						) : (
-							<>{isEditing ? "Update Location" : "Save Location"}</>
+							<>
+								{isEditing
+									? "Update Location"
+									: "Save Location"}
+							</>
 						)}
 					</Button>
 				</DialogFooter>

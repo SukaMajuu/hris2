@@ -1,72 +1,78 @@
 import {
-  CreateLocationRequest,
-  LocationResponse,
-  UpdateLocationRequest,
-} from '@/types/location';
-import { API_ROUTES } from '../config/api.routes';
-import { ApiService } from './api.service';
+	CreateLocationRequest,
+	LocationResponse,
+	UpdateLocationRequest,
+} from "@/types/location";
+import { API_ROUTES } from "../config/api.routes";
+import { ApiService } from "./api.service";
 
-export interface BaseResponse<T> {
-  data: T;
-  message: string;
-  success: boolean;
+// Backend response structure based on swagger/backend code
+interface ApiResponse<T> {
+	status: number;
+	message: string;
+	data: T;
 }
 
-export interface PaginatedResponse<T> {
-  data: {
-    items: T[];
-    pagination: {
-      total_items: number;
-      total_pages: number;
-      current_page: number;
-      page_size: number;
-      has_next_page: boolean;
-      has_prev_page: boolean;
-    };
-  };
-  message: string;
-  success: boolean;
+interface LocationListData {
+	items: LocationResponse[];
+	pagination: {
+		total_items: number;
+		total_pages: number;
+		current_page: number;
+		page_size: number;
+		has_next_page: boolean;
+		has_prev_page: boolean;
+	};
 }
 
 class LocationService {
-  constructor(private apiService: ApiService) { } public async getLocations(
-    params: Record<string, string | number>
-  ): Promise<PaginatedResponse<LocationResponse>> {
-    const response = await this.apiService.get<PaginatedResponse<LocationResponse>>(
-      API_ROUTES.v1.api.locations.list,
-      { params }
-    );
+	constructor(private apiService: ApiService) {}
 
-    return response.data;
-  }
-  public async getLocationById(id: string): Promise<BaseResponse<LocationResponse>> {
-    const url = API_ROUTES.v1.api.locations.detail(id);
-    const response = await this.apiService.get<BaseResponse<LocationResponse>>(url);
-    return response.data;
-  }
-  public async createLocation(
-    data: CreateLocationRequest
-  ): Promise<BaseResponse<LocationResponse>> {
-    const response = await this.apiService.post<BaseResponse<LocationResponse>>(
-      API_ROUTES.v1.api.locations.create,
-      data
-    );
-    return response.data;
-  }
-  public async updateLocation(
-    id: string,
-    data: UpdateLocationRequest
-  ): Promise<BaseResponse<LocationResponse>> {
-    const url = API_ROUTES.v1.api.locations.update(id);
-    const response = await this.apiService.put<BaseResponse<LocationResponse>>(url, data);
-    return response.data;
-  }
+	public async getLocations(
+		params: Record<string, string | number>
+	): Promise<ApiResponse<LocationListData>> {
+		const response = await this.apiService.get<
+			ApiResponse<LocationListData>
+		>(API_ROUTES.v1.api.locations.list, { params });
 
-  public async deleteLocation(id: string): Promise<BaseResponse<null>> {
-    const url = API_ROUTES.v1.api.locations.delete(id);
-    const response = await this.apiService.delete<BaseResponse<null>>(url);
-    return response.data;
-  }
+		return response.data;
+	}
+
+	public async getLocationById(
+		id: string
+	): Promise<ApiResponse<LocationResponse>> {
+		const url = API_ROUTES.v1.api.locations.detail(id);
+		const response = await this.apiService.get<
+			ApiResponse<LocationResponse>
+		>(url);
+		return response.data;
+	}
+
+	public async createLocation(
+		data: CreateLocationRequest
+	): Promise<ApiResponse<LocationResponse>> {
+		const response = await this.apiService.post<
+			ApiResponse<LocationResponse>
+		>(API_ROUTES.v1.api.locations.create, data);
+		return response.data;
+	}
+
+	public async updateLocation(
+		id: string,
+		data: UpdateLocationRequest
+	): Promise<ApiResponse<LocationResponse>> {
+		const url = API_ROUTES.v1.api.locations.update(id);
+		const response = await this.apiService.put<
+			ApiResponse<LocationResponse>
+		>(url, data);
+		return response.data;
+	}
+
+	public async deleteLocation(id: string): Promise<ApiResponse<null>> {
+		const url = API_ROUTES.v1.api.locations.delete(id);
+		const response = await this.apiService.delete<ApiResponse<null>>(url);
+		return response.data;
+	}
 }
 
 // Inisialisasi instance ApiService

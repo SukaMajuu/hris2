@@ -8,13 +8,12 @@ import (
 
 type Employee struct {
 	// Required Fields (Non-Nullable)
-	ID               uint     `gorm:"primaryKey"`
-	UserID           uint     `gorm:"not null"`
-	User             User     `gorm:"foreignKey:UserID"`
-	FirstName        string   `gorm:"type:varchar(255);not null"`
-	PositionID       uint     `gorm:"type:uint"`
-	Position         Position `gorm:"foreignKey:PositionID"`
-	EmploymentStatus bool     `gorm:"type:boolean;default:true;not null"`
+	ID               uint   `gorm:"primaryKey"`
+	UserID           uint   `gorm:"not null"`
+	User             User   `gorm:"foreignKey:UserID"`
+	FirstName        string `gorm:"type:varchar(255);not null"`
+	PositionName     string `gorm:"type:varchar(255)"`
+	EmploymentStatus bool   `gorm:"type:boolean;default:true;not null"`
 
 	// Self-Reference for Manager-Subordinate Relationship
 	ManagerID    *uint      `gorm:"type:uint"`
@@ -24,8 +23,7 @@ type Employee struct {
 	// Nullable Fields (Optional)
 	LastName              *string               `gorm:"type:varchar(255)"`
 	EmployeeCode          *string               `gorm:"type:varchar(255);unique"`
-	BranchID              *uint                 `gorm:"type:uint"`
-	Branch                *Branch               `gorm:"foreignKey:BranchID"`
+	Branch                *string               `gorm:"type:varchar(255)"`
 	Gender                *enums.Gender         `gorm:"type:gender"`
 	NIK                   *string               `gorm:"type:varchar(255);unique"`
 	PlaceOfBirth          *string               `gorm:"type:varchar(255)"`

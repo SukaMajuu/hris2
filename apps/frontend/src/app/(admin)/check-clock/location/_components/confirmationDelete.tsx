@@ -8,7 +8,7 @@ import {
 	AlertDialogCancel,
 	AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import type { Location } from "../_hooks/useLocation";
+import type { Location } from "@/types/location";
 
 interface ConfirmationDeleteProps {
 	isDeleteDialogOpen: boolean;
@@ -35,10 +35,11 @@ const ConfirmationDelete = ({
 					<AlertDialogDescription>
 						This action cannot be undone. This will permanently
 						delete the location &quot;
-						<strong>{locationToDelete?.locationName || ""}</strong>
+						<strong>{locationToDelete?.name || ""}</strong>
 						&quot; and all associated data.
 					</AlertDialogDescription>
-				</AlertDialogHeader>				<AlertDialogFooter>
+				</AlertDialogHeader>{" "}
+				<AlertDialogFooter>
 					<AlertDialogCancel
 						onClick={handleCloseDeleteDialog}
 						disabled={isDeleting}

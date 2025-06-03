@@ -87,8 +87,6 @@ func Migrate(db *gorm.DB) error {
 	if err := db.AutoMigrate(
 		&models.User{},
 		&models.Employee{},
-		&models.Position{},
-		&models.Branch{},
 		&models.RefreshToken{},
 		&models.Location{},
 		&models.WorkSchedule{},

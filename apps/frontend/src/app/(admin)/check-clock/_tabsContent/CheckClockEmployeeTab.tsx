@@ -5,62 +5,75 @@ import { Edit, Filter, Plus, Search } from "lucide-react";
 import WorkTypeBadge from "@/components/workTypeBadge";
 import { WorkType } from "@/const/work";
 import { DataTable } from "@/components/dataTable";
-import {
-	useCheckClockEmployee,
-	Employee,
-} from "../_hooks/useCheckClockEmployee";
+import { useCheckClockEmployee } from "../_hooks/useCheckClockEmployee";
 import { PaginationComponent } from "@/components/pagination";
 import { PageSizeComponent } from "@/components/pageSize";
+import { usePagination } from "@/hooks/usePagination";
 import Link from "next/link";
 import * as React from "react";
 import {
 	ColumnDef,
 	useReactTable,
 	getCoreRowModel,
-	getPaginationRowModel,
 	getFilteredRowModel,
-	PaginationState,
+	getPaginationRowModel,
 } from "@tanstack/react-table";
+import { CheckclockSettingsResponse } from "@/types/checkclock-settings.types";
 
 export default function CheckClockEmployeeTab() {
-	const { employees, handleEdit } = useCheckClockEmployee();
-
 	const [nameFilter, setNameFilter] = React.useState("");
+	const { pagination, setPage, setPageSize } = usePagination(1, 10);
 
-	const [pagination, setPagination] = React.useState<PaginationState>({
-		pageIndex: 0,
-		pageSize: 10,
-	});
+	const {
+		employees,
+		pagination: serverPagination,
+		isLoading,
+		error,
+		handleEdit,
+	} = useCheckClockEmployee(pagination.page, pagination.pageSize);
 
-	const baseColumns = React.useMemo<ColumnDef<Employee>[]>(
+	const baseColumns = React.useMemo<ColumnDef<CheckclockSettingsResponse>[]>(
 		() => [
 			{ header: "No.", id: "no-placeholder" },
 			{
 				header: "Nama",
-				accessorKey: "nama",
+				id: "employee_name",
+				accessorKey: "employee.first_name",
 				enableColumnFilter: true,
 				filterFn: "includesString",
+				cell: ({ row }) => {
+					const employee = row.original.employee;
+					if (!employee) return "Unknown Employee";
+					return `${employee.first_name || ""} ${
+						employee.last_name || ""
+					}`.trim();
+				},
 			},
 			{
 				header: "Posisi",
-				accessorKey: "posisi",
+				accessorKey: "employee.position_name",
+				cell: ({ row }) => {
+					return (
+						row.original.employee?.position_name ||
+						"Unknown Position"
+					);
+				},
 			},
 			{
-				header: "Tipe Pekerjaan",
-				accessorKey: "tipePekerjaan",
-				cell: ({ row }) => (
-					<WorkTypeBadge
-						workType={row.original.tipePekerjaan as WorkType}
-					/>
-				),
+				header: "Work Schedule",
+				accessorKey: "work_schedule.name",
+				cell: ({ row }) => {
+					return row.original.work_schedule?.name || "Not Set";
+				},
 			},
 			{
-				header: "Check-In",
-				accessorKey: "checkIn",
-			},
-			{
-				header: "Check-Out",
-				accessorKey: "checkOut",
+				header: "Work Type",
+				accessorKey: "work_schedule.work_type",
+				cell: ({ row }) => {
+					const workType =
+						row.original.work_schedule?.work_type || "WFO";
+					return <WorkTypeBadge workType={workType as WorkType} />;
+				},
 			},
 			{
 				header: "Action",
@@ -88,14 +101,15 @@ export default function CheckClockEmployeeTab() {
 		[handleEdit]
 	);
 
-	const finalColumns = React.useMemo<ColumnDef<Employee>[]>(
+	const finalColumns = React.useMemo<ColumnDef<CheckclockSettingsResponse>[]>(
 		() => [
 			{
 				header: "No.",
 				id: "no",
-				cell: ({ row, table }) => {
-					const { pageIndex, pageSize } = table.getState().pagination;
-					return pageIndex * pageSize + row.index + 1;
+				cell: ({ row }) => {
+					const currentPage = serverPagination.currentPage;
+					const pageSize = serverPagination.pageSize;
+					return (currentPage - 1) * pageSize + row.index + 1;
 				},
 				meta: { className: "max-w-[80px]" },
 				enableSorting: false,
@@ -103,25 +117,43 @@ export default function CheckClockEmployeeTab() {
 			},
 			...baseColumns.slice(1),
 		],
-		[baseColumns]
+		[baseColumns, serverPagination.currentPage, serverPagination.pageSize]
 	);
 
-	const table = useReactTable<Employee>({
+	const table = useReactTable<CheckclockSettingsResponse>({
 		data: employees,
 		columns: finalColumns,
 		state: {
-			columnFilters: [{ id: "nama", value: nameFilter }],
-			pagination,
+			columnFilters: [{ id: "employee_name", value: nameFilter }],
+			pagination: {
+				pageIndex: serverPagination.currentPage - 1,
+				pageSize: serverPagination.pageSize,
+			},
 		},
 		onColumnFiltersChange: (updater) => {
 			const newFilters =
 				typeof updater === "function"
 					? updater(table.getState().columnFilters)
 					: updater;
-			const nameFilterUpdate = newFilters.find((f) => f.id === "nama");
+			const nameFilterUpdate = newFilters.find(
+				(f) => f.id === "employee_name"
+			);
 			setNameFilter((nameFilterUpdate?.value as string) || "");
 		},
-		onPaginationChange: setPagination,
+		onPaginationChange: (updater) => {
+			const currentPaginationState = {
+				pageIndex: serverPagination.currentPage - 1,
+				pageSize: serverPagination.pageSize,
+			};
+			const newPagination =
+				typeof updater === "function"
+					? updater(currentPaginationState)
+					: updater;
+			setPage(newPagination.pageIndex + 1);
+			setPageSize(newPagination.pageSize);
+		},
+		pageCount: serverPagination.totalPages || 0,
+		manualPagination: true,
 		getCoreRowModel: getCoreRowModel(),
 		getPaginationRowModel: getPaginationRowModel(),
 		getFilteredRowModel: getFilteredRowModel(),
@@ -152,7 +184,7 @@ export default function CheckClockEmployeeTab() {
 									const newNameFilter = event.target.value;
 									setNameFilter(newNameFilter);
 									table
-										.getColumn("nama")
+										.getColumn("employee_name")
 										?.setFilterValue(newNameFilter);
 								}}
 								className="pl-10 w-full bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-md"
@@ -169,9 +201,23 @@ export default function CheckClockEmployeeTab() {
 					</div>
 				</header>
 
-				<DataTable table={table} />
+				{isLoading ? (
+					<div className="flex justify-center items-center py-8">
+						<div className="text-slate-500 dark:text-slate-400">
+							Loading checkclock settings...
+						</div>
+					</div>
+				) : error ? (
+					<div className="flex justify-center items-center py-8">
+						<div className="text-red-500 dark:text-red-400">
+							Error loading checkclock settings: {error.message}
+						</div>
+					</div>
+				) : (
+					<DataTable table={table} />
+				)}
 
-				<footer className="flex flex-col md:flex-row items-center justify-between mt-4 gap-4 p-6">
+				<footer className="flex flex-col md:flex-row items-center justify-between mt-4 gap-4">
 					<PageSizeComponent table={table} />
 					<PaginationComponent table={table} />
 				</footer>

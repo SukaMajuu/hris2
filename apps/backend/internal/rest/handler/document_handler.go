@@ -158,7 +158,7 @@ func (h *DocumentHandler) DeleteDocument(c *gin.Context) {
 }
 
 func (h *DocumentHandler) UploadDocumentForEmployee(c *gin.Context) {
-	employeeIDParam := c.Param("employee_id")
+	employeeIDParam := c.Param("id")
 	employeeID, err := strconv.ParseUint(employeeIDParam, 10, 32)
 	if err != nil {
 		log.Printf("DocumentHandler: Invalid employee ID: %s", employeeIDParam)
@@ -207,7 +207,7 @@ func (h *DocumentHandler) UploadDocumentForEmployee(c *gin.Context) {
 }
 
 func (h *DocumentHandler) GetDocumentsByEmployee(c *gin.Context) {
-	employeeIDParam := c.Param("employee_id")
+	employeeIDParam := c.Param("id")
 	employeeID, err := strconv.ParseUint(employeeIDParam, 10, 32)
 	if err != nil {
 		log.Printf("DocumentHandler: Invalid employee ID: %s", employeeIDParam)

@@ -8,22 +8,22 @@ import (
 
 type UpdateWorkScheduleRequest struct {
 	Name     string                     `json:"name" validate:"required"`
-	WorkType string                     `json:"workType" validate:"required"`
+	WorkType string                     `json:"work_type" validate:"required"` // This field is required
 	Details  []UpdateWorkScheduleDetail `json:"details" validate:"required,dive"`
 	ToDelete []uint                     `json:"toDelete,omitempty"` // IDs of details to delete
 }
 
 type UpdateWorkScheduleDetail struct {
 	ID             *uint    `json:"id,omitempty"` // Null for new details
-	WorkTypeDetail string   `json:"workTypeDetail" validate:"required"`
-	WorkDays       []string `json:"workDays" validate:"required"`
-	CheckInStart   *string  `json:"checkInStart,omitempty"`
-	CheckInEnd     *string  `json:"checkInEnd,omitempty"`
-	BreakStart     *string  `json:"breakStart,omitempty"`
-	BreakEnd       *string  `json:"breakEnd,omitempty"`
-	CheckOutStart  *string  `json:"checkOutStart,omitempty"`
-	CheckOutEnd    *string  `json:"checkOutEnd,omitempty"`
-	LocationID     *uint    `json:"locationId,omitempty"`
+	WorkDays       []string `json:"work_days" validate:"required,min=1,dive,oneof=Monday Tuesday Wednesday Thursday Friday Saturday Sunday"`
+	WorkTypeDetail string   `json:"worktype_detail" validate:"required,oneof=WFO WFA"` // This field is required
+	CheckInStart   *string  `json:"checkin_start,omitempty"`
+	CheckInEnd     *string  `json:"checkin_end,omitempty"`
+	BreakStart     *string  `json:"break_start,omitempty"`
+	BreakEnd       *string  `json:"break_end,omitempty"`
+	CheckOutStart  *string  `json:"checkout_start,omitempty"`
+	CheckOutEnd    *string  `json:"checkout_end,omitempty"`
+	LocationID     *uint    `json:"location_id,omitempty"`
 }
 
 func (r *UpdateWorkScheduleRequest) Validate() error {

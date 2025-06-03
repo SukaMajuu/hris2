@@ -18,6 +18,10 @@ interface WorkScheduleDetailDialogProps {
 	workScheduleDetails: WorkScheduleDetailItem[];
 }
 
+interface FlattenedDetail extends WorkScheduleDetailItem {
+	singleDay: string;
+}
+
 const WorkScheduleDetailDialog = ({
 	open,
 	onOpenChange,
@@ -25,41 +29,57 @@ const WorkScheduleDetailDialog = ({
 	workScheduleType,
 	workScheduleDetails,
 }: WorkScheduleDetailDialogProps) => {
-    // Define day order for sorting (Monday to Sunday)
-    const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+	const dayOrder = [
+		"Monday",
+		"Tuesday",
+		"Wednesday",
+		"Thursday",
+		"Friday",
+		"Saturday",
+		"Sunday",
+	];
 
-    // Flatten details: satu hari = satu baris
-    const flattenDetails = (details: WorkScheduleDetailItem[]) => { // Updated type to use API type
-        const result: Array<WorkScheduleDetailItem & { singleDay: string }> = [];
-        details.forEach((detail) => {
-            if (Array.isArray(detail.workdays)) {
-                detail.workdays.forEach((day) => {
-                    result.push({ ...detail, singleDay: day });
-                });
-            } else {
-                result.push({ ...detail, singleDay: detail.workdays || "-" });
-            }
-        });
+	const flattenDetails = (
+		details: WorkScheduleDetailItem[]
+	): FlattenedDetail[] => {
+		const result: FlattenedDetail[] = [];
 
-        // Sort by day order (Monday to Sunday)
-        return result.sort((a, b) => {
-            const dayIndexA = dayOrder.indexOf(a.singleDay);
-            const dayIndexB = dayOrder.indexOf(b.singleDay);
+		details.forEach((detail) => {
+			const workDays = detail.work_days || [];
 
-            // If day is not found in dayOrder, put it at the end
-            if (dayIndexA === -1 && dayIndexB === -1) return 0;
-            if (dayIndexA === -1) return 1;
-            if (dayIndexB === -1) return -1;
+			if (workDays.length > 0) {
+				workDays.forEach((day) => {
+					result.push({ ...detail, singleDay: day });
+				});
+			} else {
+				result.push({ ...detail, singleDay: "-" });
+			}
+		});
 
-            return dayIndexA - dayIndexB;
-        });
-    };
-    const flattenedDetails = flattenDetails(workScheduleDetails);
+		return result.sort((a, b) => {
+			const dayIndexA = dayOrder.indexOf(a.singleDay);
+			const dayIndexB = dayOrder.indexOf(b.singleDay);
 
-	// Helper format waktu
-	const formatTimeRange = (start?: string, end?: string) => {
+			if (dayIndexA === -1 && dayIndexB === -1) return 0;
+			if (dayIndexA === -1) return 1;
+			if (dayIndexB === -1) return -1;
+
+			return dayIndexA - dayIndexB;
+		});
+	};
+
+	const flattenedDetails = flattenDetails(workScheduleDetails);
+
+	const formatTimeRange = (
+		start?: string | null,
+		end?: string | null
+	): string => {
 		if (!start && !end) return "-";
 		return `${start || "--:--"} - ${end || "--:--"}`;
+	};
+
+	const getLocationName = (detail: WorkScheduleDetailItem): string => {
+		return detail.location?.name || "-";
 	};
 
 	return (
@@ -68,14 +88,15 @@ const WorkScheduleDetailDialog = ({
 				<DialogHeader>
 					<DialogTitle>Work Schedule Detail</DialogTitle>
 					<DialogDescription>
-						Detail jadwal kerja untuk schedule:{" "}
+						Work schedule details for:{" "}
 						<strong>{scheduleName}</strong> ({workScheduleType})
 					</DialogDescription>
 				</DialogHeader>
+
 				<Card className="border-none shadow-sm py-0">
 					<CardContent className="p-6">
-						<div className="border rounded-md overflow-x-auto">
-							<table className="w-full text-sm table-fixed">
+						<div className="rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-auto">
+							<table className="w-full text-sm">
 								<colgroup>
 									<col className="w-24" />
 									<col className="w-28" />
@@ -85,23 +106,23 @@ const WorkScheduleDetailDialog = ({
 									<col className="w-40" />
 								</colgroup>
 								<thead>
-									<tr className="bg-slate-50">
-										<th className="py-2 px-3 text-left whitespace-nowrap">
-											Hari
+									<tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
+										<th className="text-center text-sm font-medium text-slate-500 dark:text-slate-400 py-3 px-4 h-12">
+											Day
 										</th>
-										<th className="py-2 px-3 text-left whitespace-nowrap">
+										<th className="text-center text-sm font-medium text-slate-500 dark:text-slate-400 py-3 px-4 h-12">
 											Work Type
 										</th>
-										<th className="py-2 px-3 text-left whitespace-nowrap">
+										<th className="text-center text-sm font-medium text-slate-500 dark:text-slate-400 py-3 px-4 h-12">
 											Check-in
 										</th>
-										<th className="py-2 px-3 text-left whitespace-nowrap">
+										<th className="text-center text-sm font-medium text-slate-500 dark:text-slate-400 py-3 px-4 h-12">
 											Break
 										</th>
-										<th className="py-2 px-3 text-left whitespace-nowrap">
+										<th className="text-center text-sm font-medium text-slate-500 dark:text-slate-400 py-3 px-4 h-12">
 											Check-out
 										</th>
-										<th className="py-2 px-3 text-left whitespace-nowrap">
+										<th className="text-center text-sm font-medium text-slate-500 dark:text-slate-400 py-3 px-4 h-12">
 											Location
 										</th>
 									</tr>
@@ -111,56 +132,54 @@ const WorkScheduleDetailDialog = ({
 										<tr>
 											<td
 												colSpan={6}
-												className="text-center py-4 text-slate-400"
+												className="h-24 text-center text-slate-500 dark:text-slate-400"
 											>
-												No details available.
+												No schedule details available.
 											</td>
 										</tr>
 									) : (
 										flattenedDetails.map((detail, idx) => (
 											<tr
-												key={idx}
-												className="border-b last:border-b-0"
+												key={`${detail.id}-${detail.singleDay}-${idx}`}
+												className="border-b border-slate-200 dark:border-slate-700 transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-800/50 last:border-b-0"
 											>
-												<td className="py-2 px-3 font-medium whitespace-nowrap">
+												<td className="text-center py-3 px-4 text-sm text-slate-700 dark:text-slate-300 font-medium">
 													{detail.singleDay}
 												</td>
-												<td className="py-2 px-3 whitespace-nowrap">
-													<WorkTypeBadge
-														workType={
-															detail.worktype_detail as WorkType
-														}
-													/>
+												<td className="text-center py-3 px-4 text-sm">
+													<div className="flex justify-center">
+														<WorkTypeBadge
+															workType={
+																detail.worktype_detail as WorkType
+															}
+														/>
+													</div>
 												</td>
-												<td className="py-2 px-3 whitespace-nowrap">
+												<td className="text-center py-3 px-4 text-sm text-slate-700 dark:text-slate-300">
 													{formatTimeRange(
-														detail.checkin_start ??
-															undefined,
-														detail.checkin_end ??
-															undefined
+														detail.checkin_start,
+														detail.checkin_end
 													)}
 												</td>
-												<td className="py-2 px-3 whitespace-nowrap">
+												<td className="text-center py-3 px-4 text-sm text-slate-700 dark:text-slate-300">
 													{formatTimeRange(
-														detail.break_start ??
-															undefined,
-														detail.break_end ??
-															undefined
+														detail.break_start,
+														detail.break_end
 													)}
 												</td>
-												<td className="py-2 px-3 whitespace-nowrap">
+												<td className="text-center py-3 px-4 text-sm text-slate-700 dark:text-slate-300">
 													{formatTimeRange(
-														detail.checkout_start ??
-															undefined,
-														detail.checkout_end ??
-															undefined
+														detail.checkout_start,
+														detail.checkout_end
 													)}
 												</td>
 												<td
-													className="py-2 px-3 max-w-[10rem] truncate"
-													title={detail.name || "-"}
+													className="text-center py-3 px-4 text-sm text-slate-700 dark:text-slate-300 max-w-[10rem] truncate"
+													title={getLocationName(
+														detail
+													)}
 												>
-													{detail.name || "-"}
+													{getLocationName(detail)}
 												</td>
 											</tr>
 										))

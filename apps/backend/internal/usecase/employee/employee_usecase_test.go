@@ -21,8 +21,6 @@ func TestEmployeeUseCase_List(t *testing.T) {
 		ID:        1,
 		FirstName: "John",
 		User:      domain.User{Phone: "12345"},
-		Branch:    &domain.Branch{Name: "Main Branch"},
-		Position:  domain.Position{Name: "Developer"},
 	}
 	mockDomainEmployees := []*domain.Employee{mockDomainEmp}
 	var mockTotalItems int64 = 1
@@ -39,16 +37,16 @@ func TestEmployeeUseCase_List(t *testing.T) {
 		LastName:         mockDomainEmp.LastName,
 		Gender:           expectedGenderDTO,
 		Phone:            &mockDomainEmp.User.Phone,
-		PositionName:     mockDomainEmp.Position.Name,
+		PositionName:     mockDomainEmp.PositionName,
 		Grade:            mockDomainEmp.Grade,
 		EmploymentStatus: mockDomainEmp.EmploymentStatus,
 	}
 
 	if mockDomainEmp.Branch != nil {
-		expectedEmployeeDTO.BranchName = &mockDomainEmp.Branch.Name
+		expectedEmployeeDTO.Branch = mockDomainEmp.Branch
 	}
 
-	expectedSuccessResponseData := &domain.EmployeeListResponseData{
+	expectedSuccessResponseData := &dtoemployee.EmployeeListResponseData{
 		Items: []*dtoemployee.EmployeeResponseDTO{expectedEmployeeDTO},
 		Pagination: domain.Pagination{
 			TotalItems:  mockTotalItems,
@@ -67,7 +65,7 @@ func TestEmployeeUseCase_List(t *testing.T) {
 		mockRepoEmployees  []*domain.Employee
 		mockRepoTotalItems int64
 		mockRepoError      error
-		expectedResponse   *domain.EmployeeListResponseData
+		expectedResponse   *dtoemployee.EmployeeListResponseData
 		expectedErrorMsg   string
 		checkErrorIs       error
 		checkErrorContains string
@@ -94,7 +92,7 @@ func TestEmployeeUseCase_List(t *testing.T) {
 			mockRepoEmployees:  []*domain.Employee{},
 			mockRepoTotalItems: 0,
 			mockRepoError:      nil,
-			expectedResponse: &domain.EmployeeListResponseData{
+			expectedResponse: &dtoemployee.EmployeeListResponseData{
 				Items: []*dtoemployee.EmployeeResponseDTO{},
 				Pagination: domain.Pagination{
 					TotalItems:  0,

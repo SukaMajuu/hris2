@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -19,11 +19,15 @@ export const MapComponent = ({
 	onPositionChange,
 	interactive = true,
 }: MapComponentProps) => {
+	const mapRef = useRef<HTMLDivElement>(null);
 	const [map, setMap] = useState<L.Map | null>(null);
-	const [marker, setMarker] = useState<L.Marker | null>(null);
-	const [circle, setCircle] = useState<L.Circle | null>(null);
-
+	const markerRef = useRef<L.Marker | null>(null);
+	const circleRef = useRef<L.Circle | null>(null);
+	const mapInitialized = useRef(false);
+	// Initialize map only once
 	useEffect(() => {
+		if (mapInitialized.current || !mapRef.current) return;
+
 		const DefaultIcon = L.icon({
 			iconUrl:
 				"https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png",
@@ -43,7 +47,7 @@ export const MapComponent = ({
 		const initialLng = longitude || 0;
 		const initialZoom = latitude && longitude ? 13 : 2;
 
-		const mapInstance = L.map("map", {
+		const mapInstance = L.map(mapRef.current, {
 			minZoom: 2,
 			maxZoom: 18,
 			maxBounds: L.latLngBounds(L.latLng(-90, -180), L.latLng(90, 180)),
@@ -69,29 +73,85 @@ export const MapComponent = ({
 		).addTo(mapInstance);
 
 		setMap(mapInstance);
+		mapInitialized.current = true;
+		// Add click handler for interactive mode
+		if (interactive) {
+			mapInstance.on("click", (e) => {
+				// Remove existing markers and circles
+				mapInstance.eachLayer((layer) => {
+					if (layer instanceof L.Marker || layer instanceof L.Circle) {
+						mapInstance.removeLayer(layer);
+					}
+				});
 
+				// Create new marker
+				const newMarker = L.marker(e.latlng, {
+					draggable: true,
+				}).addTo(mapInstance);
+
+				// Create new circle
+				const newCircle = L.circle(e.latlng, {
+					radius: radius || 100,
+					color: "#3388ff",
+					fillColor: "#3388ff",
+					fillOpacity: 0.2,
+				}).addTo(mapInstance);
+
+				// Add drag handler
+				newMarker.on("dragend", (dragEvent) => {
+					const position = dragEvent.target.getLatLng();
+					if (onPositionChange) {
+						onPositionChange(position.lat, position.lng);
+					}
+					newCircle.setLatLng(position);
+				});
+
+				// Update refs
+				markerRef.current = newMarker;
+				circleRef.current = newCircle;
+
+				// Call position change callback
+				if (onPositionChange) {
+					onPositionChange(e.latlng.lat, e.latlng.lng);
+				}
+			});
+		}
+
+		// Cleanup function
+		return () => {
+			if (mapInstance) {
+				mapInstance.remove();
+				mapInitialized.current = false;
+			}
+		};
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []); // Intentionally empty - we only want to initialize once
+	// Update marker and circle when props change
+	useEffect(() => {
+		if (!map) return;
+
+		// Remove existing markers and circles
+		if (markerRef.current) {
+			map.removeLayer(markerRef.current);
+			markerRef.current = null;
+		}
+		if (circleRef.current) {
+			map.removeLayer(circleRef.current);
+			circleRef.current = null;
+		}
+
+		// Add new marker and circle if coordinates exist
 		if (latitude && longitude) {
 			const newMarker = L.marker([latitude, longitude], {
 				draggable: interactive,
-			}).addTo(mapInstance);
-
-			if (interactive) {
-				newMarker.on("drag", (e) => {
-					const position = e.target.getLatLng();
-					if (position.lat < -90) position.lat = -90;
-					if (position.lat > 90) position.lat = 90;
-					if (position.lng < -180) position.lng = -180;
-					if (position.lng > 180) position.lng = 180;
-					e.target.setLatLng(position);
-				});
-			}
+			}).addTo(map);
 
 			const newCircle = L.circle([latitude, longitude], {
 				radius: radius || 100,
 				color: "#3388ff",
 				fillColor: "#3388ff",
 				fillOpacity: 0.2,
-			}).addTo(mapInstance);
+			}).addTo(map);
 
 			if (interactive && onPositionChange) {
 				newMarker.on("dragend", (e) => {
@@ -101,143 +161,24 @@ export const MapComponent = ({
 				});
 			}
 
-			setMarker(newMarker);
-			setCircle(newCircle);
+			markerRef.current = newMarker;
+			circleRef.current = newCircle;
+
+			// Center map on the marker
+			map.setView([latitude, longitude], map.getZoom());
 		}
+	}, [latitude, longitude, radius, map, interactive, onPositionChange]);
 
-		if (interactive) {
-			mapInstance.on("click", (e) => {
-				mapInstance.eachLayer((layer) => {
-					if (
-						layer instanceof L.Marker ||
-						layer instanceof L.Circle
-					) {
-						mapInstance.removeLayer(layer);
-					}
-				});
-
-				setMarker(null);
-				setCircle(null);
-
-				const newMarker = L.marker(e.latlng, {
-					draggable: true,
-				}).addTo(mapInstance);
-
-				newMarker.on("drag", (e) => {
-					const position = e.target.getLatLng();
-					if (position.lat < -90) position.lat = -90;
-					if (position.lat > 90) position.lat = 90;
-					if (position.lng < -180) position.lng = -180;
-					if (position.lng > 180) position.lng = 180;
-					e.target.setLatLng(position);
-				});
-
-				const newCircle = L.circle(e.latlng, {
-					radius: radius || 100,
-					color: "#3388ff",
-					fillColor: "#3388ff",
-					fillOpacity: 0.2,
-				}).addTo(mapInstance);
-
-				newMarker.on("dragend", (e) => {
-					const position = e.target.getLatLng();
-					if (onPositionChange)
-						onPositionChange(position.lat, position.lng);
-					newCircle.setLatLng(position);
-				});
-
-				setMarker(newMarker);
-				setCircle(newCircle);
-
-				if (onPositionChange)
-					onPositionChange(e.latlng.lat, e.latlng.lng);
-			});
-		}
-
-		return () => {
-			mapInstance.remove();
-		};
-	}, [interactive, latitude, longitude, onPositionChange, radius]);
-
+	// Update circle radius when radius changes
 	useEffect(() => {
-		if (map) {
-			if (latitude && longitude) {
-				map.setView([latitude, longitude], map.getZoom());
-
-				if (marker && map.hasLayer(marker)) {
-					marker.setLatLng([latitude, longitude]);
-				} else {
-					const newMarker = L.marker([latitude, longitude], {
-						draggable: interactive,
-					}).addTo(map);
-
-					if (interactive) {
-						newMarker.on("drag", (e) => {
-							const position = e.target.getLatLng();
-							if (position.lat < -90) position.lat = -90;
-							if (position.lat > 90) position.lat = 90;
-							if (position.lng < -180) position.lng = -180;
-							if (position.lng > 180) position.lng = 180;
-							e.target.setLatLng(position);
-						});
-					}
-
-					const newCircle = L.circle([latitude, longitude], {
-						radius: radius || 100,
-						color: "#3388ff",
-						fillColor: "#3388ff",
-						fillOpacity: 0.2,
-					}).addTo(map);
-
-					if (interactive && onPositionChange) {
-						newMarker.on("dragend", (e) => {
-							const position = e.target.getLatLng();
-							onPositionChange(position.lat, position.lng);
-							newCircle.setLatLng(position);
-						});
-					}
-
-					setMarker(newMarker);
-					setCircle(newCircle);
-				}
-
-				if (circle && map.hasLayer(circle)) {
-					circle.setLatLng([latitude, longitude]);
-				}
-			} else {
-				if (marker && map.hasLayer(marker)) {
-					map.removeLayer(marker);
-				}
-				if (circle && map.hasLayer(circle)) {
-					map.removeLayer(circle);
-				}
-
-				setMarker(null);
-				setCircle(null);
-
-				map.setView([0, 0], 2);
-			}
+		if (circleRef.current && radius) {
+			circleRef.current.setRadius(radius);
 		}
-	}, [
-		latitude,
-		longitude,
-		map,
-		marker,
-		circle,
-		radius,
-		onPositionChange,
-		interactive,
-	]);
-
-	useEffect(() => {
-		if (circle && radius) {
-			circle.setRadius(radius);
-		}
-	}, [circle, radius]);
+	}, [radius]);
 
 	return (
 		<div
-			id="map"
+			ref={mapRef}
 			style={{ height: "400px", width: "100%", borderRadius: "8px" }}
 		/>
 	);

@@ -28,13 +28,12 @@ func (r *locationRepository) List(ctx context.Context, paginationParams domain.P
 	var totalItems int64
 
 	query := r.db.WithContext(ctx).Model(&domain.Location{})
-
 	if err := query.Count(&totalItems).Error; err != nil {
 		return nil, 0, err
 	}
 
 	offset := (paginationParams.Page - 1) * paginationParams.PageSize
-	if err := query.Offset(offset).Limit(paginationParams.PageSize).Find(&locations).Error; err != nil {
+	if err := query.Order("id ASC").Offset(offset).Limit(paginationParams.PageSize).Find(&locations).Error; err != nil {
 		return nil, 0, err
 	}
 

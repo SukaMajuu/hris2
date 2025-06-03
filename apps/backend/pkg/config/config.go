@@ -11,6 +11,7 @@ type Config struct {
 	Supabase SupabaseConfig
 	Server   ServerConfig
 	JWT      JWTConfig
+	Xendit   XenditConfig
 }
 
 type DatabaseConfig struct {
@@ -39,6 +40,15 @@ type JWTConfig struct {
 	RefreshDuration string
 }
 
+type XenditConfig struct {
+	SecretKey    string
+	PublicKey    string
+	CallbackKey  string
+	BaseURL      string
+	Environment  string
+	WebhookURL   string
+}
+
 func Load() (*Config, error) {
 	_ = godotenv.Load()
 
@@ -64,6 +74,14 @@ func Load() (*Config, error) {
 			SecretKey:       getEnv("JWT_SECRET_KEY", "secret"),
 			AccessDuration:  getEnv("JWT_ACCESS_DURATION", "15m"),
 			RefreshDuration: getEnv("JWT_REFRESH_DURATION", "168h"),
+		},
+		Xendit: XenditConfig{
+			SecretKey:   getEnv("XENDIT_SECRET_KEY", ""),
+			PublicKey:   getEnv("XENDIT_PUBLIC_KEY", ""),
+			CallbackKey: getEnv("XENDIT_CALLBACK_TOKEN", ""),
+			BaseURL:     getEnv("XENDIT_BASE_URL", "https://api.xendit.co"),
+			Environment: getEnv("XENDIT_ENVIRONMENT", "test"),
+			WebhookURL:  getEnv("XENDIT_WEBHOOK_URL", ""),
 		},
 	}, nil
 }

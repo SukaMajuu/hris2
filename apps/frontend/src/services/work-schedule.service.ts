@@ -1,5 +1,6 @@
 import { WorkSchedule } from "@/types/work-schedule.types";
 import { ApiService, PaginatedResponse } from "@/services/api.service";
+import { API_ROUTES } from "@/config/api.routes"; // Import API_ROUTES
 
 export class WorkScheduleService {
     private api: ApiService;
@@ -9,27 +10,35 @@ export class WorkScheduleService {
     }
 
     async getAll(page: number, pageSize: number): Promise<PaginatedResponse<WorkSchedule>> {
-        const response = await this.api.get<{ data: PaginatedResponse<WorkSchedule> }>(`/api/work-schedules?page=${page}&page_size=${pageSize}`); // Added /api prefix and pagination params
+        // Use API_ROUTES for the endpoint and pass params object
+        const response = await this.api.get<{ data: PaginatedResponse<WorkSchedule> }>(
+            API_ROUTES.v1.api.workSchedules.list,
+            { params: { page, page_size: pageSize } }
+        );
         return response.data.data;
     }
 
     async getById(id: number): Promise<WorkSchedule> {
-        const response = await this.api.get<{ data: WorkSchedule }>(`/api/work-schedules/${id}`); // Added /api prefix
+        // Use API_ROUTES for the endpoint
+        const response = await this.api.get<{ data: WorkSchedule }>(API_ROUTES.v1.api.workSchedules.detail(id));
         return response.data.data;
     }
 
     async create(data: Partial<WorkSchedule>): Promise<WorkSchedule> {
-        const response = await this.api.post<{ data: WorkSchedule }>("/api/work-schedules", data); // Added /api prefix
+        // Use API_ROUTES for the endpoint
+        const response = await this.api.post<{ data: WorkSchedule }>(API_ROUTES.v1.api.workSchedules.create, data);
         return response.data.data;
     }
 
     async update(id: number, data: Partial<WorkSchedule>): Promise<WorkSchedule> {
-        const response = await this.api.put<{ data: WorkSchedule }>(`/api/work-schedules/${id}`, data); // Added /api prefix
+        // Use API_ROUTES for the endpoint
+        const response = await this.api.put<{ data: WorkSchedule }>(API_ROUTES.v1.api.workSchedules.update(id), data);
         return response.data.data;
     }
 
     async delete(id: number): Promise<void> {
-        await this.api.delete(`/api/work-schedules/${id}`); // Added /api prefix
+        // Use API_ROUTES for the endpoint
+        await this.api.delete(API_ROUTES.v1.api.workSchedules.delete(id));
     }
 }
 

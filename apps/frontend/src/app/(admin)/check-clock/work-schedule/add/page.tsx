@@ -1,41 +1,14 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "@/components/ui/use-toast";
 import { WorkScheduleForm } from "@/app/(admin)/check-clock/work-schedule/_components/WorkScheduleForm";
-import { useCreateWorkSchedule } from "@/api/mutations/work-schedule.mutation";
+import { useWorkScheduleMutations } from "@/app/(admin)/check-clock/work-schedule/_hooks/useWorkSchedule";
 import { WorkSchedule } from "@/types/work-schedule.types";
 
 export default function AddWorkSchedulePage() {
-    const router = useRouter();
-    const createWorkScheduleMutation = useCreateWorkSchedule();
-
-    const handleSave = async (data: Partial<WorkSchedule>) => {
+    const { handleCreate, isCreating } = useWorkScheduleMutations(); const handleSave = async (data: Partial<WorkSchedule>) => {
         console.log("Saving new work schedule data:", data);
-
-        try {
-            await createWorkScheduleMutation.mutateAsync(data as WorkSchedule);
-            toast({
-                title: "Success",
-                description: "Work schedule successfully added",
-                duration: 2000,
-            });
-            setTimeout(() => {
-                router.push("/check-clock/work-schedule");
-            }, 2000);
-        } catch (error) {
-            const errorMessage =
-                error instanceof Error
-                    ? error.message
-                    : "Failed to add work schedule";
-            toast({
-                title: "Failed",
-                description: errorMessage,
-                variant: "destructive",
-                duration: 3000,
-            });
-        }
+        await handleCreate(data);
     };
 
     return (
@@ -46,12 +19,11 @@ export default function AddWorkSchedulePage() {
                         Add Work Schedule
                     </CardTitle>
                 </CardHeader>
-            </Card>
-            <WorkScheduleForm
+            </Card>            <WorkScheduleForm
                 onSubmit={handleSave}
                 isEditMode={false}
                 initialData={{}}
-                isLoading={createWorkScheduleMutation.isPending}
+                isLoading={isCreating}
             />
         </div>
     );

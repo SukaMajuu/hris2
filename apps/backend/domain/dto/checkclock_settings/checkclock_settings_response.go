@@ -53,8 +53,9 @@ func ToCheckclockSettingsResponseDTO(settings *domain.CheckclockSettings) *Check
 
 	if settings.WorkSchedule.ID != 0 {
 		dto.WorkSchedule = &workscheduledto.WorkScheduleResponseDTO{
-			ID:   settings.WorkSchedule.ID,
-			Name: settings.WorkSchedule.Name,
+			ID:       settings.WorkSchedule.ID,
+			Name:     settings.WorkSchedule.Name,
+			WorkType: string(settings.WorkSchedule.WorkType),
 		}
 	}
 

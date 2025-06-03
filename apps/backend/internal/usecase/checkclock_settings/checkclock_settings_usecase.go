@@ -74,13 +74,6 @@ func (uc *CheckclockSettingsUseCase) GetByEmployeeID(ctx context.Context, employ
 }
 
 func (uc *CheckclockSettingsUseCase) GetAll(ctx context.Context, paginationParams domain.PaginationParams) (*dtocheckclocksettings.CheckclockSettingsListResponseData, error) {
-	if paginationParams.Page <= 0 {
-		paginationParams.Page = 1
-	}
-	if paginationParams.PageSize <= 0 || paginationParams.PageSize > 100 {
-		paginationParams.PageSize = 10
-	}
-
 	offset := (paginationParams.Page - 1) * paginationParams.PageSize
 	domainSettings, totalItems, err := uc.repo.GetAll(ctx, offset, paginationParams.PageSize)
 	if err != nil {

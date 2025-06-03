@@ -48,12 +48,9 @@ func NewRouter(
 }
 
 func (r *Router) Setup() *gin.Engine {
-	gin.SetMode(gin.DebugMode)
-
 	router := gin.Default()
-
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000"},
+		AllowOrigins:     []string{"http://localhost:3000", "https://hrispblfrontend.agreeablecoast-95647c57.southeastasia.azurecontainerapps.io"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
@@ -113,7 +110,7 @@ func (r *Router) Setup() *gin.Engine {
 				checkclockSettings.POST("", r.checkclockSettingsHandler.CreateCheckclockSettings)
 			}
 
-      documents := api.Group("/documents")
+			documents := api.Group("/documents")
 			{
 				documents.POST("/upload", r.authMiddleware.Authenticate(), r.documentHandler.UploadDocument)
 				documents.GET("", r.authMiddleware.Authenticate(), r.documentHandler.GetDocuments)

@@ -9,13 +9,13 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-import type { WorkSchedule, WorkScheduleDetailRow } from "../_hooks/useWorkSchedule";
+import type { WorkSchedule } from "@/types/work-schedule.types";
 
 interface ConfirmationDeleteProps {
     isDeleteDialogOpen: boolean;
     handleCloseDeleteDialog: () => void;
     handleConfirmDelete: () => void;
-    workScheduleToDelete: WorkSchedule | WorkScheduleDetailRow | null;
+    workScheduleToDelete: WorkSchedule | null;
 }
 
 const ConfirmationDelete = ({
@@ -31,11 +31,10 @@ const ConfirmationDelete = ({
         >
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                    <AlertDialogDescription>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>                    <AlertDialogDescription>
                         This action cannot be undone. This will permanently
                         delete the work schedule &quot;
-                        <strong>{workScheduleToDelete?.nama || ""}</strong>
+                        <strong>{workScheduleToDelete?.name || ""}</strong>
                         &quot; and all associated data.
                     </AlertDialogDescription>
                 </AlertDialogHeader>

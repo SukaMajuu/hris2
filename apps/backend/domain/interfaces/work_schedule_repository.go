@@ -15,6 +15,9 @@ type WorkScheduleRepository interface {
 	UpdateWithDetails(ctx context.Context, workSchedule *domain.WorkSchedule, details []*domain.WorkScheduleDetail, deletedDetailIDs []uint) error
 	GetDetailsByScheduleID(ctx context.Context, scheduleID uint) ([]*domain.WorkScheduleDetail, error)
 
+	// Delete Operations
+	DeleteWithDetails(ctx context.Context, id uint) error
+
 	// List Operation
 	ListWithPagination(ctx context.Context, pagination domain.PaginationParams) ([]*domain.WorkSchedule, int64, error)
 }

@@ -189,3 +189,20 @@ func (uc *WorkScheduleUseCase) GetByID(ctx context.Context, id uint) (*dtoworksc
 
 	return toWorkScheduleResponseDTO(workSchedule), nil
 }
+
+// Delete deletes a work schedule and all its details by ID
+func (uc *WorkScheduleUseCase) Delete(ctx context.Context, id uint) error {
+	// First, check if the work schedule exists
+	_, err := uc.workScheduleRepo.GetByIDWithDetails(ctx, id)
+	if err != nil {
+		return fmt.Errorf("work schedule with ID %d not found: %w", id, err)
+	}
+
+	// Delete the work schedule and all its details
+	err = uc.workScheduleRepo.DeleteWithDetails(ctx, id)
+	if err != nil {
+		return fmt.Errorf("failed to delete work schedule with ID %d: %w", id, err)
+	}
+
+	return nil
+}

@@ -86,6 +86,32 @@ func (r *WorkScheduleRepository) GetDetailsByScheduleID(ctx context.Context, sch
 	return details, nil
 }
 
+// DeleteWithDetails menghapus jadwal kerja beserta semua detailnya
+func (r *WorkScheduleRepository) DeleteWithDetails(ctx context.Context, id uint) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// First, check if the work schedule exists
+		var workSchedule domain.WorkSchedule
+		if err := tx.First(&workSchedule, id).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				return fmt.Errorf("work schedule with ID %d not found", id)
+			}
+			return fmt.Errorf("failed to check work schedule existence: %w", err)
+		}
+
+		// Delete all work schedule details first (due to foreign key constraint)
+		if err := tx.Where("work_schedule_id = ?", id).Delete(&domain.WorkScheduleDetail{}).Error; err != nil {
+			return fmt.Errorf("failed to delete work schedule details for schedule ID %d: %w", id, err)
+		}
+
+		// Then delete the main work schedule
+		if err := tx.Delete(&workSchedule).Error; err != nil {
+			return fmt.Errorf("failed to delete work schedule with ID %d: %w", id, err)
+		}
+
+		return nil
+	})
+}
+
 // ListWithPagination mengambil daftar jadwal kerja dengan paginasi
 func (r *WorkScheduleRepository) ListWithPagination(ctx context.Context, paginationParams domain.PaginationParams) ([]*domain.WorkSchedule, int64, error) {
 	var workSchedules []*domain.WorkSchedule

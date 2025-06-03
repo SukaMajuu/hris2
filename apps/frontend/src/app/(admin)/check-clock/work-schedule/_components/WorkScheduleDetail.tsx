@@ -2,14 +2,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Card, CardContent } from "@/components/ui/card";
 import WorkTypeBadge from "@/components/workTypeBadge";
 import { WorkType } from "@/const/work";
-import { WorkScheduleDetailRow } from "@/types/work-schedule.types"; // Updated import
+import { WorkScheduleDetailItem } from "@/types/work-schedule.types"; // Updated import to use API type
 
 interface WorkScheduleDetailDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     scheduleName?: string;
     workScheduleType?: string;
-    workScheduleDetails: WorkScheduleDetailRow[]; // Updated type
+    workScheduleDetails: WorkScheduleDetailItem[]; // Updated type to use API type
 }
 
 const WorkScheduleDetailDialog = ({
@@ -20,8 +20,8 @@ const WorkScheduleDetailDialog = ({
     workScheduleDetails,
 }: WorkScheduleDetailDialogProps) => {
     // Flatten details: satu hari = satu baris
-    const flattenDetails = (details: WorkScheduleDetailRow[]) => { // Updated type
-        const result: Array<WorkScheduleDetailRow & { singleDay: string }> = [];
+    const flattenDetails = (details: WorkScheduleDetailItem[]) => { // Updated type to use API type
+        const result: Array<WorkScheduleDetailItem & { singleDay: string }> = [];
         details.forEach((detail) => {
             if (Array.isArray(detail.workdays)) {
                 detail.workdays.forEach((day) => {

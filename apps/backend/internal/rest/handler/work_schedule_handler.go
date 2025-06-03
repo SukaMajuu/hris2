@@ -194,3 +194,27 @@ func (h *WorkScheduleHandler) GetWorkSchedule(c *gin.Context) {
 
 	response.OK(c, "Work schedule retrieved successfully", workSchedule)
 }
+
+func (h *WorkScheduleHandler) DeleteWorkSchedule(c *gin.Context) {
+	// Get ID from URL parameter
+	idParam := c.Param("id")
+	idUint64, err := strconv.ParseUint(idParam, 10, 32)
+	if err != nil {
+		response.BadRequest(c, "Invalid work schedule ID", nil)
+		return
+	}
+	id := uint(idUint64)
+
+	err = h.workScheduleUseCase.Delete(c.Request.Context(), id)
+	if err != nil {
+		// Check if it's a not found error
+		if fmt.Sprintf("%v", err) == fmt.Sprintf("work schedule with ID %d not found", id) {
+			response.NotFound(c, err.Error(), nil)
+			return
+		}
+		response.InternalServerError(c, fmt.Errorf("failed to delete work schedule: %w", err))
+		return
+	}
+
+	response.OK(c, "Work schedule deleted successfully", nil)
+}

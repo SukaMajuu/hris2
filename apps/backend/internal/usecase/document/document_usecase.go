@@ -17,6 +17,13 @@ import (
 
 const bucketName = "document"
 
+const (
+	mimeTypePDF   = "application/pdf"
+	mimeTypeDoc   = "application/msword"
+	mimeTypeDocx  = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+	mimeTypeOctet = "application/octet-stream"
+)
+
 type DocumentUseCase struct {
 	documentRepo   interfaces.DocumentRepository
 	employeeRepo   interfaces.EmployeeRepository
@@ -157,12 +164,12 @@ func (uc *DocumentUseCase) getContentTypeFromExtension(filename string) string {
 	ext := strings.ToLower(filepath.Ext(filename))
 	switch ext {
 	case ".pdf":
-		return "application/pdf"
+		return mimeTypePDF
 	case ".doc":
-		return "application/msword"
+		return mimeTypeDoc
 	case ".docx":
-		return "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+		return mimeTypeDocx
 	default:
-		return "application/octet-stream"
+		return mimeTypeOctet
 	}
 }

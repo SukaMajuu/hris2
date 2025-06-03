@@ -22,6 +22,12 @@ import (
 
 const bucketNamePhoto = "photo"
 
+// MIME type constants for content type detection
+const (
+	mimeTypeJPEG = "image/jpeg"
+	mimeTypePNG  = "image/png"
+)
+
 type EmployeeUseCase struct {
 	employeeRepo   interfaces.EmployeeRepository
 	authRepo       interfaces.AuthRepository
@@ -546,10 +552,10 @@ func (uc *EmployeeUseCase) getContentTypeFromExtension(filename string) string {
 	ext := strings.ToLower(filepath.Ext(filename))
 	switch ext {
 	case ".jpg", ".jpeg":
-		return "image/jpeg"
+		return mimeTypeJPEG
 	case ".png":
-		return "image/png"
+		return mimeTypePNG
 	default:
-		return "image/jpeg"
+		return mimeTypeJPEG
 	}
 }

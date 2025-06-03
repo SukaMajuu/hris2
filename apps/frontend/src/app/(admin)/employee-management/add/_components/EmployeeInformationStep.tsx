@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -11,8 +11,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Settings } from 'lucide-react';
 import Image from 'next/image';
 import type { EmployeeFormData } from '../_hooks/useAddEmployeeForm';
+import { useGetMyBranches } from '@/api/queries/branch.queries';
+import { useGetMyPositions } from '@/api/queries/position.queries';
+import { BranchManageDialog } from './BranchManageDialog';
+import { PositionManageDialog } from './PositionManageDialog';
 
 interface EmployeeInformationStepProps {
   formData: EmployeeFormData;
@@ -29,22 +34,12 @@ export function EmployeeInformationStep({
   onRemovePhoto,
   profilePhotoInputRef,
 }: EmployeeInformationStepProps) {
-  // Mock data for branches and positions - can be replaced with API calls later
-  const branches = [
-    { value: 'jakarta', label: 'Jakarta Office' },
-    { value: 'bandung', label: 'Bandung Office' },
-    { value: 'surabaya', label: 'Surabaya Office' },
-    { value: 'yogyakarta', label: 'Yogyakarta Office' },
-  ];
+  const [showBranchDialog, setShowBranchDialog] = useState(false);
+  const [showPositionDialog, setShowPositionDialog] = useState(false);
 
-  const positions = [
-    { value: 'software-engineer', label: 'Software Engineer' },
-    { value: 'qa-engineer', label: 'QA Engineer' },
-    { value: 'product-manager', label: 'Product Manager' },
-    { value: 'ui-ux-designer', label: 'UI/UX Designer' },
-    { value: 'data-analyst', label: 'Data Analyst' },
-    { value: 'hr-specialist', label: 'HR Specialist' },
-  ];
+  // Fetch real data from API
+  const { data: branches = [], isLoading: branchesLoading } = useGetMyBranches();
+  const { data: positions = [], isLoading: positionsLoading } = useGetMyPositions();
 
   return (
     <>
@@ -116,48 +111,106 @@ export function EmployeeInformationStep({
             />
           </div>
           <div>
-            <label
-              htmlFor='branch'
-              className='mb-1 block text-sm font-medium text-slate-600 dark:text-slate-400'
-            >
-              Branch
-            </label>
+            <div className='mb-1 flex items-center justify-between'>
+              <label
+                htmlFor='branch'
+                className='block text-sm font-medium text-slate-600 dark:text-slate-400'
+              >
+                Branch
+              </label>
+              <Button
+                type='button'
+                variant='ghost'
+                size='sm'
+                onClick={() => setShowBranchDialog(true)}
+                className='h-6 px-2 text-xs'
+              >
+                <Settings className='mr-1 h-3 w-3' />
+                Manage
+              </Button>
+            </div>
             <Select
               value={formData.branch}
               onValueChange={(value) => onSelectChange('branch', value)}
+              disabled={branchesLoading}
             >
               <SelectTrigger className='focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800'>
-                <SelectValue placeholder='Select branch' />
+                <SelectValue
+                  placeholder={branchesLoading ? 'Loading branches...' : 'Select branch'}
+                />
               </SelectTrigger>
               <SelectContent>
-                {branches.map((branch) => (
-                  <SelectItem key={branch.value} value={branch.value}>
-                    {branch.label}
-                  </SelectItem>
-                ))}
+                {branches.length === 0 && !branchesLoading ? (
+                  <div className='text-muted-foreground p-2 text-center text-sm'>
+                    No branches found.{' '}
+                    <Button
+                      variant='link'
+                      size='sm'
+                      className='h-auto p-0 text-xs'
+                      onClick={() => setShowBranchDialog(true)}
+                    >
+                      Add branch
+                    </Button>
+                  </div>
+                ) : (
+                  branches.map((branch) => (
+                    <SelectItem key={branch.id} value={branch.id.toString()}>
+                      {branch.name}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
           </div>
           <div>
-            <label
-              htmlFor='position'
-              className='mb-1 block text-sm font-medium text-slate-600 dark:text-slate-400'
-            >
-              Position
-            </label>
+            <div className='mb-1 flex items-center justify-between'>
+              <label
+                htmlFor='position'
+                className='block text-sm font-medium text-slate-600 dark:text-slate-400'
+              >
+                Position
+              </label>
+              <Button
+                type='button'
+                variant='ghost'
+                size='sm'
+                onClick={() => setShowPositionDialog(true)}
+                className='h-6 px-2 text-xs'
+              >
+                <Settings className='mr-1 h-3 w-3' />
+                Manage
+              </Button>
+            </div>
             <Select
               value={formData.position}
               onValueChange={(value) => onSelectChange('position', value)}
+              disabled={positionsLoading}
             >
               <SelectTrigger className='focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800'>
-                <SelectValue placeholder='Select position' />
+                <SelectValue
+                  placeholder={positionsLoading ? 'Loading positions...' : 'Select position'}
+                />
               </SelectTrigger>
               <SelectContent>
-                {positions.map((position) => (
-                  <SelectItem key={position.value} value={position.value}>
-                    {position.label}
-                  </SelectItem>
-                ))}
+                {positions.length === 0 && !positionsLoading ? (
+                  <div className='text-muted-foreground p-2 text-center text-sm'>
+                    No positions found.{' '}
+                    <Button
+                      variant='link'
+                      size='sm'
+                      className='h-auto p-0 text-xs'
+                      onClick={() => setShowPositionDialog(true)}
+                    >
+                      Add position
+                    </Button>
+                  </div>
+                ) : (
+                  positions.map((position) => (
+                    <SelectItem key={position.id} value={position.id.toString()}>
+                      {position.name}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -179,6 +232,12 @@ export function EmployeeInformationStep({
           </div>
         </div>
       </form>
+
+      {/* Branch Management Dialog */}
+      <BranchManageDialog open={showBranchDialog} onOpenChange={setShowBranchDialog} />
+
+      {/* Position Management Dialog */}
+      <PositionManageDialog open={showPositionDialog} onOpenChange={setShowPositionDialog} />
     </>
   );
 }

@@ -23,10 +23,19 @@ FROM debian:bullseye-slim
 
 WORKDIR /app
 
+# Install CA certificates and other necessary packages for TLS
+RUN apt-get update && \
+    apt-get install -y \
+    ca-certificates \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && update-ca-certificates
+
 # Accept build arguments for environment variables
 ARG DATABASE_URL
 ARG SUPABASE_URL
 ARG SUPABASE_KEY
+ARG SUPABASE_SERVICE_KEY
 ARG PORT
 ARG JWT_SECRET_KEY
 ARG JWT_ACCESS_DURATION
@@ -36,10 +45,15 @@ ARG JWT_REFRESH_DURATION
 ENV DATABASE_URL=$DATABASE_URL
 ENV SUPABASE_URL=$SUPABASE_URL
 ENV SUPABASE_KEY=$SUPABASE_KEY
+ENV SUPABASE_SERVICE_KEY=$SUPABASE_SERVICE_KEY
 ENV PORT=$PORT
 ENV JWT_SECRET_KEY=$JWT_SECRET_KEY
 ENV JWT_ACCESS_DURATION=$JWT_ACCESS_DURATION
 ENV JWT_REFRESH_DURATION=$JWT_REFRESH_DURATION
+
+# Set SSL/TLS related environment variables for better certificate handling
+ENV SSL_CERT_DIR=/etc/ssl/certs
+ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 
 # Copy the binary from builder
 COPY --from=builder /app/main .

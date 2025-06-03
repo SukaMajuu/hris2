@@ -12,6 +12,7 @@ type Config struct {
 	Server   ServerConfig
 	JWT      JWTConfig
 	Xendit   XenditConfig
+	TLS      TLSConfig
 }
 
 type DatabaseConfig struct {
@@ -35,18 +36,24 @@ type ServerConfig struct {
 }
 
 type JWTConfig struct {
-	SecretKey       string
-	AccessDuration  string
-	RefreshDuration string
+	SecretKey          string
+	AccessDuration     string
+	RefreshDuration    string
+	RememberMeDuration string
 }
 
 type XenditConfig struct {
-	SecretKey    string
-	PublicKey    string
-	CallbackKey  string
-	BaseURL      string
-	Environment  string
-	WebhookURL   string
+	SecretKey   string
+	PublicKey   string
+	CallbackKey string
+	BaseURL     string
+	Environment string
+	WebhookURL  string
+}
+
+type TLSConfig struct {
+	SkipVerify bool
+	Debug      bool
 }
 
 func Load() (*Config, error) {
@@ -71,9 +78,10 @@ func Load() (*Config, error) {
 			Port: getEnv("PORT", "8080"),
 		},
 		JWT: JWTConfig{
-			SecretKey:       getEnv("JWT_SECRET_KEY", "secret"),
-			AccessDuration:  getEnv("JWT_ACCESS_DURATION", "15m"),
-			RefreshDuration: getEnv("JWT_REFRESH_DURATION", "168h"),
+			SecretKey:          getEnv("JWT_SECRET_KEY", "secret"),
+			AccessDuration:     getEnv("JWT_ACCESS_DURATION", "15m"),
+			RefreshDuration:    getEnv("JWT_REFRESH_DURATION", "168h"),
+			RememberMeDuration: getEnv("JWT_REMEMBER_ME_DURATION", "720h"), // 30 days
 		},
 		Xendit: XenditConfig{
 			SecretKey:   getEnv("XENDIT_SECRET_KEY", ""),
@@ -82,6 +90,10 @@ func Load() (*Config, error) {
 			BaseURL:     getEnv("XENDIT_BASE_URL", "https://api.xendit.co"),
 			Environment: getEnv("XENDIT_ENVIRONMENT", "test"),
 			WebhookURL:  getEnv("XENDIT_WEBHOOK_URL", ""),
+		},
+		TLS: TLSConfig{
+			SkipVerify: getEnv("SKIP_TLS_VERIFY", "") == "true",
+			Debug:      getEnv("TLS_DEBUG", "") == "true",
 		},
 	}, nil
 }

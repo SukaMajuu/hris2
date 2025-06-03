@@ -16,15 +16,21 @@ import (
 type SubscriptionUseCase struct {
 	xenditRepo   interfaces.XenditRepository
 	xenditClient interfaces.XenditClient
+	employeeRepo interfaces.EmployeeRepository
+	authRepo     interfaces.AuthRepository
 }
 
 func NewSubscriptionUseCase(
 	xenditRepo interfaces.XenditRepository,
 	xenditClient interfaces.XenditClient,
+	employeeRepo interfaces.EmployeeRepository,
+	authRepo interfaces.AuthRepository,
 ) *SubscriptionUseCase {
 	return &SubscriptionUseCase{
 		xenditRepo:   xenditRepo,
 		xenditClient: xenditClient,
+		employeeRepo: employeeRepo,
+		authRepo:     authRepo,
 	}
 }
 
@@ -130,7 +136,12 @@ func (uc *SubscriptionUseCase) InitiatePaidCheckout(ctx context.Context, userID,
 	externalID := fmt.Sprintf("checkout_%s", sessionID)
 	description := fmt.Sprintf("HRIS %s Plan - %s (%d-%d employees)",
 		seatPlan.SubscriptionPlan.Name,
-		func() string { if isMonthly { return "Monthly" }; return "Yearly" }(),
+		func() string {
+			if isMonthly {
+				return "Monthly"
+			}
+			return "Yearly"
+		}(),
 		seatPlan.MinEmployees,
 		seatPlan.MaxEmployees)
 
@@ -189,12 +200,12 @@ func (uc *SubscriptionUseCase) CompleteTrialCheckout(ctx context.Context, sessio
 	}
 
 	subscription := &domain.Subscription{
-		AdminUserID:        session.UserID,
-		SubscriptionPlanID: session.SubscriptionPlanID,
-		SeatPlanID:         session.SeatPlanID,
-		Status:             enums.StatusTrial,
-		StartDate:          time.Now(),
-		IsAutoRenew:        true,
+		AdminUserID:          session.UserID,
+		SubscriptionPlanID:   session.SubscriptionPlanID,
+		SeatPlanID:           session.SeatPlanID,
+		Status:               enums.StatusTrial,
+		StartDate:            time.Now(),
+		IsAutoRenew:          true,
 		CurrentEmployeeCount: 0,
 	}
 
@@ -336,11 +347,60 @@ func (uc *SubscriptionUseCase) processInvoiceFailedWebhook(ctx context.Context, 
 }
 
 func (uc *SubscriptionUseCase) GetUserSubscription(ctx context.Context, userID uint) (*subscriptionDto.SubscriptionResponse, error) {
-	subscription, err := uc.xenditRepo.GetSubscriptionByAdminUserID(ctx, userID)
+	user, err := uc.authRepo.GetUserByID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+
+	var adminUserID uint
+
+	switch user.Role {
+	case enums.RoleAdmin:
+		adminUserID = userID
+	case enums.RoleUser:
+		employee, err := uc.employeeRepo.GetByUserID(ctx, userID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get employee: %w", err)
+		}
+
+		adminUserID, err = uc.findAdminUserID(ctx, employee)
+		if err != nil {
+			return nil, fmt.Errorf("failed to find admin user: %w", err)
+		}
+	default:
+		return nil, fmt.Errorf("invalid user role: %s", user.Role)
+	}
+
+	subscription, err := uc.xenditRepo.GetSubscriptionByAdminUserID(ctx, adminUserID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user subscription: %w", err)
 	}
 	return subscriptionDto.ToSubscriptionResponse(subscription), nil
+}
+
+func (uc *SubscriptionUseCase) findAdminUserID(ctx context.Context, employee *domain.Employee) (uint, error) {
+	if employee.User.ID == 0 {
+		emp, err := uc.employeeRepo.GetByID(ctx, employee.ID)
+		if err != nil {
+			return 0, fmt.Errorf("failed to get employee with user info: %w", err)
+		}
+		employee = emp
+	}
+
+	if employee.User.Role == enums.RoleAdmin {
+		return employee.User.ID, nil
+	}
+
+	if employee.ManagerID == nil {
+		return 0, fmt.Errorf("employee has no manager and is not admin")
+	}
+
+	manager, err := uc.employeeRepo.GetByID(ctx, *employee.ManagerID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get manager employee: %w", err)
+	}
+
+	return uc.findAdminUserID(ctx, manager)
 }
 
 func (uc *SubscriptionUseCase) GetCheckoutSession(ctx context.Context, sessionID string) (*subscriptionDto.CheckoutSessionResponse, error) {

@@ -26,6 +26,19 @@ export const API_ROUTES = {
 				update: (id: number) => `/api/work-schedules/${id}`,
 				delete: (id: number) => `/api/work-schedules/${id}`,
 			},
+			locations: {
+				list: "/api/locations",
+				detail: (id: string) => `/api/locations/${id}`,
+				create: "/api/locations",
+				update: (id: string) => `/api/locations/${id}`,
+				delete: (id: string) => `/api/locations/${id}`,
+			},
+			employees: {
+				base: '/api/employee',
+				list: '/api/employee',
+				detail: (id: number) => `/api/employee/${id}`,
+				resign: (id: number) => `/api/employee/${id}/status`,
+			},
 			// Add other API routes as they are implemented
 			// employees: {
 			//   base: '/api/employees',

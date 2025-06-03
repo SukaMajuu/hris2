@@ -113,7 +113,7 @@ func TestEmployeeUseCase_List(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockEmployeeRepo := new(mocks.EmployeeRepository)
 			mockAuthRepo := new(mocks.AuthRepository)
-			uc := NewEmployeeUseCase(mockEmployeeRepo, mockAuthRepo)
+			uc := NewEmployeeUseCase(mockEmployeeRepo, mockAuthRepo, nil)
 
 			mockEmployeeRepo.On("List", ctx, filters, paginationParams).
 				Return(tt.mockRepoEmployees, tt.mockRepoTotalItems, tt.mockRepoError).Once()

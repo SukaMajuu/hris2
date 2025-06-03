@@ -1,10 +1,10 @@
 export interface LocationResponse {
-  id: number; 
+  id: number;
   name: string;
-  address_detail: string; 
+  address_detail: string;
   latitude: number;
   longitude: number;
-  radius_m: number; 
+  radius_m: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -14,15 +14,15 @@ export interface CreateLocationRequest {
   address_detail: string;
   latitude: number;
   longitude: number;
-  radius_m: number; 
+  radius_m: number;
 }
 
 export interface UpdateLocationRequest {
-  name?: string;
-  address_detail?: string;
-  latitude?: number;
-  longitude?: number;
-  radius_m?: number;
+  name: string;
+  address_detail: string;
+  latitude: number;
+  longitude: number;
+  radius_m: number;
 }
 
 export interface LocationFormData {
@@ -31,5 +31,5 @@ export interface LocationFormData {
   address_detail?: string;
   latitude?: number;
   longitude?: number;
-  radius_m?: number | string; 
+  radius_m?: number | string;
 }

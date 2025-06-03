@@ -2,9 +2,9 @@ import type { EmployeeFilters } from '@/types/employee';
 import {
   CheckClockOverviewFilters,
   CheckClockApprovalFilters,
-  CheckClockEmployeeFilters,
-} from '@/types/check-clock-overview.types';
-import { CheckClockEmployeeListFilters } from '@/types/check-clock-employee.types';
+  CheckClockEmployeeFilters
+} from "@/types/check-clock-overview.types";
+import { CheckClockEmployeeListFilters } from "@/types/check-clock-employee.types";
 
 export const queryKeys = {
   auth: {
@@ -20,36 +20,35 @@ export const queryKeys = {
     list: ['users', 'list'] as const,
     detail: (id: string) => ['users', 'detail', id] as const,
   },
-  locations: {
-    list: ['locations', 'list'] as const,
-    detail: (id: string) => ['locations', 'detail', id] as const,
-    create: ['locations', 'create'] as const,
-    update: (id: string) => ['locations', 'update', id] as const,
-    delete: (id: string) => ['locations', 'delete', id] as const,
-  },
-  workSchedules: {
-    list: ['workSchedules', 'list'] as const,
-    detail: (id: number | string) => ['workSchedules', 'detail', id] as const,
-    create: ['workSchedules', 'create'] as const,
-    update: ['workSchedules', 'update'] as const,
-    delete: ['workSchedules', 'delete'] as const,
-  },
-  checkClockEmployees: {
-    list: (filters: CheckClockEmployeeListFilters = {}) =>
-      ['checkClockEmployees', 'list', filters] as const,
-    detail: (id: number) => ['checkClockEmployees', 'detail', id] as const,
-    create: ['checkClockEmployees', 'create'] as const,
-    update: (id: number) => ['checkClockEmployees', 'update', id] as const,
-    delete: (id: number) => ['checkClockEmployees', 'delete', id] as const,
-    approve: (id: number) => ['checkClockEmployees', 'approve', id] as const,
-    reject: (id: number) => ['checkClockEmployees', 'reject', id] as const,
-  },
   employees: {
     list: (page: number, pageSize: number, filters?: EmployeeFilters) =>
       ['employees', 'list', page, pageSize, filters] as const,
     detail: (id: number) => ['employees', 'detail', id] as const,
     stats: ['employees', 'stats'] as const,
     resign: ['employees', 'resign'] as const,
+  },
+  locations: {
+    list: ["locations", "list"] as const,
+    detail: (id: string) => ["locations", "detail", id] as const,
+    create: ["locations", "create"] as const,
+    update: (id: string) => ["locations", "update", id] as const,
+    delete: (id: string) => ["locations", "delete", id] as const,
+  },
+  workSchedules: {
+    list: ["workSchedules", "list"] as const,
+    detail: (id: number | string) => ["workSchedules", "detail", id] as const,
+    create: ["workSchedules", "create"] as const,
+    update: ["workSchedules", "update"] as const,
+    delete: ["workSchedules", "delete"] as const,
+  },
+  checkClockEmployees: {
+    list: (filters: CheckClockEmployeeListFilters = {}) => ["checkClockEmployees", "list", filters] as const,
+    detail: (id: number) => ["checkClockEmployees", "detail", id] as const,
+    create: ["checkClockEmployees", "create"] as const,
+    update: (id: number) => ["checkClockEmployees", "update", id] as const,
+    delete: (id: number) => ["checkClockEmployees", "delete", id] as const,
+    approve: (id: number) => ["checkClockEmployees", "approve", id] as const,
+    reject: (id: number) => ["checkClockEmployees", "reject", id] as const,
   },
   checkClock: {
     overviewList: (filters?: CheckClockOverviewFilters) =>

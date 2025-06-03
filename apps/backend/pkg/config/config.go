@@ -12,6 +12,7 @@ type Config struct {
 	Server   ServerConfig
 	JWT      JWTConfig
 	Xendit   XenditConfig
+	TLS      TLSConfig
 }
 
 type DatabaseConfig struct {
@@ -41,12 +42,17 @@ type JWTConfig struct {
 }
 
 type XenditConfig struct {
-	SecretKey    string
-	PublicKey    string
-	CallbackKey  string
-	BaseURL      string
-	Environment  string
-	WebhookURL   string
+	SecretKey   string
+	PublicKey   string
+	CallbackKey string
+	BaseURL     string
+	Environment string
+	WebhookURL  string
+}
+
+type TLSConfig struct {
+	SkipVerify bool
+	Debug      bool
 }
 
 func Load() (*Config, error) {
@@ -82,6 +88,10 @@ func Load() (*Config, error) {
 			BaseURL:     getEnv("XENDIT_BASE_URL", "https://api.xendit.co"),
 			Environment: getEnv("XENDIT_ENVIRONMENT", "test"),
 			WebhookURL:  getEnv("XENDIT_WEBHOOK_URL", ""),
+		},
+		TLS: TLSConfig{
+			SkipVerify: getEnv("SKIP_TLS_VERIFY", "") == "true",
+			Debug:      getEnv("TLS_DEBUG", "") == "true",
 		},
 	}, nil
 }

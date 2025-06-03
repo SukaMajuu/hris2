@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
 	"github.com/SukaMajuu/hris/apps/backend/domain/enums"
@@ -108,4 +109,112 @@ func (h *WorkScheduleHandler) ListWorkSchedules(c *gin.Context) {
 
 	// Pass the responseData (which includes items and pagination) to response.OK
 	response.OK(c, "Work schedules listed successfully", responseData)
+}
+
+func (h *WorkScheduleHandler) UpdateWorkSchedule(c *gin.Context) {
+	// Get ID from URL parameter
+	idParam := c.Param("id")
+	idUint64, err := strconv.ParseUint(idParam, 10, 32)
+	if err != nil {
+		response.BadRequest(c, "Invalid work schedule ID", nil)
+		return
+	}
+	id := uint(idUint64)
+
+	var req workSheduleDTO.UpdateWorkScheduleRequest
+	if bindAndValidate(c, &req) {
+		return
+	}
+
+	// Map DTO details to domain details
+	var domainDetails []*domain.WorkScheduleDetail
+	for _, detailDTO := range req.Details {
+		var workDaysInDetail []domain.Days
+		validDayStrings := utils.StringToDays(detailDTO.WorkDays)
+		for _, dayStr := range validDayStrings {
+			workDaysInDetail = append(workDaysInDetail, domain.Days(dayStr))
+		}
+
+		checkinStart := utils.ParseTimeHelper(detailDTO.CheckInStart)
+		checkinEnd := utils.ParseTimeHelper(detailDTO.CheckInEnd)
+		breakStart := utils.ParseTimeHelper(detailDTO.BreakStart)
+		breakEnd := utils.ParseTimeHelper(detailDTO.BreakEnd)
+		checkoutStart := utils.ParseTimeHelper(detailDTO.CheckOutStart)
+		checkoutEnd := utils.ParseTimeHelper(detailDTO.CheckOutEnd)
+
+		domainDetail := &domain.WorkScheduleDetail{
+			WorktypeDetail: enums.WorkType(detailDTO.WorkTypeDetail),
+			WorkDays:       workDaysInDetail,
+			CheckinStart:   checkinStart,
+			CheckinEnd:     checkinEnd,
+			BreakStart:     breakStart,
+			BreakEnd:       breakEnd,
+			CheckoutStart:  checkoutStart,
+			CheckoutEnd:    checkoutEnd,
+			LocationID:     detailDTO.LocationID,
+		}
+
+		// Set ID if it's an existing detail
+		if detailDTO.ID != nil {
+			domainDetail.ID = *detailDTO.ID
+		}
+
+		domainDetails = append(domainDetails, domainDetail)
+	}
+
+	domainWorkSchedule := &domain.WorkSchedule{
+		Name:     req.Name,
+		WorkType: enums.WorkType(req.WorkType),
+	}
+
+	updatedWorkSchedule, err := h.workScheduleUseCase.Update(c.Request.Context(), id, domainWorkSchedule, domainDetails, req.ToDelete)
+	if err != nil {
+		response.BadRequest(c, err.Error(), nil)
+		return
+	}
+
+	response.OK(c, "Work schedule updated successfully", updatedWorkSchedule)
+}
+
+func (h *WorkScheduleHandler) GetWorkSchedule(c *gin.Context) {
+	// Get ID from URL parameter
+	idParam := c.Param("id")
+	idUint64, err := strconv.ParseUint(idParam, 10, 32)
+	if err != nil {
+		response.BadRequest(c, "Invalid work schedule ID", nil)
+		return
+	}
+	id := uint(idUint64)
+
+	workSchedule, err := h.workScheduleUseCase.GetByID(c.Request.Context(), id)
+	if err != nil {
+		response.NotFound(c, err.Error(), nil)
+		return
+	}
+
+	response.OK(c, "Work schedule retrieved successfully", workSchedule)
+}
+
+func (h *WorkScheduleHandler) DeleteWorkSchedule(c *gin.Context) {
+	// Get ID from URL parameter
+	idParam := c.Param("id")
+	idUint64, err := strconv.ParseUint(idParam, 10, 32)
+	if err != nil {
+		response.BadRequest(c, "Invalid work schedule ID", nil)
+		return
+	}
+	id := uint(idUint64)
+
+	err = h.workScheduleUseCase.Delete(c.Request.Context(), id)
+	if err != nil {
+		// Check if it's a not found error
+		if fmt.Sprintf("%v", err) == fmt.Sprintf("work schedule with ID %d not found", id) {
+			response.NotFound(c, err.Error(), nil)
+			return
+		}
+		response.InternalServerError(c, fmt.Errorf("failed to delete work schedule: %w", err))
+		return
+	}
+
+	response.OK(c, "Work schedule deleted successfully", nil)
 }

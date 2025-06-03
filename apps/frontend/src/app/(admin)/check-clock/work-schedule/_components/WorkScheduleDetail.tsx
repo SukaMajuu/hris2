@@ -2,14 +2,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Card, CardContent } from "@/components/ui/card";
 import WorkTypeBadge from "@/components/workTypeBadge";
 import { WorkType } from "@/const/work";
-import { WorkScheduleDetailRow } from "@/types/work-schedule.types"; // Updated import
+import { WorkScheduleDetailItem } from "@/types/work-schedule.types"; // Updated import to use API type
 
 interface WorkScheduleDetailDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     scheduleName?: string;
     workScheduleType?: string;
-    workScheduleDetails: WorkScheduleDetailRow[]; // Updated type
+    workScheduleDetails: WorkScheduleDetailItem[]; // Updated type to use API type
 }
 
 const WorkScheduleDetailDialog = ({
@@ -19,9 +19,12 @@ const WorkScheduleDetailDialog = ({
     workScheduleType,
     workScheduleDetails,
 }: WorkScheduleDetailDialogProps) => {
+    // Define day order for sorting (Monday to Sunday)
+    const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
     // Flatten details: satu hari = satu baris
-    const flattenDetails = (details: WorkScheduleDetailRow[]) => { // Updated type
-        const result: Array<WorkScheduleDetailRow & { singleDay: string }> = [];
+    const flattenDetails = (details: WorkScheduleDetailItem[]) => { // Updated type to use API type
+        const result: Array<WorkScheduleDetailItem & { singleDay: string }> = [];
         details.forEach((detail) => {
             if (Array.isArray(detail.workdays)) {
                 detail.workdays.forEach((day) => {
@@ -31,7 +34,19 @@ const WorkScheduleDetailDialog = ({
                 result.push({ ...detail, singleDay: detail.workdays || "-" });
             }
         });
-        return result;
+
+        // Sort by day order (Monday to Sunday)
+        return result.sort((a, b) => {
+            const dayIndexA = dayOrder.indexOf(a.singleDay);
+            const dayIndexB = dayOrder.indexOf(b.singleDay);
+
+            // If day is not found in dayOrder, put it at the end
+            if (dayIndexA === -1 && dayIndexB === -1) return 0;
+            if (dayIndexA === -1) return 1;
+            if (dayIndexB === -1) return -1;
+
+            return dayIndexA - dayIndexB;
+        });
     };
     const flattenedDetails = flattenDetails(workScheduleDetails);
 

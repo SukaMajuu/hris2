@@ -11,6 +11,7 @@ type PositionRepository interface {
 	GetByID(ctx context.Context, id uint) (*domain.Position, error)
 	GetByName(ctx context.Context, name string) (*domain.Position, error)
 	GetByDepartmentID(ctx context.Context, departmentID uint) ([]*domain.Position, error)
+	GetByHrID(ctx context.Context, hrID uint) ([]*domain.Position, error)
 	Update(ctx context.Context, position *domain.Position) error
 	Delete(ctx context.Context, id uint) error
 	List(ctx context.Context, filters map[string]interface{}) ([]*domain.Position, error)

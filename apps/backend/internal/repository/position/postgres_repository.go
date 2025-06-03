@@ -47,6 +47,15 @@ func (r *PostgresRepository) GetByDepartmentID(ctx context.Context, departmentID
 	return positions, nil
 }
 
+func (r *PostgresRepository) GetByHrID(ctx context.Context, hrID uint) ([]*domain.Position, error) {
+	var positions []*domain.Position
+	err := r.db.WithContext(ctx).Where("hr_id = ?", hrID).Find(&positions).Error
+	if err != nil {
+		return nil, err
+	}
+	return positions, nil
+}
+
 func (r *PostgresRepository) Update(ctx context.Context, position *domain.Position) error {
 	return r.db.WithContext(ctx).Save(position).Error
 }

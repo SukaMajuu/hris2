@@ -124,6 +124,11 @@ components:
                     maxLength: 255
                     nullable: true
                     description: Place where the employee was born (optional).
+                date_of_birth:
+                    type: string
+                    format: date
+                    nullable: true
+                    description: Date when the employee was born (optional).
                 last_education:
                     type: string
                     nullable: true
@@ -176,6 +181,10 @@ components:
                     format: url
                     nullable: true
                     description: URL to the employee's profile photo (optional).
+                photo_file:
+                    type: string
+                    format: binary
+                    description: "Profile photo file to upload (JPEG, PNG, GIF, WebP only). Alternative to profile_photo_url."
                 created_at:
                     type: string
                     format: date-time
@@ -208,6 +217,10 @@ components:
                     type: string
                     maxLength: 255
                     description: The name of the position.
+                hr_id:
+                    type: integer
+                    format: uint
+                    description: Foreign key referencing the HR User ID who manages this position.
                 created_at:
                     type: string
                     format: date-time
@@ -220,8 +233,90 @@ components:
                     readOnly: true
             required:
                 - name
+                - hr_id
                 - created_at
                 - updated_at
+
+        PositionCreateRequest:
+            type: object
+            description: Request body for creating a new position.
+            properties:
+                name:
+                    type: string
+                    maxLength: 255
+                    description: The name of the position.
+                    example: "Software Engineer"
+            required:
+                - name
+
+        PositionUpdateRequest:
+            type: object
+            description: Request body for updating a position.
+            properties:
+                name:
+                    type: string
+                    maxLength: 255
+                    description: The updated name of the position.
+                    example: "Senior Software Engineer"
+            required:
+                - name
+
+        Branch:
+            type: object
+            description: Represents a company branch or location.
+            properties:
+                id:
+                    type: integer
+                    format: uint
+                    description: Unique identifier for the branch.
+                    readOnly: true
+                name:
+                    type: string
+                    maxLength: 255
+                    description: The name of the branch.
+                hr_id:
+                    type: integer
+                    format: uint
+                    description: Foreign key referencing the HR User ID who manages this branch.
+                created_at:
+                    type: string
+                    format: date-time
+                    description: Timestamp when the branch was created.
+                    readOnly: true
+                updated_at:
+                    type: string
+                    format: date-time
+                    description: Timestamp when the branch was last updated.
+                    readOnly: true
+            required:
+                - name
+                - hr_id
+                - created_at
+                - updated_at
+
+        BranchCreateRequest:
+            type: object
+            description: Request body for creating a new branch.
+            properties:
+                name:
+                    type: string
+                    maxLength: 255
+                    description: The name of the branch.
+                    example: "Jakarta Office"
+            required:
+                - name
+
+        BranchUpdateRequest:
+            type: object
+            description: Request body for updating a branch.
+            properties:
+                name:
+                    type: string
+                    maxLength: 255
+                    description: The updated name of the branch.
+                    example: "Jakarta Main Office"
+            required:
+                - name
 
         Location:
             type: object
@@ -283,34 +378,6 @@ components:
             required:
                 - page
                 - page_size
-
-        Branch:
-            type: object
-            description: Represents a company branch or location.
-            properties:
-                id:
-                    type: integer
-                    format: uint
-                    description: Unique identifier for the branch.
-                    readOnly: true
-                name:
-                    type: string
-                    maxLength: 255
-                    description: The unique name of the branch.
-                created_at:
-                    type: string
-                    format: date-time
-                    description: Timestamp when the branch was created.
-                    readOnly: true
-                updated_at:
-                    type: string
-                    format: date-time
-                    description: Timestamp when the branch was last updated.
-                    readOnly: true
-            required:
-                - name
-                - created_at
-                - updated_at
 
         WorkScheduleDetailRequest:
             type: object
@@ -968,6 +1035,53 @@ components:
                 - created_at
                 - updated_at
 
+        EmployeeStatisticsResponse:
+            type: object
+            properties:
+                total_employees:
+                    type: integer
+                    format: int64
+                    description: Total number of employees in the system
+                    example: 150
+                new_employees:
+                    type: integer
+                    format: int64
+                    description: Number of new employees hired in the current month
+                    example: 12
+                active_employees:
+                    type: integer
+                    format: int64
+                    description: Number of currently active employees
+                    example: 145
+                resigned_employees:
+                    type: integer
+                    format: int64
+                    description: Number of employees who have resigned
+                    example: 5
+                permanent_employees:
+                    type: integer
+                    format: int64
+                    description: Number of employees with permanent contract type
+                    example: 85
+                contract_employees:
+                    type: integer
+                    format: int64
+                    description: Number of employees with contract type
+                    example: 45
+                freelance_employees:
+                    type: integer
+                    format: int64
+                    description: Number of employees with freelance contract type
+                    example: 20
+            required:
+                - total_employees
+                - new_employees
+                - active_employees
+                - resigned_employees
+                - permanent_employees
+                - contract_employees
+                - freelance_employees
+
 paths:
     /auth/login:
         post:
@@ -1538,6 +1652,11 @@ paths:
                                                             type: string
                                                             nullable: true
                                                             example: "EMP001"
+                                                        date_of_birth:
+                                                            type: string
+                                                            format: date
+                                                            nullable: true
+                                                            example: "1990-05-15"
                                             pagination:
                                                 type: object
                                                 properties:
@@ -1579,41 +1698,30 @@ paths:
         post:
             tags: [Employees]
             summary: Create new employee
+            description: Create a new employee with optional profile photo upload. All employee data and photo can be submitted in a single request using multipart/form-data.
             requestBody:
                 required: true
                 content:
-                    application/json:
+                    multipart/form-data:
                         schema:
                             type: object
                             required:
+                                - email
                                 - first_name
                                 - position_id
-                                - email
                             properties:
                                 email:
                                     type: string
                                     format: email
-                                    description: "User's email address for the new account."
-                                    example: "new.employee@example.com"
+                                    example: "john.doe@example.com"
                                 password:
                                     type: string
                                     format: password
                                     minLength: 8
-                                    description: "Password for the new user account."
-                                    example: "strongpassword123"
+                                    example: "password123"
                                 phone:
                                     type: string
-                                    nullable: true
-                                    pattern: '^\\+?[1-9]\\d{1,14}$'
-                                    description: "User's phone number for the new account (optional)."
-                                    example: "+6281234567891"
-                                user_id:
-                                    type: integer
-                                    format: uint
-                                    nullable: true
-                                    description: "(Read-only for creation as user is auto-created) Foreign key referencing the associated User ID."
-                                    example: 1
-                                    readOnly: true
+                                    example: "+1234567890"
                                 first_name:
                                     type: string
                                     maxLength: 255
@@ -1627,30 +1735,20 @@ paths:
                                     type: integer
                                     format: uint
                                     example: 1
-                                employment_status:
-                                    type: boolean
-                                    nullable: true
-                                    description: "Employee's employment status. Defaults to true if not provided."
-                                    example: true
                                 employee_code:
                                     type: string
                                     maxLength: 50
-                                    nullable: true
-                                    pattern: "^[a-zA-Z0-9]*$"
                                     example: "EMP001"
                                 branch_id:
                                     type: integer
                                     format: uint
-                                    nullable: true
                                     example: 1
                                 gender:
                                     type: string
-                                    nullable: true
-                                    enum: [Male, Female]
-                                    example: "Male"
+                                    enum: [male, female]
+                                    example: "male"
                                 nik:
                                     type: string
-                                    nullable: true
                                     pattern: "^[0-9]*$"
                                     maxLength: 16
                                     example: "1234567890123456"
@@ -1660,6 +1758,12 @@ paths:
                                     nullable: true
                                     description: "Place where the employee was born (optional)."
                                     example: "Jakarta"
+                                date_of_birth:
+                                    type: string
+                                    format: date
+                                    nullable: true
+                                    description: "Date when the employee was born (optional)."
+                                    example: "1990-05-15"
                                 last_education:
                                     type: string
                                     nullable: true
@@ -1688,7 +1792,6 @@ paths:
                                     type: string
                                     nullable: true
                                     enum: [permanent, contract, freelance]
-                                    description: "Type of employment contract (optional)."
                                     example: "permanent"
                                 hire_date:
                                     type: string
@@ -1736,11 +1839,14 @@ paths:
                                     example: "K/0"
                                 profile_photo_url:
                                     type: string
-                                    maxLength: 255
                                     format: url
                                     nullable: true
                                     description: "URL to the employee's profile photo (optional)."
                                     example: "https://example.com/profile.jpg"
+                                photo_file:
+                                    type: string
+                                    format: binary
+                                    description: "Profile photo file to upload (JPEG, PNG, GIF, WebP only). Alternative to profile_photo_url."
             responses:
                 "201":
                     description: Employee created successfully
@@ -1813,6 +1919,11 @@ paths:
                                                 maxLength: 255
                                                 nullable: true
                                                 example: "Jakarta"
+                                            date_of_birth:
+                                                type: string
+                                                format: date
+                                                nullable: true
+                                                example: "1990-05-15"
                                             last_education:
                                                 type: string
                                                 nullable: true
@@ -1893,6 +2004,12 @@ paths:
                                                 type: string
                                                 format: date-time
                                                 readOnly: true
+                                            email:
+                                                type: string
+                                                format: email
+                                                nullable: true
+                                                description: "Updated email of the associated user account, if changed."
+                                                example: "new.employee.email@example.com"
                 "400":
                     description: Bad request
                     content:
@@ -2034,6 +2151,33 @@ paths:
                                                 type: string
                                                 format: date-time
                                                 readOnly: true
+                                            place_of_birth:
+                                                type: string
+                                                maxLength: 255
+                                                nullable: true
+                                                example: "Jakarta"
+                                            date_of_birth:
+                                                type: string
+                                                format: date
+                                                nullable: true
+                                                example: "1990-05-15"
+                                            last_education:
+                                                type: string
+                                                nullable: true
+                                                enum:
+                                                    [
+                                                        SD,
+                                                        SMP,
+                                                        SMA/SMK,
+                                                        D1,
+                                                        D2,
+                                                        D3,
+                                                        S1/D4,
+                                                        S2,
+                                                        S3,
+                                                        Other,
+                                                    ]
+                                                example: "SMA/SMK"
 
                 "400":
                     description: Invalid ID supplied
@@ -2087,6 +2231,7 @@ paths:
         patch:
             tags: [Employees]
             summary: Update employee details
+            description: Update employee details with optional profile photo upload. All employee data and photo can be submitted in a single request using multipart/form-data.
             security:
                 - bearerAuth: []
             parameters:
@@ -2101,7 +2246,7 @@ paths:
             requestBody:
                 required: true
                 content:
-                    application/json:
+                    multipart/form-data:
                         schema:
                             type: object
                             properties:
@@ -2145,6 +2290,11 @@ paths:
                                     maxLength: 255
                                     nullable: true
                                     example: "Jakarta"
+                                date_of_birth:
+                                    type: string
+                                    format: date
+                                    nullable: true
+                                    example: "1990-05-15"
                                 last_education:
                                     type: string
                                     nullable: true
@@ -2223,6 +2373,10 @@ paths:
                                     nullable: true
                                     description: "URL to the employee's profile photo (optional)."
                                     example: "https://example.com/new_profile.jpg"
+                                photo_file:
+                                    type: string
+                                    format: binary
+                                    description: "Profile photo file to upload (JPEG, PNG, GIF, WebP only). Alternative to profile_photo_url."
                                 employment_status:
                                     type: boolean
                                     example: true
@@ -2291,6 +2445,19 @@ paths:
                                             employment_status:
                                                 type: boolean
                                                 example: true
+                                            nik:
+                                                type: string
+                                                nullable: true
+                                                example: "9876543210987654"
+                                            place_of_birth:
+                                                type: string
+                                                nullable: true
+                                                example: "Jakarta"
+                                            date_of_birth:
+                                                type: string
+                                                format: date
+                                                nullable: true
+                                                example: "1990-05-15"
                                             email:
                                                 type: string
                                                 format: email
@@ -2465,6 +2632,62 @@ paths:
                                     error:
                                         type: string
                                         example: "Failed to update employee status"
+
+    /api/employee/statistics:
+        get:
+            tags: [Employees]
+            summary: Get employee statistics
+            description: Retrieve statistical information about employees including total count, new hires, active and resigned employees
+            security:
+                - bearerAuth: []
+            responses:
+                200:
+                    description: Employee statistics retrieved successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "Employee statistics retrieved successfully"
+                                    data:
+                                        $ref: "#/components/schemas/EmployeeStatisticsResponse"
+                401:
+                    description: Unauthorized
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 401
+                                    message:
+                                        type: string
+                                        example: "Unauthorized"
+                                    error:
+                                        type: string
+                                        example: "Invalid or missing authentication token"
+                500:
+                    description: Internal server error
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 500
+                                    message:
+                                        type: string
+                                        example: "Internal server error"
+                                    error:
+                                        type: string
+                                        example: "Failed to retrieve employee statistics"                                    
 
     /api/checkclock-settings:
         post:
@@ -3734,7 +3957,7 @@ paths:
                                         example: "File type not allowed"
                                     error:
                                         type: string
-                                        example: "File type not allowed. Detected: application/zip. Allowed types: application/pdf, application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                                        example: "File type not allowed. Allowed types: application/pdf, application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                 401:
                     description: Unauthorized
                 500:
@@ -4524,6 +4747,340 @@ paths:
                                     error:
                                         type: string
                                         example: "Failed to process webhook"
+
+    /api/branches:
+        post:
+            tags: [Branches]
+            summary: Create a new branch
+            description: Create a new branch for the authenticated HR user
+            security:
+                - bearerAuth: []
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/BranchCreateRequest"
+            responses:
+                201:
+                    description: Branch created successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 201
+                                    message:
+                                        type: string
+                                        example: "Branch created successfully"
+                                    data:
+                                        $ref: "#/components/schemas/Branch"
+                400:
+                    description: Bad request
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 400
+                                    message:
+                                        type: string
+                                        example: "Invalid request data"
+                                    error:
+                                        type: string
+                                        example: "Missing required fields"
+                401:
+                    description: Unauthorized
+                500:
+                    description: Internal server error
+
+        get:
+            tags: [Branches]
+            summary: Get my branches
+            description: Retrieve all branches managed by the authenticated HR user
+            security:
+                - bearerAuth: []
+            responses:
+                200:
+                    description: Branches retrieved successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "Branches retrieved successfully"
+                                    data:
+                                        type: array
+                                        items:
+                                            $ref: "#/components/schemas/Branch"
+                401:
+                    description: Unauthorized
+                500:
+                    description: Internal server error
+
+    /api/branches/{id}:
+        put:
+            tags: [Branches]
+            summary: Update a branch
+            description: Update an existing branch
+            security:
+                - bearerAuth: []
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  description: Branch ID
+                  schema:
+                      type: integer
+                      format: uint
+                      example: 1
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/BranchUpdateRequest"
+            responses:
+                200:
+                    description: Branch updated successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "Branch updated successfully"
+                                    data:
+                                        $ref: "#/components/schemas/Branch"
+                400:
+                    description: Bad request
+                401:
+                    description: Unauthorized
+                404:
+                    description: Branch not found
+                500:
+                    description: Internal server error
+
+        delete:
+            tags: [Branches]
+            summary: Delete a branch
+            description: Delete an existing branch
+            security:
+                - bearerAuth: []
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  description: Branch ID
+                  schema:
+                      type: integer
+                      format: uint
+                      example: 1
+            responses:
+                200:
+                    description: Branch deleted successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "Branch deleted successfully"
+                                    data:
+                                        type: object
+                                        nullable: true
+                400:
+                    description: Invalid ID format
+                401:
+                    description: Unauthorized
+                404:
+                    description: Branch not found
+                500:
+                    description: Internal server error
+
+    /api/positions:
+        post:
+            tags: [Positions]
+            summary: Create a new position
+            description: Create a new position for the authenticated HR user
+            security:
+                - bearerAuth: []
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/PositionCreateRequest"
+            responses:
+                201:
+                    description: Position created successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 201
+                                    message:
+                                        type: string
+                                        example: "Position created successfully"
+                                    data:
+                                        $ref: "#/components/schemas/Position"
+                400:
+                    description: Bad request
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 400
+                                    message:
+                                        type: string
+                                        example: "Invalid request data"
+                                    error:
+                                        type: string
+                                        example: "Missing required fields"
+                401:
+                    description: Unauthorized
+                500:
+                    description: Internal server error
+
+        get:
+            tags: [Positions]
+            summary: Get my positions
+            description: Retrieve all positions managed by the authenticated HR user
+            security:
+                - bearerAuth: []
+            responses:
+                200:
+                    description: Positions retrieved successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "Positions retrieved successfully"
+                                    data:
+                                        type: array
+                                        items:
+                                            $ref: "#/components/schemas/Position"
+                401:
+                    description: Unauthorized
+                500:
+                    description: Internal server error
+
+    /api/positions/{id}:
+        put:
+            tags: [Positions]
+            summary: Update a position
+            description: Update an existing position
+            security:
+                - bearerAuth: []
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  description: Position ID
+                  schema:
+                      type: integer
+                      format: uint
+                      example: 1
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/PositionUpdateRequest"
+            responses:
+                200:
+                    description: Position updated successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "Position updated successfully"
+                                    data:
+                                        $ref: "#/components/schemas/Position"
+                400:
+                    description: Bad request
+                401:
+                    description: Unauthorized
+                404:
+                    description: Position not found
+                500:
+                    description: Internal server error
+
+        delete:
+            tags: [Positions]
+            summary: Delete a position
+            description: Delete an existing position
+            security:
+                - bearerAuth: []
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  description: Position ID
+                  schema:
+                      type: integer
+                      format: uint
+                      example: 1
+            responses:
+                200:
+                    description: Position deleted successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "Position deleted successfully"
+                                    data:
+                                        type: object
+                                        nullable: true
+                400:
+                    description: Invalid ID format
+                401:
+                    description: Unauthorized
+                404:
+                    description: Position not found
+                500:
+                    description: Internal server error
 
 security:
     - bearerAuth: []

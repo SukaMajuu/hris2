@@ -29,6 +29,7 @@ type Employee struct {
 	Gender                *enums.Gender         `gorm:"type:gender"`
 	NIK                   *string               `gorm:"type:varchar(255);unique"`
 	PlaceOfBirth          *string               `gorm:"type:varchar(255)"`
+	DateOfBirth           *time.Time            `gorm:"type:date"`
 	LastEducation         *enums.EducationLevel `gorm:"type:education_level"`
 	Grade                 *string               `gorm:"type:varchar(50)"`
 	ContractType          *enums.ContractType   `gorm:"type:contract_type"`

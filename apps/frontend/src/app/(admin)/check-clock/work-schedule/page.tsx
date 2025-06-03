@@ -3,14 +3,13 @@
 import WorkTypeBadge from "@/components/workTypeBadge";
 import { WorkType } from "@/const/work";
 import { DataTable } from "@/components/dataTable";
-// import { useWorkSchedule, WorkSchedule, initialWorkSchedules } from "./_hooks/useWorkSchedule"; // Removed
 import { Card, CardContent } from "@/components/ui/card";
 import { PaginationComponent } from "@/components/pagination";
 import { PageSizeComponent } from "@/components/pageSize";
 import { Button } from "@/components/ui/button";
 import { Edit, Eye, Plus, Search, Trash } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import React, { useCallback, useState, useMemo } from "react";
+import React, { useCallback } from "react";
 import {
     ColumnDef,
     getCoreRowModel,
@@ -22,75 +21,67 @@ import {
 import ConfirmationDelete from "./_components/ConfirmationDelete";
 import Link from "next/link";
 import WorkScheduleDetailDialog from "./_components/WorkScheduleDetail";
-import { useWorkSchedules } from "@/api/queries/work-schedule.queries"; // Added
-import { useDeleteWorkSchedule } from "@/api/mutations/work-schedule.mutation"; // Added
-import { WorkSchedule } from "@/types/work-schedule.types"; // Added
-import { useRouter } from "next/navigation"; // Added
-import { toast } from "@/components/ui/use-toast"; // Added
+import { WorkSchedule } from "@/types/work-schedule.types";
+import { useWorkScheduleOperations } from "./_hooks/useWorkSchedule";
 
 export default function WorkSchedulePage() {
-    const router = useRouter(); // Added
-    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-    const [workScheduleToDelete, setWorkScheduleToDelete] = useState<WorkSchedule | null>(null);
     const [scheduleNameFilter, setScheduleNameFilter] = React.useState("");
     const [pagination, setPagination] = React.useState<PaginationState>({
         pageIndex: 0, // default page index
         pageSize: 10, // default page size
-    });
-    const [viewDialogOpen, setViewDialogOpen] = useState(false);
-    const [viewedSchedule, setViewedSchedule] = useState<WorkSchedule | null>(null);
+    });    // Use comprehensive hook for all work schedule operations
+    const {
+        // List data
+        isLoading,
+        isError,
+        error,
+        workSchedules,
+        totalPages,
 
-    // Fetch WorkSchedules using React Query
-    const { data: paginatedWorkSchedules, isLoading, isError, error } = useWorkSchedules(
+        // Dialog management
+        isDeleteDialogOpen,
+        workScheduleToDelete,
+        viewDialogOpen,
+        viewedSchedule,
+        handleOpenDeleteDialog,
+        handleCloseDeleteDialog,
+        handleOpenViewDialog,
+        handleCloseViewDialog,
+
+        // Navigation
+        handleEditNavigation,
+
+        // Mutations
+        handleDelete,
+    } = useWorkScheduleOperations(
         pagination.pageIndex + 1, // API is 1-based, table is 0-based
         pagination.pageSize,
-    );
-    const deleteWorkScheduleMutation = useDeleteWorkSchedule(); // Added
-
-    // Use fetched data or an empty array if loading or error
-    const workSchedules: WorkSchedule[] = useMemo(() => {
-        if (paginatedWorkSchedules && paginatedWorkSchedules.items) {
-            console.log("Fetched Work Schedules:", paginatedWorkSchedules.items); // For debugging
-            return paginatedWorkSchedules.items;
+    ); const handleEdit = useCallback((id: number) => {
+        handleEditNavigation(id);
+    }, [handleEditNavigation]); const handleRowClick = useCallback((row: { original: WorkSchedule }) => {
+        const workSchedule = row.original;
+        if (workSchedule.id) {
+            handleEditNavigation(workSchedule.id);
         }
-        return [];
-    }, [paginatedWorkSchedules]); // Changed
-
-    const handleEdit = useCallback((id: number) => { // Added router.push
-        router.push(`/check-clock/work-schedule/edit/${id}`);
-    }, [router]);
+    }, [handleEditNavigation]);
 
     const handleOpenDelete = useCallback((data: WorkSchedule) => {
-        setWorkScheduleToDelete(data);
-        setIsDeleteDialogOpen(true);
-    }, []);
-
-    const handleCloseDeleteDialog = useCallback(() => {
-        setWorkScheduleToDelete(null);
-        setIsDeleteDialogOpen(false);
-    }, []);
-
-    const handleConfirmDelete = useCallback(async () => { // Changed to use mutation
-        if (workScheduleToDelete) {
-            try {
-                await deleteWorkScheduleMutation.mutateAsync(workScheduleToDelete.id);
-                toast({ title: "Success", description: "Work schedule deleted successfully." });
-                setIsDeleteDialogOpen(false);
-                setWorkScheduleToDelete(null);
-            } catch (e: unknown) { // Changed to catch (e: unknown)
-                let errorMessage = "Failed to delete work schedule.";
-                if (e instanceof Error) {
-                    errorMessage = e.message;
-                }
-                toast({ title: "Error", description: errorMessage, variant: "destructive" });
-            }
-        }
-    }, [workScheduleToDelete, deleteWorkScheduleMutation]);
+        handleOpenDeleteDialog(data);
+    }, [handleOpenDeleteDialog]);
 
     const handleView = useCallback((data: WorkSchedule) => {
-        setViewedSchedule(data);
-        setViewDialogOpen(true);
-    }, []);
+        handleOpenViewDialog(data);
+    }, [handleOpenViewDialog]); const handleConfirmDelete = useCallback(async () => {
+        if (workScheduleToDelete?.id) {
+            try {
+                await handleDelete(workScheduleToDelete.id);
+                handleCloseDeleteDialog();
+            } catch (error) {
+                // Error handling is already done in the hook
+                console.error("Delete failed:", error);
+            }
+        }
+    }, [workScheduleToDelete, handleDelete, handleCloseDeleteDialog]);
 
     const columns = React.useMemo<ColumnDef<WorkSchedule>[]>
         (() => [
@@ -138,10 +129,11 @@ export default function WorkSchedulePage() {
                         <Button
                             size="sm"
                             variant="outline"
-                            className="h-9 px-3 bg-[#FFA500] text-white hover:bg-[#E69500] border-none hover:cursor-pointer"
-                            onClick={(e) => {
+                            className="h-9 px-3 bg-[#FFA500] text-white hover:bg-[#E69500] border-none hover:cursor-pointer" onClick={(e) => {
                                 e.stopPropagation();
-                                handleEdit(row.original.id);
+                                if (row.original.id) {
+                                    handleEdit(row.original.id);
+                                }
                             }}
                         >
                             <Edit className="h-4 w-4 mr-1" />
@@ -190,7 +182,7 @@ export default function WorkSchedulePage() {
         getPaginationRowModel: getPaginationRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
         manualPagination: true, // Enable manual pagination
-        pageCount: paginatedWorkSchedules?.pagination?.total_pages ?? -1, // Set pageCount for manual pagination
+        pageCount: totalPages ?? -1, // Set pageCount for manual pagination
         autoResetPageIndex: false,
     });
 
@@ -236,7 +228,7 @@ export default function WorkSchedulePage() {
                         </div>
                     </header>
 
-                    <DataTable table={table} />
+                    <DataTable table={table} onRowClick={handleRowClick} />
 
                     <footer className="flex flex-col md:flex-row items-center justify-between mt-4 gap-4">
                         <PageSizeComponent table={table} />
@@ -250,11 +242,9 @@ export default function WorkSchedulePage() {
                 handleCloseDeleteDialog={handleCloseDeleteDialog}
                 handleConfirmDelete={handleConfirmDelete}
                 workScheduleToDelete={workScheduleToDelete}
-            />
-
-            <WorkScheduleDetailDialog
+            />        <WorkScheduleDetailDialog
                 open={viewDialogOpen}
-                onOpenChange={setViewDialogOpen}
+                onOpenChange={handleCloseViewDialog}
                 // scheduleName={viewedSchedule?.nama} // "nama" should be "name"
                 scheduleName={viewedSchedule?.name}
                 // workScheduleType={viewedSchedule?.workType} // "workType" should be "work_type"

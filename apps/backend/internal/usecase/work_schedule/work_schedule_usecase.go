@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
+	dtolocation "github.com/SukaMajuu/hris/apps/backend/domain/dto/location"
 	dtoworkschedule "github.com/SukaMajuu/hris/apps/backend/domain/dto/work_schedule"
 	"github.com/SukaMajuu/hris/apps/backend/domain/enums"
 	"github.com/SukaMajuu/hris/apps/backend/domain/interfaces"
@@ -55,11 +56,14 @@ func toWorkScheduleDetailResponseDTO(detail domain.WorkScheduleDetail) *dtoworks
 	}
 
 	if detail.Location != nil {
-		respDetail.LocationName = &detail.Location.Name
-		respDetail.LocationAddress = &detail.Location.AddressDetail
-		respDetail.LocationLat = detail.Location.Latitude
-		respDetail.LocationLong = detail.Location.Longitude
-		respDetail.Radius = float64(detail.Location.RadiusM)
+		respDetail.Location = &dtolocation.LocationResponseDTO{
+			ID:            detail.Location.ID,
+			Name:          detail.Location.Name,
+			AddressDetail: detail.Location.AddressDetail,
+			Latitude:      detail.Location.Latitude,
+			Longitude:     detail.Location.Longitude,
+			Radius:        float64(detail.Location.RadiusM),
+		}
 	}
 	return respDetail
 }
@@ -114,7 +118,7 @@ func (uc *WorkScheduleUseCase) Create(ctx context.Context, workSchedule *domain.
 	return toWorkScheduleResponseDTO(createdWorkSchedule), nil
 }
 
-func (uc *WorkScheduleUseCase) List(ctx context.Context, paginationParams domain.PaginationParams) (*domain.WorkScheduleListResponseData, error) {
+func (uc *WorkScheduleUseCase) List(ctx context.Context, paginationParams domain.PaginationParams) (*dtoworkschedule.WorkScheduleListResponseData, error) {
 	workSchedules, totalItems, err := uc.workScheduleRepo.ListWithPagination(ctx, paginationParams)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list work schedules: %w", err)
@@ -125,7 +129,7 @@ func (uc *WorkScheduleUseCase) List(ctx context.Context, paginationParams domain
 		responseDTOs[i] = toWorkScheduleResponseDTO(ws)
 	}
 
-	return &domain.WorkScheduleListResponseData{
+	return &dtoworkschedule.WorkScheduleListResponseData{
 		Items: responseDTOs,
 		Pagination: domain.Pagination{
 			TotalItems:  totalItems,

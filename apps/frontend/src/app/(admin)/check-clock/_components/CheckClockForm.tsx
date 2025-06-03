@@ -1,432 +1,507 @@
 "use client";
 
-import {useRouter} from "next/navigation";
-import {useEffect, useState} from "react";
-import {Card, CardContent} from "@/components/ui/card";
-import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select";
-import {Button} from "@/components/ui/button";
-import {Input} from "@/components/ui/input";
-import {Label} from "@/components/ui/label";
-import {Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+	Table,
+	TableBody,
+	TableCaption,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from "@/components/ui/table";
 import WorkTypeBadge from "@/components/workTypeBadge";
-import {Check, ChevronsUpDown, Clock, User} from "lucide-react";
-import {Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,} from "@/components/ui/command";
-import {Popover, PopoverContent, PopoverTrigger,} from "@/components/ui/popover";
-import {WorkType} from "@/const/work";
-
-// Interfaces
-export interface Employee {
-    value: string;
-    label: string;
-    position?: string;
-}
-
-export interface Location {
-    value: string;
-    label: string;
-    latitude?: string;
-    longitude?: string;
-}
-
-export interface CheckClockFormData {
-    employeeId?: string;
-    workScheduleType?: string;
-    checkInTime?: string;
-    checkOutTime?: string;
-    breakStartTime?: string;
-    workType?: string;
-    locationId?: string;
-    addressDetails?: string;
-    latitude?: string;
-    longitude?: string;
-}
-
-interface WorkScheduleDetail {
-    day: string;
-    workType: string;
-    checkIn: string;
-    break: string;
-    checkOut: string;
-    location: string;
-}
+import { Check, ChevronsUpDown, Clock, User } from "lucide-react";
+import {
+	Command,
+	CommandEmpty,
+	CommandGroup,
+	CommandInput,
+	CommandItem,
+	CommandList,
+} from "@/components/ui/command";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@/components/ui/popover";
+import { WorkType } from "@/const/work";
+import type { Employee } from "@/types/employee";
+import type { WorkSchedule, WorkScheduleDetailItem } from "@/types/work-schedule.types";
+import {
+	type CheckclockSettingsInput,
+} from "@/schemas/checkclock.schema";
 
 interface CheckClockFormProps {
-    initialData?: CheckClockFormData;
-    onSubmit: (data: CheckClockFormData) => void;
-    isEditMode?: boolean;
-    employees: Employee[];
-    locations: Location[];
-    showProfileCard?: boolean;
+	initialData?: Partial<CheckclockSettingsInput>;
+	onSubmit: (data: CheckclockSettingsInput) => void;
+	isEditMode?: boolean;
+	employees: Employee[];
+	workSchedules: WorkSchedule[];
+	isLoading?: boolean;
+	showProfileCard?: boolean;
 }
 
 export function CheckClockForm({
-                                   initialData = {},
-                                   onSubmit,
-                                   isEditMode = false,
-                                   employees = [],
-                                   showProfileCard = false,
-                               }: CheckClockFormProps) {
-    const router = useRouter();
+	initialData = {},
+	onSubmit,
+	isEditMode = false,
+	employees = [],
+	workSchedules = [],
+	isLoading = false,
+	showProfileCard = false,
+}: CheckClockFormProps) {
+	const router = useRouter();
 
-    const [employeeId, setEmployeeId] = useState(initialData.employeeId || "");
-    const [workScheduleType, setWorkScheduleType] = useState(
-        initialData.workScheduleType || ""
-    );
-    const [checkInTime, setCheckInTime] = useState(
-        initialData.checkInTime || ""
-    );
-    const [checkOutTime, setCheckOutTime] = useState(
-        initialData.checkOutTime || ""
-    );
-    const [breakStartTime, setBreakStartTime] = useState(
-        initialData.breakStartTime || ""
-    );
-    const [workType, setWorkType] = useState(
-        initialData.workType || "WFO (Work From Office)"
-    );
-    const [locationId, setLocationId] = useState(initialData.locationId || "");
-    const [addressDetails, setAddressDetails] = useState(
-        initialData.addressDetails || "Kota Malang, Jawa Timur"
-    );
-    const [latitude, setLatitude] = useState(initialData.latitude || "");
-    const [longitude, setLongitude] = useState(initialData.longitude || "");
+	const [employeeId, setEmployeeId] = useState<string>(
+		initialData.employee_id?.toString() || ""
+	);
+	const [workScheduleType, setWorkScheduleType] = useState<string>(
+		initialData.work_schedule_id?.toString() || ""
+	);
 
-    const [comboboxOpen, setComboboxOpen] = useState(false);
-    const [workScheduleDetails, setWorkScheduleDetails] = useState<WorkScheduleDetail[]>([]);
+	const [comboboxOpen, setComboboxOpen] = useState(false);
+	const [workScheduleDetails, setWorkScheduleDetails] = useState<WorkScheduleDetailItem[]>([]);
 
-    useEffect(() => {
-        setEmployeeId(initialData.employeeId || "");
-        setWorkScheduleType(initialData.workScheduleType || "");
-        setCheckInTime(initialData.checkInTime || "");
-        setCheckOutTime(initialData.checkOutTime || "");
-        setBreakStartTime(initialData.breakStartTime || "");
-        setWorkType(initialData.workType || "WFO (Work From Office)");
-        setLocationId(initialData.locationId || "");
-        setAddressDetails(
-            initialData.addressDetails || "Kota Malang, Jawa Timur"
-        );
-        setLatitude(initialData.latitude || "");
-        setLongitude(initialData.longitude || "");
-    }, [initialData]);
+	// Flatten work schedule details for table display
+	interface FlattenedDetail extends WorkScheduleDetailItem {
+		singleDay: string;
+	}
 
-    // Generate mock data for work schedule details when work schedule type changes
-    useEffect(() => {
-        if (workScheduleType) {
-            // Mock data berdasarkan work schedule type yang dipilih
-            const days = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"];
-            let mockSchedule: WorkScheduleDetail[] = [];
+	const dayOrder = [
+		"Monday",
+		"Tuesday",
+		"Wednesday",
+		"Thursday",
+		"Friday",
+		"Saturday",
+		"Sunday",
+	];
 
-            // Buat data berbeda berdasarkan tipe jadwal
-            switch (workScheduleType) {
-                case "morning":
-                    mockSchedule = days.map(day => ({
-                        day,
-                        workType: "WFO",
-                        checkIn: "07:00 - 08:00",
-                        break: "12:00 - 13:00",
-                        checkOut: "16:00 - 17:00",
-                        location: "Kantor Utama",
-                    }));
-                    break;
-                case "evening":
-                    mockSchedule = days.map(day => ({
-                        day,
-                        workType: "WFO",
-                        checkIn: "14:00 - 15:00",
-                        break: "18:00 - 19:00",
-                        checkOut: "22:00 - 23:00",
-                        location: "Kantor Cabang",
-                    }));
-                    break;
-                case "regular":
-                    mockSchedule = days.map(day => ({
-                        day,
-                        workType: "Hybrid",
-                        checkIn: "08:00 - 09:00",
-                        break: "12:30 - 13:30",
-                        checkOut: "17:00 - 18:00",
-                        location: day === "Senin" || day === "Rabu" || day === "Jumat" ? "Kantor Utama" : "Remote",
-                    }));
-                    break;
-                case "shift":
-                    mockSchedule = days.map((day, index) => ({
-                        day,
-                        workType: index % 2 === 0 ? "WFO" : "WFH",
-                        checkIn: index % 2 === 0 ? "08:00 - 09:00" : "09:00 - 10:00",
-                        break: index % 2 === 0 ? "12:00 - 13:00" : "13:00 - 14:00",
-                        checkOut: index % 2 === 0 ? "17:00 - 18:00" : "18:00 - 19:00",
-                        location: index % 2 === 0 ? "Kantor Utama" : "Remote",
-                    }));
-                    break;
-                default:
-                    mockSchedule = [];
-            }
+	const flattenDetails = (details: WorkScheduleDetailItem[]): FlattenedDetail[] => {
+		const result: FlattenedDetail[] = [];
 
-            setWorkScheduleDetails(mockSchedule);
-        } else {
-            setWorkScheduleDetails([]);
-        }
-    }, [workScheduleType]);
+		details.forEach((detail) => {
+			const workDays = detail.work_days || [];
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        onSubmit({
-            employeeId,
-            workScheduleType,
-            checkInTime,
-            checkOutTime,
-            breakStartTime,
-            workType,
-            locationId,
-            addressDetails,
-            latitude,
-            longitude,
-        });
-    };
+			if (workDays.length > 0) {
+				workDays.forEach((day) => {
+					result.push({ ...detail, singleDay: day });
+				});
+			} else {
+				result.push({ ...detail, singleDay: "-" });
+			}
+		});
 
-    const currentEmployeeLabel =
-        employees.find((emp) => emp.value === employeeId)?.label ||
-        "Select Employee...";
+		return result.sort((a, b) => {
+			const dayIndexA = dayOrder.indexOf(a.singleDay);
+			const dayIndexB = dayOrder.indexOf(b.singleDay);
 
-    const currentEmployee = employees.find((emp) => emp.value === employeeId);
+			if (dayIndexA === -1 && dayIndexB === -1) return 0;
+			if (dayIndexA === -1) return 1;
+			if (dayIndexB === -1) return -1;
 
-    return (
-        <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Grid */}
-            <div className="flex flex-col lg:flex-row max-w-[1200px] mx-auto gap-8">
-                {/* Left Column - Employee Profile or Selection */}
-                <div className="w-full lg:w-2/6">
-                    {/* Employee Profile Card */}
-                    {showProfileCard ? (
-                        <Card className="border-none shadow-sm">
-                            <CardContent className="p-6">
-                                <div className="flex flex-col items-center text-center mb-4">
-                                    <div
-                                        className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-3">
-                                        <User className="h-10 w-10 text-gray-500"/>
-                                    </div>
-                                    <h3 className="text-xl font-semibold text-gray-800">
-                                        {currentEmployee?.label || "N/A"}
-                                    </h3>
-                                    <p className="text-sm text-gray-500">
-                                        {currentEmployee?.position || "N/A"}
-                                    </p>
-                                </div>
+			return dayIndexA - dayIndexB;
+		});
+	};
 
-                                <div className="space-y-4">
-                                    <div>
-                                        <Label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Employee ID
-                                        </Label>
-                                        <Input
-                                            className="bg-slate-50 text-sm py-2 px-3 text-gray-600 cursor-not-allowed"
-                                            disabled
-                                            value={employeeId || "N/A"}
-                                        />
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ) : (
-                        <Card className="border-none shadow-sm">
-                            <CardContent className="p-6">
-                                <div className="flex items-center gap-2 mb-4">
-                                    <User className="h-5 w-5 text-gray-500"/>
-                                    <h3 className="font-semibold text-lg text-gray-800">
-                                        Employee Selection
-                                    </h3>
-                                </div>
+	const flattenedDetails = flattenDetails(workScheduleDetails);
 
-                                <div>
-                                    <Label
-                                        htmlFor="employeeId"
-                                        className="block text-sm font-medium text-gray-700 mb-1.5"
-                                    >
-                                        Select Employee
-                                    </Label>
-                                    <Popover
-                                        open={comboboxOpen}
-                                        onOpenChange={setComboboxOpen}
-                                    >
-                                        <PopoverTrigger asChild>
-                                            <Button
-                                                variant="outline"
-                                                role="combobox"
-                                                aria-expanded={comboboxOpen}
-                                                className="w-full justify-between text-sm font-normal text-gray-700 border-gray-300 hover:border-gray-400"
-                                                id="employeeId"
-                                            >
-                                                {currentEmployeeLabel}
-                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50"/>
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="p-0">
-                                            <Command>
-                                                <CommandInput placeholder="Search employee..."/>
-                                                <CommandList>
-                                                    <CommandEmpty>
-                                                        No employee found.
-                                                    </CommandEmpty>
-                                                    <CommandGroup>
-                                                        {employees.map(
-                                                            (employee) => (
-                                                                <CommandItem
-                                                                    key={
-                                                                        employee.value
-                                                                    }
-                                                                    value={
-                                                                        employee.value
-                                                                    }
-                                                                    onSelect={(
-                                                                        currentValue
-                                                                    ) => {
-                                                                        setEmployeeId(
-                                                                            currentValue ===
-                                                                            employeeId
-                                                                                ? ""
-                                                                                : currentValue
-                                                                        );
-                                                                        setComboboxOpen(
-                                                                            false
-                                                                        );
-                                                                    }}
-                                                                >
-                                                                    <Check
-                                                                        className={`mr-2 h-4 w-4 ${
-                                                                            employeeId ===
-                                                                            employee.value
-                                                                                ? "opacity-100"
-                                                                                : "opacity-0"
-                                                                        }`}
-                                                                    />
-                                                                    {
-                                                                        employee.label
-                                                                    }
-                                                                </CommandItem>
-                                                            )
-                                                        )}
-                                                    </CommandGroup>
-                                                </CommandList>
-                                            </Command>
-                                        </PopoverContent>
-                                    </Popover>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    )}
-                </div>
+	// Helper functions to match WorkScheduleDetail component
+	const formatTimeRange = (start?: string | null, end?: string | null): string => {
+		if (!start && !end) return "-";
+		return `${start || "--:--"} - ${end || "--:--"}`;
+	};
 
-                {/* Right Column - Work Schedule */}
-                <div className="w-full lg:w-2/3 space-y-6">
-                    {/* Work Schedule */}
-                    <Card className="border-none shadow-sm">
-                        <CardContent className="p-6">
-                            <div className="flex items-center gap-2 mb-4">
-                                <Clock className="h-5 w-5 text-gray-500"/>
-                                <h3 className="font-semibold text-lg text-gray-800">
-                                    Work Schedule
-                                </h3>
-                            </div>
+	const getLocationName = (detail: WorkScheduleDetailItem): string => {
+		return detail.location?.name || "-";
+	};
 
-                            <div>
-                                <Label className="block text-sm font-medium text-gray-700 mb-1.5">
-                                    Work Schedule Type
-                                </Label>
-                                <Select
-                                    value={workScheduleType}
-                                    onValueChange={setWorkScheduleType}
-                                >
-                                    <SelectTrigger
-                                        className="w-full text-sm font-normal text-gray-700 border-gray-300 hover:border-gray-400">
-                                        <SelectValue placeholder="Select schedule type"/>
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="morning">
-                                            Morning
-                                        </SelectItem>
-                                        <SelectItem value="evening">
-                                            Evening
-                                        </SelectItem>
-                                        <SelectItem value="regular">
-                                            Regular
-                                        </SelectItem>
-                                        <SelectItem value="shift">
-                                            Shift
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </CardContent>
-                    </Card>
+	// Check if we should show location column (hide for WFA work types)
+	const shouldShowLocation = flattenedDetails.some(detail =>
+		detail.worktype_detail !== "WFA"
+	);
 
-                    {/* Work Schedule Detail Table */}
-                    {workScheduleType && workScheduleDetails.length > 0 && (
-                        <Card className="border-none shadow-sm">
-                            <CardContent className="p-6">
-                                <div className="mb-4">
-                                    <h3 className="font-semibold text-lg text-gray-800">
-                                        Work Schedule Detail
-                                    </h3>
-                                    <p className="text-sm text-gray-500">
-                                        Detail jadwal kerja {workScheduleType}
-                                    </p>
-                                </div>
+	// Update state when initialData changes
+	useEffect(() => {
+		if (initialData.employee_id) {
+			setEmployeeId(initialData.employee_id.toString());
+		}
+		if (initialData.work_schedule_id) {
+			setWorkScheduleType(initialData.work_schedule_id.toString());
+		}
+	}, [initialData]);
 
-                                <div className="border rounded-md">
-                                    <Table>
-                                        <TableCaption>
-                                            Jadwal kerja mingguan (Senin-Jumat)
-                                        </TableCaption>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Hari</TableHead>
-                                                <TableHead>Work Type</TableHead>
-                                                <TableHead>Check-in</TableHead>
-                                                <TableHead>Break</TableHead>
-                                                <TableHead>Check-out</TableHead>
-                                                <TableHead>Location</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {workScheduleDetails.map((detail, index) => (
-                                                <TableRow key={index}>
-                                                    <TableCell className="font-medium">{detail.day}</TableCell>
-                                                    <TableCell>
-                                                        <WorkTypeBadge workType={detail.workType as WorkType}/>
-                                                    </TableCell>
-                                                    <TableCell>{detail.checkIn}</TableCell>
-                                                    <TableCell>{detail.break}</TableCell>
-                                                    <TableCell>{detail.checkOut}</TableCell>
-                                                    <TableCell>{detail.location}</TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    )}
+	// Generate work schedule details when work schedule type changes
+	useEffect(() => {
+		if (workScheduleType) {
+			const selectedSchedule = workSchedules.find(
+				(ws) => ws.id?.toString() === workScheduleType
+			);
 
-                    {/* Action Buttons */}
-                    <div className="flex justify-end space-x-3 pt-4 mb-4">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => router.back()}
-                            className="px-6 py-2 hover:text-gray-700 text-sm border-gray-300 hover:bg-gray-100"
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            type="submit"
-                            variant="default"
-                            className="px-6 py-2 text-sm bg-[#6B9AC4] hover:bg-[#5a89b3]"
-                        >
-                            {isEditMode ? "Save Changes" : "Save"}
-                        </Button>
-                    </div>
-                </div>
-            </div>
-        </form>
-    );
+			if (selectedSchedule && selectedSchedule.details) {
+				setWorkScheduleDetails(selectedSchedule.details);
+			} else {
+				setWorkScheduleDetails([]);
+			}
+		} else {
+			setWorkScheduleDetails([]);
+		}
+	}, [workScheduleType, workSchedules]);
+
+	const handleSubmit = (e: React.FormEvent) => {
+		e.preventDefault();
+
+		// Validate required fields
+		if (!employeeId || !workScheduleType) {
+			return;
+		}
+
+		// Convert to the expected format
+		const formData: CheckclockSettingsInput = {
+			employee_id: parseInt(employeeId),
+			work_schedule_id: parseInt(workScheduleType),
+		};
+
+		if (initialData.id) {
+			formData.id = initialData.id;
+		}
+
+		onSubmit(formData);
+	};
+
+	const employeeOptions = employees.map((emp) => ({
+		value: emp.id.toString(),
+		label: `${emp.first_name} ${emp.last_name}`,
+		position: emp.position_name,
+	}));
+
+	const currentEmployeeLabel =
+		employeeOptions.find((emp) => emp.value === employeeId)?.label ||
+		"Select Employee...";
+
+	const currentEmployee = employeeOptions.find((emp) => emp.value === employeeId);
+
+	return (
+		<form onSubmit={handleSubmit} className="space-y-6">
+			{/* Grid */}
+			<div className="flex flex-col lg:flex-row max-w-[1200px] mx-auto gap-8">
+				{/* Left Column - Employee Profile or Selection */}
+				<div className="w-full lg:w-2/6">
+					{/* Employee Profile Card */}
+					{showProfileCard ? (
+						<Card className="border-none shadow-sm">
+							<CardContent>
+								<div className="flex flex-col items-center text-center mb-4">
+									<div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+										<User className="h-10 w-10 text-gray-500" />
+									</div>
+									<h3 className="text-xl font-semibold text-gray-800">
+										{currentEmployee?.label || "N/A"}
+									</h3>
+									<p className="text-sm text-gray-500">
+										{currentEmployee?.position || "N/A"}
+									</p>
+								</div>
+
+								<div className="space-y-4">
+									<div>
+										<Label className="block text-sm font-medium text-gray-700 mb-1">
+											Employee ID
+										</Label>
+										<Input
+											className="bg-slate-50 text-sm py-2 px-3 text-gray-600 cursor-not-allowed"
+											disabled
+											value={employeeId || "N/A"}
+										/>
+									</div>
+								</div>
+							</CardContent>
+						</Card>
+					) : (
+						<Card className="border-none shadow-sm">
+							<CardContent className="p-6">
+								<div className="flex items-center gap-2 mb-4">
+									<User className="h-5 w-5 text-gray-500" />
+									<h3 className="font-semibold text-lg text-gray-800">
+										Employee Selection
+									</h3>
+								</div>
+
+								<div>
+									<Label
+										htmlFor="employeeId"
+										className="block text-sm font-medium text-gray-700 mb-1.5"
+									>
+										Select Employee
+									</Label>
+									<Popover
+										open={comboboxOpen}
+										onOpenChange={setComboboxOpen}
+									>
+										<PopoverTrigger asChild>
+											<Button
+												variant="outline"
+												role="combobox"
+												aria-expanded={comboboxOpen}
+												className="w-full justify-between text-sm font-normal text-gray-700 border-gray-300 hover:border-gray-400"
+												id="employeeId"
+												disabled={isLoading}
+											>
+												{currentEmployeeLabel}
+												<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+											</Button>
+										</PopoverTrigger>
+										<PopoverContent className="p-0">
+											<Command>
+												<CommandInput placeholder="Search employee..." />
+												<CommandList>
+													<CommandEmpty>
+														No employee found.
+													</CommandEmpty>
+													<CommandGroup>
+														{employeeOptions.map(
+															(employee) => (
+																<CommandItem
+																	key={
+																		employee.value
+																	}
+																	value={
+																		employee.value
+																	}
+																	onSelect={(
+																		currentValue
+																	) => {
+																		setEmployeeId(
+																			currentValue ===
+																				employeeId
+																				? ""
+																				: currentValue
+																		);
+																		setComboboxOpen(
+																			false
+																		);
+																	}}
+																>
+																	<Check
+																		className={`mr-2 h-4 w-4 ${
+																			employeeId ===
+																			employee.value
+																				? "opacity-100"
+																				: "opacity-0"
+																		}`}
+																	/>
+																	<div className="flex flex-col">
+																		<span className="font-medium">
+																			{employee.label}
+																		</span>
+																		<span className="text-sm text-gray-500">
+																			{employee.position}
+																		</span>
+																	</div>
+																</CommandItem>
+															)
+														)}
+													</CommandGroup>
+												</CommandList>
+											</Command>
+										</PopoverContent>
+									</Popover>
+								</div>
+							</CardContent>
+						</Card>
+					)}
+				</div>
+
+				{/* Right Column - Work Schedule */}
+				<div className="w-full lg:w-2/3 space-y-6">
+					{/* Work Schedule */}
+					<Card className="border-none shadow-sm">
+						<CardContent>
+							<div className="flex items-center gap-2 mb-4">
+								<Clock className="h-5 w-5 text-gray-500" />
+								<h3 className="font-semibold text-lg text-gray-800">
+									Work Schedule
+								</h3>
+							</div>
+
+							<div>
+								<Label className="block text-sm font-medium text-gray-700 mb-1.5">
+									Work Schedule Type
+								</Label>
+								<Select
+									value={workScheduleType}
+									onValueChange={setWorkScheduleType}
+									disabled={isLoading}
+								>
+									<SelectTrigger className="w-full text-sm font-normal text-gray-700 border-gray-300 hover:border-gray-400">
+										<SelectValue placeholder="Select schedule type" />
+									</SelectTrigger>
+									<SelectContent>
+										{workSchedules.map((schedule) => (
+											<SelectItem
+												key={schedule.id}
+												value={schedule.id!.toString()}
+											>
+												<div className="flex items-center gap-2">
+													<span className="font-medium">
+														{schedule.name}
+													</span>
+													<span className="text-sm text-gray-500">
+														{schedule.work_type}
+													</span>
+												</div>
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+							</div>
+						</CardContent>
+					</Card>
+
+					{/* Work Schedule Detail Table */}
+					{workScheduleType && workScheduleDetails.length > 0 && (
+						<Card className="border-none shadow-sm">
+							<CardContent>
+								<div className="mb-4">
+									<h3 className="font-semibold text-lg text-gray-800">
+										Work Schedule Detail
+									</h3>
+									<p className="text-sm text-gray-500">
+										Detail jadwal kerja {workSchedules.find(ws => ws.id?.toString() === workScheduleType)?.name}
+									</p>
+								</div>
+
+								<div className="border-none shadow-sm py-0">
+									<div className="rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-auto">
+										<table className="w-full text-sm">
+											<colgroup>
+												<col className="w-24" />
+												<col className="w-28" />
+												<col className="w-32" />
+												<col className="w-32" />
+												<col className="w-32" />
+												{shouldShowLocation && <col className="w-40" />}
+											</colgroup>
+											<thead>
+												<tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
+													<th className="text-center text-sm font-medium text-slate-500 dark:text-slate-400 py-3 px-4 h-12">
+														Day
+													</th>
+													<th className="text-center text-sm font-medium text-slate-500 dark:text-slate-400 py-3 px-4 h-12">
+														Work Type
+													</th>
+													<th className="text-center text-sm font-medium text-slate-500 dark:text-slate-400 py-3 px-4 h-12">
+														Check-in
+													</th>
+													<th className="text-center text-sm font-medium text-slate-500 dark:text-slate-400 py-3 px-4 h-12">
+														Break
+													</th>
+													<th className="text-center text-sm font-medium text-slate-500 dark:text-slate-400 py-3 px-4 h-12">
+														Check-out
+													</th>
+													{shouldShowLocation && (
+														<th className="text-center text-sm font-medium text-slate-500 dark:text-slate-400 py-3 px-4 h-12">
+															Location
+														</th>
+													)}
+												</tr>
+											</thead>
+											<tbody>
+												{flattenedDetails.length === 0 ? (
+													<tr>
+														<td
+															colSpan={shouldShowLocation ? 6 : 5}
+															className="h-24 text-center text-slate-500 dark:text-slate-400"
+														>
+															No schedule details available.
+														</td>
+													</tr>
+												) : (
+													flattenedDetails.map((detail, index) => (
+														<tr
+															key={`${detail.id}-${detail.singleDay}-${index}`}
+															className="border-b border-slate-200 dark:border-slate-700 transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-800/50 last:border-b-0"
+														>
+															<td className="text-center py-3 px-4 text-sm text-slate-700 dark:text-slate-300 font-medium">
+																{detail.singleDay}
+															</td>
+															<td className="text-center py-3 px-4 text-sm">
+																<div className="flex justify-center">
+																	<WorkTypeBadge
+																		workType={
+																			detail.worktype_detail as WorkType
+																		}
+																	/>
+																</div>
+															</td>
+															<td className="text-center py-3 px-4 text-sm text-slate-700 dark:text-slate-300">
+																{formatTimeRange(detail.checkin_start, detail.checkin_end)}
+															</td>
+															<td className="text-center py-3 px-4 text-sm text-slate-700 dark:text-slate-300">
+																{formatTimeRange(detail.break_start, detail.break_end)}
+															</td>
+															<td className="text-center py-3 px-4 text-sm text-slate-700 dark:text-slate-300">
+																{formatTimeRange(detail.checkout_start, detail.checkout_end)}
+															</td>
+															{shouldShowLocation && (
+																<td
+																	className="text-center py-3 px-4 text-sm text-slate-700 dark:text-slate-300 max-w-[10rem] truncate"
+																	title={getLocationName(detail)}
+																>
+																	{getLocationName(detail)}
+																</td>
+															)}
+														</tr>
+													))
+												)}
+											</tbody>
+										</table>
+									</div>
+								</div>
+								<p className="text-sm text-gray-500 text-center mt-2">
+									Jadwal kerja mingguan
+								</p>
+							</CardContent>
+						</Card>
+					)}
+
+					{/* Action Buttons */}
+					<div className="flex justify-end space-x-3 pt-4 mb-4">
+						<Button
+							type="button"
+							variant="outline"
+							onClick={() => router.back()}
+							className="px-6 py-2 hover:text-gray-700 text-sm border-gray-300 hover:bg-gray-100"
+							disabled={isLoading}
+						>
+							Cancel
+						</Button>
+						<Button
+							type="submit"
+							variant="default"
+							className="px-6 py-2 text-sm bg-[#6B9AC4] hover:bg-[#5a89b3]"
+							disabled={isLoading}
+						>
+							{isLoading ? "Saving..." : isEditMode ? "Save Changes" : "Save"}
+						</Button>
+					</div>
+				</div>
+			</div>
+		</form>
+	);
 }

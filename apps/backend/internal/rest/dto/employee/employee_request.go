@@ -1,8 +1,12 @@
 package employee
 
 import (
+	"fmt"
+	"log"
 	"mime/multipart"
+	"time"
 
+	"github.com/SukaMajuu/hris/apps/backend/domain"
 	"github.com/SukaMajuu/hris/apps/backend/domain/enums"
 )
 
@@ -73,4 +77,79 @@ type UpdateEmployeeRequestDTO struct {
 
 type UploadEmployeePhotoRequestDTO struct {
 	File *multipart.FileHeader `form:"file" binding:"required"`
+}
+
+func MapCreateDTOToDomain(reqDTO *CreateEmployeeRequestDTO) (*domain.Employee, error) {
+	userDomain := domain.User{
+		Email:    reqDTO.Email,
+		Password: reqDTO.Password,
+	}
+	if reqDTO.Phone != nil {
+		userDomain.Phone = *reqDTO.Phone
+	}
+
+	employeeDomain := &domain.Employee{
+		User:                  userDomain,
+		FirstName:             reqDTO.FirstName,
+		LastName:              reqDTO.LastName,
+		PositionID:            reqDTO.PositionID,
+		EmployeeCode:          reqDTO.EmployeeCode,
+		BranchID:              reqDTO.BranchID,
+		Gender:                reqDTO.Gender,
+		NIK:                   reqDTO.NIK,
+		PlaceOfBirth:          reqDTO.PlaceOfBirth,
+		LastEducation:         reqDTO.LastEducation,
+		Grade:                 reqDTO.Grade,
+		ContractType:          reqDTO.ContractType,
+		BankName:              reqDTO.BankName,
+		BankAccountNumber:     reqDTO.BankAccountNumber,
+		BankAccountHolderName: reqDTO.BankAccountHolderName,
+		TaxStatus:             reqDTO.TaxStatus,
+		ProfilePhotoURL:       reqDTO.ProfilePhotoURL,
+	}
+
+	// Parse dates
+	if err := parseDatesForCreate(reqDTO, employeeDomain); err != nil {
+		return nil, err
+	}
+
+	// Set employment status
+	if reqDTO.EmploymentStatus != nil {
+		employeeDomain.EmploymentStatus = *reqDTO.EmploymentStatus
+	} else {
+		employeeDomain.EmploymentStatus = true
+	}
+
+	return employeeDomain, nil
+}
+
+func parseDatesForCreate(reqDTO *CreateEmployeeRequestDTO, employeeDomain *domain.Employee) error {
+	if reqDTO.DateOfBirth != nil && *reqDTO.DateOfBirth != "" {
+		parsedDate, err := time.Parse("2006-01-02", *reqDTO.DateOfBirth)
+		if err != nil {
+			log.Printf("EmployeeHandler: Error parsing DateOfBirth '%s': %v", *reqDTO.DateOfBirth, err)
+			return fmt.Errorf("invalid DateOfBirth format. Please use YYYY-MM-DD. Value: %s", *reqDTO.DateOfBirth)
+		}
+		employeeDomain.DateOfBirth = &parsedDate
+	}
+
+	if reqDTO.ResignationDate != nil && *reqDTO.ResignationDate != "" {
+		parsedDate, err := time.Parse("2006-01-02", *reqDTO.ResignationDate)
+		if err != nil {
+			log.Printf("EmployeeHandler: Error parsing ResignationDate '%s': %v", *reqDTO.ResignationDate, err)
+			return fmt.Errorf("invalid ResignationDate format. Please use YYYY-MM-DD. Value: %s", *reqDTO.ResignationDate)
+		}
+		employeeDomain.ResignationDate = &parsedDate
+	}
+
+	if reqDTO.HireDate != nil && *reqDTO.HireDate != "" {
+		parsedDate, err := time.Parse("2006-01-02", *reqDTO.HireDate)
+		if err != nil {
+			log.Printf("EmployeeHandler: Error parsing HireDate '%s': %v", *reqDTO.HireDate, err)
+			return fmt.Errorf("invalid HireDate format. Please use YYYY-MM-DD. Value: %s", *reqDTO.HireDate)
+		}
+		employeeDomain.HireDate = &parsedDate
+	}
+
+	return nil
 }

@@ -42,7 +42,7 @@ func (uc *LocationUseCase) Create(ctx context.Context, location *domain.Location
 	return toLocationResponseDTO(createdLocationDomain), nil
 }
 
-func (uc *LocationUseCase) List(ctx context.Context, paginationParams domain.PaginationParams) (*domain.LocationListResponseData, error) {
+func (uc *LocationUseCase) List(ctx context.Context, paginationParams domain.PaginationParams) (*dtolocation.LocationListResponseData, error) {
 	domainLocations, totalItems, err := uc.locationRepo.List(ctx, paginationParams)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list locations from repository: %w", err)
@@ -63,7 +63,7 @@ func (uc *LocationUseCase) List(ctx context.Context, paginationParams domain.Pag
 		totalPages = 0
 	}
 
-	response := &domain.LocationListResponseData{
+	response := &dtolocation.LocationListResponseData{
 		Items: locationDTOs,
 		Pagination: domain.Pagination{
 			TotalItems:  totalItems,

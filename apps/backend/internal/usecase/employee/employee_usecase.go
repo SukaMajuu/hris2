@@ -46,7 +46,7 @@ func NewEmployeeUseCase(
 	}
 }
 
-func (uc *EmployeeUseCase) List(ctx context.Context, filters map[string]interface{}, paginationParams domain.PaginationParams) (*domain.EmployeeListResponseData, error) {
+func (uc *EmployeeUseCase) List(ctx context.Context, filters map[string]interface{}, paginationParams domain.PaginationParams) (*dtoemployee.EmployeeListResponseData, error) {
 	domainEmployees, totalItems, err := uc.employeeRepo.List(ctx, filters, paginationParams)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list employees from repository: %w", err)
@@ -128,7 +128,7 @@ func (uc *EmployeeUseCase) List(ctx context.Context, filters map[string]interfac
 		totalPages = 0
 	}
 
-	response := &domain.EmployeeListResponseData{
+	response := &dtoemployee.EmployeeListResponseData{
 		Items: employeeDTOs,
 		Pagination: domain.Pagination{
 			TotalItems:  totalItems,
@@ -414,6 +414,31 @@ func (uc *EmployeeUseCase) GetStatistics(ctx context.Context) (*dtoemployee.Empl
 
 	log.Printf("EmployeeUseCase: Successfully retrieved employee statistics - Total: %d, New: %d, Active: %d, Resigned: %d, Permanent: %d, Contract: %d, Freelance: %d",
 		totalEmployees, newEmployees, activeEmployees, resignedEmployees, permanentEmployees, contractEmployees, freelanceEmployees)
+
+	return response, nil
+}
+
+func (uc *EmployeeUseCase) GetStatisticsByManager(ctx context.Context, managerID uint) (*dtoemployee.EmployeeStatisticsResponseDTO, error) {
+	log.Printf("EmployeeUseCase: GetStatisticsByManager called for manager ID: %d", managerID)
+
+	totalEmployees, newEmployees, activeEmployees, resignedEmployees, permanentEmployees, contractEmployees, freelanceEmployees, err := uc.employeeRepo.GetStatisticsByManager(ctx, managerID)
+	if err != nil {
+		log.Printf("EmployeeUseCase: Error getting employee statistics by manager from repository: %v", err)
+		return nil, fmt.Errorf("failed to get employee statistics by manager: %w", err)
+	}
+
+	response := &dtoemployee.EmployeeStatisticsResponseDTO{
+		TotalEmployees:     totalEmployees,
+		NewEmployees:       newEmployees,
+		ActiveEmployees:    activeEmployees,
+		ResignedEmployees:  resignedEmployees,
+		PermanentEmployees: permanentEmployees,
+		ContractEmployees:  contractEmployees,
+		FreelanceEmployees: freelanceEmployees,
+	}
+
+	log.Printf("EmployeeUseCase: Successfully retrieved employee statistics by manager %d - Total: %d, New: %d, Active: %d, Resigned: %d, Permanent: %d, Contract: %d, Freelance: %d",
+		managerID, totalEmployees, newEmployees, activeEmployees, resignedEmployees, permanentEmployees, contractEmployees, freelanceEmployees)
 
 	return response, nil
 }

@@ -63,7 +63,22 @@ func (r *PostgresRepository) List(ctx context.Context, filters map[string]interf
 	query := r.db.WithContext(ctx).Model(&domain.Employee{})
 
 	for key, value := range filters {
-		query = query.Where(key, value)
+		switch key {
+		case "manager_id":
+			query = query.Where("manager_id = ?", value)
+		case "employment_status":
+			query = query.Where("employment_status = ?", value)
+		case "status":
+			if statusStr, ok := value.(string); ok {
+				if statusStr == "active" {
+					query = query.Where("employment_status = ?", true)
+				} else if statusStr == "inactive" {
+					query = query.Where("employment_status = ?", false)
+				}
+			}
+		default:
+			query = query.Where(key+" = ?", value)
+		}
 	}
 
 	if err := query.Count(&totalItems).Error; err != nil {
@@ -119,6 +134,57 @@ func (r *PostgresRepository) GetStatistics(ctx context.Context) (
 	}
 
 	err = r.db.WithContext(ctx).Model(&domain.Employee{}).Where("contract_type = ?", "freelance").Count(&freelanceEmployees).Error
+	if err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, err
+	}
+
+	return totalEmployees, newEmployees, activeEmployees, resignedEmployees, permanentEmployees, contractEmployees, freelanceEmployees, nil
+}
+
+func (r *PostgresRepository) GetStatisticsByManager(ctx context.Context, managerID uint) (
+	totalEmployees, newEmployees, activeEmployees, resignedEmployees,
+	permanentEmployees, contractEmployees, freelanceEmployees int64,
+	err error,
+) {
+	// Create base query function to avoid stacking WHERE conditions
+	newQuery := func() *gorm.DB {
+		return r.db.WithContext(ctx).Model(&domain.Employee{}).Where("manager_id = ?", managerID)
+	}
+
+	err = newQuery().Count(&totalEmployees).Error
+	if err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, err
+	}
+
+	err = newQuery().Where("employment_status = ?", true).Count(&activeEmployees).Error
+	if err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, err
+	}
+
+	err = newQuery().Where("employment_status = ?", false).Count(&resignedEmployees).Error
+	if err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, err
+	}
+
+	now := time.Now()
+	thirtyDaysAgo := now.AddDate(0, 0, -30)
+
+	err = newQuery().Where("hire_date >= ?", thirtyDaysAgo).Count(&newEmployees).Error
+	if err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, err
+	}
+
+	err = newQuery().Where("contract_type = ?", "permanent").Count(&permanentEmployees).Error
+	if err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, err
+	}
+
+	err = newQuery().Where("contract_type = ?", "contract").Count(&contractEmployees).Error
+	if err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, err
+	}
+
+	err = newQuery().Where("contract_type = ?", "freelance").Count(&freelanceEmployees).Error
 	if err != nil {
 		return 0, 0, 0, 0, 0, 0, 0, err
 	}

@@ -9,14 +9,14 @@ import (
 )
 
 type SubscriptionPlanResponse struct {
-	ID          uint                            `json:"id"`
-	Name        string                          `json:"name"`
-	Type        enums.SubscriptionPlanType      `json:"type"`
-	Description string                          `json:"description"`
-	Features    []SubscriptionFeatureResponse   `json:"features"`
-	SeatPlans   []SeatPlanResponse              `json:"seat_plans"`
-	IsActive    bool                            `json:"is_active"`
-	CreatedAt   time.Time                       `json:"created_at"`
+	ID          uint                          `json:"id"`
+	Name        string                        `json:"name"`
+	Type        enums.SubscriptionPlanType    `json:"type"`
+	Description string                        `json:"description"`
+	Features    []SubscriptionFeatureResponse `json:"features"`
+	SeatPlans   []SeatPlanResponse            `json:"seat_plans"`
+	IsActive    bool                          `json:"is_active"`
+	CreatedAt   time.Time                     `json:"created_at"`
 }
 
 type SubscriptionFeatureResponse struct {
@@ -28,60 +28,60 @@ type SubscriptionFeatureResponse struct {
 }
 
 type SeatPlanResponse struct {
-	ID               uint            `json:"id"`
-	Name             string          `json:"name"`
-	MinEmployees     int             `json:"min_employees"`
-	MaxEmployees     int             `json:"max_employees"`
-	PricePerMonth    decimal.Decimal `json:"price_per_month"`
-	PricePerYear     decimal.Decimal `json:"price_per_year"`
-	IsActive         bool            `json:"is_active"`
-	CreatedAt        time.Time       `json:"created_at"`
+	ID            uint            `json:"id"`
+	Name          string          `json:"name"`
+	MinEmployees  int             `json:"min_employees"`
+	MaxEmployees  int             `json:"max_employees"`
+	PricePerMonth decimal.Decimal `json:"price_per_month"`
+	PricePerYear  decimal.Decimal `json:"price_per_year"`
+	IsActive      bool            `json:"is_active"`
+	CreatedAt     time.Time       `json:"created_at"`
 }
 
 type CheckoutSessionResponse struct {
-	SessionID          string                       `json:"session_id"`
-	Status             enums.CheckoutStatus         `json:"status"`
-	IsTrialCheckout    bool                         `json:"is_trial_checkout"`
-	Amount             decimal.Decimal              `json:"amount"`
-	Currency           string                       `json:"currency"`
-	XenditInvoiceID    *string                      `json:"xendit_invoice_id,omitempty"`
-	XenditInvoiceURL   *string                      `json:"xendit_invoice_url,omitempty"`
-	SubscriptionPlan   *SubscriptionPlanResponse    `json:"subscription_plan,omitempty"`
-	SeatPlan           *SeatPlanResponse            `json:"seat_plan,omitempty"`
-	InitiatedAt        time.Time                    `json:"initiated_at"`
-	ExpiresAt          *time.Time                   `json:"expires_at,omitempty"`
-	CompletedAt        *time.Time                   `json:"completed_at,omitempty"`
+	SessionID        string                    `json:"session_id"`
+	Status           enums.CheckoutStatus      `json:"status"`
+	IsTrialCheckout  bool                      `json:"is_trial_checkout"`
+	Amount           decimal.Decimal           `json:"amount"`
+	Currency         string                    `json:"currency"`
+	XenditInvoiceID  *string                   `json:"xendit_invoice_id,omitempty"`
+	XenditInvoiceURL *string                   `json:"xendit_invoice_url,omitempty"`
+	SubscriptionPlan *SubscriptionPlanResponse `json:"subscription_plan,omitempty"`
+	SeatPlan         *SeatPlanResponse         `json:"seat_plan,omitempty"`
+	InitiatedAt      time.Time                 `json:"initiated_at"`
+	ExpiresAt        *time.Time                `json:"expires_at,omitempty"`
+	CompletedAt      *time.Time                `json:"completed_at,omitempty"`
 }
 
 type SubscriptionResponse struct {
-	ID                     uint                         `json:"id"`
-	Status                 enums.SubscriptionStatus     `json:"status"`
-	SubscriptionPlan       *SubscriptionPlanResponse    `json:"subscription_plan,omitempty"`
-	SeatPlan               *SeatPlanResponse            `json:"seat_plan,omitempty"`
-	StartDate              time.Time                    `json:"start_date"`
-	EndDate                *time.Time                   `json:"end_date,omitempty"`
-	IsAutoRenew            bool                         `json:"is_auto_renew"`
-	CurrentEmployeeCount   int                          `json:"current_employee_count"`
-	MaxEmployeeCount       int                          `json:"max_employee_count"`
-	IsTrialUsed            bool                         `json:"is_trial_used"`
-	IsInTrial              bool                         `json:"is_in_trial"`
-	TrialStartDate         *time.Time                   `json:"trial_start_date,omitempty"`
-	TrialEndDate           *time.Time                   `json:"trial_end_date,omitempty"`
-	RemainingTrialDays     *int                         `json:"remaining_trial_days,omitempty"`
-	CreatedAt              time.Time                    `json:"created_at"`
-	UpdatedAt              time.Time                    `json:"updated_at"`
+	ID                   uint                      `json:"id"`
+	Status               enums.SubscriptionStatus  `json:"status"`
+	SubscriptionPlan     *SubscriptionPlanResponse `json:"subscription_plan,omitempty"`
+	SeatPlan             *SeatPlanResponse         `json:"seat_plan,omitempty"`
+	StartDate            time.Time                 `json:"start_date"`
+	EndDate              *time.Time                `json:"end_date,omitempty"`
+	IsAutoRenew          bool                      `json:"is_auto_renew"`
+	CurrentEmployeeCount int                       `json:"current_employee_count"`
+	MaxEmployeeCount     int                       `json:"max_employee_count"`
+	IsTrialUsed          bool                      `json:"is_trial_used"`
+	IsInTrial            bool                      `json:"is_in_trial"`
+	TrialStartDate       *time.Time                `json:"trial_start_date,omitempty"`
+	TrialEndDate         *time.Time                `json:"trial_end_date,omitempty"`
+	RemainingTrialDays   *int                      `json:"remaining_trial_days,omitempty"`
+	CreatedAt            time.Time                 `json:"created_at"`
+	UpdatedAt            time.Time                 `json:"updated_at"`
 }
 
 type PaymentTransactionResponse struct {
-	ID               uint                    `json:"id"`
-	XenditInvoiceID  *string                 `json:"xendit_invoice_id,omitempty"`
-	Amount           decimal.Decimal         `json:"amount"`
-	Currency         string                  `json:"currency"`
-	Status           enums.PaymentStatus     `json:"status"`
-	PaymentMethod    *string                 `json:"payment_method,omitempty"`
-	Description      string                  `json:"description"`
-	PaidAt           *time.Time              `json:"paid_at,omitempty"`
-	CreatedAt        time.Time               `json:"created_at"`
+	ID              uint                `json:"id"`
+	XenditInvoiceID *string             `json:"xendit_invoice_id,omitempty"`
+	Amount          decimal.Decimal     `json:"amount"`
+	Currency        string              `json:"currency"`
+	Status          enums.PaymentStatus `json:"status"`
+	PaymentMethod   *string             `json:"payment_method,omitempty"`
+	Description     string              `json:"description"`
+	PaidAt          *time.Time          `json:"paid_at,omitempty"`
+	CreatedAt       time.Time           `json:"created_at"`
 }
 
 type CustomerBillingInfoResponse struct {
@@ -113,6 +113,13 @@ type InvoiceResponse struct {
 func ToSubscriptionPlanResponse(plan *domain.SubscriptionPlan) *SubscriptionPlanResponse {
 	var features []SubscriptionFeatureResponse
 
+	// Convert features from many-to-many relationship
+	for _, planFeature := range plan.PlanFeatures {
+		if planFeature.IsEnabled {
+			features = append(features, ToSubscriptionFeatureResponse(&planFeature.SubscriptionFeature))
+		}
+	}
+
 	var seatPlans []SeatPlanResponse
 
 	return &SubscriptionPlanResponse{
@@ -124,6 +131,16 @@ func ToSubscriptionPlanResponse(plan *domain.SubscriptionPlan) *SubscriptionPlan
 		SeatPlans:   seatPlans,
 		IsActive:    plan.IsActive,
 		CreatedAt:   plan.CreatedAt,
+	}
+}
+
+func ToSubscriptionFeatureResponse(feature *domain.SubscriptionFeature) SubscriptionFeatureResponse {
+	return SubscriptionFeatureResponse{
+		ID:          feature.ID,
+		Name:        feature.Name,
+		Code:        feature.Code,
+		Description: feature.Description,
+		IsCore:      false, // You can set logic here based on your business rules
 	}
 }
 

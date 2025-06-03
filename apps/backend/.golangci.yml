@@ -51,3 +51,6 @@ linters:
                   - errcheck
                   - funlen
                   - goconst
+            - path: '(.+)/seeder\.go'
+              linters:
+                  - lll

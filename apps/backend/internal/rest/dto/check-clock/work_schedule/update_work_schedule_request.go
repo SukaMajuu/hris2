@@ -7,22 +7,23 @@ import (
 )
 
 type UpdateWorkScheduleRequest struct {
-	Name     *string                    `json:"name,omitempty"`
+	Name     string                     `json:"name" validate:"required"`
 	WorkType string                     `json:"workType" validate:"required"`
-	Details  []UpdateWorkScheduleDetail `json:"details,omitempty" validate:"dive"`
+	Details  []UpdateWorkScheduleDetail `json:"details" validate:"required,dive"`
+	ToDelete []uint                     `json:"toDelete,omitempty"` // IDs of details to delete
 }
 
 type UpdateWorkScheduleDetail struct {
-	ID             uint    `json:"id" validate:"required"`
-	WorkDay        *string `json:"day,omitempty"`
-	WorkTypeDetail *string `json:"type,omitempty"`
-	CheckInStart   *string `json:"checkInStart,omitempty"`
-	CheckInEnd     *string `json:"checkInEnd,omitempty"`
-	BreakStart     *string `json:"breakStart,omitempty"`
-	BreakEnd       *string `json:"breakEnd,omitempty"`
-	CheckOutStart  *string `json:"checkOutStart,omitempty"`
-	CheckOutEnd    *string `json:"checkOutEnd,omitempty"`
-	LocationID     *uint   `json:"locationId"` // Bisa null untuk menghapus, atau dikosongkan jika tidak diubah
+	ID             *uint    `json:"id,omitempty"` // Null for new details
+	WorkTypeDetail string   `json:"workTypeDetail" validate:"required"`
+	WorkDays       []string `json:"workDays" validate:"required"`
+	CheckInStart   *string  `json:"checkInStart,omitempty"`
+	CheckInEnd     *string  `json:"checkInEnd,omitempty"`
+	BreakStart     *string  `json:"breakStart,omitempty"`
+	BreakEnd       *string  `json:"breakEnd,omitempty"`
+	CheckOutStart  *string  `json:"checkOutStart,omitempty"`
+	CheckOutEnd    *string  `json:"checkOutEnd,omitempty"`
+	LocationID     *uint    `json:"locationId,omitempty"`
 }
 
 func (r *UpdateWorkScheduleRequest) Validate() error {
@@ -30,11 +31,12 @@ func (r *UpdateWorkScheduleRequest) Validate() error {
 	if err := validate.Struct(r); err != nil {
 		return err
 	}
-	for i, d := range r.Details {
-		if d.WorkTypeDetail != nil && *d.WorkTypeDetail == "WFO" && d.LocationID == nil {
+
+	for i, detail := range r.Details {
+		if detail.WorkTypeDetail == "WFO" && detail.LocationID == nil {
 			return fmt.Errorf("locationId wajib diisi untuk detail ke-%d dengan type WFO", i+1)
 		}
-		if d.WorkTypeDetail != nil && *d.WorkTypeDetail == "WFA" && d.LocationID != nil {
+		if detail.WorkTypeDetail == "WFA" && detail.LocationID != nil {
 			return fmt.Errorf("locationId tidak boleh diisi untuk detail ke-%d dengan type WFA", i+1)
 		}
 	}

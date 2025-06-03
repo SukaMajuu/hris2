@@ -2,29 +2,47 @@ package employee
 
 import (
 	"context"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"log"
+	"math/big"
+	"mime/multipart"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
 	dtoemployee "github.com/SukaMajuu/hris/apps/backend/domain/dto/employee"
 	"github.com/SukaMajuu/hris/apps/backend/domain/interfaces"
+	storage "github.com/supabase-community/storage-go"
+	"github.com/supabase-community/supabase-go"
 	"gorm.io/gorm"
 )
 
+const bucketNamePhoto = "photo"
+
+// MIME type constants for content type detection
+const (
+	mimeTypeJPEG = "image/jpeg"
+	mimeTypePNG  = "image/png"
+)
+
 type EmployeeUseCase struct {
-	employeeRepo interfaces.EmployeeRepository
-	authRepo     interfaces.AuthRepository
+	employeeRepo   interfaces.EmployeeRepository
+	authRepo       interfaces.AuthRepository
+	supabaseClient *supabase.Client
 }
 
 func NewEmployeeUseCase(
 	employeeRepo interfaces.EmployeeRepository,
 	authRepo interfaces.AuthRepository,
+	supabaseClient *supabase.Client,
 ) *EmployeeUseCase {
 	return &EmployeeUseCase{
-		employeeRepo: employeeRepo,
-		authRepo:     authRepo,
+		employeeRepo:   employeeRepo,
+		authRepo:       authRepo,
+		supabaseClient: supabaseClient,
 	}
 }
 
@@ -82,6 +100,10 @@ func (uc *EmployeeUseCase) List(ctx context.Context, filters map[string]interfac
 			taxStatusStr := string(*emp.TaxStatus)
 			employeeDTOs[i].TaxStatus = &taxStatusStr
 		}
+		if emp.DateOfBirth != nil {
+			dateOfBirthStr := emp.DateOfBirth.Format("2006-01-02")
+			employeeDTOs[i].DateOfBirth = &dateOfBirthStr
+		}
 		if emp.HireDate != nil {
 			hireDateStr := emp.HireDate.Format("2006-01-02")
 			employeeDTOs[i].HireDate = &hireDateStr
@@ -121,12 +143,14 @@ func (uc *EmployeeUseCase) List(ctx context.Context, filters map[string]interfac
 	return response, nil
 }
 
-func (uc *EmployeeUseCase) Create(ctx context.Context, employee *domain.Employee) (*domain.Employee, error) {
+func (uc *EmployeeUseCase) Create(ctx context.Context, employee *domain.Employee, creatorEmployeeID uint) (*domain.Employee, error) {
 	if employee.User.Email != "" {
-		log.Printf("EmployeeUseCase: Create called for employee. FirstName: %s, UserEmail: %s", employee.FirstName, employee.User.Email)
+		log.Printf("EmployeeUseCase: Create called for employee. FirstName: %s, UserEmail: %s, CreatorEmployeeID: %d", employee.FirstName, employee.User.Email, creatorEmployeeID)
 	} else {
-		log.Printf("EmployeeUseCase: Create called for employee. FirstName: %s, UserEmail: (not provided)", employee.FirstName)
+		log.Printf("EmployeeUseCase: Create called for employee. FirstName: %s, UserEmail: (not provided), CreatorEmployeeID: %d", employee.FirstName, creatorEmployeeID)
 	}
+
+	employee.ManagerID = &creatorEmployeeID
 
 	if employee.User.Password == "" {
 		employee.User.Password = "password"
@@ -138,7 +162,7 @@ func (uc *EmployeeUseCase) Create(ctx context.Context, employee *domain.Employee
 		return nil, fmt.Errorf("failed to create employee and user: %w", err)
 	}
 
-	log.Printf("EmployeeUseCase: Successfully created employee with ID %d and User ID %d", employee.ID, employee.User.ID)
+	log.Printf("EmployeeUseCase: Successfully created employee with ID %d and User ID %d, Manager ID %d", employee.ID, employee.User.ID, *employee.ManagerID)
 	return employee, nil
 }
 
@@ -200,6 +224,10 @@ func (uc *EmployeeUseCase) GetByID(ctx context.Context, id uint) (*dtoemployee.E
 		taxStatusStr := string(*employee.TaxStatus)
 		employeeDTO.TaxStatus = &taxStatusStr
 	}
+	if employee.DateOfBirth != nil {
+		dateOfBirthStr := employee.DateOfBirth.Format("2006-01-02")
+		employeeDTO.DateOfBirth = &dateOfBirthStr
+	}
 	if employee.HireDate != nil {
 		hireDateStr := employee.HireDate.Format("2006-01-02")
 		employeeDTO.HireDate = &hireDateStr
@@ -215,6 +243,22 @@ func (uc *EmployeeUseCase) GetByID(ctx context.Context, id uint) (*dtoemployee.E
 
 	log.Printf("EmployeeUseCase: Successfully retrieved employee with ID %d", id)
 	return employeeDTO, nil
+}
+
+func (uc *EmployeeUseCase) GetEmployeeByUserID(ctx context.Context, userID uint) (*domain.Employee, error) {
+	log.Printf("EmployeeUseCase: GetEmployeeByUserID called for UserID: %d", userID)
+	employee, err := uc.employeeRepo.GetByUserID(ctx, userID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			log.Printf("EmployeeUseCase: No employee found for UserID %d", userID)
+			return nil, domain.ErrEmployeeNotFound
+		}
+		log.Printf("EmployeeUseCase: Error getting employee by UserID %d from repository: %v", userID, err)
+		return nil, fmt.Errorf("failed to get employee by UserID %d: %w", userID, err)
+	}
+
+	log.Printf("EmployeeUseCase: Successfully retrieved employee with ID %d for UserID %d", employee.ID, userID)
+	return employee, nil
 }
 
 func (uc *EmployeeUseCase) Update(ctx context.Context, employee *domain.Employee) (*domain.Employee, error) {
@@ -248,6 +292,9 @@ func (uc *EmployeeUseCase) Update(ctx context.Context, employee *domain.Employee
 	}
 	if employee.PlaceOfBirth != nil {
 		existingEmployee.PlaceOfBirth = employee.PlaceOfBirth
+	}
+	if employee.DateOfBirth != nil {
+		existingEmployee.DateOfBirth = employee.DateOfBirth
 	}
 	if employee.LastEducation != nil {
 		existingEmployee.LastEducation = employee.LastEducation
@@ -344,4 +391,189 @@ func (uc *EmployeeUseCase) Resign(ctx context.Context, id uint) error {
 
 	log.Printf("EmployeeUseCase: Successfully resigned employee with ID %d. EmploymentStatus set to false and ResignationDate to %v", id, now.Format(time.RFC3339))
 	return nil
+}
+
+func (uc *EmployeeUseCase) GetStatistics(ctx context.Context) (*dtoemployee.EmployeeStatisticsResponseDTO, error) {
+	log.Printf("EmployeeUseCase: GetStatistics called")
+
+	totalEmployees, newEmployees, activeEmployees, resignedEmployees, permanentEmployees, contractEmployees, freelanceEmployees, err := uc.employeeRepo.GetStatistics(ctx)
+	if err != nil {
+		log.Printf("EmployeeUseCase: Error getting employee statistics from repository: %v", err)
+		return nil, fmt.Errorf("failed to get employee statistics: %w", err)
+	}
+
+	response := &dtoemployee.EmployeeStatisticsResponseDTO{
+		TotalEmployees:     totalEmployees,
+		NewEmployees:       newEmployees,
+		ActiveEmployees:    activeEmployees,
+		ResignedEmployees:  resignedEmployees,
+		PermanentEmployees: permanentEmployees,
+		ContractEmployees:  contractEmployees,
+		FreelanceEmployees: freelanceEmployees,
+	}
+
+	log.Printf("EmployeeUseCase: Successfully retrieved employee statistics - Total: %d, New: %d, Active: %d, Resigned: %d, Permanent: %d, Contract: %d, Freelance: %d",
+		totalEmployees, newEmployees, activeEmployees, resignedEmployees, permanentEmployees, contractEmployees, freelanceEmployees)
+
+	return response, nil
+}
+
+func (uc *EmployeeUseCase) UploadProfilePhoto(ctx context.Context, employeeID uint, file *multipart.FileHeader) (*domain.Employee, error) {
+	log.Printf("EmployeeUseCase: UploadProfilePhoto called for employee ID: %d", employeeID)
+
+	// Step 1: Read existing employee data from database
+	employee, err := uc.employeeRepo.GetByID(ctx, employeeID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get employee: %w", err)
+	}
+
+	// Step 2: Check if there's an existing photo and delete it from bucket first
+	var oldFileName string
+	if employee.ProfilePhotoURL != nil && *employee.ProfilePhotoURL != "" {
+		oldFileName = uc.extractFileNameFromURL(*employee.ProfilePhotoURL)
+		if oldFileName != "" {
+			log.Printf("EmployeeUseCase: Found existing photo, deleting from bucket: %s", oldFileName)
+			removeResponse, removeErr := uc.supabaseClient.Storage.RemoveFile(bucketNamePhoto, []string{oldFileName})
+			if removeErr != nil {
+				log.Printf("Warning: failed to remove old photo file '%s': %v", oldFileName, removeErr)
+				// Continue with upload even if delete fails
+			} else {
+				log.Printf("EmployeeUseCase: Successfully deleted old photo file: %s. Response: %+v", oldFileName, removeResponse)
+			}
+		} else {
+			log.Printf("EmployeeUseCase: Warning - Could not extract filename from existing photo URL: %s", *employee.ProfilePhotoURL)
+		}
+	} else {
+		log.Printf("EmployeeUseCase: No existing photo found for employee ID: %d", employeeID)
+	}
+
+	// Step 3: Generate new filename for the new photo
+	fileName := uc.generatePhotoFileName(employee, file.Filename)
+
+	// Step 4: Open and prepare the new file for upload
+	src, err := file.Open()
+	if err != nil {
+		return nil, fmt.Errorf("failed to open uploaded file: %w", err)
+	}
+	defer func() {
+		if closeErr := src.Close(); closeErr != nil {
+			fmt.Printf("Warning: failed to close file: %v", closeErr)
+		}
+	}()
+
+	if uc.supabaseClient == nil || uc.supabaseClient.Storage == nil {
+		return nil, fmt.Errorf("storage client not available")
+	}
+
+	// Step 5: Upload new photo to bucket
+	_, err = uc.supabaseClient.Storage.UploadFile(bucketNamePhoto, fileName, src, storage.FileOptions{
+		ContentType: &[]string{uc.getContentTypeFromExtension(file.Filename)}[0],
+		Upsert:      &[]bool{true}[0],
+	})
+	if err != nil {
+		log.Printf("EmployeeUseCase: Upload failed with error: %v", err)
+		return nil, fmt.Errorf("failed to upload file to storage: %w", err)
+	}
+
+	log.Printf("EmployeeUseCase: Photo upload successful! File: %s", fileName)
+
+	// Step 6: Generate public URL for the new photo
+	publicURL := uc.supabaseClient.Storage.GetPublicUrl(bucketNamePhoto, fileName)
+	log.Printf("EmployeeUseCase: Generated public URL: %s", publicURL.SignedURL)
+
+	// Step 7: Update database with new photo URL
+	employee.ProfilePhotoURL = &publicURL.SignedURL
+
+	err = uc.employeeRepo.Update(ctx, employee)
+	if err != nil {
+		// Step 8: If database update fails, cleanup the newly uploaded file
+		log.Printf("EmployeeUseCase: Database update failed, cleaning up uploaded file: %s", fileName)
+		if _, removeErr := uc.supabaseClient.Storage.RemoveFile(bucketNamePhoto, []string{fileName}); removeErr != nil {
+			log.Printf("Warning: failed to cleanup uploaded file: %v", removeErr)
+		}
+		return nil, fmt.Errorf("failed to update employee photo URL: %w", err)
+	}
+
+	log.Printf("EmployeeUseCase: Successfully updated employee photo URL for ID: %d", employeeID)
+	return employee, nil
+}
+
+func (uc *EmployeeUseCase) generatePhotoFileName(employee *domain.Employee, originalFilename string) string {
+	ext := filepath.Ext(originalFilename)
+
+	var lastName string
+	if employee.LastName != nil {
+		lastName = *employee.LastName
+	}
+
+	baseName := fmt.Sprintf("%s_%s_Photo", employee.FirstName, lastName)
+	baseName = strings.ReplaceAll(baseName, " ", "_")
+
+	min := big.NewInt(100000000000000)
+	max := big.NewInt(999999999999999)
+	rangeNum := new(big.Int).Sub(max, min)
+
+	randomInRange, err := rand.Int(rand.Reader, rangeNum)
+	if err != nil {
+		randomInRange = big.NewInt(123456789012345)
+	}
+
+	randomNumber := new(big.Int).Add(randomInRange, min)
+
+	return fmt.Sprintf("%s_%s%s", baseName, randomNumber.String(), ext)
+}
+
+func (uc *EmployeeUseCase) extractFileNameFromURL(url string) string {
+	log.Printf("EmployeeUseCase: Extracting filename from URL: %s", url)
+
+	// Handle Supabase storage URLs
+	// Format: https://xxx.supabase.co/storage/v1/object/public/photo/filename.ext
+	if strings.Contains(url, "/storage/v1/object/public/") {
+		// Split by "public/" and take the part after it
+		parts := strings.Split(url, "/storage/v1/object/public/")
+		if len(parts) > 1 {
+			// Get the part after "public/" which should be "bucket/filename"
+			pathAfterPublic := parts[1]
+			// Split by "/" to get bucket and filename
+			pathParts := strings.Split(pathAfterPublic, "/")
+			if len(pathParts) >= 2 {
+				// Skip the bucket name (first part) and get the filename
+				fileName := strings.Join(pathParts[1:], "/") // Join in case filename has slashes
+				// Remove query parameters if any
+				if idx := strings.Index(fileName, "?"); idx != -1 {
+					fileName = fileName[:idx]
+				}
+				log.Printf("EmployeeUseCase: Extracted filename from Supabase URL: %s", fileName)
+				return fileName
+			}
+		}
+	}
+
+	// Fallback: extract filename from the end of URL
+	parts := strings.Split(url, "/")
+	if len(parts) > 0 {
+		fileName := parts[len(parts)-1]
+		// Remove query parameters if any
+		if idx := strings.Index(fileName, "?"); idx != -1 {
+			fileName = fileName[:idx]
+		}
+		log.Printf("EmployeeUseCase: Extracted filename (fallback method): %s", fileName)
+		return fileName
+	}
+
+	log.Printf("EmployeeUseCase: Could not extract filename from URL")
+	return ""
+}
+
+// getContentTypeFromExtension determines the content type based on file extension
+func (uc *EmployeeUseCase) getContentTypeFromExtension(filename string) string {
+	ext := strings.ToLower(filepath.Ext(filename))
+	switch ext {
+	case ".jpg", ".jpeg":
+		return mimeTypeJPEG
+	case ".png":
+		return mimeTypePNG
+	default:
+		return mimeTypeJPEG
+	}
 }

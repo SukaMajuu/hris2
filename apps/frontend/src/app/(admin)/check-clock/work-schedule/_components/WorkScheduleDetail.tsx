@@ -25,23 +25,36 @@ const WorkScheduleDetailDialog = ({
 	workScheduleType,
 	workScheduleDetails,
 }: WorkScheduleDetailDialogProps) => {
-	// Flatten details: satu hari = satu baris
-	const flattenDetails = (details: WorkScheduleDetailItem[]) => {
-		const result: Array<
-			WorkScheduleDetailItem & { singleDay: string }
-		> = [];
-		details.forEach((detail) => {
-			if (Array.isArray(detail.work_days)) {
-				detail.work_days.forEach((day: string) => {
-					result.push({ ...detail, singleDay: day });
-				});
-			} else {
-				result.push({ ...detail, singleDay: "-" });
-			}
-		});
-		return result;
-	};
-	const flattenedDetails = flattenDetails(workScheduleDetails);
+    // Define day order for sorting (Monday to Sunday)
+    const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+    // Flatten details: satu hari = satu baris
+    const flattenDetails = (details: WorkScheduleDetailItem[]) => { // Updated type to use API type
+        const result: Array<WorkScheduleDetailItem & { singleDay: string }> = [];
+        details.forEach((detail) => {
+            if (Array.isArray(detail.workdays)) {
+                detail.workdays.forEach((day) => {
+                    result.push({ ...detail, singleDay: day });
+                });
+            } else {
+                result.push({ ...detail, singleDay: detail.workdays || "-" });
+            }
+        });
+
+        // Sort by day order (Monday to Sunday)
+        return result.sort((a, b) => {
+            const dayIndexA = dayOrder.indexOf(a.singleDay);
+            const dayIndexB = dayOrder.indexOf(b.singleDay);
+
+            // If day is not found in dayOrder, put it at the end
+            if (dayIndexA === -1 && dayIndexB === -1) return 0;
+            if (dayIndexA === -1) return 1;
+            if (dayIndexB === -1) return -1;
+
+            return dayIndexA - dayIndexB;
+        });
+    };
+    const flattenedDetails = flattenDetails(workScheduleDetails);
 
 	// Helper format waktu
 	const formatTimeRange = (start?: string, end?: string) => {

@@ -36,9 +36,10 @@ type ServerConfig struct {
 }
 
 type JWTConfig struct {
-	SecretKey       string
-	AccessDuration  string
-	RefreshDuration string
+	SecretKey          string
+	AccessDuration     string
+	RefreshDuration    string
+	RememberMeDuration string
 }
 
 type XenditConfig struct {
@@ -77,9 +78,10 @@ func Load() (*Config, error) {
 			Port: getEnv("PORT", "8080"),
 		},
 		JWT: JWTConfig{
-			SecretKey:       getEnv("JWT_SECRET_KEY", "secret"),
-			AccessDuration:  getEnv("JWT_ACCESS_DURATION", "15m"),
-			RefreshDuration: getEnv("JWT_REFRESH_DURATION", "168h"),
+			SecretKey:          getEnv("JWT_SECRET_KEY", "secret"),
+			AccessDuration:     getEnv("JWT_ACCESS_DURATION", "15m"),
+			RefreshDuration:    getEnv("JWT_REFRESH_DURATION", "168h"),
+			RememberMeDuration: getEnv("JWT_REMEMBER_ME_DURATION", "720h"), // 30 days
 		},
 		Xendit: XenditConfig{
 			SecretKey:   getEnv("XENDIT_SECRET_KEY", ""),

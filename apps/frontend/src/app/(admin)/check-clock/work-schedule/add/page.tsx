@@ -1,41 +1,18 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "@/components/ui/use-toast";
 import { WorkScheduleForm } from "@/app/(admin)/check-clock/work-schedule/_components/WorkScheduleForm";
-import { useCreateWorkSchedule } from "@/api/mutations/work-schedule.mutation";
-import { WorkSchedule } from "@/types/work-schedule.types";
+import { useWorkScheduleMutations } from "@/app/(admin)/check-clock/work-schedule/_hooks/useWorkSchedule";
+import { CreateWorkScheduleRequest, UpdateWorkScheduleRequest } from "@/types/work-schedule.types"; // Import both request types
 
 export default function AddWorkSchedulePage() {
-    const router = useRouter();
-    const createWorkScheduleMutation = useCreateWorkSchedule();
+    const { handleCreate, isCreating } = useWorkScheduleMutations();
 
-    const handleSave = async (data: Partial<WorkSchedule>) => {
+    // Updated handleSave to accept both types but cast to CreateWorkScheduleRequest for create mode
+    const handleSave = async (data: CreateWorkScheduleRequest | UpdateWorkScheduleRequest) => {
         console.log("Saving new work schedule data:", data);
-
-        try {
-            await createWorkScheduleMutation.mutateAsync(data as WorkSchedule);
-            toast({
-                title: "Success",
-                description: "Work schedule successfully added",
-                duration: 2000,
-            });
-            setTimeout(() => {
-                router.push("/check-clock/work-schedule");
-            }, 2000);
-        } catch (error) {
-            const errorMessage =
-                error instanceof Error
-                    ? error.message
-                    : "Failed to add work schedule";
-            toast({
-                title: "Failed",
-                description: errorMessage,
-                variant: "destructive",
-                duration: 3000,
-            });
-        }
+        // Type assertion since we know this will be CreateWorkScheduleRequest in create mode
+        await handleCreate(data as CreateWorkScheduleRequest);
     };
 
     return (
@@ -47,11 +24,12 @@ export default function AddWorkSchedulePage() {
                     </CardTitle>
                 </CardHeader>
             </Card>
+            {/* Pass undefined for initialData as it's a new schedule */}
             <WorkScheduleForm
                 onSubmit={handleSave}
                 isEditMode={false}
-                initialData={{}}
-                isLoading={createWorkScheduleMutation.isPending}
+                initialData={undefined} // Explicitly pass undefined for a new form
+                isLoading={isCreating}
             />
         </div>
     );

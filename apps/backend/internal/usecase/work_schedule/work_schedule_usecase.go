@@ -139,7 +139,13 @@ func (uc *WorkScheduleUseCase) List(ctx context.Context, paginationParams domain
 }
 
 // Update updates an existing work schedule with its details.
-func (uc *WorkScheduleUseCase) Update(ctx context.Context, id uint, workSchedule *domain.WorkSchedule, details []*domain.WorkScheduleDetail, toDeleteIDs []uint) (*dtoworkschedule.WorkScheduleResponseDTO, error) {
+func (uc *WorkScheduleUseCase) Update(
+	ctx context.Context,
+	id uint,
+	workSchedule *domain.WorkSchedule,
+	details []*domain.WorkScheduleDetail,
+	toDeleteIDs []uint,
+) (*dtoworkschedule.WorkScheduleResponseDTO, error) {
 	// First, check if the work schedule exists
 	existingWorkSchedule, err := uc.workScheduleRepo.GetByIDWithDetails(ctx, id)
 	if err != nil {

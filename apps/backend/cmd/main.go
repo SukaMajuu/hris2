@@ -4,22 +4,18 @@ import (
 	"log"
 
 	"github.com/SukaMajuu/hris/apps/backend/internal/repository/auth"
-	"github.com/SukaMajuu/hris/apps/backend/internal/repository/branch"
 	"github.com/SukaMajuu/hris/apps/backend/internal/repository/checkclock_settings"
 	"github.com/SukaMajuu/hris/apps/backend/internal/repository/document"
 	"github.com/SukaMajuu/hris/apps/backend/internal/repository/employee"
 	"github.com/SukaMajuu/hris/apps/backend/internal/repository/location"
-	"github.com/SukaMajuu/hris/apps/backend/internal/repository/position"
 	"github.com/SukaMajuu/hris/apps/backend/internal/repository/work_schedule"
 	"github.com/SukaMajuu/hris/apps/backend/internal/repository/xendit"
 	"github.com/SukaMajuu/hris/apps/backend/internal/rest"
 	authUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/auth"
-	branchUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/branch"
 	checkclockSettingsUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/checkclock_settings"
 	documentUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/document"
 	employeeUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/employee"
 	locationUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/location"
-	positionUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/position"
 	subscriptionUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/subscription"
 	workScheduleUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/work_schedule"
 	"github.com/SukaMajuu/hris/apps/backend/pkg/config"
@@ -53,8 +49,6 @@ func main() {
 	}
 
 	employeeRepo := employee.NewPostgresRepository(db)
-	branchRepo := branch.NewPostgresRepository(db)
-	positionRepo := position.NewPostgresRepository(db)
 	locationRepo := location.NewLocationRepository(db)
 	workScheduleRepo := work_schedule.NewWorkScheduleRepository(db)
 	checkclockSettingsRepo := checkclock_settings.NewCheckclockSettingsRepository(db)
@@ -76,9 +70,6 @@ func main() {
 		authRepo,
 		supabaseClient,
 	)
-
-	branchUseCase := branchUseCase.NewBranchUseCase(branchRepo)
-	positionUseCase := positionUseCase.NewPositionUseCase(positionRepo)
 
 	locationUseCase := locationUseCase.NewLocationUseCase(locationRepo)
 
@@ -106,7 +97,7 @@ func main() {
 		supabaseClient,
 	)
 
-	router := rest.NewRouter(authUseCase, employeeUseCase, branchUseCase, positionUseCase, locationUseCase, workScheduleUseCase, checkclockSettingsUseCase, subscriptionUseCase, documentUseCase)
+	router := rest.NewRouter(authUseCase, employeeUseCase, locationUseCase, workScheduleUseCase, checkclockSettingsUseCase, subscriptionUseCase, documentUseCase)
 
 	ginRouter := router.Setup()
 

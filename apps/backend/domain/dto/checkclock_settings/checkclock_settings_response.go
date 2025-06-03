@@ -42,7 +42,7 @@ func ToCheckclockSettingsResponseDTO(settings *domain.CheckclockSettings) *Check
 			ID:           settings.Employee.ID,
 			FirstName:    settings.Employee.FirstName,
 			LastName:     settings.Employee.LastName,
-			PositionName: settings.Employee.Position.Name,
+			PositionName: settings.Employee.PositionName,
 		}
 
 		// Set email from User relationship if exists

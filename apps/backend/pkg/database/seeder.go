@@ -3,6 +3,7 @@ package database
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
 	"github.com/SukaMajuu/hris/apps/backend/domain/enums"
@@ -10,29 +11,6 @@ import (
 
 	"gorm.io/gorm"
 )
-
-func seedPositions(db *gorm.DB) error {
-	var count int64
-	db.Model(&domain.Position{}).Count(&count)
-	if count > 0 {
-		log.Println("Positions table already seeded.")
-		return nil
-	}
-
-	positions := []domain.Position{
-		{Name: "HR Manager"},
-		{Name: "Software Engineer"},
-		{Name: "Accountant"},
-		{Name: "Employee"},
-	}
-
-	if err := db.Create(&positions).Error; err != nil {
-		return fmt.Errorf("failed to seed positions: %w", err)
-	}
-
-	log.Println("Successfully seeded Positions table.")
-	return nil
-}
 
 func seedSubscriptionFeatures(db *gorm.DB) error {
 	var count int64
@@ -231,33 +209,289 @@ func seedAdminUser(db *gorm.DB) error {
 		return fmt.Errorf("failed to seed admin user: %w", err)
 	}
 
-	adminPosition := domain.Position{}
-	db.Where("name = ?", "HR Manager").First(&adminPosition)
-	if adminPosition.ID == 0 {
-		log.Println("Warning: Could not find Super Admin position for admin employee seed.")
-	} else {
-		adminEmployee := domain.Employee{
-			UserID:     adminUser.ID,
-			FirstName:  "Default",
-			LastName:   func() *string { s := "Admin"; return &s }(),
-			PositionID: adminPosition.ID,
-		}
-		if err := db.Create(&adminEmployee).Error; err != nil {
-			_ = db.Delete(&adminUser)
-			return fmt.Errorf("failed to seed admin employee: %w", err)
-		}
+	adminEmployee := domain.Employee{
+		UserID:       adminUser.ID,
+		FirstName:    "Default",
+		LastName:     func() *string { s := "Admin"; return &s }(),
+		PositionName: "HR Manager",
+	}
+	if err := db.Create(&adminEmployee).Error; err != nil {
+		_ = db.Delete(&adminUser)
+		return fmt.Errorf("failed to seed admin employee: %w", err)
 	}
 
-	log.Println("Successfully seeded Admin user and employee.")
+	// Create premium subscription for admin user
+	var premiumPlan domain.SubscriptionPlan
+	var premiumSeatPlan domain.SeatPlan
+
+	// Get premium plan and its 51-100 seat tier
+	if err := db.Where("plan_type = ?", enums.PlanPremium).First(&premiumPlan).Error; err != nil {
+		_ = db.Delete(&adminEmployee)
+		_ = db.Delete(&adminUser)
+		return fmt.Errorf("failed to find premium plan: %w", err)
+	}
+
+	if err := db.Where("subscription_plan_id = ? AND size_tier_id = ?", premiumPlan.ID, "pre-tier51-100").First(&premiumSeatPlan).Error; err != nil {
+		_ = db.Delete(&adminEmployee)
+		_ = db.Delete(&adminUser)
+		return fmt.Errorf("failed to find premium seat plan (51-100): %w", err)
+	}
+
+	// Create subscription with trial status
+	adminSubscription := domain.Subscription{
+		AdminUserID:          adminUser.ID,
+		SubscriptionPlanID:   premiumPlan.ID,
+		SeatPlanID:           premiumSeatPlan.ID,
+		Status:               enums.StatusTrial,
+		IsTrialUsed:          false,
+		StartDate:            time.Now(),
+		IsAutoRenew:          true,
+		CurrentEmployeeCount: 1, // Admin employee
+	}
+
+	// Start trial
+	adminSubscription.StartTrial()
+
+	if err := db.Create(&adminSubscription).Error; err != nil {
+		_ = db.Delete(&adminEmployee)
+		_ = db.Delete(&adminUser)
+		return fmt.Errorf("failed to seed admin subscription: %w", err)
+	}
+
+	// Update admin employee to link to the subscription
+	adminEmployee.SubscriptionID = &adminSubscription.ID
+	if err := db.Save(&adminEmployee).Error; err != nil {
+		log.Printf("Warning: failed to link admin employee to subscription: %v", err)
+	}
+
+	log.Println("Successfully seeded Admin user, employee, and premium subscription (51-100 seats).")
 	return nil
 }
 
-// Run runs all the seeders.
-func Run(db *gorm.DB) error {
-	if err := seedPositions(db); err != nil {
-		return err
+func seedLocations(db *gorm.DB) error {
+	// Check if our specific locations exist
+	var headOfficeCount, branchOfficeCount, remoteLocationCount int64
+	db.Model(&domain.Location{}).Where("name = ?", "Head Office").Count(&headOfficeCount)
+	db.Model(&domain.Location{}).Where("name = ?", "Branch Office Bandung").Count(&branchOfficeCount)
+	db.Model(&domain.Location{}).Where("name = ?", "Remote Work Location").Count(&remoteLocationCount)
+
+	if headOfficeCount > 0 && branchOfficeCount > 0 && remoteLocationCount > 0 {
+		log.Println("Locations table already seeded.")
+		return nil
 	}
 
+	locations := []domain.Location{
+		{
+			Name:          "Head Office",
+			AddressDetail: "Jl. Sudirman No. 123, Jakarta Pusat, DKI Jakarta",
+			Latitude:      -6.208763,
+			Longitude:     106.845599,
+			RadiusM:       100,
+		},
+		{
+			Name:          "Branch Office Bandung",
+			AddressDetail: "Jl. Asia Afrika No. 456, Bandung, Jawa Barat",
+			Latitude:      -6.921831,
+			Longitude:     107.607048,
+			RadiusM:       150,
+		},
+		{
+			Name:          "Remote Work Location",
+			AddressDetail: "Work From Anywhere Location",
+			Latitude:      0.0,
+			Longitude:     0.0,
+			RadiusM:       0,
+		},
+	}
+
+	if err := db.Create(&locations).Error; err != nil {
+		return fmt.Errorf("failed to seed locations: %w", err)
+	}
+
+	log.Println("Successfully seeded Locations table.")
+	return nil
+}
+
+func seedWorkSchedules(db *gorm.DB) error {
+	var count int64
+	db.Model(&domain.WorkSchedule{}).Count(&count)
+	if count > 0 {
+		log.Println("Work schedules table already seeded.")
+		return nil
+	}
+
+	// Get locations - check if they exist first
+	var headOffice, branchOffice, remoteLocation domain.Location
+	if err := db.Where("name = ?", "Head Office").First(&headOffice).Error; err != nil {
+		return fmt.Errorf("failed to find Head Office location: %w", err)
+	}
+	if err := db.Where("name = ?", "Branch Office Bandung").First(&branchOffice).Error; err != nil {
+		return fmt.Errorf("failed to find Branch Office Bandung location: %w", err)
+	}
+	if err := db.Where("name = ?", "Remote Work Location").First(&remoteLocation).Error; err != nil {
+		return fmt.Errorf("failed to find Remote Work Location: %w", err)
+	}
+
+	// Helper function to create time pointers
+	timePtr := func(hour, minute int) *time.Time {
+		t := time.Date(0, 1, 1, hour, minute, 0, 0, time.UTC)
+		return &t
+	}
+
+	workSchedules := []domain.WorkSchedule{
+		{
+			Name:     "Standard Office Hours",
+			WorkType: enums.WorkTypeWFO,
+			Details: []domain.WorkScheduleDetail{
+				{
+					WorktypeDetail: enums.WorkTypeWFO,
+					WorkDays:       []domain.Days{domain.Monday, domain.Tuesday, domain.Wednesday, domain.Thursday, domain.Friday},
+					CheckinStart:   timePtr(8, 0),  // 08:00
+					CheckinEnd:     timePtr(9, 0),  // 09:00
+					BreakStart:     timePtr(12, 0), // 12:00
+					BreakEnd:       timePtr(13, 0), // 13:00
+					CheckoutStart:  timePtr(17, 0), // 17:00
+					CheckoutEnd:    timePtr(18, 0), // 18:00
+					LocationID:     &headOffice.ID,
+				},
+			},
+		},
+		{
+			Name:     "Flexible Remote Work",
+			WorkType: enums.WorkTypeWFA,
+			Details: []domain.WorkScheduleDetail{
+				{
+					WorktypeDetail: enums.WorkTypeWFA,
+					WorkDays:       []domain.Days{domain.Monday, domain.Tuesday, domain.Wednesday, domain.Thursday, domain.Friday},
+					CheckinStart:   timePtr(8, 0),  // 08:00
+					CheckinEnd:     timePtr(10, 0), // 10:00
+					BreakStart:     timePtr(12, 0), // 12:00
+					BreakEnd:       timePtr(13, 0), // 13:00
+					CheckoutStart:  timePtr(16, 0), // 16:00
+					CheckoutEnd:    timePtr(18, 0), // 18:00
+					LocationID:     &remoteLocation.ID,
+				},
+			},
+		},
+		{
+			Name:     "Hybrid Work Schedule",
+			WorkType: enums.WorkTypeHybrid,
+			Details: []domain.WorkScheduleDetail{
+				{
+					WorktypeDetail: enums.WorkTypeWFO,
+					WorkDays:       []domain.Days{domain.Monday, domain.Wednesday, domain.Friday},
+					CheckinStart:   timePtr(8, 0),  // 08:00
+					CheckinEnd:     timePtr(9, 0),  // 09:00
+					BreakStart:     timePtr(12, 0), // 12:00
+					BreakEnd:       timePtr(13, 0), // 13:00
+					CheckoutStart:  timePtr(17, 0), // 17:00
+					CheckoutEnd:    timePtr(18, 0), // 18:00
+					LocationID:     &headOffice.ID,
+				},
+				{
+					WorktypeDetail: enums.WorkTypeWFA,
+					WorkDays:       []domain.Days{domain.Tuesday, domain.Thursday},
+					CheckinStart:   timePtr(8, 0),  // 08:00
+					CheckinEnd:     timePtr(10, 0), // 10:00
+					BreakStart:     timePtr(12, 0), // 12:00
+					BreakEnd:       timePtr(13, 0), // 13:00
+					CheckoutStart:  timePtr(16, 0), // 16:00
+					CheckoutEnd:    timePtr(18, 0), // 18:00
+					LocationID:     &remoteLocation.ID,
+				},
+			},
+		},
+	}
+
+	if err := db.Create(&workSchedules).Error; err != nil {
+		return fmt.Errorf("failed to seed work schedules: %w", err)
+	}
+
+	log.Println("Successfully seeded Work Schedules table.")
+	return nil
+}
+
+func seedDemoEmployees(db *gorm.DB) error {
+	var count int64
+	db.Model(&domain.User{}).Where("email LIKE ?", "%demo%").Count(&count)
+	if count > 0 {
+		log.Println("Demo employees already seeded.")
+		return nil
+	}
+
+	// Get work schedule for demo employees
+	var standardSchedule domain.WorkSchedule
+	db.Where("name = ?", "Standard Office Hours").First(&standardSchedule)
+
+	// Demo users and employees
+	demoUsers := []struct {
+		User     domain.User
+		Employee domain.Employee
+	}{
+		{
+			User: domain.User{
+				Email:    "john.doe@demo.com",
+				Password: "password123",
+				Role:     enums.RoleUser,
+			},
+			Employee: domain.Employee{
+				FirstName:    "John",
+				LastName:     func() *string { s := "Doe"; return &s }(),
+				PositionName: "Software Developer",
+			},
+		},
+		{
+			User: domain.User{
+				Email:    "jane.smith@demo.com",
+				Password: "password123",
+				Role:     enums.RoleUser,
+			},
+			Employee: domain.Employee{
+				FirstName:    "Jane",
+				LastName:     func() *string { s := "Smith"; return &s }(),
+				PositionName: "Product Manager",
+			},
+		},
+		{
+			User: domain.User{
+				Email:    "mike.wilson@demo.com",
+				Password: "password123",
+				Role:     enums.RoleUser,
+			},
+			Employee: domain.Employee{
+				FirstName:    "Mike",
+				LastName:     func() *string { s := "Wilson"; return &s }(),
+				PositionName: "UI/UX Designer",
+			},
+		},
+	}
+
+	for _, demo := range demoUsers {
+		if err := db.Create(&demo.User).Error; err != nil {
+			return fmt.Errorf("failed to seed demo user %s: %w", demo.User.Email, err)
+		}
+
+		demo.Employee.UserID = demo.User.ID
+		if err := db.Create(&demo.Employee).Error; err != nil {
+			_ = db.Delete(&demo.User)
+			return fmt.Errorf("failed to seed demo employee for %s: %w", demo.User.Email, err)
+		}
+
+		// Create checkclock settings for each demo employee
+		checkclockSetting := domain.CheckclockSettings{
+			EmployeeID:     demo.Employee.ID,
+			WorkScheduleID: standardSchedule.ID,
+		}
+		if err := db.Create(&checkclockSetting).Error; err != nil {
+			log.Printf("Warning: failed to create checkclock setting for %s: %v", demo.User.Email, err)
+		}
+	}
+
+	log.Println("Successfully seeded Demo Employees and Checkclock Settings.")
+	return nil
+}
+
+func Run(db *gorm.DB) error {
 	if err := seedSubscriptionFeatures(db); err != nil {
 		return err
 	}
@@ -275,6 +509,18 @@ func Run(db *gorm.DB) error {
 	}
 
 	if err := seedAdminUser(db); err != nil {
+		return err
+	}
+
+	if err := seedLocations(db); err != nil {
+		return err
+	}
+
+	if err := seedWorkSchedules(db); err != nil {
+		return err
+	}
+
+	if err := seedDemoEmployees(db); err != nil {
 		return err
 	}
 

@@ -204,9 +204,9 @@ func (r *supabaseRepository) RegisterAdminWithGoogle(ctx context.Context, token 
 	}
 
 	employee := &domain.Employee{
-		FirstName:  firstName,
-		LastName:   lastName,
-		PositionID: 1,
+		FirstName:    firstName,
+		LastName:     lastName,
+		PositionName: "HR Manager",
 	}
 
 	tx := r.db.Begin()

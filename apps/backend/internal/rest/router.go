@@ -4,12 +4,10 @@ import (
 	"github.com/SukaMajuu/hris/apps/backend/internal/rest/handler"
 	"github.com/SukaMajuu/hris/apps/backend/internal/rest/middleware"
 	auth "github.com/SukaMajuu/hris/apps/backend/internal/usecase/auth"
-	branch "github.com/SukaMajuu/hris/apps/backend/internal/usecase/branch"
 	checkclocksettingsusecase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/checkclock_settings"
 	document "github.com/SukaMajuu/hris/apps/backend/internal/usecase/document"
 	employee "github.com/SukaMajuu/hris/apps/backend/internal/usecase/employee"
 	location "github.com/SukaMajuu/hris/apps/backend/internal/usecase/location"
-	position "github.com/SukaMajuu/hris/apps/backend/internal/usecase/position"
 	"github.com/SukaMajuu/hris/apps/backend/internal/usecase/subscription"
 	work_Schedule "github.com/SukaMajuu/hris/apps/backend/internal/usecase/work_schedule"
 
@@ -22,8 +20,6 @@ type Router struct {
 	locationHandler           *handler.LocationHandler
 	authMiddleware            *middleware.AuthMiddleware
 	employeeHandler           *handler.EmployeeHandler
-	branchHandler             *handler.BranchHandler
-	positionHandler           *handler.PositionHandler
 	workScheduleHandler       *handler.WorkScheduleHandler
 	checkclockSettingsHandler *handler.CheckclockSettingsHandler
 	subscriptionHandler       *handler.SubscriptionHandler
@@ -33,8 +29,6 @@ type Router struct {
 func NewRouter(
 	authUseCase *auth.AuthUseCase,
 	employeeUseCase *employee.EmployeeUseCase,
-	branchUseCase *branch.BranchUseCase,
-	positionUseCase *position.PositionUseCase,
 	locationUseCase *location.LocationUseCase,
 	workScheduleUseCase *work_Schedule.WorkScheduleUseCase,
 	checkclockSettingsUseCase *checkclocksettingsusecase.CheckclockSettingsUseCase,
@@ -45,8 +39,6 @@ func NewRouter(
 		authHandler:               handler.NewAuthHandler(authUseCase),
 		authMiddleware:            middleware.NewAuthMiddleware(authUseCase, employeeUseCase),
 		employeeHandler:           handler.NewEmployeeHandler(employeeUseCase),
-		branchHandler:             handler.NewBranchHandler(branchUseCase),
-		positionHandler:           handler.NewPositionHandler(positionUseCase),
 		locationHandler:           handler.NewLocationHandler(locationUseCase),
 		workScheduleHandler:       handler.NewWorkScheduleHandler(workScheduleUseCase),
 		checkclockSettingsHandler: handler.NewCheckclockSettingsHandler(checkclockSettingsUseCase),
@@ -89,7 +81,7 @@ func (r *Router) Setup() *gin.Engine {
 		api := v1.Group("/api")
 		api.Use(r.authMiddleware.Authenticate())
 		{
-			employee := api.Group("/employee")
+			employee := api.Group("/employees")
 			{
 				employee.GET("", r.employeeHandler.ListEmployees)
 				employee.GET("/statistics", r.employeeHandler.GetEmployeeStatistics)
@@ -97,23 +89,10 @@ func (r *Router) Setup() *gin.Engine {
 				employee.POST("", r.employeeHandler.CreateEmployee)
 				employee.PATCH("/:id", r.employeeHandler.UpdateEmployee)
 				employee.PATCH("/:id/status", r.employeeHandler.ResignEmployee)
-				// employee.POST("/:id/photo", r.authMiddleware.Authenticate(), r.employeeHandler.UploadEmployeePhoto)
-			}
 
-			branches := api.Group("/branches")
-			{
-				branches.POST("", r.authMiddleware.Authenticate(), r.branchHandler.CreateBranch)
-				branches.GET("", r.authMiddleware.Authenticate(), r.branchHandler.GetMyBranches)
-				branches.PUT("/:id", r.authMiddleware.Authenticate(), r.branchHandler.UpdateBranch)
-				branches.DELETE("/:id", r.authMiddleware.Authenticate(), r.branchHandler.DeleteBranch)
-			}
-
-			positions := api.Group("/positions")
-			{
-				positions.POST("", r.authMiddleware.Authenticate(), r.positionHandler.CreatePosition)
-				positions.GET("", r.authMiddleware.Authenticate(), r.positionHandler.GetMyPositions)
-				positions.PUT("/:id", r.authMiddleware.Authenticate(), r.positionHandler.UpdatePosition)
-				positions.DELETE("/:id", r.authMiddleware.Authenticate(), r.positionHandler.DeletePosition)
+				// Employee document routes nested under employee routes
+				employee.POST("/:id/documents", r.documentHandler.UploadDocumentForEmployee)
+				employee.GET("/:id/documents", r.documentHandler.GetDocumentsByEmployee)
 			}
 
 			locations := api.Group("/locations")
@@ -149,13 +128,6 @@ func (r *Router) Setup() *gin.Engine {
 				documents.POST("/upload", r.authMiddleware.Authenticate(), r.documentHandler.UploadDocument)
 				documents.GET("", r.authMiddleware.Authenticate(), r.documentHandler.GetDocuments)
 				documents.DELETE("/:id", r.authMiddleware.Authenticate(), r.documentHandler.DeleteDocument)
-			}
-
-			// Employee-specific document routes
-			employeeDocuments := api.Group("/employees/:employee_id/documents")
-			{
-				employeeDocuments.POST("/upload", r.documentHandler.UploadDocumentForEmployee)
-				employeeDocuments.GET("", r.documentHandler.GetDocumentsByEmployee)
 			}
 
 			subscription := api.Group("/subscription")

@@ -24,10 +24,10 @@ type CreateEmployeeRequestDTO struct {
 	UserID                uint                  `form:"user_id,omitempty" binding:"omitempty"`
 	FirstName             string                `form:"first_name" binding:"required"`
 	LastName              *string               `form:"last_name,omitempty"`
-	PositionID            uint                  `form:"position_id" binding:"required"`
+	PositionName          string                `form:"position_name" binding:"required"`
 	EmploymentStatus      *bool                 `form:"employment_status,omitempty"`
 	EmployeeCode          *string               `form:"employee_code,omitempty" binding:"omitempty,alphanum,max=50"`
-	BranchID              *uint                 `form:"branch_id,omitempty"`
+	Branch                *string               `form:"branch,omitempty"`
 	Gender                *enums.Gender         `form:"gender,omitempty" binding:"omitempty"`
 	NIK                   *string               `form:"nik,omitempty" binding:"omitempty,numeric"`
 	PlaceOfBirth          *string               `form:"place_of_birth,omitempty"`
@@ -52,10 +52,10 @@ type UpdateEmployeeRequestDTO struct {
 	Phone                 *string               `form:"phone,omitempty" binding:"omitempty,e164"`
 	FirstName             *string               `form:"first_name,omitempty"`
 	LastName              *string               `form:"last_name,omitempty"`
-	PositionID            *uint                 `form:"position_id,omitempty"`
+	PositionName          *string               `form:"position_name,omitempty"`
 	EmploymentStatus      *bool                 `form:"employment_status,omitempty"`
 	EmployeeCode          *string               `form:"employee_code,omitempty" binding:"omitempty,alphanum,max=50"`
-	BranchID              *uint                 `form:"branch_id,omitempty"`
+	Branch                *string               `form:"branch,omitempty"`
 	Gender                *enums.Gender         `form:"gender,omitempty" binding:"omitempty"`
 	NIK                   *string               `form:"nik,omitempty" binding:"omitempty,numeric"`
 	PlaceOfBirth          *string               `form:"place_of_birth,omitempty"`
@@ -92,9 +92,9 @@ func MapCreateDTOToDomain(reqDTO *CreateEmployeeRequestDTO) (*domain.Employee, e
 		User:                  userDomain,
 		FirstName:             reqDTO.FirstName,
 		LastName:              reqDTO.LastName,
-		PositionID:            reqDTO.PositionID,
+		PositionName:          reqDTO.PositionName,
 		EmployeeCode:          reqDTO.EmployeeCode,
-		BranchID:              reqDTO.BranchID,
+		Branch:                reqDTO.Branch,
 		Gender:                reqDTO.Gender,
 		NIK:                   reqDTO.NIK,
 		PlaceOfBirth:          reqDTO.PlaceOfBirth,

@@ -73,6 +73,23 @@ func (h *EmployeeHandler) CreateEmployee(c *gin.Context) {
 		return
 	}
 
+	userIDCtx, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User ID not found in context", fmt.Errorf("missing userID in context"))
+		return
+	}
+	creatorUserID, ok := userIDCtx.(uint)
+	if !ok {
+		response.InternalServerError(c, fmt.Errorf("invalid user ID type in context"))
+		return
+	}
+
+	creatorEmployee, err := h.employeeUseCase.GetEmployeeByUserID(c.Request.Context(), creatorUserID)
+	if err != nil {
+		response.InternalServerError(c, fmt.Errorf("failed to get creator employee information: %w", err))
+		return
+	}
+
 	if reqDTO.PhotoFile != nil {
 		log.Printf("EmployeeHandler: Photo file detected: %s", reqDTO.PhotoFile.Filename)
 		// TODO: Add validation back after fixing upload issue
@@ -86,7 +103,7 @@ func (h *EmployeeHandler) CreateEmployee(c *gin.Context) {
 	}
 
 	// Create employee
-	createdEmployee, err := h.employeeUseCase.Create(c.Request.Context(), employeeDomain)
+	createdEmployee, err := h.employeeUseCase.Create(c.Request.Context(), employeeDomain, creatorEmployee.ID)
 	if err != nil {
 		h.handleCreateEmployeeError(c, err)
 		return
@@ -284,7 +301,6 @@ func (h *EmployeeHandler) mapUpdateDTOToDomain(employeeID uint, reqDTO *employee
 	if reqDTO.ResignationDate != nil && *reqDTO.ResignationDate != "" {
 		parsedDate, err := time.Parse("2006-01-02", *reqDTO.ResignationDate)
 		if err != nil {
-			log.Printf("EmployeeHandler: Error parsing ResignationDate '%s': %v", *reqDTO.ResignationDate, err)
 			return nil, fmt.Errorf("invalid ResignationDate format. Please use YYYY-MM-DD. Value: %s", *reqDTO.ResignationDate)
 		}
 		employeeUpdatePayload.ResignationDate = &parsedDate
@@ -292,7 +308,6 @@ func (h *EmployeeHandler) mapUpdateDTOToDomain(employeeID uint, reqDTO *employee
 	if reqDTO.HireDate != nil && *reqDTO.HireDate != "" {
 		parsedDate, err := time.Parse("2006-01-02", *reqDTO.HireDate)
 		if err != nil {
-			log.Printf("EmployeeHandler: Error parsing HireDate '%s': %v", *reqDTO.HireDate, err)
 			return nil, fmt.Errorf("invalid HireDate format. Please use YYYY-MM-DD. Value: %s", *reqDTO.HireDate)
 		}
 		employeeUpdatePayload.HireDate = &parsedDate

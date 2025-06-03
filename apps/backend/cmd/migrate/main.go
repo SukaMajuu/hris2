@@ -8,25 +8,25 @@ import (
 )
 
 func main() {
-    cfg, err := config.Load()
-    if err != nil {
-        log.Fatal(err)
-    }
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatal(err)
+	}
 
-    db, err := database.NewPostgresDB(cfg)
-    if err != nil {
-        log.Fatal(err)
-    }
+	db, err := database.NewPostgresDB(cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-    if err := database.Migrate(db); err != nil {
-        log.Fatal(err)
-    }
+	if err := database.Migrate(db); err != nil {
+		log.Fatal(err)
+	}
 
-    log.Println("Database migrations completed successfully")
+	log.Println("Database migrations completed successfully")
 
-    if err := database.Run(db); err != nil {
-        log.Fatal("Failed to run seeders:", err)
-    }
+	if err := database.Run(db); err != nil {
+		log.Fatal("Failed to run seeders:", err)
+	}
 
-    log.Println("Database setup completed successfully")
+	log.Println("Database setup completed successfully")
 }

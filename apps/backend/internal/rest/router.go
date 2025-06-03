@@ -90,7 +90,7 @@ func (r *Router) Setup() *gin.Engine {
 
 		// Protected API routes
 		api := v1.Group("/api")
-		// api.Use(r.authMiddleware.Authenticate())
+		api.Use(r.authMiddleware.Authenticate())
 		{
 			employee := api.Group("/employee")
 			{

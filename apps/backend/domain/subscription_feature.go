@@ -5,11 +5,11 @@ import (
 )
 
 type SubscriptionFeature struct {
-	ID          uint   `gorm:"primaryKey"`
-	Code        string `gorm:"type:varchar(100);not null;unique"`
-	Name        string `gorm:"type:varchar(255);not null"`
-	Description string `gorm:"type:varchar(500)"`
-	IsActive    bool   `gorm:"type:boolean;default:true;not null"`
+	ID          uint      `gorm:"primaryKey"`
+	Code        string    `gorm:"type:varchar(100);not null;unique"`
+	Name        string    `gorm:"type:varchar(255);not null"`
+	Description string    `gorm:"type:varchar(500)"`
+	IsActive    bool      `gorm:"type:boolean;default:true;not null"`
 	CreatedAt   time.Time `gorm:"autoCreateTime"`
 	UpdatedAt   time.Time `gorm:"autoUpdateTime"`
 }
@@ -19,14 +19,13 @@ func (sf *SubscriptionFeature) TableName() string {
 }
 
 type SubscriptionPlanFeature struct {
-	ID                   uint                 `gorm:"primaryKey"`
-	SubscriptionPlanID   uint                 `gorm:"not null"`
-	SubscriptionPlan     SubscriptionPlan     `gorm:"foreignKey:SubscriptionPlanID"`
+	ID                    uint                `gorm:"primaryKey"`
+	SubscriptionPlanID    uint                `gorm:"not null"`
 	SubscriptionFeatureID uint                `gorm:"not null"`
-	SubscriptionFeature  SubscriptionFeature  `gorm:"foreignKey:SubscriptionFeatureID"`
-	IsEnabled           bool                  `gorm:"type:boolean;default:true;not null"`
-	CreatedAt           time.Time             `gorm:"autoCreateTime"`
-	UpdatedAt           time.Time             `gorm:"autoUpdateTime"`
+	SubscriptionFeature   SubscriptionFeature `gorm:"foreignKey:SubscriptionFeatureID"`
+	IsEnabled             bool                `gorm:"type:boolean;default:true;not null"`
+	CreatedAt             time.Time           `gorm:"autoCreateTime"`
+	UpdatedAt             time.Time           `gorm:"autoUpdateTime"`
 }
 
 func (spf *SubscriptionPlanFeature) TableName() string {

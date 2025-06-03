@@ -16,6 +16,11 @@ type Employee struct {
 	Position         Position `gorm:"foreignKey:PositionID"`
 	EmploymentStatus bool     `gorm:"type:boolean;default:true;not null"`
 
+	// Self-Reference for Manager-Subordinate Relationship
+	ManagerID    *uint      `gorm:"type:uint"`
+	Manager      *Employee  `gorm:"foreignKey:ManagerID"`
+	Subordinates []Employee `gorm:"foreignKey:ManagerID"`
+
 	// Nullable Fields (Optional)
 	LastName              *string               `gorm:"type:varchar(255)"`
 	EmployeeCode          *string               `gorm:"type:varchar(255);unique"`

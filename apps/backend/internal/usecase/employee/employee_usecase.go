@@ -143,12 +143,14 @@ func (uc *EmployeeUseCase) List(ctx context.Context, filters map[string]interfac
 	return response, nil
 }
 
-func (uc *EmployeeUseCase) Create(ctx context.Context, employee *domain.Employee) (*domain.Employee, error) {
+func (uc *EmployeeUseCase) Create(ctx context.Context, employee *domain.Employee, creatorEmployeeID uint) (*domain.Employee, error) {
 	if employee.User.Email != "" {
-		log.Printf("EmployeeUseCase: Create called for employee. FirstName: %s, UserEmail: %s", employee.FirstName, employee.User.Email)
+		log.Printf("EmployeeUseCase: Create called for employee. FirstName: %s, UserEmail: %s, CreatorEmployeeID: %d", employee.FirstName, employee.User.Email, creatorEmployeeID)
 	} else {
-		log.Printf("EmployeeUseCase: Create called for employee. FirstName: %s, UserEmail: (not provided)", employee.FirstName)
+		log.Printf("EmployeeUseCase: Create called for employee. FirstName: %s, UserEmail: (not provided), CreatorEmployeeID: %d", employee.FirstName, creatorEmployeeID)
 	}
+
+	employee.ManagerID = &creatorEmployeeID
 
 	if employee.User.Password == "" {
 		employee.User.Password = "password"
@@ -160,7 +162,7 @@ func (uc *EmployeeUseCase) Create(ctx context.Context, employee *domain.Employee
 		return nil, fmt.Errorf("failed to create employee and user: %w", err)
 	}
 
-	log.Printf("EmployeeUseCase: Successfully created employee with ID %d and User ID %d", employee.ID, employee.User.ID)
+	log.Printf("EmployeeUseCase: Successfully created employee with ID %d and User ID %d, Manager ID %d", employee.ID, employee.User.ID, *employee.ManagerID)
 	return employee, nil
 }
 
@@ -241,6 +243,22 @@ func (uc *EmployeeUseCase) GetByID(ctx context.Context, id uint) (*dtoemployee.E
 
 	log.Printf("EmployeeUseCase: Successfully retrieved employee with ID %d", id)
 	return employeeDTO, nil
+}
+
+func (uc *EmployeeUseCase) GetEmployeeByUserID(ctx context.Context, userID uint) (*domain.Employee, error) {
+	log.Printf("EmployeeUseCase: GetEmployeeByUserID called for UserID: %d", userID)
+	employee, err := uc.employeeRepo.GetByUserID(ctx, userID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			log.Printf("EmployeeUseCase: No employee found for UserID %d", userID)
+			return nil, domain.ErrEmployeeNotFound
+		}
+		log.Printf("EmployeeUseCase: Error getting employee by UserID %d from repository: %v", userID, err)
+		return nil, fmt.Errorf("failed to get employee by UserID %d: %w", userID, err)
+	}
+
+	log.Printf("EmployeeUseCase: Successfully retrieved employee with ID %d for UserID %d", employee.ID, userID)
+	return employee, nil
 }
 
 func (uc *EmployeeUseCase) Update(ctx context.Context, employee *domain.Employee) (*domain.Employee, error) {

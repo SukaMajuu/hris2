@@ -8,7 +8,6 @@ import (
 	"github.com/SukaMajuu/hris/apps/backend/domain/enums"
 	"github.com/shopspring/decimal"
 
-	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -44,16 +43,12 @@ func seedSubscriptionFeatures(db *gorm.DB) error {
 	}
 
 	features := []domain.SubscriptionFeature{
-		{Code: "employee_database", Name: "Employee Database View & Export", Description: "View and export employee information"},
-		{Code: "clock_in_out", Name: "Clock-in/out (Manual + Approval)", Description: "Employee clock-in/out with approval workflow"},
-		{Code: "attendance_status", Name: "Attendance Status (On-time/Late)", Description: "Track employee attendance status"},
-		{Code: "leave_requests", Name: "Leave Requests (Sick, Permit, Annual)", Description: "Employee leave request management"},
-		{Code: "employee_dashboard", Name: "Employee Dashboard", Description: "Employee self-service dashboard"},
-		{Code: "admin_dashboard", Name: "Admin Dashboard & Employee Analytics", Description: "Administrative dashboard with analytics"},
-		{Code: "gps_attendance", Name: "GPS-based Attendance", Description: "Location-based attendance tracking"},
-		{Code: "work_schedule", Name: "Work Schedule & Shift Management", Description: "Manage work schedules and shifts"},
-		{Code: "attendance_reports", Name: "Detailed Attendance Reports", Description: "Comprehensive attendance reporting"},
-		{Code: "hr_documents", Name: "HR Letters/Contracts", Description: "Generate HR documents and contracts"},
+		{Code: "admin_dashboard", Name: "Admin Dashboard", Description: "Admin analytics, reports, and management overview with comprehensive business insights"},
+		{Code: "employee_dashboard", Name: "Employee Dashboard", Description: "Employee self-service portal and personal overview for individual users"},
+		{Code: "employee_management", Name: "Employee Management System", Description: "Complete employee database management including add, edit, delete, search, and CSV import/export (without documents)"},
+		{Code: "document_employee_management", Name: "Employee Document Management", Description: "Manage employee documents including contracts, certificates, evaluations, awards, and training records"},
+		{Code: "check_clock_settings", Name: "Check-Clock Settings & Configuration", Description: "Configure check-clock locations with GPS/geofencing, work schedules, and location types (WFO/WFA/Hybrid)"},
+		{Code: "check_clock_system", Name: "Complete Attendance & Check-Clock System", Description: "Full attendance management: admin attendance management, employee check-in/out, leave requests, and attendance history"},
 	}
 
 	if err := db.Create(&features).Error; err != nil {
@@ -76,22 +71,19 @@ func seedSubscriptionPlans(db *gorm.DB) error {
 		{
 			PlanType:    enums.PlanStandard,
 			Name:        "Standard",
-			Description: "Best for small business",
-			Features:    `["employee_database", "employee_dashboard"]`,
+			Description: "Best for small business - Core HR and attendance management",
 			IsActive:    true,
 		},
 		{
 			PlanType:    enums.PlanPremium,
 			Name:        "Premium",
-			Description: "Best for growing business",
-			Features:    `["admin_dashboard", "clock_in_out", "gps_attendance", "attendance_status", "leave_requests", "work_schedule"]`,
+			Description: "Best for growing business - Complete HR management with document system",
 			IsActive:    true,
 		},
 		{
 			PlanType:    enums.PlanUltra,
 			Name:        "Ultra",
-			Description: "For large enterprises",
-			Features:    `["hr_documents", "attendance_reports"]`,
+			Description: "For large enterprises - Advanced HR with overtime management (Coming Soon)",
 			IsActive:    false,
 		},
 	}
@@ -168,38 +160,47 @@ func seedSubscriptionPlanFeatures(db *gorm.DB) error {
 
 	var planFeatures []domain.SubscriptionPlanFeature
 
-	// Standard Plan Features
-	standardFeatures := []string{"employee_database", "manual_attendance", "clock_in_out", "attendance_status", "leave_requests", "employee_dashboard"}
+	// Standard Plan Features - Basic HR Management with dashboards
+	standardFeatures := []string{
+		"admin_dashboard",
+		"employee_dashboard",
+		"employee_management",
+	}
 	for _, featureCode := range standardFeatures {
 		if featureID, exists := featureMap[featureCode]; exists {
 			planFeatures = append(planFeatures, domain.SubscriptionPlanFeature{
-				SubscriptionPlanID:   standardPlan.ID,
+				SubscriptionPlanID:    standardPlan.ID,
 				SubscriptionFeatureID: featureID,
-				IsEnabled:            true,
+				IsEnabled:             true,
 			})
 		}
 	}
 
-	// Premium Plan Features (includes Standard + Premium specific)
-	premiumFeatures := append(standardFeatures, "admin_dashboard", "gps_attendance", "work_schedule", "tax_overtime", "fingerprint_integration", "attendance_reports")
+	// Premium Plan Features - Complete HR System with attendance and documents
+	premiumFeatures := append(standardFeatures,
+		"check_clock_settings",
+		"check_clock_system",
+		"document_employee_management",
+	)
 	for _, featureCode := range premiumFeatures {
 		if featureID, exists := featureMap[featureCode]; exists {
 			planFeatures = append(planFeatures, domain.SubscriptionPlanFeature{
-				SubscriptionPlanID:   premiumPlan.ID,
+				SubscriptionPlanID:    premiumPlan.ID,
 				SubscriptionFeatureID: featureID,
-				IsEnabled:            true,
+				IsEnabled:             true,
 			})
 		}
 	}
 
-	// Ultra Plan Features (includes all features)
-	ultraFeatures := append(premiumFeatures, "face_recognition", "auto_checkout", "turnover_analytics", "custom_dashboards", "custom_overtime", "hr_documents", "subscription_management")
+	// Ultra Plan Features - All current features (but plan is inactive)
+	// When overtime features are added, they will be included here
+	ultraFeatures := premiumFeatures
 	for _, featureCode := range ultraFeatures {
 		if featureID, exists := featureMap[featureCode]; exists {
 			planFeatures = append(planFeatures, domain.SubscriptionPlanFeature{
-				SubscriptionPlanID:   ultraPlan.ID,
+				SubscriptionPlanID:    ultraPlan.ID,
 				SubscriptionFeatureID: featureID,
-				IsEnabled:            false,
+				IsEnabled:             false,
 			})
 		}
 	}
@@ -220,15 +221,10 @@ func seedAdminUser(db *gorm.DB) error {
 		return nil
 	}
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
-	if err != nil {
-		return fmt.Errorf("failed to hash admin password: %w", err)
-	}
-	_ = hashedPassword
-
 	adminUser := domain.User{
-		Email: "admin@example.com",
-		Role:  enums.RoleAdmin,
+		Email:    "admin@example.com",
+		Password: "password123",
+		Role:     enums.RoleAdmin,
 	}
 
 	if err := db.Create(&adminUser).Error; err != nil {
@@ -236,7 +232,7 @@ func seedAdminUser(db *gorm.DB) error {
 	}
 
 	adminPosition := domain.Position{}
-	db.Where("code = ?", "SPRADM").First(&adminPosition)
+	db.Where("name = ?", "HR Manager").First(&adminPosition)
 	if adminPosition.ID == 0 {
 		log.Println("Warning: Could not find Super Admin position for admin employee seed.")
 	} else {

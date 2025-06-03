@@ -32,7 +32,6 @@ export class ApiService {
 			console.warn("NEXT_PUBLIC_API_URL is not set, using default URL");
 		}
 		this.baseURL = apiUrl || "http://localhost:8080/v1";
-		console.log("API Service initialized with base URL:", this.baseURL);
 	}
 
 	private processQueue(error: Error | null = null) {

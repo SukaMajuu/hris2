@@ -56,12 +56,9 @@ func NewRouter(
 }
 
 func (r *Router) Setup() *gin.Engine {
-	gin.SetMode(gin.DebugMode)
-
 	router := gin.Default()
-
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000"},
+		AllowOrigins:     []string{"http://localhost:3000", "https://hrispblfrontend.agreeablecoast-95647c57.southeastasia.azurecontainerapps.io"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},

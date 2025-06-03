@@ -82,6 +82,28 @@
             "metadata": {
                 "description": "App Service pricing tier and instance size"
             }
+        },
+        "tlsDebug": {
+            "type": "string",
+            "defaultValue": "false",
+            "allowedValues": [
+                "true",
+                "false"
+            ],
+            "metadata": {
+                "description": "Enable TLS debugging (true/false)"
+            }
+        },
+        "skipTlsVerify": {
+            "type": "string",
+            "defaultValue": "false",
+            "allowedValues": [
+                "true",
+                "false"
+            ],
+            "metadata": {
+                "description": "Skip TLS verification - use only for debugging (true/false)"
+            }
         }
     },
     "variables": {
@@ -172,6 +194,22 @@
                         {
                             "name": "WEBSITES_PORT",
                             "value": "80"
+                        },
+                        {
+                            "name": "SSL_CERT_DIR",
+                            "value": "/etc/ssl/certs"
+                        },
+                        {
+                            "name": "SSL_CERT_FILE",
+                            "value": "/etc/ssl/certs/ca-certificates.crt"
+                        },
+                        {
+                            "name": "TLS_DEBUG",
+                            "value": "[parameters('tlsDebug')]"
+                        },
+                        {
+                            "name": "SKIP_TLS_VERIFY",
+                            "value": "[parameters('skipTlsVerify')]"
                         }
                     ],
                     "linuxFxVersion": "[concat('DOCKER|', parameters('containerRegistryUrl'), '/hris-backend:latest')]",

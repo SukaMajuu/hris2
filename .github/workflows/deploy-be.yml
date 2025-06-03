@@ -42,6 +42,7 @@ jobs:
                       DATABASE_URL=${{ secrets.DATABASE_URL }}
                       SUPABASE_URL=${{ secrets.SUPABASE_URL }}
                       SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}
+                      SUPABASE_SERVICE_KEY=${{ secrets.SUPABASE_SERVICE_KEY }}
                       PORT=${{ secrets.PORT }}
                       JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}
                       JWT_ACCESS_DURATION=${{ secrets.JWT_ACCESS_DURATION }}
@@ -50,7 +51,7 @@ jobs:
             - name: Login to Azure (Needed if you use Azure CLI commands directly)
               uses: azure/login@v1
               with:
-                creds: ${{ secrets.AZURE_CREDENTIALS }}
+                  creds: ${{ secrets.AZURE_CREDENTIALS }}
 
             - name: Deploy to Azure Web App
               uses: azure/webapps-deploy@v2

@@ -11,12 +11,12 @@ import { Edit, Eye, Plus, Search, Trash } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import React, { useCallback } from "react";
 import {
-    ColumnDef,
-    getCoreRowModel,
-    getFilteredRowModel,
-    getPaginationRowModel,
-    PaginationState,
-    useReactTable,
+	ColumnDef,
+	getCoreRowModel,
+	getFilteredRowModel,
+	getPaginationRowModel,
+	PaginationState,
+	useReactTable,
 } from "@tanstack/react-table";
 import ConfirmationDelete from "./_components/ConfirmationDelete";
 import Link from "next/link";
@@ -186,56 +186,56 @@ export default function WorkSchedulePage() {
         autoResetPageIndex: false,
     });
 
-    if (isLoading) return <div>Loading...</div>; // Added loading state
-    if (isError) {
-        console.error("Error fetching work schedules:", error); // Log the actual error
-        return <div>Error fetching data: {error?.message}</div>; // Added error state
-    }
+	if (isLoading) return <div>Loading...</div>; // Added loading state
+	if (isError) {
+		console.error("Error fetching work schedules:", error); // Log the actual error
+		return <div>Error fetching data: {error?.message}</div>; // Added error state
+	}
 
-    return (
-        <>
-            <Card className="border border-gray-100 dark:border-gray-800">
-                <CardContent>
-                    <header className="flex flex-col gap-4 mb-6">
-                        <div className="flex flex-row flex-wrap justify-between items-center w-full">
-                            <h2 className="text-xl font-semibold">
-                                Work Schedule
-                            </h2>
-                            <Link href="/check-clock/work-schedule/add">
-                                <Button
-                                    className="gap-2 bg-[#6B9AC4] hover:bg-[#5A89B3] text-white dark:text-slate-100 hover:cursor-pointer px-4 py-2 rounded-md">
-                                    <Plus className="h-4 w-4" />
-                                    Add Data
-                                </Button>
-                            </Link>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-4 md:w-[400px]">
-                            <div className="relative flex-[1]">
-                                <Search
-                                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                                <Input
-                                    value={scheduleNameFilter ?? ""}
-                                    onChange={(event) => {
-                                        const newNameFilter = event.target.value;
-                                        setScheduleNameFilter(newNameFilter);
-                                        // table.getColumn("nama")?.setFilterValue(newNameFilter); // "nama" should be "name"
-                                        table.getColumn("name")?.setFilterValue(newNameFilter);
-                                    }}
-                                    className="pl-10 w-full bg-white border-gray-200"
-                                    placeholder="Search Schedule Name"
-                                />
-                            </div>
-                        </div>
-                    </header>
-
+	return (
+		<>
+			<Card className="border border-gray-100 dark:border-gray-800">
+				<CardContent>
+					<header className="flex flex-col gap-4 mb-6">
+						<div className="flex flex-row flex-wrap justify-between items-center w-full">
+							<h2 className="text-xl font-semibold">
+								Work Schedule
+							</h2>
+							<Link href="/check-clock/work-schedule/add">
+								<Button className="gap-2 bg-[#6B9AC4] hover:bg-[#5A89B3] text-white dark:text-slate-100 hover:cursor-pointer px-4 py-2 rounded-md">
+									<Plus className="h-4 w-4" />
+									Add Data
+								</Button>
+							</Link>
+						</div>
+						<div className="flex flex-wrap items-center gap-4 md:w-[400px]">
+							<div className="relative flex-[1]">
+								<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+								<Input
+									value={scheduleNameFilter ?? ""}
+									onChange={(event) => {
+										const newNameFilter =
+											event.target.value;
+										setScheduleNameFilter(newNameFilter);
+										// table.getColumn("nama")?.setFilterValue(newNameFilter); // "nama" should be "name"
+										table
+											.getColumn("name")
+											?.setFilterValue(newNameFilter);
+									}}
+									className="pl-10 w-full bg-white border-gray-200"
+									placeholder="Search Schedule Name"
+								/>
+							</div>
+						</div>
+					</header>
                     <DataTable table={table} onRowClick={handleRowClick} />
 
-                    <footer className="flex flex-col md:flex-row items-center justify-between mt-4 gap-4">
-                        <PageSizeComponent table={table} />
-                        <PaginationComponent table={table} />
-                    </footer>
-                </CardContent>
-            </Card>
+					<footer className="flex flex-col md:flex-row items-center justify-between mt-4 gap-4">
+						<PageSizeComponent table={table} />
+						<PaginationComponent table={table} />
+					</footer>
+				</CardContent>
+			</Card>
 
             <ConfirmationDelete
                 isDeleteDialogOpen={isDeleteDialogOpen}

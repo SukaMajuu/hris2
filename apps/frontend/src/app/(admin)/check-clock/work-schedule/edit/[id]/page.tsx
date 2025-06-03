@@ -17,13 +17,17 @@ export default function EditWorkSchedulePage() {
         await handleUpdate(initialData.id, data as UpdateWorkScheduleRequest);
     };
 
-    if (isLoadingData) {
-        return <div className="p-8 text-center">Loading data...</div>;
-    }
+	if (isLoadingData) {
+		return <div className="p-8 text-center">Loading data...</div>;
+	}
 
-    if (isError || !initialData) {
-        return <div className="p-8 text-center">Data not found or failed to load.</div>;
-    }
+	if (isError || !initialData) {
+		return (
+			<div className="p-8 text-center">
+				Data not found or failed to load.
+			</div>
+		);
+	}
 
     return (
         <div className="space-y-4">

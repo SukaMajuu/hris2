@@ -3,7 +3,13 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from "@/components/ui/select";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -12,10 +18,10 @@ import { CalendarClock, CalendarCog, MapPin, PlusCircle, Trash2 } from "lucide-r
 import { MultiSelect } from "@/components/multiSelect";
 
 interface Location {
-    value: string;
-    label: string;
-    latitude?: string;
-    longitude?: string;
+	value: string;
+	label: string;
+	latitude?: string;
+	longitude?: string;
 }
 
 interface WorkScheduleFormProps {
@@ -34,30 +40,31 @@ interface WorkScheduleFormProps {
 
 // Default empty work schedule detail untuk inisialisasi
 const emptyWorkScheduleDetail: WorkScheduleDetailRow = {
-    workTypeChildren: "",
-    workDays: [],
-    checkInStart: "",
-    checkInEnd: "",
-    breakStart: "",
-    breakEnd: "",
-    checkOutStart: "",
-    checkOutEnd: "",
-    locationId: "",
-    locationName: "",
-    latitude: "",
-    longitude: "",
-    addressDetails: "",
-};
+	id: 0,
+	worktype_detail: "",
+	work_days: [],
+	checkin_start: "",
+	checkin_end: "",
+	break_start: "",
+	break_end: "",
+	checkout_start: "",
+	checkout_end: "",
+	location_id: null,
+	name: null,
+	address_detail: null,
+	latitude: null,
+	longitude: null,
+	radius_m: null,
 
 // Pilihan hari kerja
 const daysOfWeek = [
-    { label: "Monday", value: "Monday" },
-    { label: "Tuesday", value: "Tuesday" },
-    { label: "Wednesday", value: "Wednesday" },
-    { label: "Thursday", value: "Thursday" },
-    { label: "Friday", value: "Friday" },
-    { label: "Saturday", value: "Saturday" },
-    { label: "Sunday", value: "Sunday" },
+	{ label: "Monday", value: "Monday" },
+	{ label: "Tuesday", value: "Tuesday" },
+	{ label: "Wednesday", value: "Wednesday" },
+	{ label: "Thursday", value: "Thursday" },
+	{ label: "Friday", value: "Friday" },
+	{ label: "Saturday", value: "Saturday" },
+	{ label: "Sunday", value: "Sunday" },
 ];
 
 // Default locations jika tidak ada props
@@ -123,9 +130,8 @@ export function WorkScheduleForm({
         formRefs.current = formRefs.current.slice(0, formData.workScheduleDetails?.length || 0);
     }, [formData.workScheduleDetails?.length]);
 
-    // Gunakan locations dari props atau default
-    const locationsList = locations.length ? locations : defaultLocations;
-
+	// Gunakan locations dari props atau default
+	const locationsList = locations.length ? locations : defaultLocations;
     /**
      * Handler untuk mengubah satu field dari detail jadwal kerja
      */

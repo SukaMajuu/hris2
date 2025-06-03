@@ -14,13 +14,20 @@ export const queryKeys = {
     list: ['users', 'list'] as const,
     detail: (id: string) => ['users', 'detail', id] as const,
   },
-  workSchedules: {
-    list: ['workSchedules', 'list'] as const,
-    detail: (id: number | string) => ['workSchedules', 'detail', id] as const,
-    create: ['workSchedules', 'create'] as const,
-    update: ['workSchedules', 'update'] as const,
-    delete: ['workSchedules', 'delete'] as const,
-  },
+	locations: {
+		list: ["locations", "list"] as const,
+		detail: (id: string) => ["locations", "detail", id] as const,
+		create: ["locations", "create"] as const,
+		update: (id: string) => ["locations", "update", id] as const,
+		delete: (id: string) => ["locations", "delete", id] as const,
+	},
+	workSchedules: {
+		list: ["workSchedules", "list"] as const,
+		detail: (id: number | string) => ["workSchedules", "detail", id] as const,
+		create: ["workSchedules", "create"] as const,
+		update: ["workSchedules", "update"] as const,
+		delete: ["workSchedules", "delete"] as const,
+	},
   employees: {
     list: (page: number, pageSize: number, filters?: EmployeeFilters) =>
       ['employees', 'list', page, pageSize, filters] as const,

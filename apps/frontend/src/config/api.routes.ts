@@ -18,6 +18,21 @@ export const API_ROUTES = {
         list: '/api/users',
         detail: (id: number) => `/api/users/${id}`,
       },
+			workSchedules: {
+				base: "/api/work-schedules",
+				list: "/api/work-schedules", // For listing, query params will be added by the service
+				detail: (id: number) => `/api/work-schedules/${id}`,
+				create: "/api/work-schedules",
+				update: (id: number) => `/api/work-schedules/${id}`,
+				delete: (id: number) => `/api/work-schedules/${id}`,
+			},
+  		locations: {
+        list: "/api/locations",
+        detail: (id: string) => `/api/locations/${id}`,
+        create: "/api/locations",
+        update: (id: string) => `/api/locations/${id}`,
+        delete: (id: string) => `/api/locations/${id}`,
+      },
       employees: {
         base: '/api/employee',
         list: '/api/employee',

@@ -54,3 +54,4 @@ linters:
             - path: '(.+)/seeder\.go'
               linters:
                   - lll
+                  - unparam

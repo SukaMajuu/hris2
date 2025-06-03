@@ -29,45 +29,41 @@ export interface PaginatedResponse<T> {
 }
 
 class LocationService {
-  constructor(private apiService: ApiService) { }
-
-  public async getLocations(
+  constructor(private apiService: ApiService) { } public async getLocations(
     params: Record<string, string | number>
   ): Promise<PaginatedResponse<LocationResponse>> {
     const response = await this.apiService.get<PaginatedResponse<LocationResponse>>(
-      API_ROUTES.v1.locations.list,
+      API_ROUTES.v1.api.locations.list,
       { params }
     );
+
     return response.data;
   }
-
   public async getLocationById(id: string): Promise<BaseResponse<LocationResponse>> {
-    const url = API_ROUTES.v1.locations.detail(id);
+    const url = API_ROUTES.v1.api.locations.detail(id);
     const response = await this.apiService.get<BaseResponse<LocationResponse>>(url);
     return response.data;
   }
-
   public async createLocation(
     data: CreateLocationRequest
   ): Promise<BaseResponse<LocationResponse>> {
     const response = await this.apiService.post<BaseResponse<LocationResponse>>(
-      API_ROUTES.v1.locations.create,
+      API_ROUTES.v1.api.locations.create,
       data
     );
     return response.data;
   }
-
   public async updateLocation(
     id: string,
     data: UpdateLocationRequest
   ): Promise<BaseResponse<LocationResponse>> {
-    const url = API_ROUTES.v1.locations.update(id);
+    const url = API_ROUTES.v1.api.locations.update(id);
     const response = await this.apiService.put<BaseResponse<LocationResponse>>(url, data);
     return response.data;
   }
 
   public async deleteLocation(id: string): Promise<BaseResponse<null>> {
-    const url = API_ROUTES.v1.locations.delete(id);
+    const url = API_ROUTES.v1.api.locations.delete(id);
     const response = await this.apiService.delete<BaseResponse<null>>(url);
     return response.data;
   }
@@ -77,4 +73,5 @@ class LocationService {
 const apiServiceInstance = new ApiService();
 
 // Ekspor instance LocationService
-export default new LocationService(apiServiceInstance);
+const locationService = new LocationService(apiServiceInstance);
+export default locationService;

@@ -32,11 +32,11 @@ export function useLocationsList(page = 1, pageSize = 10) {
   const queryResult = useLocations({ page, page_size: pageSize });
 
   const locations: Location[] =
-    queryResult.data && queryResult.data.data.items && Array.isArray(queryResult.data.data.items)
+    queryResult.data && queryResult.data.data && queryResult.data.data.items && Array.isArray(queryResult.data.data.items)
       ? queryResult.data.data.items.map(mapLocationResponseToLocation)
       : [];
 
-  const pagination = queryResult.data?.data.pagination || {
+  const pagination = queryResult.data?.data?.pagination || {
     total_items: 0,
     total_pages: 0,
     current_page: 1,

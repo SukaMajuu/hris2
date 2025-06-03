@@ -67,9 +67,9 @@ func (r *Router) Setup() *gin.Engine {
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 		MaxAge:           12 * 60 * 60,
-	}))
+}))
 
-	// API v1 routes
+// API v1 routes
 	v1 := router.Group("/v1")
 	{
 		auth := v1.Group("/auth")
@@ -137,6 +137,11 @@ func (r *Router) Setup() *gin.Engine {
 			checkclockSettings := api.Group("/checkclock-settings")
 			{
 				checkclockSettings.POST("", r.checkclockSettingsHandler.CreateCheckclockSettings)
+				checkclockSettings.GET("/", r.checkclockSettingsHandler.GetAllCheckclockSettings)
+				checkclockSettings.GET("/:id", r.checkclockSettingsHandler.GetCheckclockSettingsByID)
+				checkclockSettings.GET("/employee/:employee_id", r.checkclockSettingsHandler.GetCheckclockSettingsByEmployeeID)
+				checkclockSettings.PUT("/:id", r.checkclockSettingsHandler.UpdateCheckclockSettings)
+				checkclockSettings.DELETE("/:id", r.checkclockSettingsHandler.DeleteCheckclockSettings)
 			}
 
 			documents := api.Group("/documents")

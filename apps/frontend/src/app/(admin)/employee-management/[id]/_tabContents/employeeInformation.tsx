@@ -42,8 +42,10 @@ interface EmployeeInformationProps {
   setEditBank: (value: boolean) => void;
   handleSaveBank: () => void;
   handleResetPassword: () => void;
-  name: string;
-  setName: (value: string) => void;
+  firstName: string;
+  setFirstName: (value: string) => void;
+  lastName: string;
+  setLastName: (value: string) => void;
 }
 
 const EmployeeInformation: React.FC<EmployeeInformationProps> = ({
@@ -76,8 +78,10 @@ const EmployeeInformation: React.FC<EmployeeInformationProps> = ({
   setEditBank,
   handleSaveBank,
   handleResetPassword,
-  name,
-  setName,
+  firstName,
+  setFirstName,
+  lastName,
+  setLastName,
 }) => {
   return (
     <div className='grid grid-cols-1 gap-6 xl:grid-cols-2'>
@@ -100,19 +104,36 @@ const EmployeeInformation: React.FC<EmployeeInformationProps> = ({
           <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
             <div>
               <Label
-                htmlFor='employeeCardName'
+                htmlFor='firstName'
                 className='text-sm font-medium text-slate-600 dark:text-slate-400'
               >
-                Name
+                First Name
               </Label>
               <Input
-                id='employeeCardName'
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                id='firstName'
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
                 disabled={!editPersonal}
                 className='mt-1 border-slate-300 bg-slate-50 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-70 dark:border-slate-600 dark:bg-slate-800'
               />
             </div>
+            <div>
+              <Label
+                htmlFor='lastName'
+                className='text-sm font-medium text-slate-600 dark:text-slate-400'
+              >
+                Last Name
+              </Label>
+              <Input
+                id='lastName'
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                disabled={!editPersonal}
+                className='mt-1 border-slate-300 bg-slate-50 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-70 dark:border-slate-600 dark:bg-slate-800'
+              />
+            </div>
+          </div>
+          <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
             <div>
               <Label
                 htmlFor='nik'
@@ -128,24 +149,6 @@ const EmployeeInformation: React.FC<EmployeeInformationProps> = ({
                 className='mt-1 border-slate-300 bg-slate-50 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-70 dark:border-slate-600 dark:bg-slate-800'
               />
             </div>
-          </div>
-          <div>
-            <Label
-              htmlFor='email'
-              className='text-sm font-medium text-slate-600 dark:text-slate-400'
-            >
-              Email
-            </Label>
-            <Input
-              id='email'
-              type='email'
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={!editPersonal}
-              className='mt-1 border-slate-300 bg-slate-50 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-70 dark:border-slate-600 dark:bg-slate-800'
-            />
-          </div>
-          <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
             <div>
               <Label
                 htmlFor='gender'
@@ -170,40 +173,22 @@ const EmployeeInformation: React.FC<EmployeeInformationProps> = ({
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label
-                htmlFor='taxStatus'
-                className='text-sm font-medium text-slate-600 dark:text-slate-400'
-              >
-                Tax Status
-              </Label>
-              <Select
-                value={taxStatus}
-                onValueChange={(value) => setTaxStatus(value)}
-                disabled={!editPersonal}
-              >
-                <SelectTrigger
-                  id='taxStatus'
-                  className='mt-1 w-full border-slate-300 bg-slate-50 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-70 dark:border-slate-600 dark:bg-slate-800'
-                >
-                  <SelectValue placeholder='Select tax status' />
-                </SelectTrigger>
-                <SelectContent className='bg-white dark:bg-slate-800'>
-                  <SelectItem value='TK/0'>TK/0</SelectItem>
-                  <SelectItem value='TK/1'>TK/1</SelectItem>
-                  <SelectItem value='TK/2'>TK/2</SelectItem>
-                  <SelectItem value='TK/3'>TK/3</SelectItem>
-                  <SelectItem value='K/0'>K/0</SelectItem>
-                  <SelectItem value='K/1'>K/1</SelectItem>
-                  <SelectItem value='K/2'>K/2</SelectItem>
-                  <SelectItem value='K/3'>K/3</SelectItem>
-                  <SelectItem value='K/I/0'>K/I/0</SelectItem>
-                  <SelectItem value='K/I/1'>K/I/1</SelectItem>
-                  <SelectItem value='K/I/2'>K/I/2</SelectItem>
-                  <SelectItem value='K/I/3'>K/I/3</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          </div>
+          <div>
+            <Label
+              htmlFor='email'
+              className='text-sm font-medium text-slate-600 dark:text-slate-400'
+            >
+              Email
+            </Label>
+            <Input
+              id='email'
+              type='email'
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={!editPersonal}
+              className='mt-1 border-slate-300 bg-slate-50 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-70 dark:border-slate-600 dark:bg-slate-800'
+            />
           </div>
           <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
             <div>
@@ -256,36 +241,70 @@ const EmployeeInformation: React.FC<EmployeeInformationProps> = ({
             </div>
             <div>
               <Label
-                htmlFor='lastEducation'
+                htmlFor='taxStatus'
                 className='text-sm font-medium text-slate-600 dark:text-slate-400'
               >
-                Last Education
+                Tax Status
               </Label>
               <Select
-                value={lastEducation}
-                onValueChange={(value) => setLastEducation(value)}
+                value={taxStatus}
+                onValueChange={(value) => setTaxStatus(value)}
                 disabled={!editPersonal}
               >
                 <SelectTrigger
-                  id='lastEducation'
-                  className='mt-1 h-8 w-full border-slate-300 bg-slate-50 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-70 dark:border-slate-600 dark:bg-slate-800'
+                  id='taxStatus'
+                  className='mt-1 w-full border-slate-300 bg-slate-50 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-70 dark:border-slate-600 dark:bg-slate-800'
                 >
-                  <SelectValue placeholder='Select education level' />
+                  <SelectValue placeholder='Select tax status' />
                 </SelectTrigger>
                 <SelectContent className='bg-white dark:bg-slate-800'>
-                  <SelectItem value='SD'>SD</SelectItem>
-                  <SelectItem value='SMP'>SMP</SelectItem>
-                  <SelectItem value='SMA/SMK'>SMA/SMK</SelectItem>
-                  <SelectItem value='D1'>D1</SelectItem>
-                  <SelectItem value='D2'>D2</SelectItem>
-                  <SelectItem value='D3'>D3</SelectItem>
-                  <SelectItem value='S1/D4'>S1/D4</SelectItem>
-                  <SelectItem value='S2'>S2</SelectItem>
-                  <SelectItem value='S3'>S3</SelectItem>
-                  <SelectItem value='Other'>Other</SelectItem>
+                  <SelectItem value='TK/0'>TK/0</SelectItem>
+                  <SelectItem value='TK/1'>TK/1</SelectItem>
+                  <SelectItem value='TK/2'>TK/2</SelectItem>
+                  <SelectItem value='TK/3'>TK/3</SelectItem>
+                  <SelectItem value='K/0'>K/0</SelectItem>
+                  <SelectItem value='K/1'>K/1</SelectItem>
+                  <SelectItem value='K/2'>K/2</SelectItem>
+                  <SelectItem value='K/3'>K/3</SelectItem>
+                  <SelectItem value='K/I/0'>K/I/0</SelectItem>
+                  <SelectItem value='K/I/1'>K/I/1</SelectItem>
+                  <SelectItem value='K/I/2'>K/I/2</SelectItem>
+                  <SelectItem value='K/I/3'>K/I/3</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+          </div>
+          <div>
+            <Label
+              htmlFor='lastEducation'
+              className='text-sm font-medium text-slate-600 dark:text-slate-400'
+            >
+              Last Education
+            </Label>
+            <Select
+              value={lastEducation}
+              onValueChange={(value) => setLastEducation(value)}
+              disabled={!editPersonal}
+            >
+              <SelectTrigger
+                id='lastEducation'
+                className='mt-1 h-8 w-full border-slate-300 bg-slate-50 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-70 dark:border-slate-600 dark:bg-slate-800'
+              >
+                <SelectValue placeholder='Select education level' />
+              </SelectTrigger>
+              <SelectContent className='bg-white dark:bg-slate-800'>
+                <SelectItem value='SD'>SD</SelectItem>
+                <SelectItem value='SMP'>SMP</SelectItem>
+                <SelectItem value='SMA/SMK'>SMA/SMK</SelectItem>
+                <SelectItem value='D1'>D1</SelectItem>
+                <SelectItem value='D2'>D2</SelectItem>
+                <SelectItem value='D3'>D3</SelectItem>
+                <SelectItem value='S1/D4'>S1/D4</SelectItem>
+                <SelectItem value='S2'>S2</SelectItem>
+                <SelectItem value='S3'>S3</SelectItem>
+                <SelectItem value='Other'>Other</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           {editPersonal && (
             <div className='text-right'>

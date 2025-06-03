@@ -30,8 +30,10 @@ export default function Page() {
     isLoading,
     error,
     profileImage,
-    name,
-    setName,
+    firstName,
+    setFirstName,
+    lastName,
+    setLastName,
     employeeCode,
     setEmployeeCode,
     branch,
@@ -169,7 +171,7 @@ export default function Page() {
                   id='employeeNameTop'
                   className='text-2xl font-bold text-slate-800 dark:text-slate-100'
                 >
-                  {name}
+                  {[firstName, lastName].filter(Boolean).join(' ')}
                 </p>
               </div>
               <div className='grid grid-cols-1 gap-x-6 gap-y-4 text-sm sm:grid-cols-2 md:grid-cols-3'>
@@ -354,8 +356,10 @@ export default function Page() {
 
         <TabsContent value='personal' className='mt-6'>
           <EmployeeInformation
-            name={name}
-            setName={setName}
+            firstName={firstName}
+            setFirstName={setFirstName}
+            lastName={lastName}
+            setLastName={setLastName}
             nik={nik}
             setNik={setNik}
             email={email}

@@ -3,13 +3,20 @@ import { useEmployeeDetailQuery } from '@/api/queries/employee.queries';
 import { useUpdateEmployee } from '@/api/mutations/employee.mutations';
 import { useGetMyBranches } from '@/api/queries/branch.queries';
 import { useGetMyPositions } from '@/api/queries/position.queries';
+import { useDocumentsByEmployee } from '@/api/queries/document.queries';
+import {
+  useUploadDocumentForEmployee,
+  useDeleteDocument,
+} from '@/api/mutations/document.mutations';
 import { useToast } from '@/components/ui/use-toast';
+import type { Document } from '@/services/document.service';
 
 export interface ClientDocument {
   name: string;
   file: File | null;
   url?: string;
   uploadedAt?: string;
+  id?: number;
 }
 
 export function useDetailEmployee(employeeId: number) {
@@ -23,6 +30,9 @@ export function useDetailEmployee(employeeId: number) {
   const updateEmployeeMutation = useUpdateEmployee();
   const { data: branches = [] } = useGetMyBranches();
   const { data: positions = [] } = useGetMyPositions();
+  const { data: documents = [] } = useDocumentsByEmployee(employeeId);
+  const uploadDocumentMutation = useUploadDocumentForEmployee();
+  const deleteDocumentMutation = useDeleteDocument();
   const { toast } = useToast();
 
   // Profile image states
@@ -30,7 +40,8 @@ export function useDetailEmployee(employeeId: number) {
   const [profileFile, setProfileFile] = useState<File | null>(null);
 
   // Job information states
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [employeeCode, setEmployeeCode] = useState('');
   const [branch, setBranch] = useState('');
   const [position, setPosition] = useState('');
@@ -59,16 +70,20 @@ export function useDetailEmployee(employeeId: number) {
   const [bankAccountNumber, setBankAccountNumber] = useState('');
   const [editBank, setEditBank] = useState(false);
 
-  // Document states
-  const [currentDocuments, setCurrentDocuments] = useState<ClientDocument[]>([]);
+  // Remove local document state and use API data
+  const currentDocuments: ClientDocument[] = documents.map((doc: Document) => ({
+    name: doc.name,
+    file: null,
+    url: doc.url,
+    uploadedAt: doc.created_at,
+    id: doc.id,
+  }));
 
   // Initialize form data when employee data is loaded
   useEffect(() => {
     if (employee) {
-      // Format employee name from first_name and last_name
-      const fullName = [employee.first_name, employee.last_name].filter(Boolean).join(' ');
-
-      setName(fullName);
+      setFirstName(employee.first_name || '');
+      setLastName(employee.last_name || '');
       setEmployeeCode(employee.employee_code || '');
       setNik(employee.nik || '');
       setEmail(employee.email || '');
@@ -90,14 +105,6 @@ export function useDetailEmployee(employeeId: number) {
       setLastEducation(employee.last_education || '');
       setTaxStatus(employee.tax_status || '');
       setContractType(employee.contract_type || '');
-      setCurrentDocuments(
-        employee.documentMetadata?.map((doc) => ({
-          name: doc.name,
-          file: null,
-          url: doc.url,
-          uploadedAt: doc.uploadedAt,
-        })) || [],
-      );
     }
   }, [employee]);
 
@@ -126,24 +133,53 @@ export function useDetailEmployee(employeeId: number) {
     [editJob, toast],
   );
 
-  const handleAddNewDocument = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setCurrentDocuments((prevDocs) => [
-        ...prevDocs,
-        {
-          name: file.name,
-          file: file,
-          url: undefined,
-          uploadedAt: new Date().toISOString().split('T')[0],
-        },
-      ]);
-    }
-  }, []);
+  const handleAddNewDocument = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file && employeeId) {
+        try {
+          await uploadDocumentMutation.mutateAsync({ employeeId, file });
+          toast({
+            title: 'Success',
+            description: 'Document uploaded successfully!',
+          });
+          // Clear the input
+          e.target.value = '';
+        } catch (error) {
+          console.error('Error uploading document:', error);
+          toast({
+            title: 'Error',
+            description: 'Failed to upload document. Please try again.',
+            variant: 'destructive',
+          });
+        }
+      }
+    },
+    [employeeId, uploadDocumentMutation, toast],
+  );
 
-  const handleDeleteDocument = useCallback((index: number) => {
-    setCurrentDocuments((prevDocs) => prevDocs.filter((_, i) => i !== index));
-  }, []);
+  const handleDeleteDocument = useCallback(
+    async (index: number) => {
+      const doc = currentDocuments[index];
+      if (doc && doc.id) {
+        try {
+          await deleteDocumentMutation.mutateAsync(doc.id);
+          toast({
+            title: 'Success',
+            description: 'Document deleted successfully!',
+          });
+        } catch (error) {
+          console.error('Error deleting document:', error);
+          toast({
+            title: 'Error',
+            description: 'Failed to delete document. Please try again.',
+            variant: 'destructive',
+          });
+        }
+      }
+    },
+    [currentDocuments, deleteDocumentMutation, toast],
+  );
 
   const handleDownloadDocument = useCallback((doc: ClientDocument) => {
     if (doc.url && !doc.file) {
@@ -225,43 +261,88 @@ export function useDetailEmployee(employeeId: number) {
     setProfileFile,
   ]);
 
-  const handleSavePersonal = useCallback(() => {
-    console.log('Saving personal info...', {
-      nik,
-      email,
-      gender,
-      placeOfBirth,
-      dateOfBirth,
-      phone,
-      address,
-      lastEducation,
-      taxStatus,
-      name,
-    });
-    // TODO: Make API call to update employee data
-    setEditPersonal(false);
+  const handleSavePersonal = useCallback(async () => {
+    if (!employee) return;
+
+    try {
+      const updateData = {
+        first_name: firstName,
+        last_name: lastName,
+        nik: nik,
+        email: email,
+        gender: gender,
+        place_of_birth: placeOfBirth,
+        date_of_birth: dateOfBirth,
+        phone: phone,
+        last_education: lastEducation,
+        tax_status: taxStatus,
+      };
+
+      await updateEmployeeMutation.mutateAsync({
+        id: employee.id,
+        data: updateData,
+      });
+
+      toast({
+        title: 'Success',
+        description: 'Personal information updated successfully!',
+      });
+
+      setEditPersonal(false);
+    } catch (error) {
+      console.error('Error updating personal info:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update personal information. Please try again.',
+        variant: 'destructive',
+      });
+    }
   }, [
+    employee,
+    firstName,
+    lastName,
     nik,
     email,
     gender,
     placeOfBirth,
     dateOfBirth,
     phone,
-    address,
     lastEducation,
     taxStatus,
-    name,
+    updateEmployeeMutation,
+    toast,
   ]);
 
-  const handleSaveBank = useCallback(() => {
-    console.log('Saving bank info...', {
-      bankName,
-      bankAccountHolder,
-      bankAccountNumber,
-    });
-    // TODO: Make API call to update employee data
-    setEditBank(false);
-  }, [bankName, bankAccountHolder, bankAccountNumber]);
+  const handleSaveBank = useCallback(async () => {
+    if (!employee) return;
+
+    try {
+      const updateData = {
+        bank_name: bankName,
+        bank_account_holder_name: bankAccountHolder,
+        bank_account_number: bankAccountNumber,
+      };
+
+      await updateEmployeeMutation.mutateAsync({
+        id: employee.id,
+        data: updateData,
+      });
+
+      toast({
+        title: 'Success',
+        description: 'Bank information updated successfully!',
+      });
+
+      setEditBank(false);
+    } catch (error) {
+      console.error('Error updating bank info:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update bank information. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  }, [employee, bankName, bankAccountHolder, bankAccountNumber, updateEmployeeMutation, toast]);
 
   const handleResetPassword = useCallback(() => {
     const newPassword = Math.random().toString(36).slice(-8);
@@ -280,8 +361,10 @@ export function useDetailEmployee(employeeId: number) {
     setProfileImage,
     profileFile,
     setProfileFile,
-    name,
-    setName,
+    firstName,
+    setFirstName,
+    lastName,
+    setLastName,
     employeeCode,
     setEmployeeCode,
     branch,
@@ -332,7 +415,6 @@ export function useDetailEmployee(employeeId: number) {
     setEditBank,
 
     currentDocuments,
-    setCurrentDocuments,
 
     branches,
     positions,

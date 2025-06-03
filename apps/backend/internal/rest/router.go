@@ -67,9 +67,9 @@ func (r *Router) Setup() *gin.Engine {
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 		MaxAge:           12 * 60 * 60,
-}))
+	}))
 
-// API v1 routes
+	// API v1 routes
 	v1 := router.Group("/v1")
 	{
 		auth := v1.Group("/auth")
@@ -127,7 +127,7 @@ func (r *Router) Setup() *gin.Engine {
 				locations.PUT("/:id", r.locationHandler.UpdateLocation)
 				locations.DELETE("/:id", r.locationHandler.DeleteLocation)
 			}
-			
+
 			workScheduleRoutes := api.Group("/work-schedules")
 			{
 				workScheduleRoutes.POST("", r.workScheduleHandler.CreateWorkSchedule)
@@ -152,6 +152,13 @@ func (r *Router) Setup() *gin.Engine {
 				documents.POST("/upload", r.authMiddleware.Authenticate(), r.documentHandler.UploadDocument)
 				documents.GET("", r.authMiddleware.Authenticate(), r.documentHandler.GetDocuments)
 				documents.DELETE("/:id", r.authMiddleware.Authenticate(), r.documentHandler.DeleteDocument)
+			}
+
+			// Employee-specific document routes
+			employeeDocuments := api.Group("/employees/:employee_id/documents")
+			{
+				employeeDocuments.POST("/upload", r.documentHandler.UploadDocumentForEmployee)
+				employeeDocuments.GET("", r.documentHandler.GetDocumentsByEmployee)
 			}
 
 			subscription := api.Group("/subscription")

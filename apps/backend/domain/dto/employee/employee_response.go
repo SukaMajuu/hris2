@@ -12,6 +12,7 @@ type EmployeeResponseDTO struct {
 	Gender                *string `json:"gender,omitempty"`
 	NIK                   *string `json:"nik,omitempty"`
 	PlaceOfBirth          *string `json:"place_of_birth,omitempty"`
+	DateOfBirth           *string `json:"date_of_birth,omitempty"`
 	LastEducation         *string `json:"last_education,omitempty"`
 	Grade                 *string `json:"grade,omitempty"`
 	ContractType          *string `json:"contract_type,omitempty"`
@@ -25,4 +26,14 @@ type EmployeeResponseDTO struct {
 	ProfilePhotoURL       *string `json:"profile_photo_url,omitempty"`
 	CreatedAt             string  `json:"created_at"`
 	UpdatedAt             string  `json:"updated_at"`
+}
+
+type EmployeeStatisticsResponseDTO struct {
+	TotalEmployees     int64 `json:"total_employees"`
+	NewEmployees       int64 `json:"new_employees"`
+	ActiveEmployees    int64 `json:"active_employees"`
+	ResignedEmployees  int64 `json:"resigned_employees"`
+	PermanentEmployees int64 `json:"permanent_employees"`
+	ContractEmployees  int64 `json:"contract_employees"`
+	FreelanceEmployees int64 `json:"freelance_employees"`
 }

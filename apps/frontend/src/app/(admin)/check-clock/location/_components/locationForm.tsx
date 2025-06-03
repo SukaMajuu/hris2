@@ -40,6 +40,7 @@ interface LocationFormProps {
 	handleChangeAction: (field: keyof Location, value: string | number) => void;
 	handleSaveAction: (data?: LocationInput) => void;
 	onMapPositionChangeAction: (lat: number, lng: number) => void;
+	isLoading?: boolean;
 }
 
 export function LocationForm({
@@ -51,6 +52,7 @@ export function LocationForm({
 	handleChangeAction,
 	handleSaveAction: parentHandleSave,
 	onMapPositionChangeAction,
+	isLoading = false,
 }: LocationFormProps) {
 	// State untuk mengelola error validasi
 	const [validationErrors, setValidationErrors] = useState<
@@ -302,11 +304,11 @@ export function LocationForm({
 						{/* Error untuk latitude/longitude */}
 						{(getFieldError("latitude") ||
 							getFieldError("longitude")) && (
-							<div className="text-red-600 text-sm">
-								{getFieldError("latitude") ||
-									getFieldError("longitude")}
-							</div>
-						)}
+								<div className="text-red-600 text-sm">
+									{getFieldError("latitude") ||
+										getFieldError("longitude")}
+								</div>
+							)}
 					</div>
 
 					{/* Right Column: Form Inputs */}
@@ -328,11 +330,10 @@ export function LocationForm({
 									)
 								}
 								placeholder="e.g., Main Office, Branch Kemang"
-								className={`w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 ${
-									getFieldError("locationName")
+								className={`w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 ${getFieldError("locationName")
 										? "border-red-500"
 										: ""
-								}`}
+									}`}
 							/>
 							{getFieldError("locationName") && (
 								<p className="text-red-600 text-sm mt-1">
@@ -357,11 +358,10 @@ export function LocationForm({
 									)
 								}
 								placeholder="e.g., Jl. Merdeka No. 1, Jakarta"
-								className={`w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 ${
-									getFieldError("addressDetails")
+								className={`w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 ${getFieldError("addressDetails")
 										? "border-red-500"
 										: ""
-								}`}
+									}`}
 							/>
 							{getFieldError("addressDetails") && (
 								<p className="text-red-600 text-sm mt-1">
@@ -423,11 +423,10 @@ export function LocationForm({
 								type="number"
 								min="0"
 								placeholder="e.g., 100 for 100 meters"
-								className={`w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 ${
-									getFieldError("radius")
+								className={`w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 ${getFieldError("radius")
 										? "border-red-500"
 										: ""
-								}`}
+									}`}
 							/>
 							{getFieldError("radius") && (
 								<p className="text-red-600 text-sm mt-1">
@@ -436,21 +435,28 @@ export function LocationForm({
 							)}
 						</div>
 					</div>
-				</div>
-
-				<DialogFooter className="px-6 py-4 bg-gray-50 border-t border-gray-200 mt-auto">
+				</div>				<DialogFooter className="px-6 py-4 bg-gray-50 border-t border-gray-200 mt-auto">
 					<Button
 						variant="outline"
 						onClick={() => setDialogOpenAction(false)}
 						className="hover:bg-gray-100 border-gray-300"
+						disabled={isLoading}
 					>
 						Cancel
 					</Button>
 					<Button
 						onClick={handleSave}
 						className="bg-[#6B9AC4] hover:bg-[#5A89B3] text-white"
+						disabled={isLoading}
 					>
-						{isEditing ? "Update Location" : "Save Location"}
+						{isLoading ? (
+							<>
+								<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+								{isEditing ? "Updating..." : "Saving..."}
+							</>
+						) : (
+							<>{isEditing ? "Update Location" : "Save Location"}</>
+						)}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

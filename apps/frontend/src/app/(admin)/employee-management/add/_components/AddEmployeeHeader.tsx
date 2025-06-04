@@ -11,7 +11,7 @@ export function AddEmployeeHeader() {
       <Link href='/employee-management'>
         <Button
           variant='outline'
-          className='border-slate-300 text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-100'
+          className='cursor-pointer border-slate-300 text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-100'
         >
           <ArrowLeft className='mr-2 h-4 w-4' />
           Back to Employee List

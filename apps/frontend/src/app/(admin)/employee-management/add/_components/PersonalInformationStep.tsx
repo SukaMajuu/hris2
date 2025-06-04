@@ -152,7 +152,7 @@ export function PersonalInformationStep({
                 id='gender'
                 className={`focus:ring-primary focus:border-primary mt-1 w-full cursor-pointer border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800 ${
                   formData.gender
-                    ? '[&>span]:text-slate-700 dark:[&>span]:text-slate-200'
+                    ? '[&>span]:text-black dark:[&>span]:text-slate-200'
                     : '[&>span]:text-slate-400 dark:[&>span]:text-slate-500'
                 } ${errors.gender ? 'border-red-500 focus:border-red-500' : ''}`}
               >
@@ -184,7 +184,7 @@ export function PersonalInformationStep({
                 id='lastEducation'
                 className={`focus:ring-primary focus:border-primary mt-1 w-full cursor-pointer border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800 ${
                   formData.lastEducation
-                    ? '[&>span]:text-slate-700 dark:[&>span]:text-slate-200'
+                    ? '[&>span]:text-black dark:[&>span]:text-slate-200'
                     : '[&>span]:text-slate-400 dark:[&>span]:text-slate-500'
                 } ${errors.lastEducation ? 'border-red-500 focus:border-red-500' : ''}`}
               >
@@ -263,8 +263,8 @@ export function PersonalInformationStep({
               onChange={onInputChange}
               className={`focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 placeholder:text-slate-400 dark:border-slate-600 dark:placeholder:text-slate-500 ${
                 formData.dateOfBirth
-                  ? 'bg-slate-50 text-slate-700 dark:bg-slate-800 dark:text-slate-200'
-                  : 'bg-white text-slate-700 dark:bg-slate-900 dark:text-slate-200'
+                  ? 'bg-slate-50 text-black dark:bg-slate-800 dark:text-slate-200'
+                  : 'bg-white text-slate-400 dark:bg-slate-900 dark:text-slate-200'
               } ${errors.dateOfBirth ? 'border-red-500 focus:border-red-500' : ''}`}
             />
             {errors.dateOfBirth && (
@@ -286,7 +286,7 @@ export function PersonalInformationStep({
                 id='taxStatus'
                 className={`focus:ring-primary focus:border-primary mt-1 w-full cursor-pointer border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800 ${
                   formData.taxStatus
-                    ? '[&>span]:text-slate-700 dark:[&>span]:text-slate-200'
+                    ? '[&>span]:text-black dark:[&>span]:text-slate-200'
                     : '[&>span]:text-slate-400 dark:[&>span]:text-slate-500'
                 } ${errors.taxStatus ? 'border-red-500 focus:border-red-500' : ''}`}
               >

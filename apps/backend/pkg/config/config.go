@@ -6,10 +6,6 @@ import (
 	"github.com/joho/godotenv"
 )
 
-const (
-	trueValue = "true"
-)
-
 type Config struct {
 	Database DatabaseConfig
 	Supabase SupabaseConfig

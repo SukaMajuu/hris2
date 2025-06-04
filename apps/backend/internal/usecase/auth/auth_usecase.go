@@ -56,10 +56,18 @@ func (uc *AuthUseCase) issueTokensAndStoreRefresh(ctx context.Context, user *dom
 		return "", "", fmt.Errorf("invalid refresh token duration configuration")
 	}
 
+	// Revoke existing refresh tokens for this user to prevent conflicts
+	if revokeErr := uc.authRepo.RevokeAllUserRefreshTokens(ctx, user.ID); revokeErr != nil {
+		log.Printf("Warning: Failed to revoke existing refresh tokens for user ID %d: %v", user.ID, revokeErr)
+		// Continue anyway, as this is not critical
+	}
+
 	for i := 0; i < 3; i++ {
 		if i > 0 {
-			time.Sleep(time.Duration(50*(i)) * time.Millisecond)
-			log.Printf("Retrying token generation for user ID %d, attempt %d/%d after delay.", user.ID, i+1, 3)
+			// Exponential backoff with jitter
+			backoffDelay := time.Duration(100*(1<<i)) * time.Millisecond
+			time.Sleep(backoffDelay)
+			log.Printf("Retrying token generation for user ID %d, attempt %d/%d after %v delay.", user.ID, i+1, 3, backoffDelay)
 		}
 
 		var genErr error
@@ -97,7 +105,7 @@ func (uc *AuthUseCase) issueTokensAndStoreRefresh(ctx context.Context, user *dom
 			if len(refreshTokenHash) > 0 {
 				hashPrefix = refreshTokenHash[:min(10, len(refreshTokenHash))] + "..."
 			}
-			log.Printf("StoreRefreshToken conflict for user ID %d, hash %s (attempt %d/%d). Retrying. Error: %v", user.ID, hashPrefix, i+1, 3, storeErr)
+			log.Printf("StoreRefreshToken conflict for user ID %d, hash %s (attempt %d/%d). Error: %v", user.ID, hashPrefix, i+1, 3, storeErr)
 			if i < 2 {
 				continue
 			}

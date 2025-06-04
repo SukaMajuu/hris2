@@ -2,7 +2,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { Metadata } from 'next';
 import { AuthProvider } from './_components/AuthProvider';
-import { Toaster } from '@/components/ui/toaster';
+import { Toaster } from 'sonner';
 import AppQueryProvider from './_components/AppQueryProvider';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 

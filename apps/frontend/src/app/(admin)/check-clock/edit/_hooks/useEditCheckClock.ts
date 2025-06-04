@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 import { useEmployeesQuery } from "@/api/queries/employee.queries";
 import { useWorkSchedules } from "@/api/queries/work-schedule.queries";
 import { useCheckclockSettingsById } from "@/api/queries/checkclock-settings.queries";
@@ -12,7 +12,7 @@ export function useEditCheckClockForm(id: string) {
 	const [isLoading, setIsLoading] = useState(false);
 
 	// API queries
-	const employeesQuery = useEmployeesQuery(1, 100, {}); // Get all employees
+	const employeesQuery = useEmployeesQuery(1, 100, {employment_status: false}); // Get all employees
 	const workSchedulesQuery = useWorkSchedules(1, 100); // Get all work schedules
 	const checkclockQuery = useCheckclockSettingsById(id); // Get specific checkclock settings
 	const updateMutation = useUpdateCheckclockSettings();
@@ -51,13 +51,7 @@ export function useEditCheckClockForm(id: string) {
 				await updateMutation.mutateAsync({
 					id: id,
 					payload: apiData,
-				});
-
-				toast({
-					title: "Success",
-					description: "Check clock settings updated successfully",
-					duration: 2000,
-				});
+				});				toast.success("Check clock settings updated successfully");
 
 				setTimeout(() => {
 					router.push("/check-clock");
@@ -67,13 +61,7 @@ export function useEditCheckClockForm(id: string) {
 				const errorMessage =
 					error instanceof Error
 						? error.message
-						: "Failed to update check clock settings. Please try again.";
-
-				toast({
-					title: "Error",
-					description: errorMessage,
-					variant: "destructive",
-				});
+						: "Failed to update check clock settings. Please try again.";				toast.error(errorMessage);
 			} finally {
 				setIsLoading(false);
 			}

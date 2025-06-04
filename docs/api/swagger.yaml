@@ -5143,16 +5143,11 @@ paths:
           multipart/form-data:
             schema:
               type: object
-              required:
-                - employee_id
+              required:              
                 - leave_type
                 - start_date
                 - end_date
-              properties:
-                employee_id:
-                  type: integer
-                  description: ID of the employee submitting the request
-                  example: 1
+              properties:                
                 leave_type:
                   type: string
                   enum: [sick_leave, compassionate_leave, maternity_leave, annual_leave, marriage_leave]
@@ -5420,9 +5415,9 @@ paths:
               properties:
                 leave_type:
                   type: string
-                  enum: [sick, annual, maternity, paternity, unpaid, emergency]
+                  enum: [sick_leave, compassionate_leave, maternity_leave, annual_leave, marriage_leave]
                   description: Type of leave being requested
-                  example: "annual"
+                  example: "sick_leave"
                 start_date:
                   type: string
                   format: date

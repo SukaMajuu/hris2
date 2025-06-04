@@ -311,11 +311,9 @@ func (uc *LeaveRequestUseCase) Update(ctx context.Context, id uint, updates *dom
 	// Validate dates
 	if existingLeaveRequest.StartDate.After(existingLeaveRequest.EndDate) {
 		return nil, fmt.Errorf("start date cannot be after end date")
-	}
-
-	// Handle file upload if provided
+	}	// Handle file upload if provided
 	var oldAttachment *string
-	if file != nil && uc.supabaseClient != nil {
+	if file != nil && file.Size > 0 && file.Filename != "" && uc.supabaseClient != nil {
 		employee, _ := uc.employeeRepo.GetByID(ctx, existingLeaveRequest.EmployeeID)
 		fileName := uc.generateFileName(employee, file.Filename)
 		

@@ -31,6 +31,12 @@ export function useAuthListener() {
 	const justLoggedOutRef = useRef(false);
 
 	useEffect(() => {
+		if (pathname === "/auth/callback") {
+			setIsLoading(false);
+			setInitialSetupCompleted(true);
+			return;
+		}
+
 		const token = tokenService.getAccessToken();
 		const currentAuthStoreState = useAuthStore.getState();
 
@@ -40,7 +46,7 @@ export function useAuthListener() {
 				const userFromToken: AppUser = {
 					id: decodedPayload.user_id,
 					email: decodedPayload.email,
-					role: decodedPayload.role || "user",
+					role: decodedPayload.role || "admin",
 					created_at: new Date().toISOString(),
 					updated_at: new Date().toISOString(),
 				};
@@ -63,6 +69,10 @@ export function useAuthListener() {
 
 		const { data: authListener } = supabase.auth.onAuthStateChange(
 			async (event, session) => {
+				if (pathname === "/auth/callback") {
+					return;
+				}
+
 				const appState = useAuthStore.getState();
 
 				if (event === "PASSWORD_RECOVERY") {
@@ -78,6 +88,7 @@ export function useAuthListener() {
 				if (event === "SIGNED_OUT") {
 					justLoggedOutRef.current = true;
 					setIsPasswordRecovery(false);
+
 					if (
 						appState.isAuthenticated ||
 						tokenService.getAccessToken()
@@ -85,6 +96,7 @@ export function useAuthListener() {
 						tokenService.clearTokens();
 						clearUser();
 					}
+
 					if (
 						pathname !== "/login" &&
 						pathname !== "/register" &&
@@ -92,7 +104,8 @@ export function useAuthListener() {
 						pathname !== "/reset-password" &&
 						pathname !== "/login/id-employee" &&
 						pathname !== "/check-email" &&
-						pathname !== "/link-expired"
+						pathname !== "/link-expired" &&
+						pathname !== "/auth/callback"
 					) {
 						router.push("/login");
 					}
@@ -118,36 +131,9 @@ export function useAuthListener() {
 						setIsPasswordRecovery(false);
 					}
 
-					const supabaseUserIdAsNumber = parseInt(
-						session.user.id,
-						10
-					);
-					const finalUserId = !isNaN(supabaseUserIdAsNumber)
-						? supabaseUserIdAsNumber
-						: 0;
 					if (
-						!appState.isAuthenticated ||
-						appState.user?.id !== finalUserId
-					) {
-						const appUserToSet: AppUser = {
-							id: finalUserId,
-							email: session.user.email || "default@example.com",
-							role:
-								(session.user.app_metadata
-									?.role as AppUser["role"]) || "user",
-							created_at:
-								session.user.created_at ||
-								new Date().toISOString(),
-							updated_at:
-								session.user.updated_at ||
-								new Date().toISOString(),
-						};
-						setUser(appUserToSet);
-					}
-					if (
-						event === "INITIAL_SESSION" &&
 						appState.isAuthenticated &&
-						appState.user?.id === finalUserId
+						tokenService.getAccessToken()
 					) {
 						setIsLoading(false);
 					}
@@ -173,7 +159,8 @@ export function useAuthListener() {
 						pathname !== "/register" &&
 						pathname !== "/forgot-password" &&
 						pathname !== "/reset-password" &&
-						pathname !== "/login/id-employee"
+						pathname !== "/login/id-employee" &&
+						pathname !== "/auth/callback"
 					) {
 						router.push("/login");
 					}

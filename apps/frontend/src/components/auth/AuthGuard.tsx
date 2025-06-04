@@ -1,76 +1,102 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import { useAuthStore } from '@/stores/auth.store';
-import { usePathname, useRouter } from 'next/navigation';
-import FullPageLoader from '@/components/ui/full-page-loader';
+import { useEffect } from "react";
+import { useAuthStore } from "@/stores/auth.store";
+import { usePathname, useRouter } from "next/navigation";
+import FullPageLoader from "@/components/ui/full-page-loader";
 
 // Pages that don't require authentication
 const PUBLIC_PAGES = [
-  '/',
-  '/landing-page',
-  '/login',
-  '/register',
-  '/forgot-password',
-  '/reset-password',
-  '/login/id-employee',
-  '/check-email',
-  '/link-expired',
+	"/",
+	"/landing-page",
+	"/login",
+	"/register",
+	"/forgot-password",
+	"/reset-password",
+	"/login/id-employee",
+	"/check-email",
+	"/link-expired",
+	"/auth/callback",
 ];
 
 interface AuthGuardProps {
-  children: React.ReactNode;
+	children: React.ReactNode;
 }
 
 export function AuthGuard({ children }: AuthGuardProps) {
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const isAuthStoreLoading = useAuthStore((state) => state.isLoading);
-  const isPasswordRecovery = useAuthStore((state) => state.isPasswordRecovery);
-  const router = useRouter();
-  const pathname = usePathname();
+	const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+	const isAuthStoreLoading = useAuthStore((state) => state.isLoading);
+	const isPasswordRecovery = useAuthStore(
+		(state) => state.isPasswordRecovery
+	);
+	const router = useRouter();
+	const pathname = usePathname();
 
-  const isPublicPage = PUBLIC_PAGES.includes(pathname);
+	const isPublicPage = PUBLIC_PAGES.includes(pathname);
+	const isCallbackPage = pathname === "/auth/callback";
 
-  useEffect(() => {
-    if (isAuthStoreLoading) {
-      return;
-    }
+	useEffect(() => {
+		if (isCallbackPage) {
+			return;
+		}
 
-    if (pathname === '/' && !isAuthenticated) {
-      return;
-    }
+		if (isAuthStoreLoading) {
+			return;
+		}
 
-    if (isPasswordRecovery && pathname === '/reset-password') {
-      return;
-    }
+		if (pathname === "/" && !isAuthenticated) {
+			return;
+		}
 
-    if (isAuthenticated && isPublicPage && pathname !== '/') {
-      router.replace('/dashboard');
-      return;
-    }
+		if (isPasswordRecovery && pathname === "/reset-password") {
+			return;
+		}
 
-    if (!isAuthenticated && !isPublicPage) {
-      router.replace('/login');
-      return;
-    }
-  }, [isAuthStoreLoading, isAuthenticated, isPublicPage, isPasswordRecovery, router, pathname]);
+		if (
+			isAuthenticated &&
+			isPublicPage &&
+			pathname !== "/" &&
+			!isCallbackPage
+		) {
+			router.replace("/dashboard");
+			return;
+		}
 
-  if (isAuthStoreLoading) {
-    return <FullPageLoader />;
-  }
+		if (!isAuthenticated && !isPublicPage && !isCallbackPage) {
+			router.replace("/login");
+			return;
+		}
+	}, [
+		isAuthStoreLoading,
+		isAuthenticated,
+		isPublicPage,
+		isPasswordRecovery,
+		router,
+		pathname,
+		isCallbackPage,
+	]);
 
-  if (
-    isAuthenticated &&
-    isPublicPage &&
-    pathname !== '/' &&
-    !(isPasswordRecovery && pathname === '/reset-password')
-  ) {
-    return <FullPageLoader />;
-  }
+	if (isCallbackPage) {
+		return <>{children}</>;
+	}
 
-  if (!isAuthenticated && !isPublicPage) {
-    return <FullPageLoader />;
-  }
+	if (isAuthStoreLoading) {
+		return <FullPageLoader />;
+	}
 
-  return <>{children}</>;
+	if (
+		isAuthenticated &&
+		isPublicPage &&
+		pathname !== "/" &&
+		!isCallbackPage &&
+		!(isPasswordRecovery && pathname === "/reset-password")
+	) {
+		return <FullPageLoader />;
+	}
+
+	if (!isAuthenticated && !isPublicPage && !isCallbackPage) {
+		return <FullPageLoader />;
+	}
+
+	return <>{children}</>;
 }

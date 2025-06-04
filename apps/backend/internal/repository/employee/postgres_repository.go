@@ -60,16 +60,28 @@ func (r *PostgresRepository) List(ctx context.Context, filters map[string]interf
 	var employees []*domain.Employee
 	var totalItems int64
 
-	query := r.db.WithContext(ctx).Model(&domain.Employee{})
+	query := r.db.WithContext(ctx).Model(&domain.Employee{}).Joins("LEFT JOIN users ON employees.user_id = users.id")
 
 	for key, value := range filters {
 		switch key {
 		case "manager_id":
-			query = query.Where("manager_id = ?", value)
+			query = query.Where("employees.manager_id = ?", value)
 		case "employment_status":
-			query = query.Where("employment_status = ?", value)
+			query = query.Where("employees.employment_status = ?", value)
+		case "gender":
+			query = query.Where("employees.gender = ?", value)
+		case "search":
+
+			searchTerm := "%" + value.(string) + "%"
+			query = query.Where(
+				"LOWER(employees.first_name || ' ' || COALESCE(employees.last_name, '')) LIKE LOWER(?) OR "+
+					"users.phone LIKE ? OR "+
+					"LOWER(COALESCE(employees.branch, '')) LIKE LOWER(?) OR "+
+					"LOWER(COALESCE(employees.position_name, '')) LIKE LOWER(?) OR "+
+					"LOWER(COALESCE(employees.grade, '')) LIKE LOWER(?)",
+				searchTerm, searchTerm, searchTerm, searchTerm, searchTerm)
 		default:
-			query = query.Where(key+" = ?", value)
+			query = query.Where("employees."+key+" = ?", value)
 		}
 	}
 
@@ -78,7 +90,7 @@ func (r *PostgresRepository) List(ctx context.Context, filters map[string]interf
 	}
 
 	offset := (pagination.Page - 1) * pagination.PageSize
-	if err := query.Offset(offset).Limit(pagination.PageSize).Order("id ASC").Preload("User").Find(&employees).Error; err != nil {
+	if err := query.Offset(offset).Limit(pagination.PageSize).Order("employees.id ASC").Preload("User").Find(&employees).Error; err != nil {
 		return nil, 0, err
 	}
 
@@ -138,7 +150,7 @@ func (r *PostgresRepository) GetStatisticsByManager(ctx context.Context, manager
 	permanentEmployees, contractEmployees, freelanceEmployees int64,
 	err error,
 ) {
-	// Create base query function to avoid stacking WHERE conditions
+
 	newQuery := func() *gorm.DB {
 		return r.db.WithContext(ctx).Model(&domain.Employee{}).Where("manager_id = ?", managerID)
 	}

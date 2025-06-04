@@ -105,11 +105,19 @@ export class EmployeeService {
     params.append('page', page.toString());
     params.append('page_size', pageSize.toString());
 
-    if (filters.name) {
-      params.append('name', filters.name);
+    if (filters.search && filters.search.trim()) {
+      params.append('search', filters.search.trim());
+    } else if (filters.name && filters.name.trim()) {
+      params.append('search', filters.name.trim());
     }
-    if (filters.gender && filters.gender !== 'all') {
+
+    if (filters.gender && filters.gender !== 'all' && filters.gender.trim()) {
       params.append('gender', filters.gender);
+    }
+
+    if (filters.employment_status !== undefined) {
+      const status = filters.employment_status ? 'active' : 'inactive';
+      params.append('status', status);
     }
 
     const queryString = params.toString();

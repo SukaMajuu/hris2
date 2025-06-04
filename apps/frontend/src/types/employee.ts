@@ -36,6 +36,7 @@ export interface EmployeeFilters {
   name?: string;
   gender?: string;
   employment_status?: boolean;
+  search?: string;
 }
 
 export interface EmployeeStats {

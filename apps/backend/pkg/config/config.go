@@ -16,7 +16,6 @@ type Config struct {
 	Server   ServerConfig
 	JWT      JWTConfig
 	Xendit   XenditConfig
-	TLS      TLSConfig
 }
 
 type DatabaseConfig struct {
@@ -55,11 +54,6 @@ type XenditConfig struct {
 	WebhookURL  string
 }
 
-type TLSConfig struct {
-	SkipVerify bool
-	Debug      bool
-}
-
 func Load() (*Config, error) {
 	_ = godotenv.Load()
 
@@ -94,9 +88,6 @@ func Load() (*Config, error) {
 			BaseURL:     getEnv("XENDIT_BASE_URL", "https://api.xendit.co"),
 			Environment: getEnv("XENDIT_ENVIRONMENT", "test"),
 			WebhookURL:  getEnv("XENDIT_WEBHOOK_URL", ""),
-		},		TLS: TLSConfig{
-			SkipVerify: getEnv("SKIP_TLS_VERIFY", "") == trueValue,
-			Debug:      getEnv("TLS_DEBUG", "") == trueValue,
 		},
 	}, nil
 }

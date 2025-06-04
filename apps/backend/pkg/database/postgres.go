@@ -10,7 +10,6 @@ import (
 	"github.com/SukaMajuu/hris/apps/backend/pkg/config"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
 func NewPostgresDB(cfg *config.Config) (*gorm.DB, error) {
@@ -42,10 +41,18 @@ func NewPostgresDB(cfg *config.Config) (*gorm.DB, error) {
 		}
 	}
 
+	// Add statement_cache_mode=disabled and set compatible query exec mode
+	if strings.Contains(dbURL, "?") {
+		dbURL += "&statement_cache_mode=disabled&default_query_exec_mode=exec"
+	} else {
+		dbURL += "?statement_cache_mode=disabled&default_query_exec_mode=exec"
+	}
+
+	log.Printf("Database connection string (without credentials): %s", strings.ReplaceAll(dbURL, cfg.Database.Password, "***"))
+
 	db, err := gorm.Open(postgres.Open(dbURL), &gorm.Config{
-		PrepareStmt: true, // Enable prepared statements
-		// PrepareStmt: false, // Enable prepared statements
-		Logger: logger.Default.LogMode(logger.Info),
+		PrepareStmt:                              false,
+		DisableForeignKeyConstraintWhenMigrating: true,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %v", err)
@@ -60,11 +67,11 @@ func NewPostgresDB(cfg *config.Config) (*gorm.DB, error) {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
-	// Configure connection pool
-	sqlDB.SetMaxIdleConns(10)
-	sqlDB.SetMaxOpenConns(100)
-	sqlDB.SetConnMaxLifetime(30 * time.Minute)
-	sqlDB.SetConnMaxIdleTime(5 * time.Minute)
+	// Configure connection pool with more conservative settings
+	sqlDB.SetMaxIdleConns(2)                  // Reduced from 10
+	sqlDB.SetMaxOpenConns(10)                 // Reduced from 100
+	sqlDB.SetConnMaxLifetime(5 * time.Minute) // Reduced from 30 minutes
+	sqlDB.SetConnMaxIdleTime(1 * time.Minute) // Reduced from 5 minutes
 
 	log.Println("Successfully connected to database")
 	return db, nil

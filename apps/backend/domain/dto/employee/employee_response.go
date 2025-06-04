@@ -1,5 +1,7 @@
 package employee
 
+import "github.com/SukaMajuu/hris/apps/backend/domain"
+
 type EmployeeResponseDTO struct {
 	ID                    uint    `json:"id"`
 	Email                 *string `json:"email,omitempty"`
@@ -7,7 +9,7 @@ type EmployeeResponseDTO struct {
 	FirstName             string  `json:"first_name"`
 	LastName              *string `json:"last_name,omitempty"`
 	EmployeeCode          *string `json:"employee_code,omitempty"`
-	BranchName            *string `json:"branch_name,omitempty"`
+	Branch                *string `json:"branch,omitempty"`
 	PositionName          string  `json:"position_name"`
 	Gender                *string `json:"gender,omitempty"`
 	NIK                   *string `json:"nik,omitempty"`
@@ -36,4 +38,9 @@ type EmployeeStatisticsResponseDTO struct {
 	PermanentEmployees int64 `json:"permanent_employees"`
 	ContractEmployees  int64 `json:"contract_employees"`
 	FreelanceEmployees int64 `json:"freelance_employees"`
+}
+
+type EmployeeListResponseData struct {
+	Items      []*EmployeeResponseDTO `json:"items"`
+	Pagination domain.Pagination      `json:"pagination"`
 }

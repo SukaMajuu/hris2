@@ -34,6 +34,15 @@ export const queryKeys = {
 		update: (id: string) => ["locations", "update", id] as const,
 		delete: (id: string) => ["locations", "delete", id] as const,
 	},
+	checkclockSettings: {
+		list: ["checkclockSettings", "list"] as const,
+		detail: (id: string) => ["checkclockSettings", "detail", id] as const,
+		byEmployee: (employeeId: string) =>
+			["checkclockSettings", "byEmployee", employeeId] as const,
+		create: ["checkclockSettings", "create"] as const,
+		update: (id: string) => ["checkclockSettings", "update", id] as const,
+		delete: (id: string) => ["checkclockSettings", "delete", id] as const,
+	},
 	workSchedules: {
 		list: ["workSchedules", "list"] as const,
 		detail: (id: number | string) =>

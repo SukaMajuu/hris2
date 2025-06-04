@@ -22,7 +22,10 @@ func (r *CheckclockRepository) Create(ctx context.Context, checkclockSettings *d
 		return nil, err
 	}
 	// Preload associated data after creation
-	err = r.db.WithContext(ctx).Preload("Employee").Preload("WorkSchedule.Details").First(checkclockSettings, checkclockSettings.ID).Error
+	err = r.db.WithContext(ctx).
+		Preload("Employee.User").
+		Preload("WorkSchedule.Details").
+		First(checkclockSettings, checkclockSettings.ID).Error
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +35,7 @@ func (r *CheckclockRepository) Create(ctx context.Context, checkclockSettings *d
 func (r *CheckclockRepository) GetByID(ctx context.Context, id uint) (*domain.CheckclockSettings, error) {
 	var settings domain.CheckclockSettings
 	err := r.db.WithContext(ctx).
-		Preload("Employee").
+		Preload("Employee.User").
 		Preload("WorkSchedule.Details").
 		First(&settings, id).Error
 	if err != nil {
@@ -47,7 +50,7 @@ func (r *CheckclockRepository) GetByID(ctx context.Context, id uint) (*domain.Ch
 func (r *CheckclockRepository) GetByEmployeeID(ctx context.Context, employeeID uint) (*domain.CheckclockSettings, error) {
 	var settings domain.CheckclockSettings
 	err := r.db.WithContext(ctx).
-		Preload("Employee").
+		Preload("Employee.User").
 		Preload("WorkSchedule.Details").
 		Where("employee_id = ?", employeeID).
 		First(&settings).Error
@@ -72,7 +75,7 @@ func (r *CheckclockRepository) GetAll(ctx context.Context, offset, limit int) ([
 
 	// Get paginated records
 	err = r.db.WithContext(ctx).
-		Preload("Employee").
+		Preload("Employee.User").
 		Preload("WorkSchedule.Details").
 		Offset(offset).
 		Limit(limit).

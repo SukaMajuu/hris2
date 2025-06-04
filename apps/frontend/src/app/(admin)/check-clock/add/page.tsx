@@ -1,67 +1,54 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "@/components/ui/use-toast";
-import {
-	CheckClockForm,
-	type CheckClockFormData,
-	type Employee,
-	type Location,
-} from "@/app/(admin)/check-clock/_components/CheckClockForm";
-
-// Mock data - replace with actual data fetching
-const mockEmployees: Employee[] = [
-	{ value: "employee1", label: "John Doe", position: "Developer" },
-	{ value: "employee2", label: "Jane Smith", position: "Designer" },
-	{ value: "employee3", label: "Peter Jones", position: "Manager" },
-];
-
-const mockLocations: Location[] = [
-	{ value: "location1", label: "Main Office Alpha" },
-	{ value: "location2", label: "Branch Office Beta" },
-	{ value: "location3", label: "Remote Hub Gamma" },
-];
+import { CheckClockForm } from "@/app/(admin)/check-clock/_components/CheckClockForm";
+import { useAddCheckClockForm } from "./_hooks/useAddCheckClockEmployee";
 
 export default function AddCheckclockPage() {
-	const router = useRouter();
+	const {
+		employees,
+		workSchedules,
+		isLoading,
+		isDataLoading,
+		handleSubmit,
+	} = useAddCheckClockForm();
 
-	const handleSave = (data: CheckClockFormData) => {
-		console.log("Saving new check-clock data:", data);
-		// Add your save logic here (e.g., API call)
-
-		toast({
-			title: "Success",
-			description: "Add CheckClock successfully",
-			duration: 2000,
-		});
-
-		setTimeout(() => {
-			router.push("/check-clock");
-		}, 2000);
-	};
+	if (isDataLoading) {
+		return (
+			<div className="space-y-4">
+				<Card className="border-none py-0">
+					<CardHeader className="bg-[#6B9AC4] text-white p-4 rounded-lg">
+						<CardTitle className="text-lg font-semibold">
+							Add Check Clock Settings
+						</CardTitle>
+					</CardHeader>
+				</Card>
+				<div className="flex items-center justify-center py-8">
+					<div className="text-center">
+						<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+						<p className="mt-2 text-gray-600">Loading...</p>
+					</div>
+				</div>
+			</div>
+		);
+	}
 
 	return (
 		<div className="space-y-4">
 			<Card className="border-none py-0">
 				<CardHeader className="bg-[#6B9AC4] text-white p-4 rounded-lg">
 					<CardTitle className="text-lg font-semibold">
-						Add Checkclock
+						Add Check Clock Settings
 					</CardTitle>
 				</CardHeader>
 			</Card>
 
 			<CheckClockForm
-				onSubmit={handleSave}
+				onSubmit={handleSubmit}
 				isEditMode={false}
-				employees={mockEmployees}
-				locations={mockLocations}
-				// initialData can be omitted for add mode or explicitly passed as empty/default
-				initialData={{
-					workType: "WFO (Work From Office)", // Default value
-					addressDetails: "Kota Malang, Jawa Timur", // Default value
-				}}
-				showProfileCard={false}
+				employees={employees}
+				workSchedules={workSchedules}
+				isLoading={isLoading}
 			/>
 		</div>
 	);

@@ -35,6 +35,24 @@ func (h *EmployeeHandler) ListEmployees(c *gin.Context) {
 		return
 	}
 
+	userIDCtx, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User ID not found in context", fmt.Errorf("missing userID in context"))
+		return
+	}
+	currentUserID, ok := userIDCtx.(uint)
+	if !ok {
+		response.InternalServerError(c, fmt.Errorf("invalid user ID type in context"))
+		return
+	}
+
+	currentEmployee, err := h.employeeUseCase.GetEmployeeByUserID(c.Request.Context(), currentUserID)
+	if err != nil {
+		log.Printf("EmployeeHandler: Error getting current employee for UserID %d: %v", currentUserID, err)
+		response.InternalServerError(c, fmt.Errorf("failed to get current employee information: %w", err))
+		return
+	}
+
 	paginationParams := domain.PaginationParams{
 		Page:     queryDTO.Page,
 		PageSize: queryDTO.PageSize,
@@ -49,10 +67,13 @@ func (h *EmployeeHandler) ListEmployees(c *gin.Context) {
 
 	filters := make(map[string]interface{})
 	if queryDTO.Status != nil {
-		filters["status"] = *queryDTO.Status
+		filters["employment_status"] = *queryDTO.Status == "active"
 	}
 
-	log.Printf("EmployeeHandler: Listing employees with DTO: %+v, Parsed Filters: %+v, Pagination: %+v", queryDTO, filters, paginationParams)
+	// Add manager filter to only show employees managed by current user
+	filters["manager_id"] = currentEmployee.ID
+
+	log.Printf("EmployeeHandler: Listing employees for manager ID %d with DTO: %+v, Parsed Filters: %+v, Pagination: %+v", currentEmployee.ID, queryDTO, filters, paginationParams)
 
 	employeeData, err := h.employeeUseCase.List(c.Request.Context(), filters, paginationParams)
 	if err != nil {
@@ -96,7 +117,7 @@ func (h *EmployeeHandler) CreateEmployee(c *gin.Context) {
 	}
 
 	// Convert DTO to domain model
-	employeeDomain, err := h.mapCreateDTOToDomain(&reqDTO)
+	employeeDomain, err := employeeDTO.MapCreateDTOToDomain(&reqDTO)
 	if err != nil {
 		response.BadRequest(c, err.Error(), err)
 		return
@@ -117,81 +138,6 @@ func (h *EmployeeHandler) CreateEmployee(c *gin.Context) {
 	// Convert domain to response DTO
 	respDTO := h.mapDomainToResponseDTO(createdEmployee)
 	response.Success(c, http.StatusCreated, "Employee created successfully", respDTO)
-}
-
-func (h *EmployeeHandler) mapCreateDTOToDomain(reqDTO *employeeDTO.CreateEmployeeRequestDTO) (*domain.Employee, error) {
-	userDomain := domain.User{
-		Email:    reqDTO.Email,
-		Password: reqDTO.Password,
-	}
-	if reqDTO.Phone != nil {
-		userDomain.Phone = *reqDTO.Phone
-	}
-
-	employeeDomain := &domain.Employee{
-		User:                  userDomain,
-		FirstName:             reqDTO.FirstName,
-		LastName:              reqDTO.LastName,
-		PositionID:            reqDTO.PositionID,
-		EmployeeCode:          reqDTO.EmployeeCode,
-		BranchID:              reqDTO.BranchID,
-		Gender:                reqDTO.Gender,
-		NIK:                   reqDTO.NIK,
-		PlaceOfBirth:          reqDTO.PlaceOfBirth,
-		LastEducation:         reqDTO.LastEducation,
-		Grade:                 reqDTO.Grade,
-		ContractType:          reqDTO.ContractType,
-		BankName:              reqDTO.BankName,
-		BankAccountNumber:     reqDTO.BankAccountNumber,
-		BankAccountHolderName: reqDTO.BankAccountHolderName,
-		TaxStatus:             reqDTO.TaxStatus,
-		ProfilePhotoURL:       reqDTO.ProfilePhotoURL,
-	}
-
-	// Parse dates
-	if err := h.parseDatesForCreate(reqDTO, employeeDomain); err != nil {
-		return nil, err
-	}
-
-	// Set employment status
-	if reqDTO.EmploymentStatus != nil {
-		employeeDomain.EmploymentStatus = *reqDTO.EmploymentStatus
-	} else {
-		employeeDomain.EmploymentStatus = true
-	}
-
-	return employeeDomain, nil
-}
-
-func (h *EmployeeHandler) parseDatesForCreate(reqDTO *employeeDTO.CreateEmployeeRequestDTO, employeeDomain *domain.Employee) error {
-	if reqDTO.DateOfBirth != nil && *reqDTO.DateOfBirth != "" {
-		parsedDate, err := time.Parse("2006-01-02", *reqDTO.DateOfBirth)
-		if err != nil {
-			log.Printf("EmployeeHandler: Error parsing DateOfBirth '%s': %v", *reqDTO.DateOfBirth, err)
-			return fmt.Errorf("invalid DateOfBirth format. Please use YYYY-MM-DD. Value: %s", *reqDTO.DateOfBirth)
-		}
-		employeeDomain.DateOfBirth = &parsedDate
-	}
-
-	if reqDTO.ResignationDate != nil && *reqDTO.ResignationDate != "" {
-		parsedDate, err := time.Parse("2006-01-02", *reqDTO.ResignationDate)
-		if err != nil {
-			log.Printf("EmployeeHandler: Error parsing ResignationDate '%s': %v", *reqDTO.ResignationDate, err)
-			return fmt.Errorf("invalid ResignationDate format. Please use YYYY-MM-DD. Value: %s", *reqDTO.ResignationDate)
-		}
-		employeeDomain.ResignationDate = &parsedDate
-	}
-
-	if reqDTO.HireDate != nil && *reqDTO.HireDate != "" {
-		parsedDate, err := time.Parse("2006-01-02", *reqDTO.HireDate)
-		if err != nil {
-			log.Printf("EmployeeHandler: Error parsing HireDate '%s': %v", *reqDTO.HireDate, err)
-			return fmt.Errorf("invalid HireDate format. Please use YYYY-MM-DD. Value: %s", *reqDTO.HireDate)
-		}
-		employeeDomain.HireDate = &parsedDate
-	}
-
-	return nil
 }
 
 func (h *EmployeeHandler) handleCreateEmployeeError(c *gin.Context, err error) {
@@ -260,8 +206,8 @@ func (h *EmployeeHandler) mapUpdateDTOToDomain(employeeID uint, reqDTO *employee
 	if reqDTO.LastName != nil {
 		employeeUpdatePayload.LastName = reqDTO.LastName
 	}
-	if reqDTO.PositionID != nil {
-		employeeUpdatePayload.PositionID = *reqDTO.PositionID
+	if reqDTO.PositionName != nil {
+		employeeUpdatePayload.PositionName = *reqDTO.PositionName
 	}
 	if reqDTO.EmploymentStatus != nil {
 		employeeUpdatePayload.EmploymentStatus = *reqDTO.EmploymentStatus
@@ -269,8 +215,8 @@ func (h *EmployeeHandler) mapUpdateDTOToDomain(employeeID uint, reqDTO *employee
 	if reqDTO.EmployeeCode != nil {
 		employeeUpdatePayload.EmployeeCode = reqDTO.EmployeeCode
 	}
-	if reqDTO.BranchID != nil {
-		employeeUpdatePayload.BranchID = reqDTO.BranchID
+	if reqDTO.Branch != nil {
+		employeeUpdatePayload.Branch = reqDTO.Branch
 	}
 	if reqDTO.Gender != nil {
 		employeeUpdatePayload.Gender = reqDTO.Gender
@@ -348,7 +294,8 @@ func (h *EmployeeHandler) mapDomainToResponseDTO(employee *domain.Employee) *dom
 		FirstName:             employee.FirstName,
 		LastName:              employee.LastName,
 		EmployeeCode:          employee.EmployeeCode,
-		PositionName:          employee.Position.Name,
+		PositionName:          employee.PositionName,
+		Branch:                employee.Branch,
 		Gender:                genderDTO,
 		NIK:                   employee.NIK,
 		PlaceOfBirth:          employee.PlaceOfBirth,
@@ -362,9 +309,6 @@ func (h *EmployeeHandler) mapDomainToResponseDTO(employee *domain.Employee) *dom
 		UpdatedAt:             employee.UpdatedAt.Format(time.RFC3339),
 	}
 
-	if employee.Branch != nil {
-		respDTO.BranchName = &employee.Branch.Name
-	}
 	if employee.LastEducation != nil {
 		lastEducationStr := string(*employee.LastEducation)
 		respDTO.LastEducation = &lastEducationStr
@@ -545,9 +489,30 @@ func (h *EmployeeHandler) UploadEmployeePhoto(c *gin.Context) {
 func (h *EmployeeHandler) GetEmployeeStatistics(c *gin.Context) {
 	log.Printf("EmployeeHandler: GetEmployeeStatistics called")
 
-	statisticsData, err := h.employeeUseCase.GetStatistics(c.Request.Context())
+	// Get current user ID from context
+	userIDCtx, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User ID not found in context", fmt.Errorf("missing userID in context"))
+		return
+	}
+	currentUserID, ok := userIDCtx.(uint)
+	if !ok {
+		response.InternalServerError(c, fmt.Errorf("invalid user ID type in context"))
+		return
+	}
+
+	// Get current employee information
+	currentEmployee, err := h.employeeUseCase.GetEmployeeByUserID(c.Request.Context(), currentUserID)
 	if err != nil {
-		log.Printf("EmployeeHandler: Error getting employee statistics from use case: %v", err)
+		log.Printf("EmployeeHandler: Error getting current employee for UserID %d: %v", currentUserID, err)
+		response.InternalServerError(c, fmt.Errorf("failed to get current employee information: %w", err))
+		return
+	}
+
+	// Get statistics filtered by current manager
+	statisticsData, err := h.employeeUseCase.GetStatisticsByManager(c.Request.Context(), currentEmployee.ID)
+	if err != nil {
+		log.Printf("EmployeeHandler: Error getting employee statistics from use case for manager %d: %v", currentEmployee.ID, err)
 		response.InternalServerError(c, fmt.Errorf("failed to retrieve employee statistics"))
 		return
 	}

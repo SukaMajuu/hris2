@@ -3,6 +3,7 @@ package checkclock_settings
 import (
 	"time"
 
+	"github.com/SukaMajuu/hris/apps/backend/domain"
 	employeedto "github.com/SukaMajuu/hris/apps/backend/domain/dto/employee"
 	workscheduledto "github.com/SukaMajuu/hris/apps/backend/domain/dto/work_schedule"
 )
@@ -17,16 +18,46 @@ type CheckclockSettingsResponseDTO struct {
 	UpdatedAt      time.Time                                `json:"updated_at"`
 }
 
-type CheckclockSettingsListResponseDTO struct {
-	Data []CheckclockSettingsResponseDTO `json:"data"`
-	Meta PaginationMeta                  `json:"meta"`
+type CheckclockSettingsListResponseData struct {
+	Items      []*CheckclockSettingsResponseDTO `json:"items"`
+	Pagination domain.Pagination                `json:"pagination"`
 }
 
-type PaginationMeta struct {
-	Total       int64 `json:"total"`
-	Page        int   `json:"page"`
-	PageSize    int   `json:"page_size"`
-	TotalPages  int   `json:"total_pages"`
-	HasNext     bool  `json:"has_next"`
-	HasPrevious bool  `json:"has_previous"`
+// ToCheckclockSettingsResponseDTO converts a domain CheckclockSettings to a response DTO
+func ToCheckclockSettingsResponseDTO(settings *domain.CheckclockSettings) *CheckclockSettingsResponseDTO {
+	if settings == nil {
+		return nil
+	}
+
+	dto := &CheckclockSettingsResponseDTO{
+		ID:             settings.ID,
+		EmployeeID:     settings.EmployeeID,
+		WorkScheduleID: settings.WorkScheduleID,
+		CreatedAt:      settings.CreatedAt,
+		UpdatedAt:      settings.UpdatedAt,
+	}
+
+	if settings.Employee.ID != 0 {
+		dto.Employee = &employeedto.EmployeeResponseDTO{
+			ID:           settings.Employee.ID,
+			FirstName:    settings.Employee.FirstName,
+			LastName:     settings.Employee.LastName,
+			PositionName: settings.Employee.PositionName,
+		}
+
+		// Set email from User relationship if exists
+		if settings.Employee.User.Email != "" {
+			dto.Employee.Email = &settings.Employee.User.Email
+		}
+	}
+
+	if settings.WorkSchedule.ID != 0 {
+		dto.WorkSchedule = &workscheduledto.WorkScheduleResponseDTO{
+			ID:       settings.WorkSchedule.ID,
+			Name:     settings.WorkSchedule.Name,
+			WorkType: string(settings.WorkSchedule.WorkType),
+		}
+	}
+
+	return dto
 }

@@ -13,8 +13,6 @@ import {
 } from '@/schemas/employee.schema';
 import { useCreateEmployee } from '@/api/mutations/employee.mutations';
 import { useToast } from '@/components/ui/use-toast';
-import { useGetMyBranches } from '@/api/queries/branch.queries';
-import { useGetMyPositions } from '@/api/queries/position.queries';
 
 const getTodaysDate = (): string => {
   const today = new Date();
@@ -55,8 +53,6 @@ export function useAddEmployeeForm() {
   const { toast } = useToast();
 
   const createEmployeeMutation = useCreateEmployee();
-  const { data: branches = [] } = useGetMyBranches();
-  const { data: positions = [] } = useGetMyPositions();
 
   const form = useForm<EmployeeFormData>({
     resolver: zodResolver(employeeFormSchema),
@@ -187,37 +183,15 @@ export function useAddEmployeeForm() {
       // Validate entire form
       const validData = employeeFormSchema.parse(getValues());
 
-      // Find branch and position IDs
-      const selectedBranch = branches.find((b) => b.id.toString() === validData.branch);
-      const selectedPosition = positions.find((p) => p.id.toString() === validData.position);
-
-      if (!selectedBranch) {
-        toast({
-          title: 'Error',
-          description: 'Selected branch not found',
-          variant: 'destructive',
-        });
-        return;
-      }
-
-      if (!selectedPosition) {
-        toast({
-          title: 'Error',
-          description: 'Selected position not found',
-          variant: 'destructive',
-        });
-        return;
-      }
-
       // Prepare data for API
       const createData = {
         email: validData.email,
         phone: validData.phoneNumber,
         first_name: validData.firstName,
         last_name: validData.lastName || undefined,
-        position_id: selectedPosition.id,
+        position_name: validData.position,
         employee_code: validData.employeeId,
-        branch_id: selectedBranch.id,
+        branch: validData.branch,
         gender: validData.gender,
         nik: validData.nik,
         place_of_birth: validData.placeOfBirth,

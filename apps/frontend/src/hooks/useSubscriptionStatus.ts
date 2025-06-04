@@ -9,15 +9,17 @@ export function useSubscriptionStatus() {
 	const {
 		data: userSubscription,
 		isLoading: isLoadingSubscription,
+		isFetching: isFetchingSubscription,
 	} = useUserSubscription();
 
 	const userRole = user?.role as Role | undefined;
 	const isAdmin = userRole === ROLES.admin;
 
-	const hasActiveSubscription =
+	const hasActiveSubscription = Boolean(
 		userSubscription?.subscription_plan &&
-		(userSubscription?.status === "active" ||
-			userSubscription?.status === "trial");
+			(userSubscription?.status === "active" ||
+				userSubscription?.status === "trial")
+	);
 
 	const isLoading = isAuthStoreLoading || isLoadingSubscription;
 
@@ -30,5 +32,7 @@ export function useSubscriptionStatus() {
 		shouldShowLayout,
 		userSubscription,
 		user,
+		isLoadingSubscription,
+		isFetchingSubscription,
 	};
 }

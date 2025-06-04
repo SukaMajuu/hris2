@@ -14,15 +14,22 @@ import { AxiosError } from "axios";
 export default function AuthCallbackPage() {
 	const router = useRouter();
 	const setUser = useAuthStore((state) => state.setUser);
+	const setIsLoading = useAuthStore((state) => state.setIsLoading);
 	const [message, setMessage] = useState("Auth Callback: Initializing...");
 	const googleAuthMutation = useGoogleAuthMutation();
 	const hasProcessed = useRef(false);
+	const isProcessing = useRef(false);
 
 	useEffect(() => {
-		if (hasProcessed.current) {
+		if (hasProcessed.current || isProcessing.current) {
 			return;
 		}
+
 		hasProcessed.current = true;
+		isProcessing.current = true;
+
+		// Ensure auth store is not in loading state during callback
+		setIsLoading(false);
 		setMessage("Auth Callback: Processing authentication...");
 
 		const handleAuthCallback = async () => {
@@ -37,7 +44,9 @@ export default function AuthCallbackPage() {
 					setMessage(
 						"Authentication failed: No session token found from Google."
 					);
-					router.push("/login");
+					// Clean up before redirect
+					await clearSupabaseSession();
+					setTimeout(() => router.replace("/login"), 1000);
 					return;
 				}
 
@@ -58,7 +67,8 @@ export default function AuthCallbackPage() {
 					setMessage(
 						"Authentication failed: Could not verify session with our server."
 					);
-					router.push("/login");
+					await clearSupabaseSession();
+					setTimeout(() => router.replace("/login"), 1000);
 					return;
 				}
 
@@ -67,21 +77,35 @@ export default function AuthCallbackPage() {
 				setMessage("Cleaning up temporary authentication data...");
 				await clearSupabaseSession();
 
+				// Set user in auth store
 				setUser(authResponse.user);
-				toast.success("Successfully logged in with Google!");
 				setMessage(
 					"Authentication successful! Redirecting to dashboard..."
 				);
-				router.push("/dashboard");
+
+				// Show success toast
+				toast.success("Google authentication successful!");
+
+				// Ensure auth state is properly set before redirecting
+				setTimeout(() => {
+					router.replace("/dashboard");
+				}, 1000);
 			} catch (error) {
+				console.error("[AuthCallback] Authentication error:", error);
+
 				let errorMessage =
 					"An unknown error occurred during Google sign-in.";
 
 				if (error instanceof AxiosError) {
-					errorMessage =
-						error.response?.data?.message ||
-						error.message ||
-						"Failed to communicate with the server.";
+					if (error.response?.status === 500) {
+						errorMessage =
+							"Server error during authentication. Please try again.";
+					} else {
+						errorMessage =
+							error.response?.data?.message ||
+							error.message ||
+							"Failed to communicate with the server.";
+					}
 				} else if (error instanceof Error) {
 					errorMessage = error.message;
 				}
@@ -91,17 +115,20 @@ export default function AuthCallbackPage() {
 					`Authentication error: ${errorMessage}. Redirecting to login...`
 				);
 
-				if (
-					typeof window !== "undefined" &&
-					window.location.pathname !== "/login"
-				) {
-					router.push("/login");
-				}
+				// Clean up any partial authentication state
+				await clearSupabaseSession();
+
+				// Redirect to login after showing error
+				setTimeout(() => {
+					router.replace("/login");
+				}, 3000);
+			} finally {
+				isProcessing.current = false;
 			}
 		};
 
 		handleAuthCallback();
-	}, [router, setUser, googleAuthMutation]);
+	}, [router, setUser, setIsLoading, googleAuthMutation]);
 
 	return (
 		<div
@@ -111,6 +138,7 @@ export default function AuthCallbackPage() {
 				alignItems: "center",
 				height: "100vh",
 				flexDirection: "column",
+				gap: "1rem",
 			}}
 		>
 			<p>{message}</p>

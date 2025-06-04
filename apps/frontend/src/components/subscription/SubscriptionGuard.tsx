@@ -27,6 +27,8 @@ export function SubscriptionGuard({
 		hasActiveSubscription,
 		isLoading,
 		isAdmin,
+		userSubscription,
+		isFetchingSubscription,
 	} = useSubscriptionStatus();
 
 	useEffect(() => {
@@ -34,35 +36,38 @@ export function SubscriptionGuard({
 			return;
 		}
 
-		if (!hasActiveSubscription && isAdmin) {
-			if (showToast) {
-				toast.error(
-					"Active subscription required to access admin features."
-				);
+		if (isAdmin && !hasActiveSubscription && !isFetchingSubscription) {
+			if (
+				userSubscription === null ||
+				(userSubscription && !hasActiveSubscription)
+			) {
+				if (showToast) {
+					toast.error(
+						"Active subscription required to access admin features."
+					);
+				}
+				router.replace(adminRedirectTo);
 			}
-			router.replace(adminRedirectTo);
 		}
 	}, [
 		hasActiveSubscription,
 		isLoading,
 		isAdmin,
+		userSubscription,
 		router,
 		adminRedirectTo,
 		showToast,
 	]);
 
-	// Show loading state while checking subscription or auth
 	if (isLoading) {
 		return <FullPageLoader />;
 	}
 
-	// For admin without subscription, redirect (handled in useEffect)
-	if (!hasActiveSubscription && isAdmin) {
+	if (isAdmin && !hasActiveSubscription && userSubscription !== undefined) {
 		return <FullPageLoader />;
 	}
 
-	// For regular user without subscription, show expired message
-	if (!hasActiveSubscription && !isAdmin) {
+	if (!isAdmin && !hasActiveSubscription && userSubscription !== undefined) {
 		return (
 			<div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 p-4">
 				<div className="max-w-md w-full bg-white dark:bg-slate-800 rounded-lg shadow-lg p-8 text-center">

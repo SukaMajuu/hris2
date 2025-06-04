@@ -92,7 +92,8 @@ export class AuthService {
 				err
 			);
 		} finally {
-			tokenService.clearTokens();
+			// Clear all authentication storage including Supabase tokens
+			tokenService.clearAllAuthStorage();
 		}
 	}
 }

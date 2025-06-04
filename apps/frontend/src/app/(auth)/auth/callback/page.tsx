@@ -3,7 +3,10 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/auth.store";
-import { getAccessTokenFromSession } from "@/utils/google-auth";
+import {
+	getAccessTokenFromSession,
+	clearSupabaseSession,
+} from "@/utils/google-auth";
 import { toast } from "sonner";
 import { useGoogleAuthMutation } from "@/api/mutations/auth.mutation";
 import { AxiosError } from "axios";
@@ -58,6 +61,11 @@ export default function AuthCallbackPage() {
 					router.push("/login");
 					return;
 				}
+
+				// Clear Supabase session after successful HRIS authentication
+				// This prevents confusion between Supabase and HRIS tokens
+				setMessage("Cleaning up temporary authentication data...");
+				await clearSupabaseSession();
 
 				setUser(authResponse.user);
 				toast.success("Successfully logged in with Google!");

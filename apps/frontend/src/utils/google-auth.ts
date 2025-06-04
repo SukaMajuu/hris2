@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { tokenService } from "@/services/token.service";
 
 export async function getSupabaseGoogleToken(): Promise<string> {
 	try {
@@ -43,4 +44,35 @@ export async function getAccessTokenFromSession(
 	}
 
 	return null;
+}
+
+/**
+ * Clear Supabase session and tokens
+ * Used after successful HRIS authentication to prevent token conflicts
+ */
+export async function clearSupabaseSession(): Promise<void> {
+	try {
+		await supabase.auth.signOut();
+	} catch (error) {
+		console.warn("Failed to clear Supabase session:", error);
+		// Don't throw error, just warn
+	}
+}
+
+/**
+ * Emergency cleanup function to resolve token conflicts
+ * This clears all authentication-related storage from both Supabase and HRIS
+ * Use this if you encounter issues with multiple tokens
+ */
+export async function emergencyAuthCleanup(): Promise<void> {
+	try {
+		await clearSupabaseSession();
+		tokenService.clearAllAuthStorage();
+	} catch (error) {
+		throw error;
+	}
+}
+
+if (typeof window !== "undefined") {
+	(window as any).emergencyAuthCleanup = emergencyAuthCleanup;
 }

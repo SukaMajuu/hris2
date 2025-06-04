@@ -12,7 +12,7 @@ export function useEditCheckClockForm(id: string) {
 	const [isLoading, setIsLoading] = useState(false);
 
 	// API queries
-	const employeesQuery = useEmployeesQuery(1, 100, {employment_status: false}); // Get all employees
+	const employeesQuery = useEmployeesQuery(1, 100, {employment_status: true}); // Get all employees
 	const workSchedulesQuery = useWorkSchedules(1, 100); // Get all work schedules
 	const checkclockQuery = useCheckclockSettingsById(id); // Get specific checkclock settings
 	const updateMutation = useUpdateCheckclockSettings();

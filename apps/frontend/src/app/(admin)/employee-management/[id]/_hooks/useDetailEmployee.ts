@@ -6,7 +6,7 @@ import {
 	useUploadDocumentForEmployee,
 	useDeleteDocument,
 } from "@/api/mutations/document.mutations";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 import type { Document } from "@/services/document.service";
 
 export interface ClientDocument {
@@ -29,7 +29,6 @@ export function useDetailEmployee(employeeId: number) {
 	const { data: documents = [] } = useDocumentsByEmployee(employeeId);
 	const uploadDocumentMutation = useUploadDocumentForEmployee();
 	const deleteDocumentMutation = useDeleteDocument();
-	const { toast } = useToast();
 
 	// Profile image states
 	const [profileImage, setProfileImage] = useState<string | null>(null);
@@ -106,12 +105,9 @@ export function useDetailEmployee(employeeId: number) {
 		(e: React.ChangeEvent<HTMLInputElement>) => {
 			// Only allow photo change when in edit mode
 			if (!editJob) {
-				toast({
-					title: "Info",
-					description:
-						"Please enable edit mode first to change profile photo.",
-					variant: "default",
-				});
+				toast.info(
+					"Please enable edit mode first to change profile photo."
+				);
 				return;
 			}
 
@@ -137,20 +133,12 @@ export function useDetailEmployee(employeeId: number) {
 						employeeId,
 						file,
 					});
-					toast({
-						title: "Success",
-						description: "Document uploaded successfully!",
-					});
+					toast.success("Document uploaded successfully!");
 					// Clear the input
 					e.target.value = "";
 				} catch (error) {
 					console.error("Error uploading document:", error);
-					toast({
-						title: "Error",
-						description:
-							"Failed to upload document. Please try again.",
-						variant: "destructive",
-					});
+					toast.error("Failed to upload document. Please try again.");
 				}
 			}
 		},
@@ -163,18 +151,10 @@ export function useDetailEmployee(employeeId: number) {
 			if (doc && doc.id) {
 				try {
 					await deleteDocumentMutation.mutateAsync(doc.id);
-					toast({
-						title: "Success",
-						description: "Document deleted successfully!",
-					});
+					toast.success("Document deleted successfully!");
 				} catch (error) {
 					console.error("Error deleting document:", error);
-					toast({
-						title: "Error",
-						description:
-							"Failed to delete document. Please try again.",
-						variant: "destructive",
-					});
+					toast.error("Failed to delete document. Please try again.");
 				}
 			}
 		},
@@ -236,22 +216,14 @@ export function useDetailEmployee(employeeId: number) {
 				data: updateData,
 			});
 
-			toast({
-				title: "Success",
-				description: "Job information updated successfully!",
-			});
+			toast.success("Job information updated successfully!");
 
 			// Reset profile file state after successful save
 			setProfileFile(null);
 			setEditJob(false);
 		} catch (error) {
 			console.error("Error updating job info:", error);
-			toast({
-				title: "Error",
-				description:
-					"Failed to update job information. Please try again.",
-				variant: "destructive",
-			});
+			toast.error("Failed to update job information. Please try again.");
 		}
 	}, [
 		employee,
@@ -289,20 +261,14 @@ export function useDetailEmployee(employeeId: number) {
 				data: updateData,
 			});
 
-			toast({
-				title: "Success",
-				description: "Personal information updated successfully!",
-			});
+			toast.success("Personal information updated successfully!");
 
 			setEditPersonal(false);
 		} catch (error) {
 			console.error("Error updating personal info:", error);
-			toast({
-				title: "Error",
-				description:
-					"Failed to update personal information. Please try again.",
-				variant: "destructive",
-			});
+			toast.error(
+				"Failed to update personal information. Please try again."
+			);
 		}
 	}, [
 		employee,
@@ -335,20 +301,12 @@ export function useDetailEmployee(employeeId: number) {
 				data: updateData,
 			});
 
-			toast({
-				title: "Success",
-				description: "Bank information updated successfully!",
-			});
+			toast.success("Bank information updated successfully!");
 
 			setEditBank(false);
 		} catch (error) {
 			console.error("Error updating bank info:", error);
-			toast({
-				title: "Error",
-				description:
-					"Failed to update bank information. Please try again.",
-				variant: "destructive",
-			});
+			toast.error("Failed to update bank information. Please try again.");
 		}
 	}, [
 		employee,

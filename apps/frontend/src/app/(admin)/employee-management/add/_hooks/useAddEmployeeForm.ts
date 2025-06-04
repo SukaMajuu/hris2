@@ -12,7 +12,7 @@ import {
   bankInfoSchema,
 } from '@/schemas/employee.schema';
 import { useCreateEmployee } from '@/api/mutations/employee.mutations';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 
 const getTodaysDate = (): string => {
   const today = new Date();
@@ -50,7 +50,6 @@ export function useAddEmployeeForm() {
   const [activeStep, setActiveStep] = useState(1);
   const profilePhotoInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
-  const { toast } = useToast();
 
   const createEmployeeMutation = useCreateEmployee();
 
@@ -211,10 +210,7 @@ export function useAddEmployeeForm() {
 
       await createEmployeeMutation.mutateAsync(createData);
 
-      toast({
-        title: 'Success',
-        description: 'Employee created successfully!',
-      });
+      toast.success('Employee created successfully!');
 
       // Redirect to employee list
       router.push('/employee-management');
@@ -224,11 +220,7 @@ export function useAddEmployeeForm() {
       const errorMessage =
         error instanceof Error ? error.message : 'Failed to create employee. Please try again.';
 
-      toast({
-        title: 'Error',
-        description: errorMessage,
-        variant: 'destructive',
-      });
+      toast.error(errorMessage);
     }
   };
 

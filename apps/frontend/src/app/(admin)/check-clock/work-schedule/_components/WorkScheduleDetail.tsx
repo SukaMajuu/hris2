@@ -1,21 +1,21 @@
 import {
-	Dialog,
-	DialogContent,
-	DialogHeader,
-	DialogTitle,
-	DialogDescription,
-} from "@/components/ui/dialog";
-import { Card, CardContent } from "@/components/ui/card";
-import WorkTypeBadge from "@/components/workTypeBadge";
-import { WorkType } from "@/const/work";
-import { WorkScheduleDetailItem } from "@/types/work-schedule.types";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { Card, CardContent } from '@/components/ui/card';
+import WorkTypeBadge from '@/components/workTypeBadge';
+import { WorkType } from '@/const/work';
+import { WorkScheduleDetailItem } from '@/types/work-schedule.types';
 
 interface WorkScheduleDetailDialogProps {
-	open: boolean;
-	onOpenChange: (open: boolean) => void;
-	scheduleName?: string;
-	workScheduleType?: string;
-	workScheduleDetails: WorkScheduleDetailItem[];
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  scheduleName?: string;
+  workScheduleType?: string;
+  workScheduleDetails: WorkScheduleDetailItem[];
 }
 
 interface FlattenedDetail extends WorkScheduleDetailItem {
@@ -23,11 +23,11 @@ interface FlattenedDetail extends WorkScheduleDetailItem {
 }
 
 const WorkScheduleDetailDialog = ({
-	open,
-	onOpenChange,
-	scheduleName,
-	workScheduleType,
-	workScheduleDetails,
+  open,
+  onOpenChange,
+  scheduleName,
+  workScheduleType,
+  workScheduleDetails,
 }: WorkScheduleDetailDialogProps) => {
 	const dayOrder = [
 		"Monday",

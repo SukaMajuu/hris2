@@ -74,15 +74,14 @@ export default function EditCheckClockEmployee({
 						Edit Check Clock Settings
 					</CardTitle>
 				</CardHeader>
-			</Card>
-
-			<CheckClockForm
+			</Card>			<CheckClockForm
 				onSubmit={handleSubmit}
 				isEditMode={true}
 				employees={employees}
 				workSchedules={workSchedules}
 				initialData={initialData}
 				isLoading={isLoading}
+				showProfileCard={true}
 			/>
 		</div>
 	);

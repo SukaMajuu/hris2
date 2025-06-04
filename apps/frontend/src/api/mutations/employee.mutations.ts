@@ -14,6 +14,16 @@ export const useResignEmployeeMutation = () => {
     mutationFn: (employeeId: number) => employeeService.resignEmployee(employeeId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
+      queryClient.invalidateQueries({
+				predicate: (query) => {
+					return (
+						Array.isArray(query.queryKey) &&
+						Array.isArray(query.queryKey[0]) &&
+						query.queryKey[0][0] === "checkclockSettings" &&
+						query.queryKey[0][1] === "list"
+					);
+				},
+			});
     },
   });
 };

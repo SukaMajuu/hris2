@@ -15,18 +15,26 @@ export function TableHeader({ nameSearch, setNameSearch, onRefetch }: TableHeade
       <div className='flex w-full flex-row flex-wrap items-center justify-between gap-4'>
         <h2 className='text-xl font-semibold'>All Employees Information</h2>
         <div className='flex flex-wrap gap-2'>
-          <Button variant='outline' className='gap-2 hover:bg-[#5A89B3] hover:text-white'>
+          <Button
+            variant='outline'
+            className='cursor-pointer gap-2 hover:bg-[#5A89B3] hover:text-white'
+          >
             <FileText className='h-4 w-4' />
             Export
           </Button>
-          <Button variant='outline' className='gap-2 hover:bg-[#5A89B3] hover:text-white'>
+          <Button
+            variant='outline'
+            className='cursor-pointer gap-2 hover:bg-[#5A89B3] hover:text-white'
+          >
             <Upload className='h-4 w-4' />
             Import
           </Button>
-          <Button className='gap-2 bg-[#6B9AC4] hover:bg-[#5A89B3]'>
-            <Plus className='h-4 w-4' />
-            <Link href='/employee-management/add'>Add Data</Link>
-          </Button>
+          <Link href='/employee-management/add'>
+            <Button className='cursor-pointer gap-2 bg-[#6B9AC4] hover:bg-[#5A89B3]'>
+              <Plus className='h-4 w-4' />
+              Add Data
+            </Button>
+          </Link>
         </div>
       </div>
       <div className='flex w-full flex-wrap gap-2 md:w-[400px]'>
@@ -41,7 +49,7 @@ export function TableHeader({ nameSearch, setNameSearch, onRefetch }: TableHeade
         </div>
         <Button
           variant='outline'
-          className='gap-2 hover:bg-[#5A89B3] hover:text-white'
+          className='cursor-pointer gap-2 hover:bg-[#5A89B3] hover:text-white'
           onClick={onRefetch}
         >
           <Filter className='h-4 w-4' />

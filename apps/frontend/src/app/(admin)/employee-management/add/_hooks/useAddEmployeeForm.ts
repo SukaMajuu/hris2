@@ -22,22 +22,57 @@ const getTodaysDate = (): string => {
   return `${year}-${month}-${day}`;
 };
 
-const initialFormData: EmployeeFormData = {
+// Create a form-specific type that allows empty strings for initial state
+type FormEmployeeData = Omit<
+  EmployeeFormData,
+  'gender' | 'lastEducation' | 'taxStatus' | 'contractType'
+> & {
+  gender: '' | 'Male' | 'Female';
+  lastEducation:
+    | ''
+    | 'SD'
+    | 'SMP'
+    | 'SMA/SMK'
+    | 'D1'
+    | 'D2'
+    | 'D3'
+    | 'S1/D4'
+    | 'S2'
+    | 'S3'
+    | 'Other';
+  taxStatus:
+    | ''
+    | 'TK/0'
+    | 'TK/1'
+    | 'TK/2'
+    | 'TK/3'
+    | 'K/0'
+    | 'K/1'
+    | 'K/2'
+    | 'K/3'
+    | 'K/I/0'
+    | 'K/I/1'
+    | 'K/I/2'
+    | 'K/I/3';
+  contractType: '' | 'permanent' | 'contract' | 'freelance';
+};
+
+const initialFormData: FormEmployeeData = {
   firstName: '',
   lastName: '',
   email: '',
   nik: '',
   phoneNumber: '',
-  gender: 'Male' as const,
-  lastEducation: 'SMA/SMK' as const,
+  gender: '',
+  lastEducation: '',
   placeOfBirth: '',
   dateOfBirth: '',
-  taxStatus: 'TK/0' as const,
+  taxStatus: '',
   employeeId: '',
   branch: '',
   position: '',
   grade: '',
-  contractType: 'permanent' as const,
+  contractType: '',
   hireDate: getTodaysDate(),
   profilePhoto: undefined,
   profilePhotoPreview: null,
@@ -53,7 +88,7 @@ export function useAddEmployeeForm() {
 
   const createEmployeeMutation = useCreateEmployee();
 
-  const form = useForm<EmployeeFormData>({
+  const form = useForm<FormEmployeeData>({
     resolver: zodResolver(employeeFormSchema),
     defaultValues: initialFormData,
     mode: 'onChange',
@@ -83,7 +118,7 @@ export function useAddEmployeeForm() {
 
     if (type === 'file') {
       const file = files?.[0];
-      setValue(name as keyof EmployeeFormData, file as File);
+      setValue(name as keyof FormEmployeeData, file as File);
 
       if (name === 'profilePhoto') {
         if (file) {
@@ -97,12 +132,12 @@ export function useAddEmployeeForm() {
         }
       }
     } else {
-      setValue(name as keyof EmployeeFormData, value);
+      setValue(name as keyof FormEmployeeData, value);
     }
   };
 
   const handleSelectChange = (name: string, value: string) => {
-    setValue(name as keyof EmployeeFormData, value);
+    setValue(name as keyof FormEmployeeData, value);
   };
 
   const validateCurrentStep = async () => {
@@ -332,4 +367,4 @@ export function useAddEmployeeForm() {
   };
 }
 
-export type { EmployeeFormData };
+export type { EmployeeFormData, FormEmployeeData };

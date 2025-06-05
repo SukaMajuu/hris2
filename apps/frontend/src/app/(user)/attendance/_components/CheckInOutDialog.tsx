@@ -260,6 +260,7 @@ export function CheckInOutDialog({
 									onPositionChange={() => {
 										/* readonly, do nothing */
 									}}
+									interactive={false}
 								/>
 							</div>
 						</div>

@@ -1081,6 +1081,131 @@ components:
                 - permanent_employees
                 - contract_employees
                 - freelance_employees
+            
+        Attendance:
+            tyoe: object
+            description: Represents all employee attendance data.
+            properties:
+                id:
+                    type: integer
+                    format: uint
+                    description: Unique identifier for the attendance record.
+                    readOnly: true
+                    example: 1
+                employee_id:
+                    type: integer
+                    format: uint
+                    description: Foreign key referencing the Employee ID.
+                    example: 1
+                work_schedule_id:
+                    type: integer
+                    format: uint
+                    description: Foreign key referencing the Work Schedule ID.
+                    example: 1
+                date:
+                    type: string
+                    format: date
+                    description: The date of the attendance record.
+                    example: "2024-01-15"
+                clock_in:
+                    type: string
+                    format: date-time
+                    description: Timestamp when the employee clocked in.
+                    example: "2024-01-15T08:00:00Z"
+                clock_out:
+                    type: string
+                    format: date-time
+                    description: Timestamp when the employee clocked out.
+                    example: "2024-01-15T17:00:00Z"
+                check_in_lat:
+                    type: number
+                    format: double
+                    description: Latitude of the clock-in location.
+                    example: -6.200000
+                check_in_long:
+                    type: number
+                    format: double
+                    description: Longitude of the clock-in location.
+                    example: 106.816666
+                check_out_lat:
+                    type: number
+                    format: double
+                    description: Latitude of the clock-out location.
+                    example: -6.200000
+                check_out_long:
+                    type: number
+                    format: double
+                    description: Longitude of the clock-out location.
+                    example: 106.816666
+                work_hours:
+                    type: number
+                    format: double
+                    description: Total work hours for the day.
+                    example: 8.0
+                status:
+                    type: string
+                    enum: ["on_time", "late", "early_leave", "absent", "leave"]
+                    description: Attendance status for the day.
+                    example: "on_time"
+        
+        AttendanceCheckInRequest:
+            type: object
+            properties:
+                employee_id:
+                    type: integer
+                    example: 8
+                work_schedule_id:
+                    type: integer
+                    example: 2
+                date:
+                    type: string
+                    format: date
+                    example: "2024-03-15"
+                clock_in:
+                    type: string
+                    format: date-time
+                    example: "2024-03-15T08:00:00Z"
+                check_in_lat:
+                    type: number
+                    format: double
+                    example: -6.200000
+                check_in_long:
+                    type: number
+                    format: double
+                    example: 106.816666
+                status:
+                    type: string
+                    enum: ["on_time", "late", "early_leave", "absent", "leave"]
+                    example: "on_time"
+        
+        AttendanceCheckOutRequest:
+            properties:
+                employee_id:
+                    type: integer
+                    example: 8
+                work_schedule_id:
+                    type: integer
+                    example: 2
+                date:
+                    type: string
+                    format: date
+                    example: "2024-03-15"
+                clock_out:
+                    type: string
+                    format: date-time
+                    example: "2024-03-15T17:00:00Z"
+                check_out_lat:
+                    type: number
+                    format: double
+                    example: -6.200000
+                check_out_long:
+                    type: number
+                    format: double
+                    example: 106.816666
+                work_hours:
+                    type: number
+                    format: double
+                    example: 8.0
 
 paths:
     /auth/login:
@@ -3116,79 +3241,51 @@ paths:
                                         type: string
                                         example: "Failed to delete document"
 
-    #    /attendance/check-in:
-    #        post:
-    #            tags: [ Attendance ]
-    #            summary: Employee check-in
-    #            requestBody:
-    #                required: true
-    #                content:
-    #                    application/json:
-    #                        schema:
-    #                            type: object
-    #                            properties:
-    #                                employee_id:
-    #                                    type: integer
-    #                                    example: 1
-    #                                work_arrangement_id:
-    #                                    type: integer
-    #                                    example: 1
-    #                                ip_address:
-    #                                    type: string
-    #                                notes:
-    #                                    type: string
-    #            responses:
-    #                200:
-    #                    description: Check-in recorded successfully
-    #                    content:
-    #                        application/json:
-    #                            schema:
-    #                                allOf:
-    #                                    -   $ref: "#/components/schemas/AttendanceLog"
-    #                                    -   type: object
-    #                                        properties:
-    #                                            event_type:
-    #                                                type: string
-    #                                                enum: [ check_in ]
-    #                400:
-    #                    description: Invalid request
-    #
-    #    /attendance/check-out:
-    #        post:
-    #            tags: [ Attendance ]
-    #            summary: Employee check-out
-    #            requestBody:
-    #                required: true
-    #                content:
-    #                    application/json:
-    #                        schema:
-    #                            type: object
-    #                            properties:
-    #                                employee_id:
-    #                                    type: integer
-    #                                    example: 1
-    #                                work_arrangement_id:
-    #                                    type: integer
-    #                                    example: 1
-    #                                ip_address:
-    #                                    type: string
-    #                                notes:
-    #                                    type: string
-    #            responses:
-    #                200:
-    #                    description: Check-out recorded successfully
-    #                    content:
-    #                        application/json:
-    #                            schema:
-    #                                allOf:
-    #                                    -   $ref: "#/components/schemas/AttendanceLog"
-    #                                    -   type: object
-    #                                        properties:
-    #                                            event_type:
-    #                                                type: string
-    #                                                enum: [ check_out ]
-    #                400:
-    #                    description: Invalid request
+    /api/attendances/check-in:
+        post:
+            tags: [ Attendance ]
+            summary: Employee check-in
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            $ref:
+                                "#/components/schemas/AttendanceCheckInRequest"
+                                
+            responses:
+                200:
+                    description: Check-in recorded successfully
+                    content:
+                        application/json:
+                            schema:
+                                allOf:
+                                    -   $ref: "#/components/schemas/Attendance"
+                400:
+                    description: Invalid request
+
+    /attendance/check-out:
+        post:
+            tags: [ Attendance ]
+            summary: Employee check-out
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            $ref: "#/components/schemas/AttendanceCheckOutRequest"
+            responses:
+                200:
+                    description: Check-out recorded successfully
+                    content:
+                        application/json:
+                            schema:
+                                allOf:
+                                    -   $ref: "#/components/schemas/Attendance"
+                400:
+                    description: Invalid request
     #
     #    /attendance/logs:
     #        get:

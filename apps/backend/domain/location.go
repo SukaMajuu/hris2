@@ -11,6 +11,7 @@ type Location struct {
 	Latitude      float64 `gorm:"not null"`
 	Longitude     float64 `gorm:"not null"`
 	RadiusM       int     `gorm:"not null"` // radius dalam meter
+	IsActive      bool    `gorm:"type:boolean;default:true;not null"`
 
 	CreatedAt time.Time `gorm:"autoCreateTime"`
 	UpdatedAt time.Time `gorm:"autoUpdateTime"`

@@ -120,7 +120,7 @@ func (h *AttendanceHandler) ListAttendances(c *gin.Context) {
 }
 
 func (h *AttendanceHandler) ListAttendancesByEmployee(c *gin.Context) {
-	employeeIDParam := c.Param("employeeId")
+	employeeIDParam := c.Param("employee_id")
 	employeeID, err := strconv.ParseUint(employeeIDParam, 10, 32)
 	if err != nil {
 		response.BadRequest(c, "Invalid employee ID", err)

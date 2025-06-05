@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
@@ -356,12 +357,27 @@ func (uc *AttendanceUseCase) GetByID(ctx context.Context, id uint) (*responseAtt
 }
 
 func (uc *AttendanceUseCase) List(ctx context.Context, paginationParams domain.PaginationParams) (*responseAttendance.AttendanceListResponseData, error) {
-	attendances, total, err := uc.attendanceRepo.ListAll(ctx, paginationParams)
+	attendances, totalItems, err := uc.attendanceRepo.ListAll(ctx, paginationParams)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list attendances: %w", err)
 	}
 
-	return responseAttendance.NewAttendanceListResponseData(attendances, total, paginationParams.Page, paginationParams.PageSize), nil
+	responseDTOs := make([]*responseAttendance.AttendanceResponseDTO, len(attendances))
+	for i, attendance := range attendances {
+		responseDTOs[i] = responseAttendance.NewAttendanceResponseDTO(attendance)
+	}
+
+	return &responseAttendance.AttendanceListResponseData{
+		Items: responseDTOs,
+		Pagination: domain.Pagination{
+			TotalItems:  totalItems,
+			TotalPages:  int(math.Ceil(float64(totalItems) / float64(paginationParams.PageSize))),
+			CurrentPage: paginationParams.Page,
+			PageSize:    paginationParams.PageSize,
+			HasNextPage: paginationParams.Page*paginationParams.PageSize < int(totalItems),
+			HasPrevPage: paginationParams.Page > 1,
+		},
+	}, nil
 }
 
 func (uc *AttendanceUseCase) ListByEmployee(ctx context.Context, employeeID uint, paginationParams domain.PaginationParams) (*responseAttendance.AttendanceListResponseData, error) {
@@ -369,17 +385,32 @@ func (uc *AttendanceUseCase) ListByEmployee(ctx context.Context, employeeID uint
 	_, err := uc.employeeRepo.GetByID(ctx, employeeID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("employee with ID %d not found when listing attendances", employeeID)
+			return nil, fmt.Errorf("employee with ID %d not found", employeeID)
 		}
 		return nil, fmt.Errorf("failed to validate employee for listing attendances: %w", err)
 	}
 
-	attendances, total, err := uc.attendanceRepo.ListByEmployee(ctx, employeeID, paginationParams)
+	attendances, totalItems, err := uc.attendanceRepo.ListByEmployee(ctx, employeeID, paginationParams)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list attendances for employee %d: %w", employeeID, err)
 	}
 
-	return responseAttendance.NewAttendanceListResponseData(attendances, total, paginationParams.Page, paginationParams.PageSize), nil
+	responseDTOs := make([]*responseAttendance.AttendanceResponseDTO, len(attendances))
+	for i, attendance := range attendances {
+		responseDTOs[i] = responseAttendance.NewAttendanceResponseDTO(attendance)
+	}
+
+	return &responseAttendance.AttendanceListResponseData{
+		Items: responseDTOs,
+		Pagination: domain.Pagination{
+			TotalItems:  totalItems,
+			TotalPages:  int(math.Ceil(float64(totalItems) / float64(paginationParams.PageSize))),
+			CurrentPage: paginationParams.Page,
+			PageSize:    paginationParams.PageSize,
+			HasNextPage: paginationParams.Page*paginationParams.PageSize < int(totalItems),
+			HasPrevPage: paginationParams.Page > 1,
+		},
+	}, nil
 }
 
 func (uc *AttendanceUseCase) Update(ctx context.Context, id uint, reqDTO *dtoAttendance.UpdateAttendanceRequestDTO) (*responseAttendance.AttendanceResponseDTO, error) {

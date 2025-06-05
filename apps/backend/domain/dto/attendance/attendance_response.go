@@ -98,7 +98,10 @@ func NewAttendanceListResponseData(attendances []*domain.Attendance, totalItems 
 		attendanceDTOs[i] = NewAttendanceResponseDTO(attendance)
 	}
 
-	totalPages := int((totalItems + int64(pageSize) - 1) / int64(pageSize))
+	totalPages := 0
+	if pageSize > 0 {
+		totalPages = int((totalItems + int64(pageSize) - 1) / int64(pageSize))
+	}
 	if totalPages < 1 && totalItems > 0 {
 		totalPages = 1
 	} else if totalItems == 0 {
@@ -112,8 +115,8 @@ func NewAttendanceListResponseData(attendances []*domain.Attendance, totalItems 
 			TotalPages:  totalPages,
 			CurrentPage: currentPage,
 			PageSize:    pageSize,
-			HasNextPage: currentPage < totalPages,
-			HasPrevPage: currentPage > 1 && currentPage <= totalPages,
+			HasNextPage: currentPage*pageSize < int(totalItems),
+			HasPrevPage: currentPage > 1,
 		},
 	}
 }

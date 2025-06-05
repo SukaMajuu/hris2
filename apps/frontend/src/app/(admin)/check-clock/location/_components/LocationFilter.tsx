@@ -89,8 +89,8 @@ export function LocationFilter({
 			}));
 		}
 	};
-
-	const handleApply = () => {		// Remove empty values
+	const handleApply = () => {
+		// Remove empty values
 		const cleanFilters = Object.entries(localFilters).reduce((acc, [key, value]) => {
 			if (value && value.toString().trim() !== "" && value !== "all") {
 				acc[key as keyof FilterOptions] = value;

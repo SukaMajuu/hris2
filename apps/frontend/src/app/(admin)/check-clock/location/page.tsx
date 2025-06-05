@@ -194,7 +194,8 @@ export default function LocationPage() {
 							</Button>
 						</div>
 					</header>					{/* Filter Component */}
-					{isFilterVisible && (						<div className="mb-6">
+					{isFilterVisible && (
+						<div className="mb-6">
 							<LocationFilter
 								currentFilters={filters}
 								onApplyFilters={handleApplyFilters}

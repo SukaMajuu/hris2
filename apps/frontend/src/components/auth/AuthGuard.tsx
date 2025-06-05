@@ -7,7 +7,8 @@ import FullPageLoader from "@/components/ui/full-page-loader";
 
 // Pages that don't require authentication
 const PUBLIC_PAGES = [
-	"/", // Root path for password recovery redirects
+	"/",
+	"/landing-page",
 	"/login",
 	"/register",
 	"/forgot-password",
@@ -15,6 +16,7 @@ const PUBLIC_PAGES = [
 	"/login/id-employee",
 	"/check-email",
 	"/link-expired",
+	"/auth/callback",
 ];
 
 interface AuthGuardProps {
@@ -31,8 +33,13 @@ export function AuthGuard({ children }: AuthGuardProps) {
 	const pathname = usePathname();
 
 	const isPublicPage = PUBLIC_PAGES.includes(pathname);
+	const isCallbackPage = pathname === "/auth/callback";
 
 	useEffect(() => {
+		if (isCallbackPage) {
+			return;
+		}
+
 		if (isAuthStoreLoading) {
 			return;
 		}
@@ -45,12 +52,17 @@ export function AuthGuard({ children }: AuthGuardProps) {
 			return;
 		}
 
-		if (isAuthenticated && isPublicPage && pathname !== "/") {
+		if (
+			isAuthenticated &&
+			isPublicPage &&
+			pathname !== "/" &&
+			!isCallbackPage
+		) {
 			router.replace("/dashboard");
 			return;
 		}
 
-		if (!isAuthenticated && !isPublicPage) {
+		if (!isAuthenticated && !isPublicPage && !isCallbackPage) {
 			router.replace("/login");
 			return;
 		}
@@ -61,7 +73,12 @@ export function AuthGuard({ children }: AuthGuardProps) {
 		isPasswordRecovery,
 		router,
 		pathname,
+		isCallbackPage,
 	]);
+
+	if (isCallbackPage) {
+		return <>{children}</>;
+	}
 
 	if (isAuthStoreLoading) {
 		return <FullPageLoader />;
@@ -71,12 +88,13 @@ export function AuthGuard({ children }: AuthGuardProps) {
 		isAuthenticated &&
 		isPublicPage &&
 		pathname !== "/" &&
+		!isCallbackPage &&
 		!(isPasswordRecovery && pathname === "/reset-password")
 	) {
 		return <FullPageLoader />;
 	}
 
-	if (!isAuthenticated && !isPublicPage) {
+	if (!isAuthenticated && !isPublicPage && !isCallbackPage) {
 		return <FullPageLoader />;
 	}
 

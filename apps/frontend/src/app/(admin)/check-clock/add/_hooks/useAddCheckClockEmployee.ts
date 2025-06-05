@@ -1,25 +1,38 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 import { useEmployeesQuery } from "@/api/queries/employee.queries";
 import { useWorkSchedules } from "@/api/queries/work-schedule.queries";
+import { useCheckclockSettings } from "@/api/queries/checkclock-settings.queries";
 import { useCreateCheckclockSettings } from "@/api/mutations/checkclock-settings.mutation";
 import type { CheckclockSettingsInput } from "@/schemas/checkclock.schema";
 
 export function useAddCheckClockForm() {
 	const router = useRouter();
 	const [isLoading, setIsLoading] = useState(false);
-
-	// API queries
-	const employeesQuery = useEmployeesQuery(1, 100, {});
+	// API queries - Only fetch active employees
+	const employeesQuery = useEmployeesQuery(1, 100, { employment_status: true });
 	const workSchedulesQuery = useWorkSchedules(1, 100);
+	const checkclockSettingsQuery = useCheckclockSettings();
 	const createMutation = useCreateCheckclockSettings();
-
 	// Extract data from queries
-	const employees = employeesQuery.data?.data?.items || [];
+	const allEmployees = employeesQuery.data?.data?.items || [];
 	const workSchedules = workSchedulesQuery.data?.items || [];
+	const existingSettings = checkclockSettingsQuery.data?.data?.items || [];
+	// Filter out employees who already have check-clock settings or are inactive
+	const employees = useMemo(() => {
+		const existingEmployeeIds = new Set(
+			existingSettings.map((setting: any) => setting.employee_id)
+		);
+		return allEmployees.filter((employee: any) => 
+			!existingEmployeeIds.has(employee.id) && 
+			employee.employment_status === true
+		);
+	}, [allEmployees, existingSettings]);
 	const isDataLoading =
-		employeesQuery.isLoading || workSchedulesQuery.isLoading;
+		employeesQuery.isLoading || 
+		workSchedulesQuery.isLoading || 
+		checkclockSettingsQuery.isLoading;
 
 	// Handle form submission
 	const handleSubmit = useCallback(
@@ -36,11 +49,8 @@ export function useAddCheckClockForm() {
 
 				await createMutation.mutateAsync(apiData);
 
-				toast({
-					title: "Success",
-					description: "Check clock settings added successfully",
-					duration: 2000,
-				});
+				// Refresh the check-clock settings to update the filtered employee list
+				await checkclockSettingsQuery.refetch();				toast.success("Check clock settings added successfully");
 
 				setTimeout(() => {
 					router.push("/check-clock");
@@ -50,20 +60,13 @@ export function useAddCheckClockForm() {
 				const errorMessage =
 					error instanceof Error
 						? error.message
-						: "Failed to save check clock settings. Please try again.";
-
-				toast({
-					title: "Error",
-					description: errorMessage,
-					variant: "destructive",
-				});
+						: "Failed to save check clock settings. Please try again.";				toast.error(errorMessage);
 			} finally {
 				setIsLoading(false);
 			}
 		},
-		[router, createMutation]
+		[router, createMutation, checkclockSettingsQuery]
 	);
-
 	return {
 		employees,
 		workSchedules,
@@ -73,5 +76,6 @@ export function useAddCheckClockForm() {
 		// Expose query controls for potential refetching
 		refetchEmployees: employeesQuery.refetch,
 		refetchWorkSchedules: workSchedulesQuery.refetch,
+		refetchCheckclockSettings: checkclockSettingsQuery.refetch,
 	};
 }

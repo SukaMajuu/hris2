@@ -151,7 +151,9 @@ func TestRegisterAdminWithForm(t *testing.T) {
 			).Return(tt.repoError).Maybe()
 
 			if tt.repoError == nil {
-				mockJWTService.On("GenerateToken", tt.user.ID, tt.user.Role).
+				mockAuthRepo.On("RevokeAllUserRefreshTokens", mock.Anything, tt.user.ID).Return(nil).Maybe()
+
+				mockJWTService.On("GenerateToken", tt.user.ID, tt.user.Email, tt.user.Role).
 					Return("access-token", "refresh-token", "hashed-refresh-token", tt.jwtError).Maybe()
 
 				if tt.jwtError == nil {
@@ -303,7 +305,9 @@ func TestLoginWithIdentifier(t *testing.T) {
 			}
 
 			if tt.repoError == nil {
-				mockJWTService.On("GenerateToken", tt.expectedUser.ID, tt.expectedUser.Role).
+				mockAuthRepo.On("RevokeAllUserRefreshTokens", mock.Anything, tt.expectedUser.ID).Return(nil).Maybe()
+
+				mockJWTService.On("GenerateToken", tt.expectedUser.ID, tt.expectedUser.Email, tt.expectedUser.Role).
 					Return(tt.expectedAccessToken, tt.expectedRefreshToken, "hashed-refresh-token", tt.jwtError).Maybe()
 
 				if tt.jwtError == nil {
@@ -553,8 +557,8 @@ func TestRefreshToken(t *testing.T) {
 							mockAuthRepo.On("GetUserByID", mock.Anything, tt.claims.UserID).Return(tt.user, tt.userError).Maybe()
 
 							if tt.userError == nil {
-								mockJWTService.On("GenerateToken", tt.user.ID, tt.user.Role).
-									Return(tt.expectedAccessToken, tt.expectedRefreshToken, "new-hashed-token", tt.generateError).Maybe()
+								mockJWTService.On("GenerateToken", tt.user.ID, tt.user.Email, tt.user.Role).
+									Return(tt.expectedAccessToken, tt.expectedRefreshToken, "hashed-token", tt.generateError).Maybe()
 
 								if tt.generateError == nil {
 									mockAuthRepo.On("StoreRefreshToken", mock.Anything, mock.AnythingOfType("*domain.RefreshToken")).
@@ -711,7 +715,9 @@ func TestRegisterAdminWithGoogle(t *testing.T) {
 				}
 
 				if userForTokenGen != nil {
-					mockJWTService.On("GenerateToken", userForTokenGen.ID, userForTokenGen.Role).
+					mockAuthRepo.On("RevokeAllUserRefreshTokens", mock.Anything, userForTokenGen.ID).Return(nil).Maybe()
+
+					mockJWTService.On("GenerateToken", userForTokenGen.ID, userForTokenGen.Email, userForTokenGen.Role).
 						Return("access-token", "refresh-token", "hashed-token", tt.jwtError).Maybe()
 
 					if tt.jwtError == nil {
@@ -833,7 +839,9 @@ func TestLoginWithGoogle(t *testing.T) {
 					Return(tt.repoUser, tt.repoError).Maybe()
 
 				if tt.repoError == nil && tt.repoUser != nil {
-					mockJWTService.On("GenerateToken", tt.repoUser.ID, tt.repoUser.Role).
+					mockAuthRepo.On("RevokeAllUserRefreshTokens", mock.Anything, tt.repoUser.ID).Return(nil).Maybe()
+
+					mockJWTService.On("GenerateToken", tt.repoUser.ID, tt.repoUser.Email, tt.repoUser.Role).
 						Return("access-token", "refresh-token", "hashed-token", tt.jwtError).Maybe()
 
 					if tt.jwtError == nil {

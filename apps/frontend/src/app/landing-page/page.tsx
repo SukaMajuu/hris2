@@ -1,18 +1,18 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import Header from '../components/landingPage/header';
-import Hero from '../components/landingPage/hero';
-import Features from '../components/landingPage/features';
-import Benefits from '../components/landingPage/benefits';
-import Testimonials from '../components/landingPage/testimoni';
-import Pricing from '../components/landingPage/pricing';
-import Contact from '../components/landingPage/contact';
-import Footer from '../components/landingPage/footer';
+import Header from './_component/header';
+import Hero from './_component/hero';
+import Features from './_component/features';
+import Benefits from './_component/benefits';
+// import Testimonials from './_component/testimoni';
+import Pricing from './_component/pricing';
+import Contact from './_component/contact';
+import Footer from './_component/footer';
 
 const LandingPage: React.FC = () => {
   useEffect(() => {
-    document.title = 'HRIS | Modern HR Management System';
+    document.title = 'HRIS';
     const handler = (e: Event) => {
       e.preventDefault();
       const anchor = e.currentTarget as HTMLAnchorElement;
@@ -38,7 +38,7 @@ const LandingPage: React.FC = () => {
         <Hero />
         <Features />
         <Benefits />
-        <Testimonials />
+        {/* <Testimonials /> */}
         <Pricing />
         <Contact />
       </main>

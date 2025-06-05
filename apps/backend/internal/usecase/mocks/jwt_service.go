@@ -11,11 +11,11 @@ type JWTService struct {
 }
 
 func (_m *JWTService) GenerateToken(userID uint, userEmail string, role enums.UserRole) (string, string, string, error) {
-	ret := _m.Called(userID, role)
+	ret := _m.Called(userID, userEmail, role)
 
 	var r0 string
-	if rf, ok := ret.Get(0).(func(uint, enums.UserRole) string); ok {
-		r0 = rf(userID, role)
+	if rf, ok := ret.Get(0).(func(uint, string, enums.UserRole) string); ok {
+		r0 = rf(userID, userEmail, role)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(string)
@@ -23,8 +23,8 @@ func (_m *JWTService) GenerateToken(userID uint, userEmail string, role enums.Us
 	}
 
 	var r1 string
-	if rf, ok := ret.Get(1).(func(uint, enums.UserRole) string); ok {
-		r1 = rf(userID, role)
+	if rf, ok := ret.Get(1).(func(uint, string, enums.UserRole) string); ok {
+		r1 = rf(userID, userEmail, role)
 	} else {
 		if ret.Get(1) != nil {
 			r1 = ret.Get(1).(string)
@@ -32,8 +32,8 @@ func (_m *JWTService) GenerateToken(userID uint, userEmail string, role enums.Us
 	}
 
 	var r2 string
-	if rf, ok := ret.Get(2).(func(uint, enums.UserRole) string); ok {
-		r2 = rf(userID, role)
+	if rf, ok := ret.Get(2).(func(uint, string, enums.UserRole) string); ok {
+		r2 = rf(userID, userEmail, role)
 	} else {
 		if ret.Get(2) != nil {
 			r2 = ret.Get(2).(string)
@@ -41,8 +41,8 @@ func (_m *JWTService) GenerateToken(userID uint, userEmail string, role enums.Us
 	}
 
 	var r3 error
-	if rf, ok := ret.Get(3).(func(uint, enums.UserRole) error); ok {
-		r3 = rf(userID, role)
+	if rf, ok := ret.Get(3).(func(uint, string, enums.UserRole) error); ok {
+		r3 = rf(userID, userEmail, role)
 	} else {
 		if ret.Get(3) != nil {
 			r3 = ret.Get(3).(error)

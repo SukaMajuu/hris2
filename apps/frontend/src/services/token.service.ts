@@ -53,6 +53,25 @@ class TokenService {
 		}
 	}
 
+	/**
+	 * Clear all auth-related storage including Supabase tokens
+	 * This prevents confusion between different authentication systems
+	 */
+	clearAllAuthStorage() {
+		if (typeof window !== "undefined") {
+			// Clear HRIS tokens
+			this.clearTokens();
+
+			// Clear any Supabase-related tokens
+			// The key pattern is usually sb-{project-id}-auth-token
+			Object.keys(localStorage).forEach((key) => {
+				if (key.startsWith("sb-") && key.includes("-auth-token")) {
+					localStorage.removeItem(key);
+				}
+			});
+		}
+	}
+
 	isAuthenticated(): boolean {
 		const token = this.getAccessToken();
 		const expiry = this.getAccessTokenExpiry();

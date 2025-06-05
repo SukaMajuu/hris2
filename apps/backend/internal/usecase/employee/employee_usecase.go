@@ -22,7 +22,6 @@ import (
 
 const bucketNamePhoto = "photo"
 
-// MIME type constants for content type detection
 const (
 	mimeTypeJPEG = "image/jpeg"
 	mimeTypePNG  = "image/png"
@@ -415,24 +414,34 @@ func (uc *EmployeeUseCase) GetStatistics(ctx context.Context) (*dtoemployee.Empl
 func (uc *EmployeeUseCase) GetStatisticsByManager(ctx context.Context, managerID uint) (*dtoemployee.EmployeeStatisticsResponseDTO, error) {
 	log.Printf("EmployeeUseCase: GetStatisticsByManager called for manager ID: %d", managerID)
 
-	totalEmployees, newEmployees, activeEmployees, resignedEmployees, permanentEmployees, contractEmployees, freelanceEmployees, err := uc.employeeRepo.GetStatisticsByManager(ctx, managerID)
+	totalEmployees, newEmployees, activeEmployees, resignedEmployees,
+		permanentEmployees, contractEmployees, freelanceEmployees,
+		totalEmployeesTrend, newEmployeesTrend, activeEmployeesTrend, err :=
+		uc.employeeRepo.GetStatisticsWithTrendsByManager(ctx, managerID)
 	if err != nil {
-		log.Printf("EmployeeUseCase: Error getting employee statistics by manager from repository: %v", err)
+		log.Printf("EmployeeUseCase: Error getting employee statistics with trends by manager from repository: %v", err)
 		return nil, fmt.Errorf("failed to get employee statistics by manager: %w", err)
 	}
 
 	response := &dtoemployee.EmployeeStatisticsResponseDTO{
-		TotalEmployees:     totalEmployees,
-		NewEmployees:       newEmployees,
-		ActiveEmployees:    activeEmployees,
-		ResignedEmployees:  resignedEmployees,
-		PermanentEmployees: permanentEmployees,
-		ContractEmployees:  contractEmployees,
-		FreelanceEmployees: freelanceEmployees,
+		TotalEmployees:       totalEmployees,
+		NewEmployees:         newEmployees,
+		ActiveEmployees:      activeEmployees,
+		ResignedEmployees:    resignedEmployees,
+		PermanentEmployees:   permanentEmployees,
+		ContractEmployees:    contractEmployees,
+		FreelanceEmployees:   freelanceEmployees,
+		TotalEmployeesTrend:  &totalEmployeesTrend,
+		NewEmployeesTrend:    &newEmployeesTrend,
+		ActiveEmployeesTrend: &activeEmployeesTrend,
 	}
 
-	log.Printf("EmployeeUseCase: Successfully retrieved employee statistics by manager %d - Total: %d, New: %d, Active: %d, Resigned: %d, Permanent: %d, Contract: %d, Freelance: %d",
-		managerID, totalEmployees, newEmployees, activeEmployees, resignedEmployees, permanentEmployees, contractEmployees, freelanceEmployees)
+	log.Printf("EmployeeUseCase: Successfully retrieved employee statistics by manager %d - "+
+		"Total: %d (trend: %.2f%%), New: %d (trend: %.2f%%), Active: %d (trend: %.2f%%), "+
+		"Resigned: %d, Permanent: %d, Contract: %d, Freelance: %d",
+		managerID, totalEmployees, totalEmployeesTrend, newEmployees, newEmployeesTrend,
+		activeEmployees, activeEmployeesTrend, resignedEmployees, permanentEmployees,
+		contractEmployees, freelanceEmployees)
 
 	return response, nil
 }
@@ -440,25 +449,25 @@ func (uc *EmployeeUseCase) GetStatisticsByManager(ctx context.Context, managerID
 func (uc *EmployeeUseCase) UploadProfilePhoto(ctx context.Context, employeeID uint, file *multipart.FileHeader) (*domain.Employee, error) {
 	log.Printf("EmployeeUseCase: UploadProfilePhoto called for employee ID: %d", employeeID)
 
-	// Step 1: Read existing employee data from database
 	employee, err := uc.employeeRepo.GetByID(ctx, employeeID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get employee: %w", err)
 	}
 
-	// Step 2: Check if there's an existing photo and delete it from bucket first
+	fileName := uc.generatePhotoFileName(employee, file.Filename)
+
 	var oldFileName string
 	if employee.ProfilePhotoURL != nil && *employee.ProfilePhotoURL != "" {
 		oldFileName = uc.extractFileNameFromURL(*employee.ProfilePhotoURL)
-		if oldFileName != "" {
-			log.Printf("EmployeeUseCase: Found existing photo, deleting from bucket: %s", oldFileName)
-			removeResponse, removeErr := uc.supabaseClient.Storage.RemoveFile(bucketNamePhoto, []string{oldFileName})
-			if removeErr != nil {
-				log.Printf("Warning: failed to remove old photo file '%s': %v", oldFileName, removeErr)
-				// Continue with upload even if delete fails
-			} else {
-				log.Printf("EmployeeUseCase: Successfully deleted old photo file: %s. Response: %+v", oldFileName, removeResponse)
+		if oldFileName != "" && oldFileName != fileName {
+			log.Printf("EmployeeUseCase: Found existing photo, attempting to delete from bucket: %s", oldFileName)
+
+			deleted := uc.deleteFileWithRetry(oldFileName, 3)
+			if !deleted {
+				log.Printf("EmployeeUseCase: Failed to delete old photo file after retries, but continuing with upload")
 			}
+		} else if oldFileName == fileName {
+			log.Printf("EmployeeUseCase: New filename is same as existing, skipping deletion: %s", oldFileName)
 		} else {
 			log.Printf("EmployeeUseCase: Warning - Could not extract filename from existing photo URL: %s", *employee.ProfilePhotoURL)
 		}
@@ -466,10 +475,6 @@ func (uc *EmployeeUseCase) UploadProfilePhoto(ctx context.Context, employeeID ui
 		log.Printf("EmployeeUseCase: No existing photo found for employee ID: %d", employeeID)
 	}
 
-	// Step 3: Generate new filename for the new photo
-	fileName := uc.generatePhotoFileName(employee, file.Filename)
-
-	// Step 4: Open and prepare the new file for upload
 	src, err := file.Open()
 	if err != nil {
 		return nil, fmt.Errorf("failed to open uploaded file: %w", err)
@@ -484,37 +489,117 @@ func (uc *EmployeeUseCase) UploadProfilePhoto(ctx context.Context, employeeID ui
 		return nil, fmt.Errorf("storage client not available")
 	}
 
-	// Step 5: Upload new photo to bucket
+	log.Printf("EmployeeUseCase: Uploading new file:")
+	log.Printf("  - Bucket: %s", bucketNamePhoto)
+	log.Printf("  - File: %s", fileName)
+	log.Printf("  - Content-Type: %s", uc.getContentTypeFromExtension(file.Filename))
+
 	_, err = uc.supabaseClient.Storage.UploadFile(bucketNamePhoto, fileName, src, storage.FileOptions{
 		ContentType: &[]string{uc.getContentTypeFromExtension(file.Filename)}[0],
 		Upsert:      &[]bool{true}[0],
 	})
 	if err != nil {
 		log.Printf("EmployeeUseCase: Upload failed with error: %v", err)
+		errorMsg := err.Error()
+		if strings.Contains(errorMsg, "policy") || strings.Contains(errorMsg, "unauthorized") {
+			log.Printf("EmployeeUseCase: Upload failed due to storage policy issues. Check INSERT policies for service_role.")
+		}
 		return nil, fmt.Errorf("failed to upload file to storage: %w", err)
 	}
 
 	log.Printf("EmployeeUseCase: Photo upload successful! File: %s", fileName)
 
-	// Step 6: Generate public URL for the new photo
 	publicURL := uc.supabaseClient.Storage.GetPublicUrl(bucketNamePhoto, fileName)
 	log.Printf("EmployeeUseCase: Generated public URL: %s", publicURL.SignedURL)
 
-	// Step 7: Update database with new photo URL
 	employee.ProfilePhotoURL = &publicURL.SignedURL
 
 	err = uc.employeeRepo.Update(ctx, employee)
 	if err != nil {
-		// Step 8: If database update fails, cleanup the newly uploaded file
+
 		log.Printf("EmployeeUseCase: Database update failed, cleaning up uploaded file: %s", fileName)
-		if _, removeErr := uc.supabaseClient.Storage.RemoveFile(bucketNamePhoto, []string{fileName}); removeErr != nil {
-			log.Printf("Warning: failed to cleanup uploaded file: %v", removeErr)
+		if uc.supabaseClient != nil && uc.supabaseClient.Storage != nil {
+			if _, removeErr := uc.supabaseClient.Storage.RemoveFile(bucketNamePhoto, []string{fileName}); removeErr != nil {
+				log.Printf("Warning: failed to cleanup uploaded file: %v", removeErr)
+			}
 		}
 		return nil, fmt.Errorf("failed to update employee photo URL: %w", err)
 	}
 
 	log.Printf("EmployeeUseCase: Successfully updated employee photo URL for ID: %d", employeeID)
 	return employee, nil
+}
+
+func (uc *EmployeeUseCase) deleteFileWithRetry(fileName string, maxRetries int) bool {
+	if uc.supabaseClient == nil || uc.supabaseClient.Storage == nil {
+		log.Printf("EmployeeUseCase: Warning - Supabase client not available for file deletion")
+		return false
+	}
+
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		log.Printf("EmployeeUseCase: Deletion attempt %d/%d for file: %s", attempt, maxRetries, fileName)
+		log.Printf("EmployeeUseCase: Attempting to delete file with details:")
+		log.Printf("  - Bucket: %s", bucketNamePhoto)
+		log.Printf("  - File: %s", fileName)
+		log.Printf("  - Client type: service_role (backend)")
+		log.Printf("  - Attempt: %d", attempt)
+
+		if attempt == 1 {
+			log.Printf("EmployeeUseCase: Verifying file existence before deletion...")
+
+		}
+
+		removeResponse, removeErr := uc.supabaseClient.Storage.RemoveFile(bucketNamePhoto, []string{fileName})
+		if removeErr == nil {
+			log.Printf("EmployeeUseCase: Successfully deleted old photo file: %s on attempt %d. Response: %+v", fileName, attempt, removeResponse)
+			return true
+		}
+
+		errorMsg := removeErr.Error()
+		log.Printf("EmployeeUseCase: Deletion attempt %d failed with error: %v", attempt, removeErr)
+
+		if strings.Contains(errorMsg, "body must be object") {
+			log.Printf("EmployeeUseCase: 'body must be object' error detected on attempt %d. This indicates storage policy issues:", attempt)
+			log.Printf("  1. Missing DELETE policy for service_role on bucket '%s'", bucketNamePhoto)
+			log.Printf("  2. Missing SELECT policy for service_role on bucket '%s'", bucketNamePhoto)
+			log.Printf("  3. Policies may be configured for authenticated users instead of service_role")
+			log.Printf("  4. Potential policy caching or race condition issue")
+
+			if attempt == 1 {
+				log.Printf("EmployeeUseCase: Required storage policies for service_role:")
+				log.Printf("  DELETE: CREATE POLICY \"Enable delete for service role\" ON storage.objects FOR DELETE USING (auth.role() = 'service_role');")
+				log.Printf("  SELECT: CREATE POLICY \"Enable select for service role\" ON storage.objects FOR SELECT USING (auth.role() = 'service_role');")
+				log.Printf("  Alternative bucket-specific DELETE: CREATE POLICY \"Enable delete for service role on photo bucket\" " +
+					"ON storage.objects FOR DELETE USING (bucket_id = 'photo' AND auth.role() = 'service_role');")
+			}
+
+			if attempt < maxRetries {
+				log.Printf("EmployeeUseCase: Waiting 1 second before retry due to policy issue...")
+				time.Sleep(1 * time.Second)
+			}
+		} else if strings.Contains(errorMsg, "not found") || strings.Contains(errorMsg, "404") {
+			log.Printf("EmployeeUseCase: Old photo file not found in storage (may have been deleted already): %s", fileName)
+			return true
+		} else if strings.Contains(errorMsg, "unauthorized") || strings.Contains(errorMsg, "403") {
+			log.Printf("EmployeeUseCase: Authorization error on attempt %d - service role may lack proper storage permissions", attempt)
+			if attempt < maxRetries {
+				time.Sleep(1 * time.Second)
+			}
+		} else if strings.Contains(errorMsg, "policy") {
+			log.Printf("EmployeeUseCase: Policy violation detected on attempt %d - check storage policies for service_role access", attempt)
+			if attempt < maxRetries {
+				time.Sleep(1 * time.Second)
+			}
+		} else {
+			log.Printf("EmployeeUseCase: Unexpected error on attempt %d deleting old photo: %v", attempt, removeErr)
+			if attempt < maxRetries {
+				time.Sleep(500 * time.Millisecond)
+			}
+		}
+	}
+
+	log.Printf("EmployeeUseCase: Failed to delete file %s after %d attempts", fileName, maxRetries)
+	return false
 }
 
 func (uc *EmployeeUseCase) generatePhotoFileName(employee *domain.Employee, originalFilename string) string {
@@ -545,20 +630,18 @@ func (uc *EmployeeUseCase) generatePhotoFileName(employee *domain.Employee, orig
 func (uc *EmployeeUseCase) extractFileNameFromURL(url string) string {
 	log.Printf("EmployeeUseCase: Extracting filename from URL: %s", url)
 
-	// Handle Supabase storage URLs
-	// Format: https://xxx.supabase.co/storage/v1/object/public/photo/filename.ext
 	if strings.Contains(url, "/storage/v1/object/public/") {
-		// Split by "public/" and take the part after it
+
 		parts := strings.Split(url, "/storage/v1/object/public/")
 		if len(parts) > 1 {
-			// Get the part after "public/" which should be "bucket/filename"
+
 			pathAfterPublic := parts[1]
-			// Split by "/" to get bucket and filename
+
 			pathParts := strings.Split(pathAfterPublic, "/")
 			if len(pathParts) >= 2 {
-				// Skip the bucket name (first part) and get the filename
-				fileName := strings.Join(pathParts[1:], "/") // Join in case filename has slashes
-				// Remove query parameters if any
+
+				fileName := strings.Join(pathParts[1:], "/")
+
 				if idx := strings.Index(fileName, "?"); idx != -1 {
 					fileName = fileName[:idx]
 				}
@@ -568,11 +651,10 @@ func (uc *EmployeeUseCase) extractFileNameFromURL(url string) string {
 		}
 	}
 
-	// Fallback: extract filename from the end of URL
 	parts := strings.Split(url, "/")
 	if len(parts) > 0 {
 		fileName := parts[len(parts)-1]
-		// Remove query parameters if any
+
 		if idx := strings.Index(fileName, "?"); idx != -1 {
 			fileName = fileName[:idx]
 		}
@@ -584,7 +666,6 @@ func (uc *EmployeeUseCase) extractFileNameFromURL(url string) string {
 	return ""
 }
 
-// getContentTypeFromExtension determines the content type based on file extension
 func (uc *EmployeeUseCase) getContentTypeFromExtension(filename string) string {
 	ext := strings.ToLower(filepath.Ext(filename))
 	switch ext {

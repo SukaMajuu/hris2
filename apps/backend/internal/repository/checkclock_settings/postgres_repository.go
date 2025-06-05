@@ -52,11 +52,12 @@ func (r *CheckclockRepository) GetByEmployeeID(ctx context.Context, employeeID u
 	err := r.db.WithContext(ctx).
 		Preload("Employee.User").
 		Preload("WorkSchedule.Details").
-		Where("employee_id = ?", employeeID).
+		Joins("JOIN employees ON checkclock_settings.employee_id = employees.id").
+		Where("checkclock_settings.employee_id = ? AND employees.employment_status = ?", employeeID, true).
 		First(&settings).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("checkclock settings not found for employee")
+			return nil, errors.New("checkclock settings not found for active employee")
 		}
 		return nil, err
 	}
@@ -67,18 +68,16 @@ func (r *CheckclockRepository) GetAll(ctx context.Context, offset, limit int) ([
 	var settings []*domain.CheckclockSettings
 	var total int64
 
-	// Base query with employee status filter
 	query := r.db.WithContext(ctx).Model(&domain.CheckclockSettings{}).
 		Joins("JOIN employees ON checkclock_settings.employee_id = employees.id").
 		Where("employees.employment_status = ?", true)
 
-	// Count total records
 	err := query.Count(&total).Error
 	if err != nil {
 		return nil, 0, err
 	}
 
-	// Get paginated records
+	// Get paginated records with preloading
 	err = r.db.WithContext(ctx).
 		Preload("Employee.User").
 		Preload("WorkSchedule.Details").

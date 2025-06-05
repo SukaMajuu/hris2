@@ -1,6 +1,7 @@
 package jwt
 
 import (
+	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/hex"
@@ -15,9 +16,9 @@ import (
 )
 
 type jwtService struct {
-	secretKey        []byte
-	accessDuration   time.Duration
-	refreshDuration  time.Duration
+	secretKey       []byte
+	accessDuration  time.Duration
+	refreshDuration time.Duration
 }
 
 // Ensure jwtService implements Service
@@ -33,9 +34,9 @@ func NewJWTService(config *config.Config) Service {
 		panic(fmt.Sprintf("invalid JWT refresh duration: %v", err))
 	}
 	return &jwtService{
-		secretKey:        []byte(config.JWT.SecretKey),
-		accessDuration:   accessDuration,
-		refreshDuration:  refreshDuration,
+		secretKey:       []byte(config.JWT.SecretKey),
+		accessDuration:  accessDuration,
+		refreshDuration: refreshDuration,
 	}
 }
 
@@ -62,7 +63,15 @@ func (s *jwtService) GenerateToken(userID uint, userEmail string, role enums.Use
 
 // generateToken is an internal helper
 func (s *jwtService) generateToken(userID uint, userEmail string, role enums.UserRole, duration time.Duration, tokenType enums.TokenType) (string, error) {
-	expirationTime := time.Now().Add(duration)
+	now := time.Now()
+	expirationTime := now.Add(duration)
+
+	// Generate a random nonce to ensure token uniqueness
+	nonce := make([]byte, 16)
+	if _, err := rand.Read(nonce); err != nil {
+		return "", fmt.Errorf("failed to generate nonce: %w", err)
+	}
+
 	claims := &CustomClaims{
 		UserID:    userID,
 		Email:     userEmail,
@@ -70,10 +79,11 @@ func (s *jwtService) generateToken(userID uint, userEmail string, role enums.Use
 		TokenType: tokenType,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			NotBefore: jwt.NewNumericDate(time.Now()),
+			IssuedAt:  jwt.NewNumericDate(now),
+			NotBefore: jwt.NewNumericDate(now),
 			Issuer:    "hris-backend", // Consider making this configurable
 			Subject:   fmt.Sprintf("%d", userID),
+			ID:        hex.EncodeToString(nonce), // Add unique ID to prevent duplicate tokens
 		},
 	}
 

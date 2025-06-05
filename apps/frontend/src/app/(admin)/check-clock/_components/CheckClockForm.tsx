@@ -39,6 +39,7 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from "@/components/ui/popover";
+import { toast } from "sonner";
 import { WorkType } from "@/const/work";
 import type { Employee } from "@/types/employee";
 import type { WorkSchedule, WorkScheduleDetailItem } from "@/types/work-schedule.types";
@@ -162,12 +163,23 @@ export function CheckClockForm({
 			setWorkScheduleDetails([]);
 		}
 	}, [workScheduleType, workSchedules]);
-
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
-
 		// Validate required fields
 		if (!employeeId || !workScheduleType) {
+			if (!employeeId && !workScheduleType) {
+				if (isEditMode) {
+					toast.error("Please select a Work Schedule");
+				} else {
+					toast.error("Please select both Employee and Work Schedule");
+				}
+			} else if (!employeeId) {
+				if (!isEditMode) {
+					toast.error("Please select an Employee");
+				}
+			} else if (!workScheduleType) {
+				toast.error("Please select a Work Schedule");
+			}
 			return;
 		}
 
@@ -205,8 +217,7 @@ export function CheckClockForm({
 					{/* Employee Profile Card */}
 					{showProfileCard ? (
 						<Card className="border-none shadow-sm">
-							<CardContent>
-								<div className="flex flex-col items-center text-center mb-4">
+							<CardContent>								<div className="flex flex-col items-center text-center mb-4">
 									<div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-3">
 										<User className="h-10 w-10 text-gray-500" />
 									</div>
@@ -217,37 +228,21 @@ export function CheckClockForm({
 										{currentEmployee?.position || "N/A"}
 									</p>
 								</div>
-
-								<div className="space-y-4">
-									<div>
-										<Label className="block text-sm font-medium text-gray-700 mb-1">
-											Employee ID
-										</Label>
-										<Input
-											className="bg-slate-50 text-sm py-2 px-3 text-gray-600 cursor-not-allowed"
-											disabled
-											value={employeeId || "N/A"}
-										/>
-									</div>
-								</div>
 							</CardContent>
 						</Card>
 					) : (
 						<Card className="border-none shadow-sm">
-							<CardContent className="p-6">
-								<div className="flex items-center gap-2 mb-4">
+							<CardContent className="p-6">								<div className="flex items-center gap-2 mb-4">
 									<User className="h-5 w-5 text-gray-500" />
 									<h3 className="font-semibold text-lg text-gray-800">
-										Employee Selection
+										{isEditMode ? "Employee Information" : "Employee Selection"}
 									</h3>
-								</div>
-
-								<div>
+								</div>								<div>
 									<Label
 										htmlFor="employeeId"
 										className="block text-sm font-medium text-gray-700 mb-1.5"
 									>
-										Select Employee
+										{isEditMode ? "Employee" : "Select Employee"}
 									</Label>
 									<Popover
 										open={comboboxOpen}

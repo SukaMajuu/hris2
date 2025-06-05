@@ -1023,52 +1023,67 @@ components:
         - created_at
         - updated_at
 
-    EmployeeStatisticsResponse:
-      type: object
-      properties:
-        total_employees:
-          type: integer
-          format: int64
-          description: Total number of employees in the system
-          example: 150
-        new_employees:
-          type: integer
-          format: int64
-          description: Number of new employees hired in the current month
-          example: 12
-        active_employees:
-          type: integer
-          format: int64
-          description: Number of currently active employees
-          example: 145
-        resigned_employees:
-          type: integer
-          format: int64
-          description: Number of employees who have resigned
-          example: 5
-        permanent_employees:
-          type: integer
-          format: int64
-          description: Number of employees with permanent contract type
-          example: 85
-        contract_employees:
-          type: integer
-          format: int64
-          description: Number of employees with contract type
-          example: 45
-        freelance_employees:
-          type: integer
-          format: int64
-          description: Number of employees with freelance contract type
-          example: 20
-          required:
-            - total_employees
-            - new_employees
-            - active_employees
-            - resigned_employees
-            - permanent_employees
-            - contract_employees
-            - freelance_employees
+        EmployeeStatisticsResponse:
+            type: object
+            properties:
+                total_employees:
+                    type: integer
+                    format: int64
+                    description: Total number of employees in the system
+                    example: 150
+                new_employees:
+                    type: integer
+                    format: int64
+                    description: Number of new employees hired in the current month
+                    example: 12
+                active_employees:
+                    type: integer
+                    format: int64
+                    description: Number of currently active employees
+                    example: 145
+                resigned_employees:
+                    type: integer
+                    format: int64
+                    description: Number of employees who have resigned
+                    example: 5
+                permanent_employees:
+                    type: integer
+                    format: int64
+                    description: Number of employees with permanent contract type
+                    example: 85
+                contract_employees:
+                    type: integer
+                    format: int64
+                    description: Number of employees with contract type
+                    example: 45
+                freelance_employees:
+                    type: integer
+                    format: int64
+                    description: Number of employees with freelance contract type
+                    example: 20
+                total_employees_trend:
+                    type: number
+                    format: float
+                    description: Percentage change in total employees compared to employees hired before current month
+                    example: 8.5
+                new_employees_trend:
+                    type: number
+                    format: float
+                    description: Percentage change in new employees compared to previous 30 days
+                    example: 15.2
+                active_employees_trend:
+                    type: number
+                    format: float
+                    description: Percentage change in active employees compared to previous month
+                    example: 5.8
+            required:
+                - total_employees
+                - new_employees
+                - active_employees
+                - resigned_employees
+                - permanent_employees
+                - contract_employees
+                - freelance_employees
 
     LeaveRequest:
       type: object

@@ -21,12 +21,12 @@ export interface LeaveRequest {
   start_date: string; // ISO date string
   end_date: string; // ISO date string
   total_days: number;
-  employee_note?: string | null; // Changed from 'reason' to match backend
+  employee_note?: string | null; 
   admin_note?: string | null; // Added to match backend
   status: LeaveRequestStatus;
   approved_by?: number | null;
   approved_at?: string | null; // ISO date string
-  attachment_url?: string | null;
+  attachment?: string | null; // Backend sends this field name
   created_at: string; // ISO date string
   updated_at: string; // ISO date string
 
@@ -52,7 +52,7 @@ export interface CreateLeaveRequestRequest {
   leave_type: LeaveType;
   start_date: string; // ISO date string (YYYY-MM-DD)
   end_date: string; // ISO date string (YYYY-MM-DD)
-  employee_note?: string; // Changed from 'reason' to 'employee_note' to match backend
+  employee_note?: string; 
   attachment?: File;
 }
 
@@ -60,7 +60,7 @@ export interface UpdateLeaveRequestRequest {
   leave_type?: LeaveType;
   start_date?: string; // ISO date string (YYYY-MM-DD)
   end_date?: string; // ISO date string (YYYY-MM-DD)
-  employee_note?: string; // Changed from 'reason' to 'employee_note' to match backend
+  employee_note?: string; 
   attachment?: File;
 }
 

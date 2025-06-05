@@ -70,7 +70,14 @@ func (h *EmployeeHandler) ListEmployees(c *gin.Context) {
 		filters["employment_status"] = *queryDTO.Status == "active"
 	}
 
-	// Add manager filter to only show employees managed by current user
+	if queryDTO.Search != nil && *queryDTO.Search != "" {
+		filters["search"] = *queryDTO.Search
+	}
+
+	if queryDTO.Gender != nil && *queryDTO.Gender != "" {
+		filters["gender"] = *queryDTO.Gender
+	}
+
 	filters["manager_id"] = currentEmployee.ID
 
 	log.Printf("EmployeeHandler: Listing employees for manager ID %d with DTO: %+v, Parsed Filters: %+v, Pagination: %+v", currentEmployee.ID, queryDTO, filters, paginationParams)
@@ -113,29 +120,25 @@ func (h *EmployeeHandler) CreateEmployee(c *gin.Context) {
 
 	if reqDTO.PhotoFile != nil {
 		log.Printf("EmployeeHandler: Photo file detected: %s", reqDTO.PhotoFile.Filename)
-		// TODO: Add validation back after fixing upload issue
+
 	}
 
-	// Convert DTO to domain model
 	employeeDomain, err := employeeDTO.MapCreateDTOToDomain(&reqDTO)
 	if err != nil {
 		response.BadRequest(c, err.Error(), err)
 		return
 	}
 
-	// Create employee
 	createdEmployee, err := h.employeeUseCase.Create(c.Request.Context(), employeeDomain, creatorEmployee.ID)
 	if err != nil {
 		h.handleCreateEmployeeError(c, err)
 		return
 	}
 
-	// Handle photo upload if provided
 	if reqDTO.PhotoFile != nil {
 		createdEmployee = h.handlePhotoUploadForNewEmployee(c, createdEmployee, reqDTO.PhotoFile)
 	}
 
-	// Convert domain to response DTO
 	respDTO := h.mapDomainToResponseDTO(createdEmployee)
 	response.Success(c, http.StatusCreated, "Employee created successfully", respDTO)
 }
@@ -354,7 +357,6 @@ func (h *EmployeeHandler) UpdateEmployee(c *gin.Context) {
 		return
 	}
 
-	// Validate photo file type if provided
 	if reqDTO.PhotoFile != nil {
 		mimeType := reqDTO.PhotoFile.Header.Get("Content-Type")
 		log.Printf("EmployeeHandler: Photo file MIME type detected: %s", mimeType)
@@ -383,14 +385,13 @@ func (h *EmployeeHandler) UpdateEmployee(c *gin.Context) {
 		return
 	}
 
-	// If photo file is provided, upload it after employee update
 	if reqDTO.PhotoFile != nil {
 		log.Printf("EmployeeHandler: Uploading photo for updated employee ID: %d", uint(id))
 
 		updatedEmployeeWithPhoto, err := h.employeeUseCase.UploadProfilePhoto(c.Request.Context(), uint(id), reqDTO.PhotoFile)
 		if err != nil {
 			log.Printf("EmployeeHandler: Error uploading photo for updated employee: %v", err)
-			// Don't fail the whole update, just log the error
+
 			log.Printf("EmployeeHandler: Employee updated successfully but photo upload failed")
 		} else {
 			updatedEmployee = updatedEmployeeWithPhoto
@@ -457,7 +458,6 @@ func (h *EmployeeHandler) UploadEmployeePhoto(c *gin.Context) {
 		return
 	}
 
-	// Validate file type
 	if reqDTO.File != nil {
 		mimeType := reqDTO.File.Header.Get("Content-Type")
 		log.Printf("EmployeeHandler: Photo file MIME type detected: %s", mimeType)
@@ -489,7 +489,6 @@ func (h *EmployeeHandler) UploadEmployeePhoto(c *gin.Context) {
 func (h *EmployeeHandler) GetEmployeeStatistics(c *gin.Context) {
 	log.Printf("EmployeeHandler: GetEmployeeStatistics called")
 
-	// Get current user ID from context
 	userIDCtx, exists := c.Get("userID")
 	if !exists {
 		response.Unauthorized(c, "User ID not found in context", fmt.Errorf("missing userID in context"))
@@ -501,7 +500,6 @@ func (h *EmployeeHandler) GetEmployeeStatistics(c *gin.Context) {
 		return
 	}
 
-	// Get current employee information
 	currentEmployee, err := h.employeeUseCase.GetEmployeeByUserID(c.Request.Context(), currentUserID)
 	if err != nil {
 		log.Printf("EmployeeHandler: Error getting current employee for UserID %d: %v", currentUserID, err)
@@ -509,7 +507,6 @@ func (h *EmployeeHandler) GetEmployeeStatistics(c *gin.Context) {
 		return
 	}
 
-	// Get statistics filtered by current manager
 	statisticsData, err := h.employeeUseCase.GetStatisticsByManager(c.Request.Context(), currentEmployee.ID)
 	if err != nil {
 		log.Printf("EmployeeHandler: Error getting employee statistics from use case for manager %d: %v", currentEmployee.ID, err)

@@ -60,16 +60,28 @@ func (r *PostgresRepository) List(ctx context.Context, filters map[string]interf
 	var employees []*domain.Employee
 	var totalItems int64
 
-	query := r.db.WithContext(ctx).Model(&domain.Employee{})
+	query := r.db.WithContext(ctx).Model(&domain.Employee{}).Joins("LEFT JOIN users ON employees.user_id = users.id")
 
 	for key, value := range filters {
 		switch key {
 		case "manager_id":
-			query = query.Where("manager_id = ?", value)
+			query = query.Where("employees.manager_id = ?", value)
 		case "employment_status":
-			query = query.Where("employment_status = ?", value)
+			query = query.Where("employees.employment_status = ?", value)
+		case "gender":
+			query = query.Where("employees.gender = ?", value)
+		case "search":
+
+			searchTerm := "%" + value.(string) + "%"
+			query = query.Where(
+				"LOWER(employees.first_name || ' ' || COALESCE(employees.last_name, '')) LIKE LOWER(?) OR "+
+					"users.phone LIKE ? OR "+
+					"LOWER(COALESCE(employees.branch, '')) LIKE LOWER(?) OR "+
+					"LOWER(COALESCE(employees.position_name, '')) LIKE LOWER(?) OR "+
+					"LOWER(COALESCE(employees.grade, '')) LIKE LOWER(?)",
+				searchTerm, searchTerm, searchTerm, searchTerm, searchTerm)
 		default:
-			query = query.Where(key+" = ?", value)
+			query = query.Where("employees."+key+" = ?", value)
 		}
 	}
 
@@ -78,7 +90,7 @@ func (r *PostgresRepository) List(ctx context.Context, filters map[string]interf
 	}
 
 	offset := (pagination.Page - 1) * pagination.PageSize
-	if err := query.Offset(offset).Limit(pagination.PageSize).Order("id ASC").Preload("User").Find(&employees).Error; err != nil {
+	if err := query.Offset(offset).Limit(pagination.PageSize).Order("employees.id ASC").Preload("User").Find(&employees).Error; err != nil {
 		return nil, 0, err
 	}
 
@@ -138,7 +150,7 @@ func (r *PostgresRepository) GetStatisticsByManager(ctx context.Context, manager
 	permanentEmployees, contractEmployees, freelanceEmployees int64,
 	err error,
 ) {
-	// Create base query function to avoid stacking WHERE conditions
+
 	newQuery := func() *gorm.DB {
 		return r.db.WithContext(ctx).Model(&domain.Employee{}).Where("manager_id = ?", managerID)
 	}
@@ -182,4 +194,102 @@ func (r *PostgresRepository) GetStatisticsByManager(ctx context.Context, manager
 	}
 
 	return totalEmployees, newEmployees, activeEmployees, resignedEmployees, permanentEmployees, contractEmployees, freelanceEmployees, nil
+}
+
+func (r *PostgresRepository) GetStatisticsWithTrendsByManager(ctx context.Context, managerID uint) (
+	totalEmployees, newEmployees, activeEmployees, resignedEmployees,
+	permanentEmployees, contractEmployees, freelanceEmployees int64,
+	totalEmployeesTrend, newEmployeesTrend, activeEmployeesTrend float64,
+	err error,
+) {
+	newQuery := func() *gorm.DB {
+		return r.db.WithContext(ctx).Model(&domain.Employee{}).Where("manager_id = ?", managerID)
+	}
+
+	err = newQuery().Count(&totalEmployees).Error
+	if err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, err
+	}
+
+	err = newQuery().Where("employment_status = ?", true).Count(&activeEmployees).Error
+	if err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, err
+	}
+
+	err = newQuery().Where("employment_status = ?", false).Count(&resignedEmployees).Error
+	if err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, err
+	}
+
+	now := time.Now()
+	thirtyDaysAgo := now.AddDate(0, 0, -30)
+	sixtyDaysAgo := now.AddDate(0, 0, -60)
+
+	err = newQuery().Where("hire_date >= ?", thirtyDaysAgo).Count(&newEmployees).Error
+	if err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, err
+	}
+
+	var previousNewEmployees int64
+	err = newQuery().Where("hire_date >= ? AND hire_date < ?", sixtyDaysAgo, thirtyDaysAgo).Count(&previousNewEmployees).Error
+	if err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, err
+	}
+
+	if previousNewEmployees > 0 {
+		newEmployeesTrend = float64(newEmployees-previousNewEmployees) / float64(previousNewEmployees) * 100
+	} else if newEmployees > 0 {
+		newEmployeesTrend = 100
+	} else {
+		newEmployeesTrend = 0
+	}
+
+	currentMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	var totalEmployeesBeforeCurrentMonth int64
+	err = newQuery().Where("hire_date < ?", currentMonth).Count(&totalEmployeesBeforeCurrentMonth).Error
+	if err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, err
+	}
+
+	if totalEmployeesBeforeCurrentMonth > 0 {
+		totalEmployeesTrend = float64(totalEmployees-totalEmployeesBeforeCurrentMonth) / float64(totalEmployeesBeforeCurrentMonth) * 100
+	} else if totalEmployees > 0 {
+		totalEmployeesTrend = 100
+	} else {
+		totalEmployeesTrend = 0
+	}
+
+	var previousMonthActiveEmployees int64
+	err = newQuery().Where(
+		"hire_date < ? AND (employment_status = ? OR (employment_status = ? AND resignation_date >= ?))",
+		currentMonth, true, false, currentMonth,
+	).Count(&previousMonthActiveEmployees).Error
+	if err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, err
+	}
+
+	if previousMonthActiveEmployees > 0 {
+		activeEmployeesTrend = float64(activeEmployees-previousMonthActiveEmployees) / float64(previousMonthActiveEmployees) * 100
+	} else if activeEmployees > 0 {
+		activeEmployeesTrend = 100
+	} else {
+		activeEmployeesTrend = 0
+	}
+
+	err = newQuery().Where("contract_type = ?", "permanent").Count(&permanentEmployees).Error
+	if err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, err
+	}
+
+	err = newQuery().Where("contract_type = ?", "contract").Count(&contractEmployees).Error
+	if err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, err
+	}
+
+	err = newQuery().Where("contract_type = ?", "freelance").Count(&freelanceEmployees).Error
+	if err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, err
+	}
+
+	return totalEmployees, newEmployees, activeEmployees, resignedEmployees, permanentEmployees, contractEmployees, freelanceEmployees, totalEmployeesTrend, newEmployeesTrend, activeEmployeesTrend, nil
 }

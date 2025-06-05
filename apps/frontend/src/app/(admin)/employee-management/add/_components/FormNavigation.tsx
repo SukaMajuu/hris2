@@ -29,7 +29,7 @@ export function FormNavigation({
           variant={'outline'}
           onClick={onBack}
           disabled={isSubmitting}
-          className='border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800'
+          className='cursor-pointer border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800'
         >
           Back
         </Button>
@@ -43,14 +43,14 @@ export function FormNavigation({
             onNext();
           }}
           disabled={isSubmitting}
-          className='bg-primary hover:bg-primary/90 text-primary-foreground'
+          className='bg-primary hover:bg-primary/90 text-primary-foreground cursor-pointer'
         >
           Next
         </Button>
       ) : (
         <Button
           type='submit'
-          className='bg-primary hover:bg-primary/90 text-primary-foreground'
+          className='bg-primary hover:bg-primary/90 text-primary-foreground cursor-pointer'
           onClick={onSubmit}
           disabled={isSubmitting}
         >

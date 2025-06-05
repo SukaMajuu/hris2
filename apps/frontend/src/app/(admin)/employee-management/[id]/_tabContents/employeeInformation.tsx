@@ -94,7 +94,7 @@ const EmployeeInformation: React.FC<EmployeeInformationProps> = ({
             variant='ghost'
             size='sm'
             onClick={() => setEditPersonal(!editPersonal)}
-            className='rounded-md px-4 py-2 text-blue-600 transition-colors duration-150 hover:bg-slate-100 hover:text-blue-700 dark:text-blue-400 dark:hover:bg-slate-700/50 dark:hover:text-blue-300'
+            className='cursor-pointer rounded-md px-4 py-2 text-blue-600 transition-colors duration-150 hover:bg-slate-100 hover:text-blue-700 dark:text-blue-400 dark:hover:bg-slate-700/50 dark:hover:text-blue-300'
           >
             <Pencil className='mr-2 h-4 w-4' />
             {editPersonal ? 'Cancel' : 'Edit'}
@@ -310,7 +310,7 @@ const EmployeeInformation: React.FC<EmployeeInformationProps> = ({
             <div className='text-right'>
               <Button
                 onClick={handleSavePersonal}
-                className='bg-blue-600 text-white hover:bg-blue-700'
+                className='cursor-pointer bg-blue-600 text-white hover:bg-blue-700'
               >
                 Save Changes
               </Button>
@@ -329,7 +329,7 @@ const EmployeeInformation: React.FC<EmployeeInformationProps> = ({
               variant='ghost'
               size='sm'
               onClick={() => setEditBank(!editBank)}
-              className='rounded-md px-4 py-2 text-blue-600 transition-colors duration-150 hover:bg-slate-100 hover:text-blue-700 dark:text-blue-400 dark:hover:bg-slate-700/50 dark:hover:text-blue-300'
+              className='cursor-pointer rounded-md px-4 py-2 text-blue-600 transition-colors duration-150 hover:bg-slate-100 hover:text-blue-700 dark:text-blue-400 dark:hover:bg-slate-700/50 dark:hover:text-blue-300'
             >
               <Pencil className='mr-2 h-4 w-4' />
               {editBank ? 'Cancel' : 'Edit'}
@@ -387,7 +387,7 @@ const EmployeeInformation: React.FC<EmployeeInformationProps> = ({
               <div className='text-right'>
                 <Button
                   onClick={handleSaveBank}
-                  className='bg-blue-600 text-white hover:bg-blue-700'
+                  className='cursor-pointer bg-blue-600 text-white hover:bg-blue-700'
                 >
                   Save Changes
                 </Button>
@@ -404,7 +404,7 @@ const EmployeeInformation: React.FC<EmployeeInformationProps> = ({
             </CardTitle>
           </CardHeader>
           <CardContent className='flex justify-start p-6'>
-            <Button variant='destructive' onClick={handleResetPassword}>
+            <Button variant='destructive' onClick={handleResetPassword} className='cursor-pointer'>
               <KeyRound className='mr-2 h-4 w-4' />
               Reset Password
             </Button>

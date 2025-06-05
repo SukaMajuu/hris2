@@ -10,12 +10,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import type { EmployeeFormData } from '../_hooks/useAddEmployeeForm';
+import type { FormEmployeeData } from '../_hooks/useAddEmployeeForm';
 import { FieldErrors } from 'react-hook-form';
 
 interface PersonalInformationStepProps {
-  formData: EmployeeFormData;
-  errors: FieldErrors<EmployeeFormData>;
+  formData: FormEmployeeData;
+  errors: FieldErrors<FormEmployeeData>;
   onInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onSelectChange: (name: string, value: string) => void;
 }
@@ -150,15 +150,21 @@ export function PersonalInformationStep({
             <Select value={formData.gender} onValueChange={(v) => onSelectChange('gender', v)}>
               <SelectTrigger
                 id='gender'
-                className={`focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800 ${
-                  errors.gender ? 'border-red-500 focus:border-red-500' : ''
-                }`}
+                className={`focus:ring-primary focus:border-primary mt-1 w-full cursor-pointer border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800 ${
+                  formData.gender
+                    ? '[&>span]:text-black dark:[&>span]:text-slate-200'
+                    : '[&>span]:text-slate-400 dark:[&>span]:text-slate-500'
+                } ${errors.gender ? 'border-red-500 focus:border-red-500' : ''}`}
               >
-                <SelectValue placeholder='Choose gender' />
+                <SelectValue placeholder='Select gender' />
               </SelectTrigger>
               <SelectContent className='bg-white dark:bg-slate-800'>
-                <SelectItem value='Male'>Male</SelectItem>
-                <SelectItem value='Female'>Female</SelectItem>
+                <SelectItem value='Male' className='cursor-pointer'>
+                  Male
+                </SelectItem>
+                <SelectItem value='Female' className='cursor-pointer'>
+                  Female
+                </SelectItem>
               </SelectContent>
             </Select>
             {errors.gender && <p className='mt-1 text-sm text-red-500'>{errors.gender.message}</p>}
@@ -176,23 +182,45 @@ export function PersonalInformationStep({
             >
               <SelectTrigger
                 id='lastEducation'
-                className={`focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800 ${
-                  errors.lastEducation ? 'border-red-500 focus:border-red-500' : ''
-                }`}
+                className={`focus:ring-primary focus:border-primary mt-1 w-full cursor-pointer border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800 ${
+                  formData.lastEducation
+                    ? '[&>span]:text-black dark:[&>span]:text-slate-200'
+                    : '[&>span]:text-slate-400 dark:[&>span]:text-slate-500'
+                } ${errors.lastEducation ? 'border-red-500 focus:border-red-500' : ''}`}
               >
-                <SelectValue placeholder='Choose education' />
+                <SelectValue placeholder='Select education level' />
               </SelectTrigger>
               <SelectContent className='bg-white dark:bg-slate-800'>
-                <SelectItem value='SD'>SD</SelectItem>
-                <SelectItem value='SMP'>SMP</SelectItem>
-                <SelectItem value='SMA/SMK'>SMA/SMK</SelectItem>
-                <SelectItem value='D1'>D1</SelectItem>
-                <SelectItem value='D2'>D2</SelectItem>
-                <SelectItem value='D3'>D3</SelectItem>
-                <SelectItem value='S1/D4'>S1/D4</SelectItem>
-                <SelectItem value='S2'>S2</SelectItem>
-                <SelectItem value='S3'>S3</SelectItem>
-                <SelectItem value='Other'>Other</SelectItem>
+                <SelectItem value='SD' className='cursor-pointer'>
+                  SD
+                </SelectItem>
+                <SelectItem value='SMP' className='cursor-pointer'>
+                  SMP
+                </SelectItem>
+                <SelectItem value='SMA/SMK' className='cursor-pointer'>
+                  SMA/SMK
+                </SelectItem>
+                <SelectItem value='D1' className='cursor-pointer'>
+                  D1
+                </SelectItem>
+                <SelectItem value='D2' className='cursor-pointer'>
+                  D2
+                </SelectItem>
+                <SelectItem value='D3' className='cursor-pointer'>
+                  D3
+                </SelectItem>
+                <SelectItem value='S1/D4' className='cursor-pointer'>
+                  S1/D4
+                </SelectItem>
+                <SelectItem value='S2' className='cursor-pointer'>
+                  S2
+                </SelectItem>
+                <SelectItem value='S3' className='cursor-pointer'>
+                  S3
+                </SelectItem>
+                <SelectItem value='Other' className='cursor-pointer'>
+                  Other
+                </SelectItem>
               </SelectContent>
             </Select>
             {errors.lastEducation && (
@@ -233,9 +261,11 @@ export function PersonalInformationStep({
               type='date'
               value={formData.dateOfBirth}
               onChange={onInputChange}
-              className={`focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:placeholder:text-slate-500 ${
-                errors.dateOfBirth ? 'border-red-500 focus:border-red-500' : ''
-              }`}
+              className={`focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 placeholder:text-slate-400 dark:border-slate-600 dark:placeholder:text-slate-500 ${
+                formData.dateOfBirth
+                  ? 'bg-slate-50 text-black dark:bg-slate-800 dark:text-slate-200'
+                  : 'bg-white text-slate-400 dark:bg-slate-900 dark:text-slate-200'
+              } ${errors.dateOfBirth ? 'border-red-500 focus:border-red-500' : ''}`}
             />
             {errors.dateOfBirth && (
               <p className='mt-1 text-sm text-red-500'>{errors.dateOfBirth.message}</p>
@@ -254,25 +284,51 @@ export function PersonalInformationStep({
             >
               <SelectTrigger
                 id='taxStatus'
-                className={`focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800 ${
-                  errors.taxStatus ? 'border-red-500 focus:border-red-500' : ''
-                }`}
+                className={`focus:ring-primary focus:border-primary mt-1 w-full cursor-pointer border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800 ${
+                  formData.taxStatus
+                    ? '[&>span]:text-black dark:[&>span]:text-slate-200'
+                    : '[&>span]:text-slate-400 dark:[&>span]:text-slate-500'
+                } ${errors.taxStatus ? 'border-red-500 focus:border-red-500' : ''}`}
               >
-                <SelectValue placeholder='Choose tax status' />
+                <SelectValue placeholder='Select tax status' />
               </SelectTrigger>
               <SelectContent className='bg-white dark:bg-slate-800'>
-                <SelectItem value='TK/0'>TK/0 - Tidak Kawin, 0 Tanggungan</SelectItem>
-                <SelectItem value='TK/1'>TK/1 - Tidak Kawin, 1 Tanggungan</SelectItem>
-                <SelectItem value='TK/2'>TK/2 - Tidak Kawin, 2 Tanggungan</SelectItem>
-                <SelectItem value='TK/3'>TK/3 - Tidak Kawin, 3 Tanggungan</SelectItem>
-                <SelectItem value='K/0'>K/0 - Kawin, 0 Tanggungan</SelectItem>
-                <SelectItem value='K/1'>K/1 - Kawin, 1 Tanggungan</SelectItem>
-                <SelectItem value='K/2'>K/2 - Kawin, 2 Tanggungan</SelectItem>
-                <SelectItem value='K/3'>K/3 - Kawin, 3 Tanggungan</SelectItem>
-                <SelectItem value='K/I/0'>K/I/0 - Kawin, Istri Bekerja, 0 Tanggungan</SelectItem>
-                <SelectItem value='K/I/1'>K/I/1 - Kawin, Istri Bekerja, 1 Tanggungan</SelectItem>
-                <SelectItem value='K/I/2'>K/I/2 - Kawin, Istri Bekerja, 2 Tanggungan</SelectItem>
-                <SelectItem value='K/I/3'>K/I/3 - Kawin, Istri Bekerja, 3 Tanggungan</SelectItem>
+                <SelectItem value='TK/0' className='cursor-pointer'>
+                  TK/0 - Tidak Kawin, 0 Tanggungan
+                </SelectItem>
+                <SelectItem value='TK/1' className='cursor-pointer'>
+                  TK/1 - Tidak Kawin, 1 Tanggungan
+                </SelectItem>
+                <SelectItem value='TK/2' className='cursor-pointer'>
+                  TK/2 - Tidak Kawin, 2 Tanggungan
+                </SelectItem>
+                <SelectItem value='TK/3' className='cursor-pointer'>
+                  TK/3 - Tidak Kawin, 3 Tanggungan
+                </SelectItem>
+                <SelectItem value='K/0' className='cursor-pointer'>
+                  K/0 - Kawin, 0 Tanggungan
+                </SelectItem>
+                <SelectItem value='K/1' className='cursor-pointer'>
+                  K/1 - Kawin, 1 Tanggungan
+                </SelectItem>
+                <SelectItem value='K/2' className='cursor-pointer'>
+                  K/2 - Kawin, 2 Tanggungan
+                </SelectItem>
+                <SelectItem value='K/3' className='cursor-pointer'>
+                  K/3 - Kawin, 3 Tanggungan
+                </SelectItem>
+                <SelectItem value='K/I/0' className='cursor-pointer'>
+                  K/I/0 - Kawin, Istri Bekerja, 0 Tanggungan
+                </SelectItem>
+                <SelectItem value='K/I/1' className='cursor-pointer'>
+                  K/I/1 - Kawin, Istri Bekerja, 1 Tanggungan
+                </SelectItem>
+                <SelectItem value='K/I/2' className='cursor-pointer'>
+                  K/I/2 - Kawin, Istri Bekerja, 2 Tanggungan
+                </SelectItem>
+                <SelectItem value='K/I/3' className='cursor-pointer'>
+                  K/I/3 - Kawin, Istri Bekerja, 3 Tanggungan
+                </SelectItem>
               </SelectContent>
             </Select>
             {errors.taxStatus && (

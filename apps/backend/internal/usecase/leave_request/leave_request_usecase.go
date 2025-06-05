@@ -16,7 +16,7 @@ import (
 	"github.com/supabase-community/supabase-go"
 )
 
-const bucketNameAttachments = "leave-attachments"
+const bucketNameAttachments = "leavereq"
 
 type LeaveRequestUseCase struct {
 	leaveRequestRepo interfaces.LeaveRequestRepository

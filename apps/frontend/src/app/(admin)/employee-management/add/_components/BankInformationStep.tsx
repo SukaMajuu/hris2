@@ -3,12 +3,12 @@
 import React from 'react';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import type { EmployeeFormData } from '../_hooks/useAddEmployeeForm';
+import type { FormEmployeeData } from '../_hooks/useAddEmployeeForm';
 import { FieldErrors } from 'react-hook-form';
 
 interface BankInformationStepProps {
-  formData: EmployeeFormData;
-  errors: FieldErrors<EmployeeFormData>;
+  formData: FormEmployeeData;
+  errors: FieldErrors<FormEmployeeData>;
   onInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 

@@ -22,22 +22,56 @@ const getTodaysDate = (): string => {
   return `${year}-${month}-${day}`;
 };
 
-const initialFormData: EmployeeFormData = {
+type FormEmployeeData = Omit<
+  EmployeeFormData,
+  'gender' | 'lastEducation' | 'taxStatus' | 'contractType'
+> & {
+  gender: '' | 'Male' | 'Female';
+  lastEducation:
+    | ''
+    | 'SD'
+    | 'SMP'
+    | 'SMA/SMK'
+    | 'D1'
+    | 'D2'
+    | 'D3'
+    | 'S1/D4'
+    | 'S2'
+    | 'S3'
+    | 'Other';
+  taxStatus:
+    | ''
+    | 'TK/0'
+    | 'TK/1'
+    | 'TK/2'
+    | 'TK/3'
+    | 'K/0'
+    | 'K/1'
+    | 'K/2'
+    | 'K/3'
+    | 'K/I/0'
+    | 'K/I/1'
+    | 'K/I/2'
+    | 'K/I/3';
+  contractType: '' | 'permanent' | 'contract' | 'freelance';
+};
+
+const initialFormData: FormEmployeeData = {
   firstName: '',
   lastName: '',
   email: '',
   nik: '',
   phoneNumber: '',
-  gender: 'Male' as const,
-  lastEducation: 'SMA/SMK' as const,
+  gender: '',
+  lastEducation: '',
   placeOfBirth: '',
   dateOfBirth: '',
-  taxStatus: 'TK/0' as const,
+  taxStatus: '',
   employeeId: '',
   branch: '',
   position: '',
   grade: '',
-  contractType: 'permanent' as const,
+  contractType: '',
   hireDate: getTodaysDate(),
   profilePhoto: undefined,
   profilePhotoPreview: null,
@@ -53,7 +87,7 @@ export function useAddEmployeeForm() {
 
   const createEmployeeMutation = useCreateEmployee();
 
-  const form = useForm<EmployeeFormData>({
+  const form = useForm<FormEmployeeData>({
     resolver: zodResolver(employeeFormSchema),
     defaultValues: initialFormData,
     mode: 'onChange',
@@ -83,7 +117,7 @@ export function useAddEmployeeForm() {
 
     if (type === 'file') {
       const file = files?.[0];
-      setValue(name as keyof EmployeeFormData, file as File);
+      setValue(name as keyof FormEmployeeData, file as File);
 
       if (name === 'profilePhoto') {
         if (file) {
@@ -97,12 +131,12 @@ export function useAddEmployeeForm() {
         }
       }
     } else {
-      setValue(name as keyof EmployeeFormData, value);
+      setValue(name as keyof FormEmployeeData, value);
     }
   };
 
   const handleSelectChange = (name: string, value: string) => {
-    setValue(name as keyof EmployeeFormData, value);
+    setValue(name as keyof FormEmployeeData, value);
   };
 
   const validateCurrentStep = async () => {
@@ -125,7 +159,6 @@ export function useAddEmployeeForm() {
   const handleNextStep = async () => {
     console.log('HandleNextStep called for step:', activeStep);
 
-    // Define fields for each step
     const stepFields = {
       1: [
         'firstName',
@@ -140,13 +173,12 @@ export function useAddEmployeeForm() {
       ] as const,
       2: ['employeeId', 'branch', 'position', 'contractType', 'hireDate'] as const,
       3: ['bankName', 'bankAccountHolder', 'bankAccountNumber'] as const,
-      4: [] as const, // Review step has no validation
+      4: [] as const,
     };
 
     const currentStepFields = stepFields[activeStep as keyof typeof stepFields];
 
     if (currentStepFields) {
-      // Validate only current step fields
       const isValid = await form.trigger(currentStepFields);
 
       if (!isValid) {
@@ -179,10 +211,8 @@ export function useAddEmployeeForm() {
     if (e) e.preventDefault();
 
     try {
-      // Validate entire form
       const validData = employeeFormSchema.parse(getValues());
 
-      // Prepare data for API
       const createData = {
         email: validData.email,
         phone: validData.phoneNumber,
@@ -210,9 +240,30 @@ export function useAddEmployeeForm() {
 
       await createEmployeeMutation.mutateAsync(createData);
 
-      toast.success('Employee created successfully!');
+      const fullName = `${validData.firstName}${validData.lastName ? ` ${validData.lastName}` : ''}`;
 
-      // Redirect to employee list
+      toast.success(
+        `Employee has been added and Employee account for '${fullName}' has been created successfully! The default password is 'password'.`,
+        {
+          duration: 8000,
+          position: 'top-center',
+          dismissible: true,
+          action: {
+            label: 'Got it!',
+            onClick: () => {},
+          },
+          style: {
+            maxWidth: '600px',
+            fontSize: '15px',
+            padding: '16px 20px',
+            textAlign: 'center',
+            fontWeight: '500',
+            borderRadius: '12px',
+            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.15)',
+          },
+        },
+      );
+
       router.push('/employee-management');
     } catch (error) {
       console.error('Form submission error:', error);
@@ -225,13 +276,11 @@ export function useAddEmployeeForm() {
   };
 
   const goToStep = async (stepNumber: number) => {
-    // Allow backward navigation without validation
     if (stepNumber <= activeStep) {
       setActiveStep(stepNumber);
       return;
     }
 
-    // For forward navigation, validate all steps between current and target
     let canProceed = true;
 
     for (let step = activeStep; step < stepNumber; step++) {
@@ -332,4 +381,4 @@ export function useAddEmployeeForm() {
   };
 }
 
-export type { EmployeeFormData };
+export type { EmployeeFormData, FormEmployeeData };

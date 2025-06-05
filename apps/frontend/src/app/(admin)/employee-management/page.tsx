@@ -1,141 +1,182 @@
-"use client";
+'use client';
 
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
-	useReactTable,
-	getCoreRowModel,
-	getPaginationRowModel,
-	getFilteredRowModel,
-	PaginationState,
-	ColumnFiltersState,
-} from "@tanstack/react-table";
-import { Card, CardContent } from "@/components/ui/card";
-import { DataTable } from "@/components/dataTable";
-import { PaginationComponent } from "@/components/pagination";
-import { PageSizeComponent } from "@/components/pageSize";
-import { useEmployeeManagement } from "./_hooks/useEmployeeManagement";
-import { TableColumns } from "./_components/TableColumns";
-import { TableHeader } from "./_components/TableHeader";
-import { StatsSection } from "./_components/StatsSection";
-import type { Employee } from "@/types/employee";
+  useReactTable,
+  getCoreRowModel,
+  getPaginationRowModel,
+  getFilteredRowModel,
+  PaginationState,
+  ColumnFiltersState,
+} from '@tanstack/react-table';
+import { Card, CardContent } from '@/components/ui/card';
+import { DataTable } from '@/components/dataTable';
+import { PaginationComponent } from '@/components/pagination';
+import { PageSizeComponent } from '@/components/pageSize';
+import { useEmployeeManagement } from './_hooks/useEmployeeManagement';
+import { TableColumns } from './_components/TableColumns';
+import { TableHeader } from './_components/TableHeader';
+import { StatsSection } from './_components/StatsSection';
+import type { Employee } from '@/types/employee';
 
 export default function EmployeeManagementPage() {
-	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-	const [pagination, setPagination] = useState<PaginationState>({
-		pageIndex: 0,
-		pageSize: 10,
-	});
-	const [nameSearch, setNameSearch] = useState("");
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10,
+  });
+  const [nameSearch, setNameSearch] = useState('');
+  const [genderFilter, setGenderFilter] = useState<string | undefined>();
+  const [statusFilter, setStatusFilter] = useState<string | undefined>();
 
-	const genderFilter = columnFilters.find((f) => f.id === "gender")?.value as
-		| string
-		| undefined;
+  const {
+    employees: allEmployees,
+    totalEmployees,
+    loading,
+    error,
+    handleResignEmployee: apiHandleResignEmployee,
+    refetchEmployees,
+  } = useEmployeeManagement(1, 100, {});
 
-	const filters = useMemo(
-		() => ({
-			name: nameSearch,
-			gender: genderFilter,
-		}),
-		[nameSearch, genderFilter]
-	);
+  const handleResignEmployee = useCallback(
+    async (id: number) => {
+      await apiHandleResignEmployee(id);
+    },
+    [apiHandleResignEmployee],
+  );
 
-	const {
-		employees,
-		totalEmployees,
-		loading,
-		error,
-		handleResignEmployee: apiHandleResignEmployee,
-		refetchEmployees,
-	} = useEmployeeManagement(
-		pagination.pageIndex + 1,
-		pagination.pageSize,
-		filters
-	);
+  const filteredEmployees = useMemo(() => {
+    return allEmployees.filter((employee) => {
+      if (nameSearch && nameSearch.trim()) {
+        const searchTerm = nameSearch.toLowerCase();
+        const searchableFields = [
+          `${employee.first_name || ''} ${employee.last_name || ''}`.trim(),
+          employee.phone || '',
+          employee.branch || employee.branch_name || '',
+          employee.position_name || '',
+          employee.grade || '',
+          employee.nik || '',
+          employee.employee_code || '',
+        ];
 
-	const handleResignEmployee = useCallback(
-		async (id: number) => {
-			await apiHandleResignEmployee(id);
-		},
-		[apiHandleResignEmployee]
-	);
+        const matchesSearch = searchableFields.some((field) =>
+          field.toLowerCase().includes(searchTerm),
+        );
 
-	const columns = useMemo(
-		() => TableColumns({ onResignEmployee: handleResignEmployee }),
-		[handleResignEmployee]
-	);
+        if (!matchesSearch) return false;
+      }
 
-	const table = useReactTable<Employee>({
-		data: employees,
-		columns,
-		state: {
-			pagination,
-			columnFilters,
-		},
-		manualPagination: true,
-		manualFiltering: true,
-		pageCount: Math.ceil(totalEmployees / pagination.pageSize),
-		onPaginationChange: setPagination,
-		onColumnFiltersChange: setColumnFilters,
-		getCoreRowModel: getCoreRowModel(),
-		getPaginationRowModel: getPaginationRowModel(),
-		getFilteredRowModel: getFilteredRowModel(),
-		autoResetPageIndex: false,
-	});
+      if (genderFilter && genderFilter !== 'all') {
+        if (employee.gender !== genderFilter) return false;
+      }
 
-	React.useEffect(() => {
-		const currentNameFilter = columnFilters.find((f) => f.id === "name");
-		if (
-			nameSearch &&
-			(!currentNameFilter || currentNameFilter.value !== nameSearch)
-		) {
-			setColumnFilters((prev) => {
-				const otherFilters = prev.filter((f) => f.id !== "name");
-				return [...otherFilters, { id: "name", value: nameSearch }];
-			});
-		} else if (!nameSearch && currentNameFilter) {
-			setColumnFilters((prev) => prev.filter((f) => f.id !== "name"));
-		}
-	}, [nameSearch, columnFilters, setColumnFilters]);
+      if (statusFilter && statusFilter !== 'all') {
+        const employeeStatus = employee.employment_status ? 'Active' : 'Inactive';
+        if (employeeStatus !== statusFilter) return false;
+      }
 
-	if (loading) {
-		return (
-			<main>
-				<p>Loading...</p>
-			</main>
-		);
-	}
+      return true;
+    });
+  }, [allEmployees, nameSearch, genderFilter, statusFilter]);
 
-	if (error) {
-		return (
-			<main>
-				<p>Error loading data: {error.message}</p>
-			</main>
-		);
-	}
+  useEffect(() => {
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }, [nameSearch, genderFilter, statusFilter]);
 
-	return (
-		<main>
-			<StatsSection />
+  const columns = useMemo(
+    () =>
+      TableColumns({
+        onResignEmployee: handleResignEmployee,
+        data: filteredEmployees,
+        currentPage: pagination.pageIndex + 1,
+        pageSize: pagination.pageSize,
+      }),
+    [handleResignEmployee, filteredEmployees, pagination.pageIndex, pagination.pageSize],
+  );
 
-			<Card className="mb-6 border border-gray-100 dark:border-gray-800">
-				<CardContent>
-					<TableHeader
-						nameSearch={nameSearch}
-						setNameSearch={setNameSearch}
-						onRefetch={refetchEmployees}
-					/>
+  const table = useReactTable<Employee>({
+    data: filteredEmployees,
+    columns,
+    state: {
+      pagination,
+      columnFilters,
+    },
+    onPaginationChange: setPagination,
+    onColumnFiltersChange: setColumnFilters,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    autoResetPageIndex: false,
+  });
 
-					<DataTable table={table} />
+  if (loading) {
+    return (
+      <main className='flex min-h-screen items-center justify-center'>
+        <div className='text-center'>
+          <div className='mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600'></div>
+          <p>Loading employees...</p>
+        </div>
+      </main>
+    );
+  }
 
-					<div className="mt-6 flex flex-col items-center justify-between gap-4 md:flex-row">
-						<PageSizeComponent
-							table={table}
-							totalRecords={totalEmployees}
-						/>
-						<PaginationComponent table={table} />
-					</div>
-				</CardContent>
-			</Card>
-		</main>
-	);
+  if (error) {
+    return (
+      <main className='flex min-h-screen items-center justify-center'>
+        <div className='text-center'>
+          <div className='mb-4 text-red-500'>
+            <svg
+              className='mx-auto mb-2 h-12 w-12'
+              fill='none'
+              stroke='currentColor'
+              viewBox='0 0 24 24'
+            >
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
+              />
+            </svg>
+          </div>
+          <p className='font-medium text-red-600'>Error loading data</p>
+          <p className='mt-1 text-sm text-gray-600'>{error.message}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className='mt-4 rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700'
+          >
+            Retry
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main>
+      <StatsSection />
+
+      <Card className='mb-6 border border-gray-100 dark:border-gray-800'>
+        <CardContent>
+          <TableHeader
+            nameSearch={nameSearch}
+            setNameSearch={setNameSearch}
+            employees={filteredEmployees}
+            allEmployees={allEmployees}
+            genderFilter={genderFilter}
+            setGenderFilter={setGenderFilter}
+            statusFilter={statusFilter}
+            setStatusFilter={setStatusFilter}
+          />
+
+          <DataTable table={table} />
+
+          <div className='mt-6 flex flex-col items-center justify-between gap-4 md:flex-row'>
+            <PageSizeComponent table={table} totalRecords={filteredEmployees.length} />
+            <PaginationComponent table={table} />
+          </div>
+        </CardContent>
+      </Card>
+    </main>
+  );
 }

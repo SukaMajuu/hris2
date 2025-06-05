@@ -92,5 +92,7 @@ func (m *EmployeeRepository) GetStatisticsWithTrendsByManager(ctx context.Contex
 	err error,
 ) {
 	args := m.Called(ctx, managerID)
-	return args.Get(0).(int64), args.Get(1).(int64), args.Get(2).(int64), args.Get(3).(int64), args.Get(4).(int64), args.Get(5).(int64), args.Get(6).(int64), args.Get(7).(float64), args.Get(8).(float64), args.Get(9).(float64), args.Error(10)
+	return args.Get(0).(int64), args.Get(1).(int64), args.Get(2).(int64), args.Get(3).(int64),
+		args.Get(4).(int64), args.Get(5).(int64), args.Get(6).(int64), args.Get(7).(float64),
+		args.Get(8).(float64), args.Get(9).(float64), args.Error(10)
 }

@@ -414,7 +414,10 @@ func (uc *EmployeeUseCase) GetStatistics(ctx context.Context) (*dtoemployee.Empl
 func (uc *EmployeeUseCase) GetStatisticsByManager(ctx context.Context, managerID uint) (*dtoemployee.EmployeeStatisticsResponseDTO, error) {
 	log.Printf("EmployeeUseCase: GetStatisticsByManager called for manager ID: %d", managerID)
 
-	totalEmployees, newEmployees, activeEmployees, resignedEmployees, permanentEmployees, contractEmployees, freelanceEmployees, totalEmployeesTrend, newEmployeesTrend, activeEmployeesTrend, err := uc.employeeRepo.GetStatisticsWithTrendsByManager(ctx, managerID)
+	totalEmployees, newEmployees, activeEmployees, resignedEmployees,
+		permanentEmployees, contractEmployees, freelanceEmployees,
+		totalEmployeesTrend, newEmployeesTrend, activeEmployeesTrend, err :=
+		uc.employeeRepo.GetStatisticsWithTrendsByManager(ctx, managerID)
 	if err != nil {
 		log.Printf("EmployeeUseCase: Error getting employee statistics with trends by manager from repository: %v", err)
 		return nil, fmt.Errorf("failed to get employee statistics by manager: %w", err)
@@ -433,8 +436,12 @@ func (uc *EmployeeUseCase) GetStatisticsByManager(ctx context.Context, managerID
 		ActiveEmployeesTrend: &activeEmployeesTrend,
 	}
 
-	log.Printf("EmployeeUseCase: Successfully retrieved employee statistics by manager %d - Total: %d (trend: %.2f%%), New: %d (trend: %.2f%%), Active: %d (trend: %.2f%%), Resigned: %d, Permanent: %d, Contract: %d, Freelance: %d",
-		managerID, totalEmployees, totalEmployeesTrend, newEmployees, newEmployeesTrend, activeEmployees, activeEmployeesTrend, resignedEmployees, permanentEmployees, contractEmployees, freelanceEmployees)
+	log.Printf("EmployeeUseCase: Successfully retrieved employee statistics by manager %d - "+
+		"Total: %d (trend: %.2f%%), New: %d (trend: %.2f%%), Active: %d (trend: %.2f%%), "+
+		"Resigned: %d, Permanent: %d, Contract: %d, Freelance: %d",
+		managerID, totalEmployees, totalEmployeesTrend, newEmployees, newEmployeesTrend,
+		activeEmployees, activeEmployeesTrend, resignedEmployees, permanentEmployees,
+		contractEmployees, freelanceEmployees)
 
 	return response, nil
 }
@@ -455,7 +462,7 @@ func (uc *EmployeeUseCase) UploadProfilePhoto(ctx context.Context, employeeID ui
 		if oldFileName != "" && oldFileName != fileName {
 			log.Printf("EmployeeUseCase: Found existing photo, attempting to delete from bucket: %s", oldFileName)
 
-			deleted := uc.deleteFileWithRetry(ctx, oldFileName, 3)
+			deleted := uc.deleteFileWithRetry(oldFileName, 3)
 			if !deleted {
 				log.Printf("EmployeeUseCase: Failed to delete old photo file after retries, but continuing with upload")
 			}
@@ -523,7 +530,7 @@ func (uc *EmployeeUseCase) UploadProfilePhoto(ctx context.Context, employeeID ui
 	return employee, nil
 }
 
-func (uc *EmployeeUseCase) deleteFileWithRetry(ctx context.Context, fileName string, maxRetries int) bool {
+func (uc *EmployeeUseCase) deleteFileWithRetry(fileName string, maxRetries int) bool {
 	if uc.supabaseClient == nil || uc.supabaseClient.Storage == nil {
 		log.Printf("EmployeeUseCase: Warning - Supabase client not available for file deletion")
 		return false
@@ -562,7 +569,8 @@ func (uc *EmployeeUseCase) deleteFileWithRetry(ctx context.Context, fileName str
 				log.Printf("EmployeeUseCase: Required storage policies for service_role:")
 				log.Printf("  DELETE: CREATE POLICY \"Enable delete for service role\" ON storage.objects FOR DELETE USING (auth.role() = 'service_role');")
 				log.Printf("  SELECT: CREATE POLICY \"Enable select for service role\" ON storage.objects FOR SELECT USING (auth.role() = 'service_role');")
-				log.Printf("  Alternative bucket-specific DELETE: CREATE POLICY \"Enable delete for service role on photo bucket\" ON storage.objects FOR DELETE USING (bucket_id = 'photo' AND auth.role() = 'service_role');")
+				log.Printf("  Alternative bucket-specific DELETE: CREATE POLICY \"Enable delete for service role on photo bucket\" " +
+					"ON storage.objects FOR DELETE USING (bucket_id = 'photo' AND auth.role() = 'service_role');")
 			}
 
 			if attempt < maxRetries {

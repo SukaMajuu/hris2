@@ -414,26 +414,27 @@ func (uc *EmployeeUseCase) GetStatistics(ctx context.Context) (*dtoemployee.Empl
 func (uc *EmployeeUseCase) GetStatisticsByManager(ctx context.Context, managerID uint) (*dtoemployee.EmployeeStatisticsResponseDTO, error) {
 	log.Printf("EmployeeUseCase: GetStatisticsByManager called for manager ID: %d", managerID)
 
-	totalEmployees, newEmployees, activeEmployees, resignedEmployees, permanentEmployees, contractEmployees, freelanceEmployees, totalEmployeesTrend, newEmployeesTrend, err := uc.employeeRepo.GetStatisticsWithTrendsByManager(ctx, managerID)
+	totalEmployees, newEmployees, activeEmployees, resignedEmployees, permanentEmployees, contractEmployees, freelanceEmployees, totalEmployeesTrend, newEmployeesTrend, activeEmployeesTrend, err := uc.employeeRepo.GetStatisticsWithTrendsByManager(ctx, managerID)
 	if err != nil {
 		log.Printf("EmployeeUseCase: Error getting employee statistics with trends by manager from repository: %v", err)
 		return nil, fmt.Errorf("failed to get employee statistics by manager: %w", err)
 	}
 
 	response := &dtoemployee.EmployeeStatisticsResponseDTO{
-		TotalEmployees:      totalEmployees,
-		NewEmployees:        newEmployees,
-		ActiveEmployees:     activeEmployees,
-		ResignedEmployees:   resignedEmployees,
-		PermanentEmployees:  permanentEmployees,
-		ContractEmployees:   contractEmployees,
-		FreelanceEmployees:  freelanceEmployees,
-		TotalEmployeesTrend: &totalEmployeesTrend,
-		NewEmployeesTrend:   &newEmployeesTrend,
+		TotalEmployees:       totalEmployees,
+		NewEmployees:         newEmployees,
+		ActiveEmployees:      activeEmployees,
+		ResignedEmployees:    resignedEmployees,
+		PermanentEmployees:   permanentEmployees,
+		ContractEmployees:    contractEmployees,
+		FreelanceEmployees:   freelanceEmployees,
+		TotalEmployeesTrend:  &totalEmployeesTrend,
+		NewEmployeesTrend:    &newEmployeesTrend,
+		ActiveEmployeesTrend: &activeEmployeesTrend,
 	}
 
-	log.Printf("EmployeeUseCase: Successfully retrieved employee statistics by manager %d - Total: %d (trend: %.2f%%), New: %d (trend: %.2f%%), Active: %d, Resigned: %d, Permanent: %d, Contract: %d, Freelance: %d",
-		managerID, totalEmployees, totalEmployeesTrend, newEmployees, newEmployeesTrend, activeEmployees, resignedEmployees, permanentEmployees, contractEmployees, freelanceEmployees)
+	log.Printf("EmployeeUseCase: Successfully retrieved employee statistics by manager %d - Total: %d (trend: %.2f%%), New: %d (trend: %.2f%%), Active: %d (trend: %.2f%%), Resigned: %d, Permanent: %d, Contract: %d, Freelance: %d",
+		managerID, totalEmployees, totalEmployeesTrend, newEmployees, newEmployeesTrend, activeEmployees, activeEmployeesTrend, resignedEmployees, permanentEmployees, contractEmployees, freelanceEmployees)
 
 	return response, nil
 }

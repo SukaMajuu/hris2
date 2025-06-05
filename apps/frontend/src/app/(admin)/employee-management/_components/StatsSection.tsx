@@ -61,10 +61,10 @@ export function StatsSection() {
           trend={formatNewEmployeeTrend(employeeStats?.new_employees_trend)}
         />
         <StatCard
-          label='Full Time Employee'
-          value={isLoadingStats ? '...' : employeeStats?.permanent_employees?.toString() || '0'}
+          label='Active Employee'
+          value={isLoadingStats ? '...' : employeeStats?.active_employees?.toString() || '0'}
           icon={<BriefcaseIcon className='h-5 w-5' />}
-          trend={{ value: 3, label: 'from last month' }}
+          trend={formatTrend(employeeStats?.active_employees_trend)}
         />
       </div>
     </div>

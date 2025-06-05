@@ -199,64 +199,58 @@ func (r *PostgresRepository) GetStatisticsByManager(ctx context.Context, manager
 func (r *PostgresRepository) GetStatisticsWithTrendsByManager(ctx context.Context, managerID uint) (
 	totalEmployees, newEmployees, activeEmployees, resignedEmployees,
 	permanentEmployees, contractEmployees, freelanceEmployees int64,
-	totalEmployeesTrend, newEmployeesTrend float64,
+	totalEmployeesTrend, newEmployeesTrend, activeEmployeesTrend float64,
 	err error,
 ) {
 	newQuery := func() *gorm.DB {
 		return r.db.WithContext(ctx).Model(&domain.Employee{}).Where("manager_id = ?", managerID)
 	}
 
-	// Get current totals
 	err = newQuery().Count(&totalEmployees).Error
 	if err != nil {
-		return 0, 0, 0, 0, 0, 0, 0, 0, 0, err
+		return 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, err
 	}
 
 	err = newQuery().Where("employment_status = ?", true).Count(&activeEmployees).Error
 	if err != nil {
-		return 0, 0, 0, 0, 0, 0, 0, 0, 0, err
+		return 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, err
 	}
 
 	err = newQuery().Where("employment_status = ?", false).Count(&resignedEmployees).Error
 	if err != nil {
-		return 0, 0, 0, 0, 0, 0, 0, 0, 0, err
+		return 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, err
 	}
 
 	now := time.Now()
 	thirtyDaysAgo := now.AddDate(0, 0, -30)
 	sixtyDaysAgo := now.AddDate(0, 0, -60)
 
-	// Calculate new employees for current 30 days
 	err = newQuery().Where("hire_date >= ?", thirtyDaysAgo).Count(&newEmployees).Error
 	if err != nil {
-		return 0, 0, 0, 0, 0, 0, 0, 0, 0, err
+		return 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, err
 	}
 
-	// Calculate new employees for previous 30 days (30-60 days ago)
 	var previousNewEmployees int64
 	err = newQuery().Where("hire_date >= ? AND hire_date < ?", sixtyDaysAgo, thirtyDaysAgo).Count(&previousNewEmployees).Error
 	if err != nil {
-		return 0, 0, 0, 0, 0, 0, 0, 0, 0, err
+		return 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, err
 	}
 
-	// Calculate trend for new employees (30 days vs previous 30 days)
 	if previousNewEmployees > 0 {
 		newEmployeesTrend = float64(newEmployees-previousNewEmployees) / float64(previousNewEmployees) * 100
 	} else if newEmployees > 0 {
-		newEmployeesTrend = 100 // 100% increase if no previous employees but have current
+		newEmployeesTrend = 100
 	} else {
 		newEmployeesTrend = 0
 	}
 
-	// Calculate total employees trend (current vs employees hired before current month)
 	currentMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
 	var totalEmployeesBeforeCurrentMonth int64
 	err = newQuery().Where("hire_date < ?", currentMonth).Count(&totalEmployeesBeforeCurrentMonth).Error
 	if err != nil {
-		return 0, 0, 0, 0, 0, 0, 0, 0, 0, err
+		return 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, err
 	}
 
-	// Calculate trend for total employees
 	if totalEmployeesBeforeCurrentMonth > 0 {
 		totalEmployeesTrend = float64(totalEmployees-totalEmployeesBeforeCurrentMonth) / float64(totalEmployeesBeforeCurrentMonth) * 100
 	} else if totalEmployees > 0 {
@@ -265,20 +259,37 @@ func (r *PostgresRepository) GetStatisticsWithTrendsByManager(ctx context.Contex
 		totalEmployeesTrend = 0
 	}
 
+	var previousMonthActiveEmployees int64
+	err = newQuery().Where(
+		"hire_date < ? AND (employment_status = ? OR (employment_status = ? AND resignation_date >= ?))",
+		currentMonth, true, false, currentMonth,
+	).Count(&previousMonthActiveEmployees).Error
+	if err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, err
+	}
+
+	if previousMonthActiveEmployees > 0 {
+		activeEmployeesTrend = float64(activeEmployees-previousMonthActiveEmployees) / float64(previousMonthActiveEmployees) * 100
+	} else if activeEmployees > 0 {
+		activeEmployeesTrend = 100
+	} else {
+		activeEmployeesTrend = 0
+	}
+
 	err = newQuery().Where("contract_type = ?", "permanent").Count(&permanentEmployees).Error
 	if err != nil {
-		return 0, 0, 0, 0, 0, 0, 0, 0, 0, err
+		return 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, err
 	}
 
 	err = newQuery().Where("contract_type = ?", "contract").Count(&contractEmployees).Error
 	if err != nil {
-		return 0, 0, 0, 0, 0, 0, 0, 0, 0, err
+		return 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, err
 	}
 
 	err = newQuery().Where("contract_type = ?", "freelance").Count(&freelanceEmployees).Error
 	if err != nil {
-		return 0, 0, 0, 0, 0, 0, 0, 0, 0, err
+		return 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, err
 	}
 
-	return totalEmployees, newEmployees, activeEmployees, resignedEmployees, permanentEmployees, contractEmployees, freelanceEmployees, totalEmployeesTrend, newEmployeesTrend, nil
+	return totalEmployees, newEmployees, activeEmployees, resignedEmployees, permanentEmployees, contractEmployees, freelanceEmployees, totalEmployeesTrend, newEmployeesTrend, activeEmployeesTrend, nil
 }

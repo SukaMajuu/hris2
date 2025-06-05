@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -26,25 +26,17 @@ export default function EmployeeManagementPage() {
     pageSize: 10,
   });
   const [nameSearch, setNameSearch] = useState('');
-
-  const genderFilter = columnFilters.find((f) => f.id === 'gender')?.value as string | undefined;
-
-  const filters = useMemo(
-    () => ({
-      name: nameSearch,
-      gender: genderFilter,
-    }),
-    [nameSearch, genderFilter],
-  );
+  const [genderFilter, setGenderFilter] = useState<string | undefined>();
+  const [statusFilter, setStatusFilter] = useState<string | undefined>();
 
   const {
-    employees,
+    employees: allEmployees,
     totalEmployees,
     loading,
     error,
     handleResignEmployee: apiHandleResignEmployee,
     refetchEmployees,
-  } = useEmployeeManagement(pagination.pageIndex + 1, pagination.pageSize, filters);
+  } = useEmployeeManagement(1, 100, {});
 
   const handleResignEmployee = useCallback(
     async (id: number) => {
@@ -53,21 +45,62 @@ export default function EmployeeManagementPage() {
     [apiHandleResignEmployee],
   );
 
+  const filteredEmployees = useMemo(() => {
+    return allEmployees.filter((employee) => {
+      if (nameSearch && nameSearch.trim()) {
+        const searchTerm = nameSearch.toLowerCase();
+        const searchableFields = [
+          `${employee.first_name || ''} ${employee.last_name || ''}`.trim(),
+          employee.phone || '',
+          employee.branch || employee.branch_name || '',
+          employee.position_name || '',
+          employee.grade || '',
+          employee.nik || '',
+          employee.employee_code || '',
+        ];
+
+        const matchesSearch = searchableFields.some((field) =>
+          field.toLowerCase().includes(searchTerm),
+        );
+
+        if (!matchesSearch) return false;
+      }
+
+      if (genderFilter && genderFilter !== 'all') {
+        if (employee.gender !== genderFilter) return false;
+      }
+
+      if (statusFilter && statusFilter !== 'all') {
+        const employeeStatus = employee.employment_status ? 'Active' : 'Inactive';
+        if (employeeStatus !== statusFilter) return false;
+      }
+
+      return true;
+    });
+  }, [allEmployees, nameSearch, genderFilter, statusFilter]);
+
+  useEffect(() => {
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }, [nameSearch, genderFilter, statusFilter]);
+
   const columns = useMemo(
-    () => TableColumns({ onResignEmployee: handleResignEmployee }),
-    [handleResignEmployee],
+    () =>
+      TableColumns({
+        onResignEmployee: handleResignEmployee,
+        data: filteredEmployees,
+        currentPage: pagination.pageIndex + 1,
+        pageSize: pagination.pageSize,
+      }),
+    [handleResignEmployee, filteredEmployees, pagination.pageIndex, pagination.pageSize],
   );
 
   const table = useReactTable<Employee>({
-    data: employees,
+    data: filteredEmployees,
     columns,
     state: {
       pagination,
       columnFilters,
     },
-    manualPagination: true,
-    manualFiltering: true,
-    pageCount: Math.ceil(totalEmployees / pagination.pageSize),
     onPaginationChange: setPagination,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
@@ -76,30 +109,45 @@ export default function EmployeeManagementPage() {
     autoResetPageIndex: false,
   });
 
-  React.useEffect(() => {
-    const currentNameFilter = columnFilters.find((f) => f.id === 'name');
-    if (nameSearch && (!currentNameFilter || currentNameFilter.value !== nameSearch)) {
-      setColumnFilters((prev) => {
-        const otherFilters = prev.filter((f) => f.id !== 'name');
-        return [...otherFilters, { id: 'name', value: nameSearch }];
-      });
-    } else if (!nameSearch && currentNameFilter) {
-      setColumnFilters((prev) => prev.filter((f) => f.id !== 'name'));
-    }
-  }, [nameSearch, columnFilters, setColumnFilters]);
-
   if (loading) {
     return (
-      <main>
-        <p>Loading...</p>
+      <main className='flex min-h-screen items-center justify-center'>
+        <div className='text-center'>
+          <div className='mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600'></div>
+          <p>Loading employees...</p>
+        </div>
       </main>
     );
   }
 
   if (error) {
     return (
-      <main>
-        <p>Error loading data: {error.message}</p>
+      <main className='flex min-h-screen items-center justify-center'>
+        <div className='text-center'>
+          <div className='mb-4 text-red-500'>
+            <svg
+              className='mx-auto mb-2 h-12 w-12'
+              fill='none'
+              stroke='currentColor'
+              viewBox='0 0 24 24'
+            >
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
+              />
+            </svg>
+          </div>
+          <p className='font-medium text-red-600'>Error loading data</p>
+          <p className='mt-1 text-sm text-gray-600'>{error.message}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className='mt-4 rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700'
+          >
+            Retry
+          </button>
+        </div>
       </main>
     );
   }
@@ -113,13 +161,18 @@ export default function EmployeeManagementPage() {
           <TableHeader
             nameSearch={nameSearch}
             setNameSearch={setNameSearch}
-            onRefetch={refetchEmployees}
+            employees={filteredEmployees}
+            allEmployees={allEmployees}
+            genderFilter={genderFilter}
+            setGenderFilter={setGenderFilter}
+            statusFilter={statusFilter}
+            setStatusFilter={setStatusFilter}
           />
 
           <DataTable table={table} />
 
           <div className='mt-6 flex flex-col items-center justify-between gap-4 md:flex-row'>
-            <PageSizeComponent table={table} totalRecords={totalEmployees} />
+            <PageSizeComponent table={table} totalRecords={filteredEmployees.length} />
             <PaginationComponent table={table} />
           </div>
         </CardContent>

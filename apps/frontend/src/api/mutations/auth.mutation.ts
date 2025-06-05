@@ -2,6 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { authService } from "@/services/auth.service";
 import { queryKeys } from "../query-keys";
 import { LoginFormData, RegisterFormData } from "@/schemas/auth.schema";
+import { queryClient } from "@/lib/react-query";
 
 export const useLoginMutation = () => {
 	return useMutation({
@@ -13,6 +14,9 @@ export const useLoginMutation = () => {
 				rememberMe: data.rememberMe || false,
 			};
 			return authService.login(credentials);
+		},
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["subscription"] });
 		},
 	});
 };
@@ -30,6 +34,9 @@ export const useRegisterMutation = () => {
 			};
 			return authService.register(credentials);
 		},
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["subscription"] });
+		},
 	});
 };
 
@@ -38,6 +45,9 @@ export const useGoogleAuthMutation = () => {
 		mutationKey: queryKeys.auth.google,
 		mutationFn: (supabaseAccessToken: string) =>
 			authService.registerWithGoogle(supabaseAccessToken),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["subscription"] });
+		},
 	});
 };
 

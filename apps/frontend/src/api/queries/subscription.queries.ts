@@ -50,6 +50,8 @@ export const useUserSubscription = () => {
 			}
 			return failureCount < 3;
 		},
+		enabled: true,
+		refetchOnWindowFocus: true,
 	});
 };
 

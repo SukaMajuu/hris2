@@ -6,6 +6,7 @@ export interface Employee {
   last_name?: string;
   employee_code: string;
   branch_id?: number;
+  branch?: string;
   branch_name?: string;
   position_id?: number;
   position_name?: string;
@@ -34,6 +35,8 @@ export interface Employee {
 export interface EmployeeFilters {
   name?: string;
   gender?: string;
+  employment_status?: boolean;
+  search?: string;
 }
 
 export interface EmployeeStats {

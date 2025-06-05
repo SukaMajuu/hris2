@@ -1,0 +1,132 @@
+// Leave Request types based on backend implementation
+
+export enum LeaveType {
+  SICK_LEAVE = 'sick_leave',
+  COMPASSIONATE_LEAVE = 'compassionate_leave',
+  MATERNITY_LEAVE = 'maternity_leave',
+  ANNUAL_LEAVE = 'annual_leave',
+  MARRIAGE_LEAVE = 'marriage_leave',
+}
+
+export enum LeaveRequestStatus {
+  WAITING_APPROVAL = 'Waiting Approval',
+  APPROVED = 'Approved',
+  REJECTED = 'Rejected',
+}
+
+export interface LeaveRequest {
+  id: number;
+  employee_id: number;
+  leave_type: LeaveType;
+  start_date: string; // ISO date string
+  end_date: string; // ISO date string
+  total_days: number;
+  employee_note?: string | null; // Changed from 'reason' to match backend
+  admin_note?: string | null; // Added to match backend
+  status: LeaveRequestStatus;
+  approved_by?: number | null;
+  approved_at?: string | null; // ISO date string
+  rejection_reason?: string | null; // This might be admin_note in practice
+  attachment_url?: string | null;
+  created_at: string; // ISO date string
+  updated_at: string; // ISO date string
+
+  employee?: {
+    id: number;
+    first_name: string;
+    last_name?: string;
+    position_name: string;
+  };
+  approver?: {
+    id: number;
+    first_name: string;
+    last_name?: string;
+  };
+}
+
+export interface CreateLeaveRequestRequest {
+  leave_type: LeaveType;
+  start_date: string; // ISO date string (YYYY-MM-DD)
+  end_date: string; // ISO date string (YYYY-MM-DD)
+  employee_note?: string; // Changed from 'reason' to 'employee_note' to match backend
+  attachment?: File;
+}
+
+export interface UpdateLeaveRequestRequest {
+  leave_type?: LeaveType;
+  start_date?: string; // ISO date string (YYYY-MM-DD)
+  end_date?: string; // ISO date string (YYYY-MM-DD)
+  employee_note?: string; // Changed from 'reason' to 'employee_note' to match backend
+  attachment?: File;
+}
+
+export interface UpdateLeaveRequestStatusRequest {
+  status: LeaveRequestStatus;
+  admin_note?: string; // Changed from 'rejection_reason' to 'admin_note' to match backend
+}
+
+export interface LeaveRequestFilters {
+  employee_id?: number;
+  leave_type?: LeaveType;
+  status?: LeaveRequestStatus;
+  start_date?: string; // ISO date string
+  end_date?: string; // ISO date string
+  search?: string;
+}
+
+// API Response interfaces
+export interface LeaveRequestApiResponse {
+  message: string;
+  data: LeaveRequest;
+}
+
+export interface LeaveRequestsApiResponse {
+  message: string;
+  data: {
+    items: LeaveRequest[];
+    pagination: {
+      total_items: number;
+      total_pages: number;
+      current_page: number;
+      page_size: number;
+      has_next_page: boolean;
+      has_prev_page: boolean;
+    };
+  };
+}
+
+export interface LeaveRequestStatsData {
+  total_requests: number;
+  pending_requests: number;
+  approved_requests: number;
+  rejected_requests: number;
+  my_total_requests: number;
+  my_pending_requests: number;
+  my_approved_requests: number;
+  my_rejected_requests: number;
+}
+
+// Helper functions for display
+export const getLeaveTypeLabel = (type: LeaveType): string => {
+  const labels: Record<LeaveType, string> = {
+    [LeaveType.SICK_LEAVE]: 'Sick Leave',
+    [LeaveType.COMPASSIONATE_LEAVE]: 'Compassionate Leave',
+    [LeaveType.MATERNITY_LEAVE]: 'Maternity Leave',
+    [LeaveType.ANNUAL_LEAVE]: 'Annual Leave',
+    [LeaveType.MARRIAGE_LEAVE]: 'Marriage Leave',
+  };
+  return labels[type];
+};
+
+export const getStatusLabel = (status: LeaveRequestStatus): string => {
+  return status;
+};
+
+export const getStatusColor = (status: LeaveRequestStatus): string => {
+  const colors: Record<LeaveRequestStatus, string> = {
+    [LeaveRequestStatus.WAITING_APPROVAL]: 'yellow',
+    [LeaveRequestStatus.APPROVED]: 'green',
+    [LeaveRequestStatus.REJECTED]: 'red',
+  };
+  return colors[status];
+};

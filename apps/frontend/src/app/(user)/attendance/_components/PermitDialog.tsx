@@ -13,6 +13,10 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useCreateLeaveRequestMutation } from "@/api/mutations/leave-request.mutations";
+import { LeaveType } from "@/types/leave-request";
+import { useToast } from "@/components/ui/use-toast";
 
 interface DialogFormData {
 	attendanceType: string;
@@ -21,6 +25,8 @@ interface DialogFormData {
 	latitude: string;
 	longitude: string;
 	permitEndDate: string;
+	startDate: string;
+	reason: string;
 	evidence: FileList | null;
 }
 
@@ -41,7 +47,9 @@ export function PermitDialog({
 	onSubmit,
 	currentAttendanceType,
 }: PermitDialogProps) {
-	const { register, handleSubmit } = formMethods;
+	const { register, handleSubmit, watch } = formMethods;
+	const { toast } = useToast();
+	const createLeaveRequestMutation = useCreateLeaveRequestMutation();
 
 	const permitRelatedLeaveTypes = [
 		"sick leave",
@@ -50,6 +58,54 @@ export function PermitDialog({
 		"annual leave",
 		"marriage leave",
 	];
+
+	// Map attendance types to LeaveType enum
+	const mapAttendanceTypeToLeaveType = (attendanceType: string): LeaveType => {
+		switch (attendanceType) {
+			case "sick leave":
+				return LeaveType.SICK_LEAVE;
+			case "compassionate leave":
+				return LeaveType.COMPASSIONATE_LEAVE;
+			case "maternity leave":
+				return LeaveType.MATERNITY_LEAVE;
+			case "annual leave":
+				return LeaveType.ANNUAL_LEAVE;
+			case "marriage leave":
+				return LeaveType.MARRIAGE_LEAVE;
+			default:
+				return LeaveType.SICK_LEAVE;
+		}
+	};
+	const handleLeaveRequestSubmit = async (data: DialogFormData) => {
+		try {
+			const leaveRequestData = {
+				leave_type: mapAttendanceTypeToLeaveType(data.attendanceType),
+				start_date: data.startDate,
+				end_date: data.permitEndDate,
+				employee_note: data.reason, // Changed from 'reason' to 'employee_note' to match backend
+				attachment: data.evidence?.[0] || undefined,
+			};
+
+			await createLeaveRequestMutation.mutateAsync(leaveRequestData);
+			
+			toast({
+				title: "Success",
+				description: "Leave request submitted successfully!",
+			});
+			
+			onOpenChange(false);
+		} catch (error) {
+			console.error("Error creating leave request:", error);
+			toast({
+				title: "Error",
+				description: "Failed to submit leave request. Please try again.",
+				variant: "destructive",
+			});
+		}
+	};
+
+	const watchedAttendanceType = watch("attendanceType");
+	const isLeaveRequest = permitRelatedLeaveTypes.includes(watchedAttendanceType || currentAttendanceType);
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -64,7 +120,7 @@ export function PermitDialog({
 					</DialogDescription>
 				</DialogHeader>
 
-				<form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+				<form onSubmit={handleSubmit(isLeaveRequest ? handleLeaveRequestSubmit : onSubmit)} className="space-y-6">
 					<div className="px-6 py-4 space-y-6 overflow-y-auto max-h-[calc(100vh-220px)]">
 						{/* Section 1: Attendance Type & Permit Duration */}
 						<div className="bg-white dark:bg-slate-800 shadow-md rounded-lg p-6">
@@ -98,34 +154,60 @@ export function PermitDialog({
 										Marriage Leave
 									</option>
 								</select>
-							</div>
-
-							{permitRelatedLeaveTypes.includes(
-								currentAttendanceType
-							) && (
-								<div className="space-y-2 mt-4">
-									<Label
-										htmlFor="permitEndDate"
-										className="text-sm font-medium text-slate-700 dark:text-slate-300"
-									>
-										Permit Duration (End Date)
-									</Label>
-									<Input
-										id="permitEndDate"
-										type="date"
-										className="bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-slate-50"
-										{...register("permitEndDate", {
-											required: true,
-										})}
-									/>
-								</div>
+							</div>							{isLeaveRequest && (
+								<>
+									<div className="space-y-2 mt-4">
+										<Label
+											htmlFor="startDate"
+											className="text-sm font-medium text-slate-700 dark:text-slate-300"
+										>
+											Start Date
+										</Label>
+										<Input
+											id="startDate"
+											type="date"
+											className="bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-slate-50"
+											{...register("startDate", {
+												required: true,
+											})}
+										/>
+									</div>
+									<div className="space-y-2 mt-4">
+										<Label
+											htmlFor="permitEndDate"
+											className="text-sm font-medium text-slate-700 dark:text-slate-300"
+										>
+											End Date
+										</Label>
+										<Input
+											id="permitEndDate"
+											type="date"
+											className="bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-slate-50"
+											{...register("permitEndDate", {
+												required: true,
+											})}
+										/>
+									</div>
+									<div className="space-y-2 mt-4">
+										<Label
+											htmlFor="reason"
+											className="text-sm font-medium text-slate-700 dark:text-slate-300"
+										>
+											Reason
+										</Label>
+										<Textarea
+											id="reason"
+											placeholder="Please provide the reason for your leave request..."
+											className="bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-slate-50"
+											{...register("reason", {
+												required: true,
+											})}
+										/>
+									</div>
+								</>
 							)}
-						</div>
-
-						{/* Section 2: Upload Evidence (Only for Permit) */}
-						{permitRelatedLeaveTypes.includes(
-							currentAttendanceType
-						) && (
+						</div>						{/* Section 2: Upload Evidence (Only for Leave Request) */}
+						{isLeaveRequest && (
 							<div className="bg-white dark:bg-slate-800 shadow-md rounded-lg p-6">
 								<Label
 									htmlFor="evidence"
@@ -155,12 +237,12 @@ export function PermitDialog({
 							className="border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-slate-100"
 						>
 							Cancel
-						</Button>
-						<Button
+						</Button>						<Button
 							type="submit"
-							className="bg-[#6B9AC4] hover:bg-[#5A89B3] text-white"
+							disabled={createLeaveRequestMutation.isPending}
+							className="bg-[#6B9AC4] hover:bg-[#5A89B3] text-white disabled:opacity-50"
 						>
-							Submit Request
+							{createLeaveRequestMutation.isPending ? "Submitting..." : "Submit Request"}
 						</Button>
 					</DialogFooter>
 				</form>

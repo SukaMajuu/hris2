@@ -1,4 +1,5 @@
 import type { EmployeeFilters } from "@/types/employee";
+import type { LeaveRequestFilters } from "@/types/leave-request";
 import {
 	CheckClockOverviewFilters,
 	CheckClockApprovalFilters,
@@ -77,12 +78,24 @@ export const queryKeys = {
 			employeeId: string,
 			filters?: CheckClockEmployeeFilters
 		) => ["checkClock", "employee", employeeId, "list", filters] as const,
-	},
-	documents: {
+	},	documents: {
 		byEmployee: (employeeId: number) =>
 			["documents", "employee", employeeId] as const,
 		upload: ["documents", "upload"] as const,
 		delete: (id: number) => ["documents", "delete", id] as const,
+	},
+	leaveRequests: {
+		list: (page: number, pageSize: number, filters?: LeaveRequestFilters) =>
+			["leaveRequests", "list", page, pageSize, filters] as const,
+		my: (page: number, pageSize: number, filters?: Omit<LeaveRequestFilters, "employee_id">) =>
+			["leaveRequests", "my", page, pageSize, filters] as const,
+		detail: (id: number) => ["leaveRequests", "detail", id] as const,
+		stats: ["leaveRequests", "stats"] as const,
+		stats_period: (period: string) => ["leaveRequests", "stats", period] as const,
+		create: ["leaveRequests", "create"] as const,
+		update: (id: number) => ["leaveRequests", "update", id] as const,
+		delete: (id: number) => ["leaveRequests", "delete", id] as const,
+		status: (id: number) => ["leaveRequests", "status", id] as const,
 	},
 	subscription: {
 		plans: ["subscription", "plans"] as const,

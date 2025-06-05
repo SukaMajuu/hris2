@@ -102,7 +102,7 @@ export default function CheckClockApprovalTab() {
 				enableColumnFilter: true,
 			},
 			{
-				header: "Status Pengajuan",
+				header: "Submission Status",
 				accessorKey: "status",
 				cell: ({ row }) => (
 					<Badge
@@ -306,7 +306,7 @@ export default function CheckClockApprovalTab() {
 										rel="noopener noreferrer"
 										className="text-blue-600 hover:text-blue-700 underline"
 									>
-										Lihat Bukti
+										View Evidence
 									</a>
 								</div>
 							)}

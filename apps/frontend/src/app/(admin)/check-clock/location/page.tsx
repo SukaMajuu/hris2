@@ -16,13 +16,12 @@ import { PaginationComponent } from "@/components/pagination";
 import { PageSizeComponent } from "@/components/pageSize";
 import { useLocation } from "./_hooks/useLocation";
 import { LocationForm } from "./_components/locationForm";
+import { LocationFilter } from "./_components/LocationFilter";
 import { Edit, Filter, Plus, Search, Trash2 } from "lucide-react";
 import ConfirmationDelete from "./_components/confirmationDelete";
 import { usePagination } from "@/hooks/usePagination";
 
 export default function LocationPage() {
-	const [locationNameFilter, setLocationNameFilter] = React.useState("");
-
 	const { pagination, setPage, setPageSize } = usePagination(1, 10);
 
 	const {
@@ -48,6 +47,12 @@ export default function LocationPage() {
 		handleOpenDeleteDialog,
 		handleCloseDeleteDialog,
 		handleConfirmDelete,
+		// New filter-related properties
+		filters,
+		isFilterVisible,
+		handleApplyFilters,
+		handleResetFilters,
+		handleToggleFilterVisibility,
 	} = useLocation(pagination.page, pagination.pageSize);
 
 	const columns = useMemo<ColumnDef<typeof locations[number]>[]>(
@@ -116,24 +121,14 @@ export default function LocationPage() {
 			serverPagination.pageSize,
 		]
 	);
-
 	const table = useReactTable<typeof locations[number]>({
 		data: locations,
 		columns,
 		state: {
-			columnFilters: [{ id: "name", value: locationNameFilter }],
 			pagination: {
 				pageIndex: serverPagination.currentPage - 1,
 				pageSize: serverPagination.pageSize,
 			},
-		},
-		onColumnFiltersChange: (updater) => {
-			const newFilters =
-				typeof updater === "function"
-					? updater(table.getState().columnFilters)
-					: updater;
-			const nameFilterUpdate = newFilters.find((f) => f.id === "name");
-			setLocationNameFilter((nameFilterUpdate?.value as string) || "");
 		},
 		onPaginationChange: (updater) => {
 			const currentPaginationState = {
@@ -158,8 +153,7 @@ export default function LocationPage() {
 	return (
 		<div>
 			<Card className="mb-6 border border-gray-100 dark:border-gray-800">
-				<CardContent>
-					<header className="flex flex-col justify-between items-start gap-4 mb-6">
+				<CardContent>					<header className="flex flex-col justify-between items-start gap-4 mb-6">
 						<div className="flex flex-row flex-wrap gap-4 justify-between items-center w-full">
 							<h2 className="text-xl font-semibold">Location</h2>
 							<div className="flex gap-2 flex-wrap">
@@ -172,33 +166,43 @@ export default function LocationPage() {
 								</Button>
 							</div>
 						</div>
-						<div className="flex flex-wrap gap-2 w-full md:w-[400px]">
-							<div className="relative flex-[1]">
+						<div className="flex flex-wrap gap-2 w-full md:w-[400px]">							<div className="relative flex-[1]">
 								<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
 								<Input
-									value={locationNameFilter ?? ""}
+									value={filters.name || ""}
 									onChange={(event) => {
-										const newNameFilter =
-											event.target.value;
-										setLocationNameFilter(newNameFilter);
-										table
-											.getColumn("name")
-											?.setFilterValue(newNameFilter);
+										handleApplyFilters({
+											...filters,
+											name: event.target.value,
+										});
 									}}
 									className="pl-10 w-full bg-white border-gray-200"
-									placeholder="Cari Lokasi"
+									placeholder="Search Location"
 								/>
 							</div>
 							<Button
-								variant="outline"
-								className="gap-2 hover:bg-[#5A89B3] hover:text-white"
-								// onClick={ // Future filter logic }
+								variant={isFilterVisible ? "default" : "outline"}
+								className={`gap-2 ${
+									isFilterVisible 
+										? "bg-[#6B9AC4] hover:bg-[#5A89B3]" 
+										: "hover:bg-[#5A89B3] hover:text-white"
+								}`}
+								onClick={handleToggleFilterVisibility}
 							>
 								<Filter className="h-4 w-4" />
 								Filter
 							</Button>
 						</div>
-					</header>
+					</header>					{/* Filter Component */}
+					{isFilterVisible && (						<div className="mb-6">
+							<LocationFilter
+								currentFilters={filters}
+								onApplyFilters={handleApplyFilters}
+								onResetFilters={handleResetFilters}
+								isVisible={isFilterVisible}
+							/>
+						</div>
+					)}
 
 					{isLoading ? (
 						<div className="flex justify-center items-center py-8">

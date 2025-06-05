@@ -26,17 +26,21 @@ export interface LeaveRequest {
   status: LeaveRequestStatus;
   approved_by?: number | null;
   approved_at?: string | null; // ISO date string
-  rejection_reason?: string | null; // This might be admin_note in practice
   attachment_url?: string | null;
   created_at: string; // ISO date string
   updated_at: string; // ISO date string
 
+  // Employee data can come in two formats:
   employee?: {
     id: number;
     first_name: string;
     last_name?: string;
     position_name: string;
   };
+    // Alternative format from backend (flattened)
+  employee_name?: string;
+  position_name?: string;
+  
   approver?: {
     id: number;
     first_name: string;
@@ -62,7 +66,7 @@ export interface UpdateLeaveRequestRequest {
 
 export interface UpdateLeaveRequestStatusRequest {
   status: LeaveRequestStatus;
-  admin_note?: string; // Changed from 'rejection_reason' to 'admin_note' to match backend
+  admin_note?: string;
 }
 
 export interface LeaveRequestFilters {

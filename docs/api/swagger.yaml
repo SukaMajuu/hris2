@@ -1122,9 +1122,9 @@ components:
           example: "Approved for annual leave"
         status:
           type: string
-          enum: [waiting_approval, approved, rejected]
+          enum: [Waiting Approval, Approved, Rejected]
           description: Current status of the leave request
-          example: "waiting_approval"
+          example: "Waiting Approval"
         created_at:
           type: string
           format: date-time
@@ -5241,7 +5241,7 @@ paths:
           name: status
           schema:
             type: string
-            enum: [waiting_approval, approved, rejected]
+            enum: [Waiting Approval, Approved, Rejected]
           description: Filter by leave request status
         - in: query
           name: leave_type
@@ -5318,7 +5318,7 @@ paths:
           name: status
           schema:
             type: string
-            enum: [waiting_approval, approved, rejected]
+            enum: [Waiting Approval, Approved, Rejected]
           description: Filter by leave request status
         - in: query
           name: leave_type

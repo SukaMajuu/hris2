@@ -42,10 +42,16 @@ func toLeaveRequestResponseDTO(lr *domain.LeaveRequest) *dtoleave.LeaveRequestRe
 		employeeName += " " + *lr.Employee.LastName
 	}
 
+	positionName := "Unknown Position"
+	if lr.Employee.PositionName != "" {
+		positionName = lr.Employee.PositionName
+	}
+
 	return &dtoleave.LeaveRequestResponseDTO{
 		ID:           lr.ID,
 		EmployeeID:   lr.EmployeeID,
 		EmployeeName: employeeName,
+		PositionName: positionName,
 		LeaveType:    string(lr.LeaveType),
 		StartDate:    lr.StartDate.Format("2006-01-02"),
 		EndDate:      lr.EndDate.Format("2006-01-02"),

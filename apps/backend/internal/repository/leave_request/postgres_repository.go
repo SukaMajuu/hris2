@@ -71,7 +71,6 @@ func (r *PostgresRepository) List(ctx context.Context, filters map[string]interf
 	var totalItems int64
 
 	query := r.db.WithContext(ctx).Model(&domain.LeaveRequest{})
-
 	// Apply filters
 	for key, value := range filters {
 		switch key {

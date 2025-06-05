@@ -1,5 +1,6 @@
 import { ApiService, PaginatedResponse } from './api.service';
 import { API_ROUTES } from '@/config/api.routes';
+import { LeaveRequestStatus } from '@/types/leave-request';
 import type {
   LeaveRequest,
   CreateLeaveRequestRequest,
@@ -31,15 +32,20 @@ class LeaveRequestService extends ApiService {
       page: page.toString(),
       page_size: pageSize.toString(),
     });
-
     if (filters) {
       if (filters.employee_id) params.append('employee_id', filters.employee_id.toString());
       if (filters.leave_type) params.append('leave_type', filters.leave_type);
-      if (filters.status) params.append('status', filters.status);
+      if (filters.status) {
+        console.log('Original status value:', filters.status);
+        params.append('status', filters.status);
+      }
       if (filters.start_date) params.append('start_date', filters.start_date);
       if (filters.end_date) params.append('end_date', filters.end_date);
       if (filters.search) params.append('search', filters.search);
     }
+
+    const finalUrl = `${API_ROUTES.v1.api.leaveRequests.list}?${params.toString()}`;
+    console.log('Final URL being called:', finalUrl);
 
     const response = await this.get<ApiResponse<PaginatedResponse<LeaveRequest>>>(
       `${API_ROUTES.v1.api.leaveRequests.list}?${params.toString()}`,
@@ -113,17 +119,26 @@ class LeaveRequestService extends ApiService {
     );
     return response.data.data;
   }
-
   // Update leave request status (approve/reject)
   async updateLeaveRequestStatus(
     id: number,
     data: UpdateLeaveRequestStatusRequest,
   ): Promise<LeaveRequest> {
+    // Map frontend enum values to backend DTO expected values
+    const backendData = {
+      ...data,
+      status: this.mapStatusForBackend(data.status),
+    };
+
     const response = await this.patch<ApiResponse<LeaveRequest>>(
       API_ROUTES.v1.api.leaveRequests.status(id),
-      data,
+      backendData,
     );
     return response.data.data;
+  } // Helper method to map frontend status values to backend DTO expected values
+  private mapStatusForBackend(status: LeaveRequestStatus): string {
+    // Database uses spaces, so we keep the original values
+    return status;
   }
 
   // Delete leave request

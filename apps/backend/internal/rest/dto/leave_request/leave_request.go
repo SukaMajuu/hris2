@@ -12,7 +12,7 @@ type LeaveRequestQueryDTO struct {
 	Page       int     `form:"page" binding:"omitempty,min=1"`
 	PageSize   int     `form:"page_size" binding:"omitempty,min=1,max=100"`
 	EmployeeID *uint   `form:"employee_id" binding:"omitempty"`
-	Status     *string `form:"status" binding:"omitempty,oneof=Waiting_Approval Approved Rejected"`
+	Status     *string `form:"status" binding:"omitempty,oneof='Waiting Approval' Approved Rejected"`
 	LeaveType  *string `form:"leave_type" binding:"omitempty"`
 }
 
@@ -33,7 +33,7 @@ type UpdateLeaveRequestDTO struct {
 }
 
 type UpdateLeaveRequestStatusDTO struct {
-	Status    domain.LeaveStatus `json:"status" binding:"required,oneof=Waiting_Approval Approved Rejected"`
+	Status    domain.LeaveStatus `json:"status" binding:"required,oneof='Waiting Approval' Approved Rejected"`
 	AdminNote *string            `json:"admin_note,omitempty"`
 }
 

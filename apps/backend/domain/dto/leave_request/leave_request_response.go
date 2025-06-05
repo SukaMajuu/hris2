@@ -6,6 +6,7 @@ type LeaveRequestResponseDTO struct {
 	ID             uint    `json:"id"`
 	EmployeeID     uint    `json:"employee_id"`
 	EmployeeName   string  `json:"employee_name"`
+	PositionName   string  `json:"position_name"`
 	LeaveType      string  `json:"leave_type"`
 	StartDate      string  `json:"start_date"`
 	EndDate        string  `json:"end_date"`

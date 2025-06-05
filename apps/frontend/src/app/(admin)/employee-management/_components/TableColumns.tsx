@@ -18,16 +18,30 @@ import type { Employee } from '@/types/employee';
 
 interface TableColumnsProps {
   onResignEmployee: (id: number) => Promise<void>;
+  data?: Employee[];
+  currentPage?: number;
+  pageSize?: number;
 }
 
-export function TableColumns({ onResignEmployee }: TableColumnsProps): ColumnDef<Employee>[] {
+export function TableColumns({
+  onResignEmployee,
+  data = [],
+  currentPage = 1,
+  pageSize = 10,
+}: TableColumnsProps): ColumnDef<Employee>[] {
   return [
     {
       header: 'No.',
       id: 'no',
-      cell: ({ row, table }) => {
-        const { pageIndex, pageSize } = table.getState().pagination;
-        return pageIndex * pageSize + row.index + 1;
+      cell: ({ row }) => {
+        const employeeId = row.original.id;
+        const globalIndex = data.findIndex((emp) => emp.id === employeeId);
+
+        if (globalIndex === -1) {
+          return (currentPage - 1) * pageSize + row.index + 1;
+        }
+
+        return globalIndex + 1;
       },
       meta: { className: 'w-[80px]' },
       enableSorting: false,

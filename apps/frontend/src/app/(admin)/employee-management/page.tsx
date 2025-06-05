@@ -45,11 +45,6 @@ export default function EmployeeManagementPage() {
     [apiHandleResignEmployee],
   );
 
-  const columns = useMemo(
-    () => TableColumns({ onResignEmployee: handleResignEmployee }),
-    [handleResignEmployee],
-  );
-
   const filteredEmployees = useMemo(() => {
     return allEmployees.filter((employee) => {
       if (nameSearch && nameSearch.trim()) {
@@ -88,6 +83,17 @@ export default function EmployeeManagementPage() {
     setPagination((prev) => ({ ...prev, pageIndex: 0 }));
   }, [nameSearch, genderFilter, statusFilter]);
 
+  const columns = useMemo(
+    () =>
+      TableColumns({
+        onResignEmployee: handleResignEmployee,
+        data: filteredEmployees,
+        currentPage: pagination.pageIndex + 1,
+        pageSize: pagination.pageSize,
+      }),
+    [handleResignEmployee, filteredEmployees, pagination.pageIndex, pagination.pageSize],
+  );
+
   const table = useReactTable<Employee>({
     data: filteredEmployees,
     columns,
@@ -95,14 +101,12 @@ export default function EmployeeManagementPage() {
       pagination,
       columnFilters,
     },
-    pageCount: Math.ceil(filteredEmployees.length / pagination.pageSize),
     onPaginationChange: setPagination,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     autoResetPageIndex: false,
-    manualPagination: true,
   });
 
   if (loading) {

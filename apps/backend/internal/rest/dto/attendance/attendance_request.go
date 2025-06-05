@@ -44,15 +44,16 @@ type UpdateAttendanceRequestDTO struct {
 type CheckInRequestDTO struct {
 	EmployeeID     uint    `json:"employee_id" binding:"required"`
 	WorkScheduleID uint    `json:"work_schedule_id" binding:"required"`
+	Date           string  `json:"date" binding:"omitempty"`
 	ClockIn        string  `json:"clock_in" binding:"omitempty"`
 	CheckInLat     float64 `json:"check_in_lat" binding:"required"`
 	CheckInLong    float64 `json:"check_in_long" binding:"required"`
 }
 
 type CheckOutRequestDTO struct {
-	AttendanceID uint    `json:"attendance_id" binding:"required"`
+	EmployeeID   uint    `json:"employee_id" binding:"required"`
+	Date         string  `json:"date" binding:"omitempty"`
 	ClockOut     string  `json:"clock_out" binding:"omitempty"`
-	WorkHours    float64 `json:"work_hours" binding:"omitempty"`
 	CheckOutLat  float64 `json:"check_out_lat" binding:"required"`
 	CheckOutLong float64 `json:"check_out_long" binding:"required"`
 }

@@ -1096,7 +1096,7 @@ components:
                 - permanent_employees
                 - contract_employees
                 - freelance_employees
-
+            
         Attendance:
             tyoe: object
             description: Represents all employee attendance data.
@@ -1162,7 +1162,7 @@ components:
                     enum: ["on_time", "late", "early_leave", "absent", "leave"]
                     description: Attendance status for the day.
                     example: "on_time"
-
+        
         AttendanceCheckInRequest:
             type: object
             properties:
@@ -1188,11 +1188,7 @@ components:
                     type: number
                     format: double
                     example: 106.816666
-                status:
-                    type: string
-                    enum: ["on_time", "late", "early_leave", "absent", "leave"]
-                    example: "on_time"
-
+        
         AttendanceCheckOutRequest:
             properties:
                 employee_id:
@@ -1217,10 +1213,6 @@ components:
                     type: number
                     format: double
                     example: 106.816666
-                work_hours:
-                    type: number
-                    format: double
-                    example: 8.0
 
 paths:
     /auth/login:
@@ -3258,7 +3250,7 @@ paths:
 
     /api/attendances/check-in:
         post:
-            tags: [Attendance]
+            tags: [ Attendance ]
             summary: Employee check-in
             requestBody:
                 required: true
@@ -3266,9 +3258,8 @@ paths:
                     application/json:
                         schema:
                             $ref: "#/components/schemas/AttendanceCheckInRequest"
-
             responses:
-                200:
+                201:
                     description: Check-in recorded successfully
                     content:
                         application/json:
@@ -3278,10 +3269,11 @@ paths:
                 400:
                     description: Invalid request
 
-    /attendance/check-out:
+    /api/attendances/check-out:
         post:
             tags: [Attendance]
             summary: Employee check-out
+            description: Record check-out for an employee. The system will find the existing attendance record by employee ID and date.
             requestBody:
                 required: true
                 content:
@@ -3298,6 +3290,8 @@ paths:
                                     - $ref: "#/components/schemas/Attendance"
                 400:
                     description: Invalid request
+                404:
+                    description: No attendance record found for the employee on the specified date
     #
     #    /attendance/logs:
     #        get:

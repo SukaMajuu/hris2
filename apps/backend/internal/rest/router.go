@@ -123,7 +123,7 @@ func (r *Router) Setup() *gin.Engine {
 				attendances.PUT("/:id", r.attendanceHandler.UpdateAttendance)
 				attendances.DELETE("/:id", r.attendanceHandler.DeleteAttendance)
 				attendances.POST("/check-in", r.attendanceHandler.CheckIn)
-				attendances.POST("/:id/check-out", r.attendanceHandler.CheckOut)
+				attendances.POST("/check-out", r.attendanceHandler.CheckOut)
 				attendances.GET("/employees/:employee_id", r.attendanceHandler.ListAttendancesByEmployee)
 			}
 

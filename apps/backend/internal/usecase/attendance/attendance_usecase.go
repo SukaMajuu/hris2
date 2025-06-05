@@ -92,7 +92,7 @@ func (uc *AttendanceUseCase) Create(ctx context.Context, reqDTO *dtoAttendance.C
 
 func (uc *AttendanceUseCase) CheckIn(ctx context.Context, reqDTO *dtoAttendance.CheckInRequestDTO) (*responseAttendance.AttendanceResponseDTO, error) {
 	// Validate employee exists
-	_, err := uc.employeeRepo.GetByID(ctx, reqDTO.EmployeeID) // Assign to _ if employee is not used further
+	_, err := uc.employeeRepo.GetByID(ctx, reqDTO.EmployeeID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("employee with ID %d not found", reqDTO.EmployeeID)
@@ -108,18 +108,57 @@ func (uc *AttendanceUseCase) CheckIn(ctx context.Context, reqDTO *dtoAttendance.
 		}
 		return nil, fmt.Errorf("failed to validate work schedule for check-in: %w", err)
 	}
+	// Determine the attendance date and time
+	var attendanceDate time.Time
+	var clockInTime time.Time
 
-	// Get current date and time
-	now := time.Now()
-	todayDateStr := now.Format("2006-01-02")
+	// Parse date if provided in request
+	if reqDTO.Date != "" {
+		parsedDate, err := time.Parse("2006-01-02", reqDTO.Date)
+		if err != nil {
+			return nil, fmt.Errorf("invalid date format (expected YYYY-MM-DD): %w", err)
+		}
+		attendanceDate = parsedDate
+	}
 
-	// Check if attendance already exists for today
-	existingAttendance, err := uc.attendanceRepo.GetByEmployeeAndDate(ctx, reqDTO.EmployeeID, todayDateStr)
+	// If clock_in is provided in request, parse it
+	if reqDTO.ClockIn != "" {
+		parsedTime, err := time.Parse("2006-01-02T15:04:05Z", reqDTO.ClockIn)
+		if err != nil {
+			// Try alternative format
+			parsedTime, err = time.Parse("2006-01-02T15:04:05Z07:00", reqDTO.ClockIn)
+			if err != nil {
+				return nil, fmt.Errorf("invalid clock_in format: %w", err)
+			}
+		}
+		clockInTime = parsedTime
+
+		// If date was not provided separately, extract it from clock_in
+		if reqDTO.Date == "" {
+			attendanceDate = time.Date(clockInTime.Year(), clockInTime.Month(), clockInTime.Day(), 0, 0, 0, 0, clockInTime.Location())
+		}
+	} else {
+		// Use current time if no clock_in provided
+		now := time.Now()
+		clockInTime = now
+
+		// If date was not provided, use today's date
+		if reqDTO.Date == "" {
+			attendanceDate = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+		} else {
+			// If date was provided but clock_in wasn't, use current time but with the specified date
+			clockInTime = time.Date(attendanceDate.Year(), attendanceDate.Month(), attendanceDate.Day(), now.Hour(), now.Minute(), now.Second(), now.Nanosecond(), now.Location())
+		}
+	}
+
+	// Check if attendance already exists for the specified date
+	dateStr := attendanceDate.Format("2006-01-02")
+	existingAttendance, err := uc.attendanceRepo.GetByEmployeeAndDate(ctx, reqDTO.EmployeeID, dateStr)
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, fmt.Errorf("failed to check existing attendance for check-in: %w", err)
 	}
 	if existingAttendance != nil && existingAttendance.ClockIn != nil {
-		return nil, fmt.Errorf("employee %d has already checked in today at %s", reqDTO.EmployeeID, existingAttendance.ClockIn.Format(time.Kitchen))
+		return nil, fmt.Errorf("employee %d has already checked in on %s at %s", reqDTO.EmployeeID, dateStr, existingAttendance.ClockIn.Format(time.Kitchen))
 	}
 
 	// TODO: Validate location coordinates if provided (requires Location validation logic)
@@ -127,26 +166,37 @@ func (uc *AttendanceUseCase) CheckIn(ctx context.Context, reqDTO *dtoAttendance.
 	attendance := &domain.Attendance{
 		EmployeeID:     reqDTO.EmployeeID,
 		WorkScheduleID: reqDTO.WorkScheduleID,
-		Date:           now,
-		ClockIn:        &now,
+		Date:           attendanceDate,
+		ClockIn:        &clockInTime,
 		CheckInLat:     &reqDTO.CheckInLat,
 		CheckInLong:    &reqDTO.CheckInLong,
+	} // Validate attendance day against work schedule and determine status
+	if len(workSchedule.Details) == 0 {
+		return nil, fmt.Errorf("work schedule %d has no details configured", reqDTO.WorkScheduleID)
 	}
 
-	// Determine attendance status based on work schedule and check-in time
-	attendance.Status = domain.OnTime // Default status
+	// Find relevant work schedule detail based on attendance day
+	currentDay := getCurrentDayName(clockInTime)
+	relevantDetail := findRelevantWorkScheduleDetail(workSchedule.Details, currentDay)
 
-	if len(workSchedule.Details) > 0 {
-		relevantDetail := workSchedule.Details[0]
-		if !relevantDetail.CheckinStart.IsZero() {
-			startTimeToday := time.Date(now.Year(), now.Month(), now.Day(), relevantDetail.CheckinStart.Hour(), relevantDetail.CheckinStart.Minute(), relevantDetail.CheckinStart.Second(), 0, now.Location())
-			gracePeriod := 5 * time.Minute // Example: 5 minutes grace period
-			if now.After(startTimeToday.Add(gracePeriod)) {
-				attendance.Status = domain.Late
-			} else {
-				attendance.Status = domain.OnTime
-			}
+	if relevantDetail == nil {
+		return nil, fmt.Errorf("no work schedule configured for %s. Please contact HR", currentDay)
+	}
+
+	// Determine attendance status based on check-in time against work schedule
+	if relevantDetail.CheckinEnd != nil {
+		// Convert CheckinEnd time to today's date with same time
+		endTimeToday := time.Date(clockInTime.Year(), clockInTime.Month(), clockInTime.Day(),
+			relevantDetail.CheckinEnd.Hour(), relevantDetail.CheckinEnd.Minute(), relevantDetail.CheckinEnd.Second(), 0, clockInTime.Location())
+
+		if clockInTime.After(endTimeToday) {
+			attendance.Status = domain.Late
+		} else {
+			attendance.Status = domain.OnTime
 		}
+	} else {
+		// Default to OnTime if no check-in end time is configured
+		attendance.Status = domain.OnTime
 	}
 
 	// Create attendance record
@@ -164,41 +214,115 @@ func (uc *AttendanceUseCase) CheckIn(ctx context.Context, reqDTO *dtoAttendance.
 }
 
 func (uc *AttendanceUseCase) CheckOut(ctx context.Context, reqDTO *dtoAttendance.CheckOutRequestDTO) (*responseAttendance.AttendanceResponseDTO, error) {
-	// Get attendance record
-	attendance, err := uc.attendanceRepo.GetByID(ctx, reqDTO.AttendanceID)
+	// Validate employee exists
+	_, err := uc.employeeRepo.GetByID(ctx, reqDTO.EmployeeID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("attendance record with ID %d not found for check-out", reqDTO.AttendanceID)
+			return nil, fmt.Errorf("employee with ID %d not found", reqDTO.EmployeeID)
+		}
+		return nil, fmt.Errorf("failed to validate employee for check-out: %w", err)
+	}
+
+	// Determine the attendance date and time
+	var attendanceDate time.Time
+	var clockOutTime time.Time
+
+	// Parse date if provided in request
+	if reqDTO.Date != "" {
+		parsedDate, err := time.Parse("2006-01-02", reqDTO.Date)
+		if err != nil {
+			return nil, fmt.Errorf("invalid date format (expected YYYY-MM-DD): %w", err)
+		}
+		attendanceDate = parsedDate
+	}
+
+	// If clock_out is provided in request, parse it
+	if reqDTO.ClockOut != "" {
+		parsedTime, err := time.Parse("2006-01-02T15:04:05Z", reqDTO.ClockOut)
+		if err != nil {
+			// Try alternative format
+			parsedTime, err = time.Parse("2006-01-02T15:04:05Z07:00", reqDTO.ClockOut)
+			if err != nil {
+				return nil, fmt.Errorf("invalid clock_out format: %w", err)
+			}
+		}
+		clockOutTime = parsedTime
+
+		// If date was not provided separately, extract it from clock_out
+		if reqDTO.Date == "" {
+			attendanceDate = time.Date(clockOutTime.Year(), clockOutTime.Month(), clockOutTime.Day(), 0, 0, 0, 0, clockOutTime.Location())
+		}
+	} else {
+		// Use current time if no clock_out provided
+		now := time.Now()
+		clockOutTime = now
+
+		// If date was not provided, use today's date
+		if reqDTO.Date == "" {
+			attendanceDate = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+		} else {
+			// If date was provided but clock_out wasn't, use current time but with the specified date
+			clockOutTime = time.Date(attendanceDate.Year(), attendanceDate.Month(), attendanceDate.Day(), now.Hour(), now.Minute(), now.Second(), now.Nanosecond(), now.Location())
+		}
+	}
+
+	// Find existing attendance record for the employee and date
+	dateStr := attendanceDate.Format("2006-01-02")
+	attendance, err := uc.attendanceRepo.GetByEmployeeAndDate(ctx, reqDTO.EmployeeID, dateStr)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("no attendance record found for employee %d on %s. Please check-in first", reqDTO.EmployeeID, dateStr)
 		}
 		return nil, fmt.Errorf("failed to get attendance record for check-out: %w", err)
 	}
 
+	// Check if employee has checked in
+	if attendance.ClockIn == nil {
+		return nil, fmt.Errorf("employee %d has not checked in on %s. Please check-in first", reqDTO.EmployeeID, dateStr)
+	}
+
 	// Check if already checked out
 	if attendance.ClockOut != nil {
-		return nil, fmt.Errorf("attendance record ID %d has already been checked out at %s", reqDTO.AttendanceID, attendance.ClockOut.Format(time.Kitchen))
+		return nil, fmt.Errorf("employee %d has already checked out on %s at %s", reqDTO.EmployeeID, dateStr, attendance.ClockOut.Format(time.Kitchen))
 	}
 
 	// Set clock out time and location
-	now := time.Now()
-	attendance.ClockOut = &now
+	attendance.ClockOut = &clockOutTime
 	attendance.CheckOutLat = &reqDTO.CheckOutLat
 	attendance.CheckOutLong = &reqDTO.CheckOutLong
-
-	// Calculate work hours
+	// Calculate work hours and update status based on work schedule
 	if attendance.ClockIn != nil {
 		duration := attendance.ClockOut.Sub(*attendance.ClockIn).Hours()
 		attendance.WorkHours = &duration
 
+		// Check for early leave based on work schedule
 		workSchedule, wsErr := uc.workScheduleRepo.GetByIDWithDetails(ctx, attendance.WorkScheduleID)
-		if wsErr == nil && len(workSchedule.Details) > 0 {
-			relevantDetail := workSchedule.Details[0]
-			if !relevantDetail.CheckoutEnd.IsZero() {
-				endTimeToday := time.Date(now.Year(), now.Month(), now.Day(), relevantDetail.CheckoutEnd.Hour(), relevantDetail.CheckoutEnd.Minute(), relevantDetail.CheckoutEnd.Second(), 0, now.Location())
-				if now.Before(endTimeToday) {
+		if wsErr != nil {
+			return nil, fmt.Errorf("failed to get work schedule for early leave check: %w", wsErr)
+		}
+
+		if len(workSchedule.Details) > 0 {
+			// Find relevant work schedule detail based on checkout day
+			currentDay := getCurrentDayName(clockOutTime)
+			relevantDetail := findRelevantWorkScheduleDetail(workSchedule.Details, currentDay)
+
+			if relevantDetail == nil {
+				return nil, fmt.Errorf("no work schedule configured for %s during checkout. Please contact HR", currentDay)
+			}
+
+			// Check for early leave if checkout time is configured
+			if relevantDetail.CheckoutStart != nil {
+				// Convert CheckoutStart time to today's date with same time
+				minCheckoutTime := time.Date(clockOutTime.Year(), clockOutTime.Month(), clockOutTime.Day(),
+					relevantDetail.CheckoutStart.Hour(), relevantDetail.CheckoutStart.Minute(), relevantDetail.CheckoutStart.Second(), 0, clockOutTime.Location())
+
+				// Set early_leave if checkout is before minimum checkout time AND current status allows it
+				if clockOutTime.Before(minCheckoutTime) {
 					if attendance.Status != domain.Absent && attendance.Status != domain.Leave {
 						attendance.Status = domain.EarlyLeave
 					}
 				}
+				// If checkout is after minimum time, preserve the original status from check-in (OnTime/Late)
 			}
 		}
 	} else {
@@ -380,4 +504,42 @@ func calculateWorkHours(clockIn, clockOut *time.Time) *float64 {
 	}
 	duration := clockOut.Sub(*clockIn).Hours()
 	return &duration
+}
+
+// Helper functions for attendance status determination
+
+// getCurrentDayName returns the day name from a time.Time
+func getCurrentDayName(t time.Time) domain.Days {
+	switch t.Weekday() {
+	case time.Monday:
+		return domain.Monday
+	case time.Tuesday:
+		return domain.Tuesday
+	case time.Wednesday:
+		return domain.Wednesday
+	case time.Thursday:
+		return domain.Thursday
+	case time.Friday:
+		return domain.Friday
+	case time.Saturday:
+		return domain.Saturday
+	case time.Sunday:
+		return domain.Sunday
+	default:
+		return domain.Monday // fallback
+	}
+}
+
+// findRelevantWorkScheduleDetail finds the work schedule detail that applies to the given day
+func findRelevantWorkScheduleDetail(details []domain.WorkScheduleDetail, currentDay domain.Days) *domain.WorkScheduleDetail {
+	for i := range details {
+		detail := &details[i]
+		// Check if current day is in the work days for this detail
+		for _, workDay := range detail.WorkDays {
+			if workDay == currentDay {
+				return detail
+			}
+		}
+	}
+	return nil // No matching work schedule detail found for this day
 }

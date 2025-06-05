@@ -1073,6 +1073,16 @@ components:
                     format: int64
                     description: Number of employees with freelance contract type
                     example: 20
+                total_employees_trend:
+                    type: number
+                    format: float
+                    description: Percentage change in total employees compared to employees hired before current month
+                    example: 8.5
+                new_employees_trend:
+                    type: number
+                    format: float
+                    description: Percentage change in new employees compared to previous 30 days
+                    example: 15.2
             required:
                 - total_employees
                 - new_employees

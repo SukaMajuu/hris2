@@ -24,4 +24,10 @@ type EmployeeRepository interface {
 		permanentEmployees, contractEmployees, freelanceEmployees int64,
 		err error,
 	)
+	GetStatisticsWithTrendsByManager(ctx context.Context, managerID uint) (
+		totalEmployees, newEmployees, activeEmployees, resignedEmployees,
+		permanentEmployees, contractEmployees, freelanceEmployees int64,
+		totalEmployeesTrend, newEmployeesTrend float64,
+		err error,
+	)
 }

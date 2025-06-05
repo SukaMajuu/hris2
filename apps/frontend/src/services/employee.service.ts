@@ -21,6 +21,8 @@ export interface EmployeeStatsData {
   permanent_employees: number;
   contract_employees: number;
   freelance_employees: number;
+  total_employees_trend?: number;
+  new_employees_trend?: number;
 }
 
 interface ApiResponse<T> {

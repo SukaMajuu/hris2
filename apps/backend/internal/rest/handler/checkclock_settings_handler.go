@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
+	dtocheckclocksettings "github.com/SukaMajuu/hris/apps/backend/domain/dto/checkclock_settings"
 	checkclocksettingsdto "github.com/SukaMajuu/hris/apps/backend/internal/rest/dto/check-clock/checkclock_settings"
 	checkclocksettingsusecase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/checkclock_settings"
 	"github.com/SukaMajuu/hris/apps/backend/pkg/response"
@@ -92,7 +93,31 @@ func (h *CheckclockSettingsHandler) GetAllCheckclockSettings(c *gin.Context) {
 		paginationParams.PageSize = 10
 	}
 
-	settingsData, err := h.useCase.GetAll(c.Request.Context(), paginationParams)
+	// Prepare filters map
+	filters := make(map[string]interface{})
+	if queryDTO.Name != "" {
+		filters["name"] = queryDTO.Name
+	}
+	if queryDTO.Position != "" {
+		filters["position"] = queryDTO.Position
+	}
+	if queryDTO.WorkType != "" {
+		filters["work_type"] = queryDTO.WorkType
+	}
+	if queryDTO.WorkScheduleID != "" {
+		filters["work_schedule_id"] = queryDTO.WorkScheduleID
+	}
+
+	var settingsData *dtocheckclocksettings.CheckclockSettingsListResponseData
+	var err error
+
+	// Use filtered method if any filters are applied, otherwise use regular method
+	if len(filters) > 0 {
+		settingsData, err = h.useCase.GetAllWithFilters(c.Request.Context(), paginationParams, filters)
+	} else {
+		settingsData, err = h.useCase.GetAll(c.Request.Context(), paginationParams)
+	}
+
 	if err != nil {
 		response.InternalServerError(c, err)
 		return

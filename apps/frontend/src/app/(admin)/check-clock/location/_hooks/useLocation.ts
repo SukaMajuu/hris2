@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useLocations } from "@/api/queries/location.queries";
 import {
 	useCreateLocation,
@@ -9,25 +9,94 @@ import { toast } from "sonner";
 import { CreateLocationRequest, UpdateLocationRequest } from "@/types/location";
 import { Location } from "@/types/location";
 
-export const useLocation = (page = 1, pageSize = 10) => {
+interface FilterOptions {
+	name?: string;
+	address_detail?: string;
+	radius_range?: string;
+	sort_by?: string;
+	sort_order?: "asc" | "desc";
+}
+
+export const useLocation = (initialPage = 1, initialPageSize = 10) => {
 	// State management
+	const [page, setPage] = useState(initialPage);
+	const [pageSize, setPageSize] = useState(initialPageSize);
+	const [filters, setFilters] = useState<FilterOptions>({});
+	const [isFilterVisible, setIsFilterVisible] = useState(false);
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [formData, setFormData] = useState<Partial<Location>>({});
 	const [isEditing, setIsEditing] = useState(false);
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-	const [locationToDelete, setLocationToDelete] = useState<Location | null>(
-		null
-	);
+	const [locationToDelete, setLocationToDelete] = useState<Location | null>(null);
+
+	// Build params for API call
+	const params = {
+		page,
+		page_size: pageSize,
+		...filters,
+	};
 
 	// Queries and mutations
-	const locationsQuery = useLocations({ page, page_size: pageSize });
+	const locationsQuery = useLocations(params);
 	const createMutation = useCreateLocation();
 	const updateMutation = useUpdateLocation();
 	const deleteMutation = useDeleteLocation();
 
 	// Extract data from server response
 	const locationData = locationsQuery.data?.data;
-	const locations = locationData?.items || [];
+	const serverLocations = locationData?.items || [];
+
+	// Apply client-side filtering and sorting for fields not handled by backend
+	const processedLocations = useMemo(() => {
+		let filteredLocations = [...serverLocations];
+
+		// Apply radius range filter (client-side)
+		if (filters.radius_range && filters.radius_range !== "all") {
+			filteredLocations = filteredLocations.filter(location => {
+				const radius = location.radius_m;
+				switch (filters.radius_range) {
+					case "0":
+						return radius === 0;
+					case "<100":
+						return radius > 0 && radius < 100;
+					case "100-500":
+						return radius >= 100 && radius <= 500;
+					case ">500":
+						return radius > 500;
+					default:
+						return true;
+				}
+			});
+		}
+
+		// Apply sorting (client-side)
+		if (filters.sort_by && filters.sort_order) {
+			filteredLocations.sort((a, b) => {
+				let aValue: any = a[filters.sort_by as keyof Location];
+				let bValue: any = b[filters.sort_by as keyof Location];
+
+				// Handle string comparison for name
+				if (filters.sort_by === "name") {
+					aValue = (aValue || "").toLowerCase();
+					bValue = (bValue || "").toLowerCase();
+				}
+				
+				// Handle numeric comparison for radius
+				if (filters.sort_by === "radius_m") {
+					aValue = Number(aValue) || 0;
+					bValue = Number(bValue) || 0;
+				}
+
+				if (aValue < bValue) return filters.sort_order === "asc" ? -1 : 1;
+				if (aValue > bValue) return filters.sort_order === "asc" ? 1 : -1;
+				return 0;
+			});
+		}
+
+		return filteredLocations;
+	}, [serverLocations, filters]);
+
+	const locations = processedLocations;
 
 	// Create pagination result from server response
 	const paginationInfo = locationData?.pagination;
@@ -134,15 +203,60 @@ export const useLocation = (page = 1, pageSize = 10) => {
 					: "Failed to delete location";
 			toast.error(errorMessage);
 		}
-	}, [locationToDelete, deleteMutation]);
+	}, [locationToDelete, deleteMutation, handleCloseDeleteDialog]);
+
+	// Filter handlers following Check-Clock Employee pattern
+	const handlePageChange = (newPage: number) => {
+		setPage(newPage);
+	};
+
+	const handlePageSizeChange = (newPageSize: number) => {
+		setPageSize(newPageSize);
+		setPage(1);
+	};
+
+	const applyFilters = (newFilters: FilterOptions) => {
+		setFilters(newFilters);
+		setPage(1); // Reset to first page when applying filters
+	};
+	const resetFilters = () => {
+		setFilters({});
+		setPage(1);
+	};
+
+	const handleApplyFilters = (newFilters: FilterOptions) => {
+		setFilters(newFilters);
+		setPage(1); // Reset to first page when applying filters
+	};
+
+	const handleResetFilters = () => {
+		setFilters({});
+		setPage(1);
+	};
+
+	const handleToggleFilterVisibility = () => {
+		setIsFilterVisible(prev => !prev);
+	};
 
 	return {
 		// Data with normalized pagination
 		locations,
 		pagination,
+		page,
+		setPage: handlePageChange,
+		pageSize,
+		setPageSize: handlePageSizeChange,
 		isLoading: locationsQuery.isLoading,
 		isError: locationsQuery.isError,
 		error: locationsQuery.error,
+		// Filter state and handlers following Check-Clock Employee pattern
+		filters,
+		isFilterVisible,
+		applyFilters,
+		resetFilters,
+		handleApplyFilters,
+		handleResetFilters,
+		handleToggleFilterVisibility,
 
 		// Form state
 		dialogOpen,

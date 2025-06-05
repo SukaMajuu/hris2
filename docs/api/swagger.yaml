@@ -1096,7 +1096,7 @@ components:
                 - permanent_employees
                 - contract_employees
                 - freelance_employees
-            
+
         Attendance:
             tyoe: object
             description: Represents all employee attendance data.
@@ -1162,7 +1162,7 @@ components:
                     enum: ["on_time", "late", "early_leave", "absent", "leave"]
                     description: Attendance status for the day.
                     example: "on_time"
-        
+
         AttendanceCheckInRequest:
             type: object
             properties:
@@ -1192,7 +1192,7 @@ components:
                     type: string
                     enum: ["on_time", "late", "early_leave", "absent", "leave"]
                     example: "on_time"
-        
+
         AttendanceCheckOutRequest:
             properties:
                 employee_id:
@@ -2827,7 +2827,7 @@ paths:
                                         example: "Internal server error"
                                     error:
                                         type: string
-                                        example: "Failed to retrieve employee statistics"                                    
+                                        example: "Failed to retrieve employee statistics"
 
     /api/checkclock-settings:
         post:
@@ -3258,17 +3258,15 @@ paths:
 
     /api/attendances/check-in:
         post:
-            tags: [ Attendance ]
+            tags: [Attendance]
             summary: Employee check-in
             requestBody:
                 required: true
                 content:
                     application/json:
                         schema:
-                            type: object
-                            $ref:
-                                "#/components/schemas/AttendanceCheckInRequest"
-                                
+                            $ref: "#/components/schemas/AttendanceCheckInRequest"
+
             responses:
                 200:
                     description: Check-in recorded successfully
@@ -3276,20 +3274,19 @@ paths:
                         application/json:
                             schema:
                                 allOf:
-                                    -   $ref: "#/components/schemas/Attendance"
+                                    - $ref: "#/components/schemas/Attendance"
                 400:
                     description: Invalid request
 
     /attendance/check-out:
         post:
-            tags: [ Attendance ]
+            tags: [Attendance]
             summary: Employee check-out
             requestBody:
                 required: true
                 content:
                     application/json:
                         schema:
-                            type: object
                             $ref: "#/components/schemas/AttendanceCheckOutRequest"
             responses:
                 200:
@@ -3298,7 +3295,7 @@ paths:
                         application/json:
                             schema:
                                 allOf:
-                                    -   $ref: "#/components/schemas/Attendance"
+                                    - $ref: "#/components/schemas/Attendance"
                 400:
                     description: Invalid request
     #
@@ -4204,7 +4201,7 @@ paths:
                                         example: "Invalid document ID"
                                     error:
                                         type: string
-                                        example: "strconv.ParseUint: parsing \"abc\": invalid syntax"
+                                        example: 'strconv.ParseUint: parsing "abc": invalid syntax'
                 404:
                     description: Document not found
                 500:

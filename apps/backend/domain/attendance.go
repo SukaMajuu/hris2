@@ -21,8 +21,8 @@ type Attendance struct {
 	WorkScheduleID uint             `gorm:"not null"`
 	WorkSchedule   WorkSchedule     `gorm:"foreignKey:WorkScheduleID"`
 	Date           time.Time        `gorm:"type:date;not null"`
-	ClockIn        *time.Time       `gorm:"type:timestamp;not null"`
-	ClockOut       *time.Time       `gorm:"type:timestamp;not null"`
+	ClockIn        *time.Time       `gorm:"type:timestamp"`
+	ClockOut       *time.Time       `gorm:"type:timestamp"`
 	CheckInLat     *float64         `gorm:"type:float"`
 	CheckInLong    *float64         `gorm:"type:float"`
 	CheckOutLat    *float64         `gorm:"type:float"`

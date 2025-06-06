@@ -311,14 +311,23 @@ export function useAddEmployeeForm() {
   };
 
   const goToStep = async (stepNumber: number) => {
+    // Only allow going back to previous steps, not forward to incomplete steps
     if (stepNumber <= activeStep) {
       setActiveStep(stepNumber);
       return;
     }
 
+    // Check if we can proceed forward step by step
     let canProceed = true;
 
     for (let step = activeStep; step < stepNumber; step++) {
+      // Check for real-time validation errors on step 1 (Personal Information)
+      if (step === 1 && hasRealtimeValidationErrors) {
+        console.log('Cannot proceed: Real-time validation errors detected');
+        canProceed = false;
+        break;
+      }
+
       const stepFields = {
         1: [
           'firstName',
@@ -341,7 +350,7 @@ export function useAddEmployeeForm() {
       if (currentStepFields && currentStepFields.length > 0) {
         const isValid = await form.trigger(currentStepFields);
         if (!isValid) {
-          console.log(`Step ${step} validation failed`);
+          console.log(`Step ${step} validation failed, cannot proceed to step ${stepNumber}`);
           canProceed = false;
           break;
         }
@@ -350,6 +359,11 @@ export function useAddEmployeeForm() {
 
     if (canProceed) {
       setActiveStep(stepNumber);
+    } else {
+      // Show a toast to inform user about validation errors
+      toast.error(
+        'Please complete and fix all validation errors in the current step before proceeding',
+      );
     }
   };
 

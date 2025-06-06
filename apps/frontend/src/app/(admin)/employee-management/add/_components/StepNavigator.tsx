@@ -22,6 +22,7 @@ export function StepNavigator({ steps, activeStep, onStepClick, isStepValid }: S
         const stepNumber = idx + 1;
         const isActive = activeStep === stepNumber;
         const isCompleted = stepNumber < activeStep && isStepValid(idx);
+        const canAccess = stepNumber <= activeStep || isCompleted;
 
         return (
           <Fragment key={step.label}>
@@ -29,13 +30,16 @@ export function StepNavigator({ steps, activeStep, onStepClick, isStepValid }: S
               <button
                 type='button'
                 onClick={() => onStepClick(stepNumber)}
+                disabled={!canAccess && stepNumber > activeStep}
                 className={cn(
-                  'flex h-10 w-10 items-center justify-center rounded-full border-2 text-sm font-semibold transition-all duration-150 hover:cursor-pointer',
+                  'flex h-10 w-10 items-center justify-center rounded-full border-2 text-sm font-semibold transition-all duration-150',
                   isActive
                     ? 'bg-primary border-primary text-white'
                     : isCompleted
-                      ? 'border-green-500 bg-green-500 text-white'
-                      : 'hover:border-primary hover:text-primary border-slate-300 bg-white text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400',
+                      ? 'border-green-500 bg-green-500 text-white hover:cursor-pointer'
+                      : canAccess
+                        ? 'hover:border-primary hover:text-primary border-slate-300 bg-white text-slate-600 hover:cursor-pointer dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400'
+                        : 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-600',
                 )}
               >
                 {isCompleted ? <Check className='h-5 w-5' /> : stepNumber}
@@ -47,7 +51,9 @@ export function StepNavigator({ steps, activeStep, onStepClick, isStepValid }: S
                     ? 'text-primary dark:text-primary-foreground'
                     : isCompleted
                       ? 'text-green-600 dark:text-green-400'
-                      : 'text-slate-500 dark:text-slate-400',
+                      : canAccess
+                        ? 'text-slate-500 dark:text-slate-400'
+                        : 'text-slate-400 dark:text-slate-600',
                 )}
               >
                 {step.label}

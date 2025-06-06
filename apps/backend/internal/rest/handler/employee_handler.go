@@ -19,6 +19,16 @@ import (
 	"github.com/SukaMajuu/hris/apps/backend/pkg/response"
 	"github.com/gin-gonic/gin"
 	"github.com/xuri/excelize/v2"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
+)
+
+// Field type constants for validation
+const (
+	FieldTypeEmail        = "email"
+	FieldTypeNIK          = "nik"
+	FieldTypeEmployeeCode = "employee_code"
+	FieldTypePhone        = "phone"
 )
 
 type EmployeeHandler struct {
@@ -443,7 +453,7 @@ func (h *EmployeeHandler) ValidateUniqueField(c *gin.Context) {
 		return
 	}
 
-	if fieldType != "email" && fieldType != "nik" && fieldType != "employee_code" && fieldType != "phone" {
+	if fieldType != FieldTypeEmail && fieldType != FieldTypeNIK && fieldType != FieldTypeEmployeeCode && fieldType != FieldTypePhone {
 		response.BadRequest(c, "Field must be one of: email, nik, employee_code, phone", nil)
 		return
 	}
@@ -452,16 +462,16 @@ func (h *EmployeeHandler) ValidateUniqueField(c *gin.Context) {
 	var err error
 
 	switch fieldType {
-	case "email":
+	case FieldTypeEmail:
 		_, err = h.employeeUseCase.GetUserByEmail(c.Request.Context(), value)
 		exists = err == nil
-	case "nik":
+	case FieldTypeNIK:
 		_, err = h.employeeUseCase.GetByNIK(c.Request.Context(), value)
 		exists = err == nil
-	case "employee_code":
+	case FieldTypeEmployeeCode:
 		_, err = h.employeeUseCase.GetByEmployeeCode(c.Request.Context(), value)
 		exists = err == nil
-	case "phone":
+	case FieldTypePhone:
 		_, err = h.employeeUseCase.GetUserByPhone(c.Request.Context(), value)
 		exists = err == nil
 	}
@@ -480,7 +490,8 @@ func (h *EmployeeHandler) ValidateUniqueField(c *gin.Context) {
 	}
 
 	if exists {
-		result["message"] = fmt.Sprintf("%s '%s' is already in use", strings.Title(strings.ReplaceAll(fieldType, "_", " ")), value)
+		caser := cases.Title(language.English)
+		result["message"] = fmt.Sprintf("%s '%s' is already in use", caser.String(strings.ReplaceAll(fieldType, "_", " ")), value)
 	}
 
 	response.Success(c, http.StatusOK, "Field validation completed", result)

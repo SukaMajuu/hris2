@@ -34,6 +34,11 @@ var (
 	ErrEmployeeNotFound = errors.New("employee not found")
 )
 
+// Leave Request errors
+var (
+	ErrLeaveRequestNotFound = errors.New("leave request not found")
+)
+
 // Location errors
 var (
 	ErrLocationNotFound = errors.New("location not found")

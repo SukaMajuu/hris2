@@ -110,6 +110,47 @@ func (uc *CheckclockSettingsUseCase) GetAll(ctx context.Context, paginationParam
 	return response, nil
 }
 
+func (uc *CheckclockSettingsUseCase) GetAllWithFilters(
+	ctx context.Context, 
+	paginationParams domain.PaginationParams, 
+	filters map[string]interface{},
+	) (*dtocheckclocksettings.CheckclockSettingsListResponseData, error) {
+	offset := (paginationParams.Page - 1) * paginationParams.PageSize
+	domainSettings, totalItems, err := uc.repo.GetAllWithFilters(ctx, offset, paginationParams.PageSize, filters)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list checkclock settings from repository: %w", err)
+	}
+
+	settingsDTOs := make([]*dtocheckclocksettings.CheckclockSettingsResponseDTO, len(domainSettings))
+	for i, setting := range domainSettings {
+		settingsDTOs[i] = dtocheckclocksettings.ToCheckclockSettingsResponseDTO(setting)
+	}
+
+	totalPages := 0
+	if paginationParams.PageSize > 0 {
+		totalPages = int(math.Ceil(float64(totalItems) / float64(paginationParams.PageSize)))
+	}
+	if totalPages < 1 && totalItems > 0 {
+		totalPages = 1
+	} else if totalItems == 0 {
+		totalPages = 0
+	}
+
+	response := &dtocheckclocksettings.CheckclockSettingsListResponseData{
+		Items: settingsDTOs,
+		Pagination: domain.Pagination{
+			TotalItems:  totalItems,
+			TotalPages:  totalPages,
+			CurrentPage: paginationParams.Page,
+			PageSize:    paginationParams.PageSize,
+			HasNextPage: paginationParams.Page < totalPages,
+			HasPrevPage: paginationParams.Page > 1 && paginationParams.Page <= totalPages,
+		},
+	}
+
+	return response, nil
+}
+
 func (uc *CheckclockSettingsUseCase) Update(ctx context.Context, id uint, updateData *domain.CheckclockSettings) (*dtocheckclocksettings.CheckclockSettingsResponseDTO, error) {
 	// Check if record exists
 	existing, err := uc.repo.GetByID(ctx, id)

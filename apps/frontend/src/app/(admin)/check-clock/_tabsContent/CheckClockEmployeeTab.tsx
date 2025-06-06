@@ -6,6 +6,7 @@ import WorkTypeBadge from "@/components/workTypeBadge";
 import { WorkType } from "@/const/work";
 import { DataTable } from "@/components/dataTable";
 import { useCheckClockEmployee } from "../_hooks/useCheckClockEmployee";
+import { CheckClockEmployeeFilter } from "../_components/CheckClockEmployeeFilter";
 import { PaginationComponent } from "@/components/pagination";
 import { PageSizeComponent } from "@/components/pageSize";
 import { usePagination } from "@/hooks/usePagination";
@@ -22,11 +23,15 @@ import { CheckclockSettingsResponse } from "@/types/checkclock-settings.types";
 
 export default function CheckClockEmployeeTab() {
 	const [nameFilter, setNameFilter] = React.useState("");
+	const [showAdvancedFilter, setShowAdvancedFilter] = React.useState(false);
 	const { pagination, setPage, setPageSize } = usePagination(1, 10);
 
 	const {
 		employees,
 		pagination: serverPagination,
+		filters,
+		applyFilters,
+		resetFilters,
 		isLoading,
 		error,
 		handleEdit,
@@ -34,9 +39,8 @@ export default function CheckClockEmployeeTab() {
 
 	const baseColumns = React.useMemo<ColumnDef<CheckclockSettingsResponse>[]>(
 		() => [
-			{ header: "No.", id: "no-placeholder" },
-			{
-				header: "Nama",
+			{ header: "No.", id: "no-placeholder" },			{
+				header: "Name",
 				id: "employee_name",
 				accessorKey: "employee.first_name",
 				enableColumnFilter: true,
@@ -48,9 +52,8 @@ export default function CheckClockEmployeeTab() {
 						employee.last_name || ""
 					}`.trim();
 				},
-			},
-			{
-				header: "Posisi",
+			},			{
+				header: "Position",
 				accessorKey: "employee.position_name",
 				cell: ({ row }) => {
 					return (
@@ -162,8 +165,7 @@ export default function CheckClockEmployeeTab() {
 
 	return (
 		<Card className="border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm">
-			<CardContent>
-				<header className="flex flex-col gap-6 mb-6">
+			<CardContent>				<header className="flex flex-col gap-6 mb-6">
 					<div className="flex flex-row flex-wrap justify-between items-center w-full gap-4">
 						<h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">
 							Check-Clock Employee
@@ -174,8 +176,7 @@ export default function CheckClockEmployeeTab() {
 								Add Data
 							</Button>
 						</Link>
-					</div>
-					<div className="flex flex-wrap items-center gap-4 md:w-full lg:w-[500px]">
+					</div>					<div className="flex flex-wrap items-center gap-4 md:w-full lg:w-[500px]">
 						<div className="relative flex-1 min-w-[200px]">
 							<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 dark:text-slate-500 h-4 w-4" />
 							<Input
@@ -183,23 +184,38 @@ export default function CheckClockEmployeeTab() {
 								onChange={(event) => {
 									const newNameFilter = event.target.value;
 									setNameFilter(newNameFilter);
-									table
-										.getColumn("employee_name")
-										?.setFilterValue(newNameFilter);
+									// Apply quick name filter
+									applyFilters({ ...filters, name: newNameFilter || undefined });
 								}}
 								className="pl-10 w-full bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-md"
-								placeholder="Search by employee name..."
+								placeholder="Quick search by employee name..."
 							/>
 						</div>
 						<Button
+							onClick={() => setShowAdvancedFilter(!showAdvancedFilter)}
 							variant="outline"
 							className="gap-2 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-800 dark:hover:text-slate-200 px-4 py-2 rounded-md"
 						>
 							<Filter className="h-4 w-4" />
-							Filter
+							{showAdvancedFilter ? "Hide Filters" : "Advanced Filters"}
 						</Button>
 					</div>
 				</header>
+
+				{/* Advanced Filter Component */}
+				<CheckClockEmployeeFilter
+					onApplyFilters={(newFilters) => {
+						applyFilters(newFilters);
+						// Update name filter state if changed through advanced filter
+						setNameFilter(newFilters.name || "");
+					}}
+					onResetFilters={() => {
+						resetFilters();
+						setNameFilter("");
+					}}
+					currentFilters={filters}
+					isVisible={showAdvancedFilter}
+				/>
 
 				{isLoading ? (
 					<div className="flex justify-center items-center py-8">

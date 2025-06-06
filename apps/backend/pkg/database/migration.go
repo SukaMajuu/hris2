@@ -42,10 +42,9 @@ func Migrate(db *gorm.DB) error {
 		-- Work Type Detail Enum (New)
 		DROP TYPE IF EXISTS worktype_detail CASCADE;
 		CREATE TYPE worktype_detail AS ENUM ('WFO', 'WFA');
-
 		-- leave_type Enum (New)
 		DROP TYPE IF EXISTS leave_type CASCADE;
-		CREATE TYPE leave_type AS ENUM ('sick_leave', 'annual_leave', 'maternity_leave', 'compassionate_leave', 'marriage Leave');
+		CREATE TYPE leave_type AS ENUM ('sick_leave', 'annual_leave', 'maternity_leave', 'compassionate_leave', 'marriage_leave');
 
 		-- attendance_status (new)
 		DROP TYPE IF EXISTS attendance_status CASCADE;

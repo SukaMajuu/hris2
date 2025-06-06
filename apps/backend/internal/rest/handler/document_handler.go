@@ -5,8 +5,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"strings"
-	"time"
 
 	respDocumentDTO "github.com/SukaMajuu/hris/apps/backend/domain/dto/document"
 	reqDocumentDTO "github.com/SukaMajuu/hris/apps/backend/internal/rest/dto/document"
@@ -25,21 +23,6 @@ func NewDocumentHandler(useCase *documentUseCase.DocumentUseCase) *DocumentHandl
 	}
 }
 
-var allowedMimeTypes = []string{
-	"application/pdf",
-	"application/msword",
-	"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-}
-
-func isAllowedMimeType(mimeType string) bool {
-	for _, allowed := range allowedMimeTypes {
-		if strings.EqualFold(mimeType, allowed) {
-			return true
-		}
-	}
-	return false
-}
-
 func (h *DocumentHandler) UploadDocument(c *gin.Context) {
 	var reqDTO reqDocumentDTO.UploadDocumentRequestDTO
 
@@ -49,28 +32,15 @@ func (h *DocumentHandler) UploadDocument(c *gin.Context) {
 		return
 	}
 
-	userIDCtx, exists := c.Get("userID")
-	if !exists {
-		log.Printf("DocumentHandler: User ID not found in context")
-		response.Unauthorized(c, "User ID not found in context", fmt.Errorf("missing userID in context"))
-		return
-	}
-	userID, ok := userIDCtx.(uint)
-	if !ok {
-		log.Printf("DocumentHandler: Invalid user ID type in context")
-		response.InternalServerError(c, fmt.Errorf("invalid user ID type in context"))
+	userID, err := h.getUserIDFromContext(c)
+	if err != nil {
 		return
 	}
 
-	if reqDTO.File != nil {
-		mimeType := reqDTO.File.Header.Get("Content-Type")
-		log.Printf("DocumentHandler: File MIME type detected: %s", mimeType)
-
-		if !isAllowedMimeType(mimeType) {
-			log.Printf("DocumentHandler: MIME type not allowed: %s", mimeType)
-			response.BadRequest(c, fmt.Sprintf("File type not allowed. Detected: %s. Allowed types: %s", mimeType, strings.Join(allowedMimeTypes, ", ")), nil)
-			return
-		}
+	if err := reqDTO.ValidateFileType(); err != nil {
+		log.Printf("DocumentHandler: File validation failed: %v", err)
+		response.BadRequest(c, err.Error(), nil)
+		return
 	}
 
 	log.Printf("DocumentHandler: Uploading document for user ID: %d", userID)
@@ -82,29 +52,13 @@ func (h *DocumentHandler) UploadDocument(c *gin.Context) {
 		return
 	}
 
-	respDTO := respDocumentDTO.DocumentResponseDTO{
-		ID:         document.ID,
-		EmployeeID: document.EmployeeID,
-		Name:       document.Name,
-		URL:        document.URL,
-		CreatedAt:  document.CreatedAt.Format(time.RFC3339),
-		UpdatedAt:  document.UpdatedAt.Format(time.RFC3339),
-	}
-
+	respDTO := respDocumentDTO.ToDocumentResponseDTO(document)
 	response.Success(c, http.StatusCreated, "Document uploaded successfully", respDTO)
 }
 
 func (h *DocumentHandler) GetDocuments(c *gin.Context) {
-	userIDCtx, exists := c.Get("userID")
-	if !exists {
-		log.Printf("DocumentHandler: User ID not found in context")
-		response.Unauthorized(c, "User ID not found in context", fmt.Errorf("missing userID in context"))
-		return
-	}
-	userID, ok := userIDCtx.(uint)
-	if !ok {
-		log.Printf("DocumentHandler: Invalid user ID type in context")
-		response.InternalServerError(c, fmt.Errorf("invalid user ID type in context"))
+	userID, err := h.getUserIDFromContext(c)
+	if err != nil {
 		return
 	}
 
@@ -119,35 +73,21 @@ func (h *DocumentHandler) GetDocuments(c *gin.Context) {
 
 	log.Printf("DocumentHandler: Found %d documents for user ID %d", len(documents), userID)
 
-	var respDTOs []respDocumentDTO.DocumentResponseDTO
-	for i, doc := range documents {
-		log.Printf("DocumentHandler: Processing document %d: ID=%d, Name=%s", i+1, doc.ID, doc.Name)
-		respDTOs = append(respDTOs, respDocumentDTO.DocumentResponseDTO{
-			ID:         doc.ID,
-			EmployeeID: doc.EmployeeID,
-			Name:       doc.Name,
-			URL:        doc.URL,
-			CreatedAt:  doc.CreatedAt.Format(time.RFC3339),
-			UpdatedAt:  doc.UpdatedAt.Format(time.RFC3339),
-		})
-	}
+	respDTOs := respDocumentDTO.ToDocumentResponseDTOList(documents)
 
 	log.Printf("DocumentHandler: Returning %d documents as response", len(respDTOs))
 	response.Success(c, http.StatusOK, "Your documents retrieved successfully", respDTOs)
 }
 
 func (h *DocumentHandler) DeleteDocument(c *gin.Context) {
-	idParam := c.Param("id")
-	id, err := strconv.ParseUint(idParam, 10, 32)
+	id, err := h.parseIDParam(c, "id")
 	if err != nil {
-		log.Printf("DocumentHandler: Invalid document ID: %s", idParam)
-		response.BadRequest(c, "Invalid document ID", err)
 		return
 	}
 
 	log.Printf("DocumentHandler: Deleting document with ID: %d", id)
 
-	err = h.documentUseCase.DeleteDocument(c.Request.Context(), uint(id))
+	err = h.documentUseCase.DeleteDocument(c.Request.Context(), id)
 	if err != nil {
 		log.Printf("DocumentHandler: Error deleting document: %v", err)
 		response.InternalServerError(c, fmt.Errorf("failed to delete document"))
@@ -158,11 +98,8 @@ func (h *DocumentHandler) DeleteDocument(c *gin.Context) {
 }
 
 func (h *DocumentHandler) UploadDocumentForEmployee(c *gin.Context) {
-	employeeIDParam := c.Param("id")
-	employeeID, err := strconv.ParseUint(employeeIDParam, 10, 32)
+	employeeID, err := h.parseIDParam(c, "id")
 	if err != nil {
-		log.Printf("DocumentHandler: Invalid employee ID: %s", employeeIDParam)
-		response.BadRequest(c, "Invalid employee ID", err)
 		return
 	}
 
@@ -174,50 +111,34 @@ func (h *DocumentHandler) UploadDocumentForEmployee(c *gin.Context) {
 		return
 	}
 
-	if reqDTO.File != nil {
-		mimeType := reqDTO.File.Header.Get("Content-Type")
-		log.Printf("DocumentHandler: File MIME type detected: %s", mimeType)
-
-		if !isAllowedMimeType(mimeType) {
-			log.Printf("DocumentHandler: MIME type not allowed: %s", mimeType)
-			response.BadRequest(c, fmt.Sprintf("File type not allowed. Detected: %s. Allowed types: %s", mimeType, strings.Join(allowedMimeTypes, ", ")), nil)
-			return
-		}
+	if err := reqDTO.ValidateFileType(); err != nil {
+		log.Printf("DocumentHandler: File validation failed: %v", err)
+		response.BadRequest(c, err.Error(), nil)
+		return
 	}
 
 	log.Printf("DocumentHandler: Uploading document for employee ID: %d", employeeID)
 
-	document, err := h.documentUseCase.UploadDocumentForEmployee(c.Request.Context(), uint(employeeID), reqDTO.File)
+	document, err := h.documentUseCase.UploadDocumentForEmployee(c.Request.Context(), employeeID, reqDTO.File)
 	if err != nil {
 		log.Printf("DocumentHandler: Error uploading document for employee: %v", err)
 		response.InternalServerError(c, fmt.Errorf("failed to upload document"))
 		return
 	}
 
-	respDTO := respDocumentDTO.DocumentResponseDTO{
-		ID:         document.ID,
-		EmployeeID: document.EmployeeID,
-		Name:       document.Name,
-		URL:        document.URL,
-		CreatedAt:  document.CreatedAt.Format(time.RFC3339),
-		UpdatedAt:  document.UpdatedAt.Format(time.RFC3339),
-	}
-
+	respDTO := respDocumentDTO.ToDocumentResponseDTO(document)
 	response.Success(c, http.StatusCreated, "Document uploaded successfully", respDTO)
 }
 
 func (h *DocumentHandler) GetDocumentsByEmployee(c *gin.Context) {
-	employeeIDParam := c.Param("id")
-	employeeID, err := strconv.ParseUint(employeeIDParam, 10, 32)
+	employeeID, err := h.parseIDParam(c, "id")
 	if err != nil {
-		log.Printf("DocumentHandler: Invalid employee ID: %s", employeeIDParam)
-		response.BadRequest(c, "Invalid employee ID", err)
 		return
 	}
 
 	log.Printf("DocumentHandler: Getting documents for employee ID: %d", employeeID)
 
-	documents, err := h.documentUseCase.GetDocumentsByEmployeeID(c.Request.Context(), uint(employeeID))
+	documents, err := h.documentUseCase.GetDocumentsByEmployeeID(c.Request.Context(), employeeID)
 	if err != nil {
 		log.Printf("DocumentHandler: Error getting documents for employee ID %d: %v", employeeID, err)
 		response.InternalServerError(c, fmt.Errorf("failed to retrieve employee documents"))
@@ -226,19 +147,36 @@ func (h *DocumentHandler) GetDocumentsByEmployee(c *gin.Context) {
 
 	log.Printf("DocumentHandler: Found %d documents for employee ID %d", len(documents), employeeID)
 
-	var respDTOs []respDocumentDTO.DocumentResponseDTO
-	for i, doc := range documents {
-		log.Printf("DocumentHandler: Processing document %d: ID=%d, Name=%s", i+1, doc.ID, doc.Name)
-		respDTOs = append(respDTOs, respDocumentDTO.DocumentResponseDTO{
-			ID:         doc.ID,
-			EmployeeID: doc.EmployeeID,
-			Name:       doc.Name,
-			URL:        doc.URL,
-			CreatedAt:  doc.CreatedAt.Format(time.RFC3339),
-			UpdatedAt:  doc.UpdatedAt.Format(time.RFC3339),
-		})
-	}
+	respDTOs := respDocumentDTO.ToDocumentResponseDTOList(documents)
 
 	log.Printf("DocumentHandler: Returning %d documents as response", len(respDTOs))
 	response.Success(c, http.StatusOK, "Employee documents retrieved successfully", respDTOs)
+}
+
+// Helper functions
+func (h *DocumentHandler) getUserIDFromContext(c *gin.Context) (uint, error) {
+	userIDCtx, exists := c.Get("userID")
+	if !exists {
+		log.Printf("DocumentHandler: User ID not found in context")
+		response.Unauthorized(c, "User ID not found in context", fmt.Errorf("missing userID in context"))
+		return 0, fmt.Errorf("missing userID in context")
+	}
+	userID, ok := userIDCtx.(uint)
+	if !ok {
+		log.Printf("DocumentHandler: Invalid user ID type in context")
+		response.InternalServerError(c, fmt.Errorf("invalid user ID type in context"))
+		return 0, fmt.Errorf("invalid user ID type in context")
+	}
+	return userID, nil
+}
+
+func (h *DocumentHandler) parseIDParam(c *gin.Context, paramName string) (uint, error) {
+	idParam := c.Param(paramName)
+	id, err := strconv.ParseUint(idParam, 10, 32)
+	if err != nil {
+		log.Printf("DocumentHandler: Invalid %s: %s", paramName, idParam)
+		response.BadRequest(c, fmt.Sprintf("Invalid %s", paramName), err)
+		return 0, err
+	}
+	return uint(id), nil
 }

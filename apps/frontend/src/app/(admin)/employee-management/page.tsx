@@ -167,6 +167,7 @@ export default function EmployeeManagementPage() {
             setGenderFilter={setGenderFilter}
             statusFilter={statusFilter}
             setStatusFilter={setStatusFilter}
+            onEmployeesChange={refetchEmployees}
           />
 
           <DataTable table={table} />

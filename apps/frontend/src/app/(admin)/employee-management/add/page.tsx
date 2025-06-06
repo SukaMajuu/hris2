@@ -26,6 +26,7 @@ export default function AddEmployeePage() {
     handleSubmit,
     goToStep,
     isStepValid,
+    handleValidationChange,
   } = useAddEmployeeForm();
 
   const renderStepContent = () => {
@@ -37,6 +38,7 @@ export default function AddEmployeePage() {
             errors={errors}
             onInputChange={handleInputChange}
             onSelectChange={handleSelectChange}
+            onValidationChange={handleValidationChange}
           />
         );
       case 2:

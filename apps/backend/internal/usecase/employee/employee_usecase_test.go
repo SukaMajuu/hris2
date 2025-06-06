@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
 	dtoemployee "github.com/SukaMajuu/hris/apps/backend/domain/dto/employee"
@@ -31,6 +32,9 @@ func TestEmployeeUseCase_List(t *testing.T) {
 		expectedGenderDTO = &genderStr
 	}
 
+	zeroTime := time.Time{}
+	formattedZeroTime := zeroTime.Format(time.RFC3339)
+
 	expectedEmployeeDTO := &dtoemployee.EmployeeResponseDTO{
 		ID:               mockDomainEmp.ID,
 		FirstName:        mockDomainEmp.FirstName,
@@ -40,6 +44,8 @@ func TestEmployeeUseCase_List(t *testing.T) {
 		PositionName:     mockDomainEmp.PositionName,
 		Grade:            mockDomainEmp.Grade,
 		EmploymentStatus: mockDomainEmp.EmploymentStatus,
+		CreatedAt:        formattedZeroTime,
+		UpdatedAt:        formattedZeroTime,
 	}
 
 	if mockDomainEmp.Branch != nil {

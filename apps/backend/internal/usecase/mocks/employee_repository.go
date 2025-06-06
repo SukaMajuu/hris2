@@ -40,6 +40,14 @@ func (m *EmployeeRepository) GetByEmployeeCode(ctx context.Context, employeeCode
 	return args.Get(0).(*domain.Employee), args.Error(1)
 }
 
+func (m *EmployeeRepository) GetByNIK(ctx context.Context, nik string) (*domain.Employee, error) {
+	args := m.Called(ctx, nik)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*domain.Employee), args.Error(1)
+}
+
 func (m *EmployeeRepository) Update(ctx context.Context, employee *domain.Employee) error {
 	args := m.Called(ctx, employee)
 	return args.Error(0)

@@ -43,23 +43,32 @@ func NewDocumentUseCase(
 }
 
 func (uc *DocumentUseCase) UploadDocument(ctx context.Context, userID uint, file *multipart.FileHeader) (*domain.Document, error) {
-
 	employee, err := uc.employeeRepo.GetByUserID(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get employee: %w", err)
 	}
 
+	return uc.uploadDocumentToStorage(ctx, employee, file)
+}
+
+func (uc *DocumentUseCase) UploadDocumentForEmployee(ctx context.Context, employeeID uint, file *multipart.FileHeader) (*domain.Document, error) {
+	employee, err := uc.employeeRepo.GetByID(ctx, employeeID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get employee: %w", err)
+	}
+
+	return uc.uploadDocumentToStorage(ctx, employee, file)
+}
+
+// uploadDocumentToStorage centralizes the common upload logic
+func (uc *DocumentUseCase) uploadDocumentToStorage(ctx context.Context, employee *domain.Employee, file *multipart.FileHeader) (*domain.Document, error) {
 	fileName := uc.generateFileName(employee, file.Filename)
 
 	src, err := file.Open()
 	if err != nil {
 		return nil, fmt.Errorf("failed to open uploaded file: %w", err)
 	}
-	defer func() {
-		if closeErr := src.Close(); closeErr != nil {
-			fmt.Printf("Warning: failed to close file: %v", closeErr)
-		}
-	}()
+	defer uc.closeFile(src)
 
 	if uc.supabaseClient == nil || uc.supabaseClient.Storage == nil {
 		return nil, fmt.Errorf("storage client not available")
@@ -86,11 +95,7 @@ func (uc *DocumentUseCase) UploadDocument(ctx context.Context, userID uint, file
 
 	err = uc.documentRepo.Create(ctx, document)
 	if err != nil {
-		if uc.supabaseClient != nil && uc.supabaseClient.Storage != nil {
-			if _, removeErr := uc.supabaseClient.Storage.RemoveFile(bucketName, []string{fileName}); removeErr != nil {
-				fmt.Printf("Warning: failed to cleanup uploaded file: %v", removeErr)
-			}
-		}
+		uc.cleanupUploadedFile(fileName)
 		return nil, fmt.Errorf("failed to create document record: %w", err)
 	}
 
@@ -126,13 +131,23 @@ func (uc *DocumentUseCase) DeleteDocument(ctx context.Context, id uint) error {
 		return fmt.Errorf("failed to delete document from database: %w", err)
 	}
 
+	uc.cleanupUploadedFile(document.Name)
+	return nil
+}
+
+// Helper functions
+func (uc *DocumentUseCase) closeFile(src multipart.File) {
+	if closeErr := src.Close(); closeErr != nil {
+		fmt.Printf("Warning: failed to close file: %v", closeErr)
+	}
+}
+
+func (uc *DocumentUseCase) cleanupUploadedFile(fileName string) {
 	if uc.supabaseClient != nil && uc.supabaseClient.Storage != nil {
-		if _, err = uc.supabaseClient.Storage.RemoveFile(bucketName, []string{document.Name}); err != nil {
-			fmt.Printf("Warning: failed to delete file from storage: %v", err)
+		if _, err := uc.supabaseClient.Storage.RemoveFile(bucketName, []string{fileName}); err != nil {
+			fmt.Printf("Warning: failed to cleanup uploaded file: %v", err)
 		}
 	}
-
-	return nil
 }
 
 func (uc *DocumentUseCase) generateFileName(employee *domain.Employee, originalFilename string) string {
@@ -146,6 +161,11 @@ func (uc *DocumentUseCase) generateFileName(employee *domain.Employee, originalF
 	baseName := fmt.Sprintf("%s %s_Documents", employee.FirstName, lastName)
 	baseName = strings.ReplaceAll(baseName, " ", "_")
 
+	randomNumber := uc.generateRandomNumber()
+	return fmt.Sprintf("%s_%s%s", baseName, randomNumber, ext)
+}
+
+func (uc *DocumentUseCase) generateRandomNumber() string {
 	min := big.NewInt(100000000000000)
 	max := big.NewInt(999999999999999)
 	rangeNum := new(big.Int).Sub(max, min)
@@ -155,9 +175,7 @@ func (uc *DocumentUseCase) generateFileName(employee *domain.Employee, originalF
 		randomInRange = big.NewInt(123456789012345)
 	}
 
-	randomNumber := new(big.Int).Add(randomInRange, min)
-
-	return fmt.Sprintf("%s_%s%s", baseName, randomNumber.String(), ext)
+	return new(big.Int).Add(randomInRange, min).String()
 }
 
 func (uc *DocumentUseCase) getContentTypeFromExtension(filename string) string {
@@ -172,58 +190,4 @@ func (uc *DocumentUseCase) getContentTypeFromExtension(filename string) string {
 	default:
 		return mimeTypeOctet
 	}
-}
-
-func (uc *DocumentUseCase) UploadDocumentForEmployee(ctx context.Context, employeeID uint, file *multipart.FileHeader) (*domain.Document, error) {
-	employee, err := uc.employeeRepo.GetByID(ctx, employeeID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get employee: %w", err)
-	}
-
-	fileName := uc.generateFileName(employee, file.Filename)
-
-	src, err := file.Open()
-	if err != nil {
-		return nil, fmt.Errorf("failed to open uploaded file: %w", err)
-	}
-	defer func() {
-		if closeErr := src.Close(); closeErr != nil {
-			fmt.Printf("Warning: failed to close file: %v", closeErr)
-		}
-	}()
-
-	if uc.supabaseClient == nil || uc.supabaseClient.Storage == nil {
-		return nil, fmt.Errorf("storage client not available")
-	}
-
-	_, err = uc.supabaseClient.Storage.UploadFile(bucketName, fileName, src, storage.FileOptions{
-		ContentType: &[]string{uc.getContentTypeFromExtension(file.Filename)}[0],
-		Upsert:      &[]bool{true}[0],
-	})
-	if err != nil {
-		fmt.Printf("UseCase: Upload failed with error: %v\n", err)
-		return nil, fmt.Errorf("failed to upload file to storage: %w", err)
-	}
-
-	fmt.Printf("UseCase: Upload successful!\n")
-
-	publicURL := uc.supabaseClient.Storage.GetPublicUrl(bucketName, fileName)
-
-	document := &domain.Document{
-		EmployeeID: employee.ID,
-		Name:       fileName,
-		URL:        publicURL.SignedURL,
-	}
-
-	err = uc.documentRepo.Create(ctx, document)
-	if err != nil {
-		if uc.supabaseClient != nil && uc.supabaseClient.Storage != nil {
-			if _, removeErr := uc.supabaseClient.Storage.RemoveFile(bucketName, []string{fileName}); removeErr != nil {
-				fmt.Printf("Warning: failed to cleanup uploaded file: %v", removeErr)
-			}
-		}
-		return nil, fmt.Errorf("failed to create document record: %w", err)
-	}
-
-	return document, nil
 }

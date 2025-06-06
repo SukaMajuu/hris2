@@ -2994,381 +2994,7 @@ paths:
                                         type: string
                                         example: "Failed to create check clock setting"
 
-    /employee-documents:
-        post:
-            tags: [Employee Documents]
-            summary: Upload a new employee document
-            requestBody:
-                required: true
-                content:
-                    application/json:
-                        schema:
-                            type: object
-                            required:
-                                - employee_id
-                                - title
-                                - document_url
-                            properties:
-                                employee_id:
-                                    type: integer
-                                    example: 1
-                                title:
-                                    type: string
-                                    example: "Employment Contract"
-                                document_url:
-                                    type: string
-                                    example: "https://storage.example.com/documents/contract.pdf"
-                                status:
-                                    type: string
-                                    enum: [draft, active]
-                                    example: "draft"
-            responses:
-                201:
-                    description: Document uploaded successfully
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    status:
-                                        type: integer
-                                        example: 201
-                                    message:
-                                        type: string
-                                        example: "Document uploaded successfully"
-                                    data:
-                                        type: object
-                                        properties:
-                                            id:
-                                                type: integer
-                                                example: 1
-                                            employee_id:
-                                                type: integer
-                                                example: 1
-                                            title:
-                                                type: string
-                                                example: "Employment Contract"
-                                            document_url:
-                                                type: string
-                                                example: "https://storage.example.com/documents/contract.pdf"
-                                            created_at:
-                                                type: string
-                                                format: date-time
-                                                example: "2024-03-15T10:30:00Z"
-                400:
-                    description: Bad request
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    status:
-                                        type: integer
-                                        example: 400
-                                    message:
-                                        type: string
-                                        example: "Invalid request"
-                                    error:
-                                        type: string
-                                        example: "Missing required fields"
-                500:
-                    description: Internal server error
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    status:
-                                        type: integer
-                                        example: 500
-                                    message:
-                                        type: string
-                                        example: "Internal server error"
-                                    error:
-                                        type: string
-                                        example: "Failed to upload document"
 
-        get:
-            tags: [Employee Documents]
-            summary: Get all employee documents
-            parameters:
-                - in: query
-                  name: employee_id
-                  schema:
-                      type: integer
-            responses:
-                200:
-                    description: List of employee documents retrieved successfully
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    status:
-                                        type: integer
-                                        example: 200
-                                    message:
-                                        type: string
-                                        example: "Documents retrieved successfully"
-                                    data:
-                                        type: array
-                                        items:
-                                            type: object
-                                            properties:
-                                                id:
-                                                    type: integer
-                                                    example: 1
-                                                employee_id:
-                                                    type: integer
-                                                    example: 1
-                                                title:
-                                                    type: string
-                                                    example: "Employment Contract"
-                                                document_url:
-                                                    type: string
-                                                    example: "https://storage.example.com/documents/contract.pdf"
-                                                created_at:
-                                                    type: string
-                                                    format: date-time
-                                                    example: "2024-03-15T10:30:00Z"
-                500:
-                    description: Internal server error
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    status:
-                                        type: integer
-                                        example: 500
-                                    message:
-                                        type: string
-                                        example: "Internal server error"
-                                    error:
-                                        type: string
-                                        example: "Failed to retrieve documents"
-
-    /employee-documents/{id}:
-        get:
-            tags: [Employee Documents]
-            summary: Get a specific employee document by ID
-            parameters:
-                - in: path
-                  name: id
-                  required: true
-                  schema:
-                      type: integer
-            responses:
-                200:
-                    description: Document details retrieved successfully
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    status:
-                                        type: integer
-                                        example: 200
-                                    message:
-                                        type: string
-                                        example: "Document retrieved successfully"
-                                    data:
-                                        type: object
-                                        properties:
-                                            id:
-                                                type: integer
-                                                example: 1
-                                            employee_id:
-                                                type: integer
-                                                example: 1
-                                            title:
-                                                type: string
-                                                example: "Employment Contract"
-                                            document_url:
-                                                type: string
-                                                example: "https://storage.example.com/documents/contract.pdf"
-                                            created_at:
-                                                type: string
-                                                format: date-time
-                                                example: "2024-03-15T10:30:00Z"
-                404:
-                    description: Document not found
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    status:
-                                        type: integer
-                                        example: 404
-                                    message:
-                                        type: string
-                                        example: "Not found"
-                                    error:
-                                        type: string
-                                        example: "Document not found"
-                500:
-                    description: Internal server error
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    status:
-                                        type: integer
-                                        example: 500
-                                    message:
-                                        type: string
-                                        example: "Internal server error"
-                                    error:
-                                        type: string
-                                        example: "Failed to retrieve document"
-
-        patch:
-            tags: [Employee Documents]
-            summary: Update document details
-            description: Update document title or URL
-            parameters:
-                - in: path
-                  name: id
-                  required: true
-                  schema:
-                      type: integer
-            requestBody:
-                required: true
-                content:
-                    application/json:
-                        schema:
-                            type: object
-                            properties:
-                                title:
-                                    type: string
-                                    example: "Updated Contract"
-                                document_url:
-                                    type: string
-                                    example: "https://storage.example.com/documents/contract_v2.pdf"
-            responses:
-                200:
-                    description: Document updated successfully
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    status:
-                                        type: integer
-                                        example: 200
-                                    message:
-                                        type: string
-                                        example: "Document updated successfully"
-                                    data:
-                                        type: object
-                                        properties:
-                                            id:
-                                                type: integer
-                                                example: 1
-                                            employee_id:
-                                                type: integer
-                                                example: 1
-                                            title:
-                                                type: string
-                                                example: "Updated Contract"
-                                            document_url:
-                                                type: string
-                                                example: "https://storage.example.com/documents/contract_v2.pdf"
-                                            created_at:
-                                                type: string
-                                                format: date-time
-                                                example: "2024-03-15T10:30:00Z"
-                404:
-                    description: Document not found
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    status:
-                                        type: integer
-                                        example: 404
-                                    message:
-                                        type: string
-                                        example: "Not found"
-                                    error:
-                                        type: string
-                                        example: "Document not found"
-                500:
-                    description: Internal server error
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    status:
-                                        type: integer
-                                        example: 500
-                                    message:
-                                        type: string
-                                        example: "Internal server error"
-                                    error:
-                                        type: string
-                                        example: "Failed to update document"
-
-        delete:
-            tags: [Employee Documents]
-            summary: Delete document
-            description: Permanently delete a document
-            parameters:
-                - in: path
-                  name: id
-                  required: true
-                  schema:
-                      type: integer
-            responses:
-                200:
-                    description: Document deleted successfully
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    status:
-                                        type: integer
-                                        example: 200
-                                    message:
-                                        type: string
-                                        example: "Document deleted successfully"
-                404:
-                    description: Document not found
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    status:
-                                        type: integer
-                                        example: 404
-                                    message:
-                                        type: string
-                                        example: "Not found"
-                                    error:
-                                        type: string
-                                        example: "Document not found"
-                500:
-                    description: Internal server error
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    status:
-                                        type: integer
-                                        example: 500
-                                    message:
-                                        type: string
-                                        example: "Internal server error"
-                                    error:
-                                        type: string
-                                        example: "Failed to delete document"
 
         /api/attendances/check-in:
             post:
@@ -4409,59 +4035,87 @@ paths:
                 500:
                     description: Internal server error
 
-        /api/documents/{id}:
-            delete:
-                tags: [Documents]
-                summary: Delete document
-                description: Delete a document by its ID. This will remove both the database record and the file from Supabase storage.
-                security:
-                    - bearerAuth: []
-                parameters:
-                    - in: path
-                      name: id
-                      required: true
-                      schema:
-                          type: integer
-                          format: uint
-                      description: The document ID
-                      example: 1
-                responses:
-                    200:
-                        description: Document deleted successfully
-                        content:
-                            application/json:
-                                schema:
-                                    type: object
-                                    properties:
-                                        status:
-                                            type: integer
-                                            example: 200
-                                        message:
-                                            type: string
-                                            example: "Document deleted successfully"
-                                        data:
-                                            type: object
-                                            nullable: true
-                    400:
-                        description: Invalid document ID
-                        content:
-                            application/json:
-                                schema:
-                                    type: object
-                                    properties:
-                                        status:
-                                            type: integer
-                                            example: 400
-                                        message:
-                                            type: string
-                                            example: "Invalid document ID"
-                                        error:
-                                            type: string
-                                            example: 'strconv.ParseUint: parsing "abc": invalid syntax'
-                    404:
-                        description: Document not found
-                    500:
-                        description: Internal server error
+    /api/documents/{id}:
+        delete:
+            tags: [Documents]
+            summary: Delete document
+            description: Delete a document by its ID. This will remove both the database record and the file from Supabase storage.
+            security:
+                - bearerAuth: []
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: integer
+                      format: uint
+                  description: The document ID
+                  example: 1
+            responses:
+                200:
+                    description: Document deleted successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "Document deleted successfully"
+                                    data:
+                                        type: object
+                                        nullable: true
+                400:
+                    description: Invalid document ID
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 400
+                                    message:
+                                        type: string
+                                        example: "Invalid document ID"
+                                    error:
+                                        type: string
+                                        example: 'strconv.ParseUint: parsing "abc": invalid syntax'
+                404:
+                    description: Document not found
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 404
+                                    message:
+                                        type: string
+                                        example: "Document not found"
+                                    error:
+                                        type: string
+                                        example: "Document not found"
+                500:
+                    description: Internal server error
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 500
+                                    message:
+                                        type: string
+                                        example: "Internal server error"
+                                    error:
+                                        type: string
+                                        example: "Failed to delete document"
 
     /health:
         get:
@@ -5910,6 +5564,549 @@ paths:
                     description: Leave request not found
                 500:
                     description: Internal server error
+
+    /api/employees/validate-unique:
+        get:
+            tags: [Employees]
+            summary: Validate unique field
+            description: Check if a field value is unique across all employees (useful for form validation)
+            security:
+                - bearerAuth: []
+            parameters:
+                - in: query
+                  name: field
+                  required: true
+                  description: Field type to validate
+                  schema:
+                      type: string
+                      enum: [email, nik, employee_code, phone]
+                      example: "email"
+                - in: query
+                  name: value
+                  required: true
+                  description: Value to check for uniqueness
+                  schema:
+                      type: string
+                      example: "john.doe@example.com"
+            responses:
+                "200":
+                    description: Field validation completed
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "Field validation completed"
+                                    data:
+                                        type: object
+                                        properties:
+                                            field:
+                                                type: string
+                                                example: "email"
+                                            value:
+                                                type: string
+                                                example: "john.doe@example.com"
+                                            exists:
+                                                type: boolean
+                                                example: false
+                                            message:
+                                                type: string
+                                                nullable: true
+                                                example: "Email 'john.doe@example.com' is already in use"
+                "400":
+                    description: Bad request
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 400
+                                    message:
+                                        type: string
+                                        example: "Both 'field' and 'value' query parameters are required"
+                "500":
+                    description: Internal server error
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 500
+                                    message:
+                                        type: string
+                                        example: "Internal server error"
+
+    /api/employees/bulk-import:
+        post:
+            tags: [Employees]
+            summary: Bulk import employees
+            description: Import multiple employees from a CSV or Excel file
+            security:
+                - bearerAuth: []
+            requestBody:
+                required: true
+                content:
+                    multipart/form-data:
+                        schema:
+                            type: object
+                            required:
+                                - file
+                            properties:
+                                file:
+                                    type: string
+                                    format: binary
+                                    description: "CSV or Excel file containing employee data. Required columns: email, first_name, position_id. Optional columns: last_name, phone, employee_code, branch_id, gender, nik, place_of_birth, date_of_birth, last_education, grade, contract_type, hire_date, bank_name, bank_account_number, bank_account_holder_name, tax_status"
+            responses:
+                "201":
+                    description: All employees imported successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 201
+                                    message:
+                                        type: string
+                                        example: "Successfully imported 5 employees"
+                                    data:
+                                        type: object
+                                        properties:
+                                            success_count:
+                                                type: integer
+                                                example: 5
+                                            error_count:
+                                                type: integer
+                                                example: 0
+                                            failed_rows:
+                                                type: array
+                                                items:
+                                                    type: object
+                                                    properties:
+                                                        row:
+                                                            type: integer
+                                                            example: 3
+                                                        errors:
+                                                            type: array
+                                                            items:
+                                                                type: object
+                                                                properties:
+                                                                    field:
+                                                                        type: string
+                                                                        example: "email"
+                                                                    message:
+                                                                        type: string
+                                                                        example: "Invalid email format"
+                                                                    value:
+                                                                        type: string
+                                                                        example: "invalid-email"
+                "206":
+                    description: Partial success - some employees imported with errors
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 206
+                                    message:
+                                        type: string
+                                        example: "Import completed with 3 successes and 2 errors"
+                                    data:
+                                        type: object
+                                        properties:
+                                            success_count:
+                                                type: integer
+                                                example: 3
+                                            error_count:
+                                                type: integer
+                                                example: 2
+                                            failed_rows:
+                                                type: array
+                                                items:
+                                                    type: object
+                                                    properties:
+                                                        row:
+                                                            type: integer
+                                                            example: 3
+                                                        errors:
+                                                            type: array
+                                                            items:
+                                                                type: object
+                                                                properties:
+                                                                    field:
+                                                                        type: string
+                                                                        example: "email"
+                                                                    message:
+                                                                        type: string
+                                                                        example: "Email already exists"
+                                                                    value:
+                                                                        type: string
+                                                                        example: "john.doe@example.com"
+                "400":
+                    description: Bad request
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 400
+                                    message:
+                                        type: string
+                                        example: "File contains validation errors"
+                "500":
+                    description: Internal server error
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 500
+                                    message:
+                                        type: string
+                                        example: "Internal server error"
+
+    /api/employees/{id}/photo:
+        post:
+            tags: [Employees]
+            summary: Upload employee profile photo
+            description: Upload or update profile photo for a specific employee
+            security:
+                - bearerAuth: []
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  description: Numeric ID of the employee
+                  schema:
+                      type: integer
+                      format: uint
+                      example: 1
+            requestBody:
+                required: true
+                content:
+                    multipart/form-data:
+                        schema:
+                            type: object
+                            required:
+                                - file
+                            properties:
+                                file:
+                                    type: string
+                                    format: binary
+                                    description: "Profile photo file (JPEG, PNG, GIF, WebP only)"
+            responses:
+                "200":
+                    description: Photo uploaded successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "Photo uploaded successfully"
+                                    data:
+                                        type: object
+                                        properties:
+                                            id:
+                                                type: integer
+                                                format: uint
+                                                example: 1
+                                            first_name:
+                                                type: string
+                                                example: "John"
+                                            last_name:
+                                                type: string
+                                                nullable: true
+                                                example: "Doe"
+                                            profile_photo_url:
+                                                type: string
+                                                format: url
+                                                example: "https://example.com/photos/employee_1.jpg"
+                                            created_at:
+                                                type: string
+                                                format: date-time
+                                                example: "2024-03-15T10:30:00Z"
+                                            updated_at:
+                                                type: string
+                                                format: date-time
+                                                example: "2024-03-15T10:30:00Z"
+                "400":
+                    description: Bad request
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 400
+                                    message:
+                                        type: string
+                                        example: "File type not allowed. Detected: application/pdf. Allowed types: image/jpeg, image/jpg, image/png, image/gif, image/webp"
+                "404":
+                    description: Employee not found
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 404
+                                    message:
+                                        type: string
+                                        example: "Employee not found"
+                "500":
+                    description: Internal server error
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 500
+                                    message:
+                                        type: string
+                                        example: "Internal server error"
+
+    /api/employees/{id}/documents:
+        get:
+            tags: [Employees]
+            summary: Get documents by employee
+            description: Retrieve all documents associated with a specific employee
+            security:
+                - bearerAuth: []
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  description: Numeric ID of the employee
+                  schema:
+                      type: integer
+                      format: uint
+                      example: 1
+            responses:
+                "200":
+                    description: Documents retrieved successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "Documents retrieved successfully"
+                                    data:
+                                        type: array
+                                        items:
+                                            type: object
+                                            properties:
+                                                id:
+                                                    type: integer
+                                                    format: uint
+                                                    example: 1
+                                                employee_id:
+                                                    type: integer
+                                                    format: uint
+                                                    example: 1
+                                                document_type:
+                                                    type: string
+                                                    example: "contract"
+                                                file_name:
+                                                    type: string
+                                                    example: "employment_contract.pdf"
+                                                file_url:
+                                                    type: string
+                                                    format: url
+                                                    example: "https://example.com/documents/contract_1.pdf"
+                                                file_size:
+                                                    type: integer
+                                                    format: int64
+                                                    example: 1024576
+                                                mime_type:
+                                                    type: string
+                                                    example: "application/pdf"
+                                                uploaded_at:
+                                                    type: string
+                                                    format: date-time
+                                                    example: "2024-03-15T10:30:00Z"
+                "404":
+                    description: Employee not found
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 404
+                                    message:
+                                        type: string
+                                        example: "Employee not found"
+                "500":
+                    description: Internal server error
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 500
+                                    message:
+                                        type: string
+                                        example: "Internal server error"
+
+        post:
+            tags: [Employees]
+            summary: Upload document for employee
+            description: Upload a document and associate it with a specific employee
+            security:
+                - bearerAuth: []
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  description: Numeric ID of the employee
+                  schema:
+                      type: integer
+                      format: uint
+                      example: 1
+            requestBody:
+                required: true
+                content:
+                    multipart/form-data:
+                        schema:
+                            type: object
+                            required:
+                                - file
+                                - document_type
+                            properties:
+                                file:
+                                    type: string
+                                    format: binary
+                                    description: "Document file to upload"
+                                document_type:
+                                    type: string
+                                    description: "Type of document being uploaded"
+                                    example: "contract"
+                                description:
+                                    type: string
+                                    description: "Optional description of the document"
+                                    example: "Employment contract for John Doe"
+            responses:
+                "201":
+                    description: Document uploaded successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 201
+                                    message:
+                                        type: string
+                                        example: "Document uploaded successfully"
+                                    data:
+                                        type: object
+                                        properties:
+                                            id:
+                                                type: integer
+                                                format: uint
+                                                example: 1
+                                            employee_id:
+                                                type: integer
+                                                format: uint
+                                                example: 1
+                                            document_type:
+                                                type: string
+                                                example: "contract"
+                                            file_name:
+                                                type: string
+                                                example: "employment_contract.pdf"
+                                            file_url:
+                                                type: string
+                                                format: url
+                                                example: "https://example.com/documents/contract_1.pdf"
+                                            file_size:
+                                                type: integer
+                                                format: int64
+                                                example: 1024576
+                                            mime_type:
+                                                type: string
+                                                example: "application/pdf"
+                                            description:
+                                                type: string
+                                                nullable: true
+                                                example: "Employment contract for John Doe"
+                                            uploaded_at:
+                                                type: string
+                                                format: date-time
+                                                example: "2024-03-15T10:30:00Z"
+                "400":
+                    description: Bad request
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 400
+                                    message:
+                                        type: string
+                                        example: "Invalid request format"
+                "404":
+                    description: Employee not found
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 404
+                                    message:
+                                        type: string
+                                        example: "Employee not found"
+                "500":
+                    description: Internal server error
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 500
+                                    message:
+                                        type: string
+                                        example: "Internal server error"
 
 security:
     - bearerAuth: []

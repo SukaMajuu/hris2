@@ -82,6 +82,7 @@ const initialFormData: FormEmployeeData = {
 
 export function useAddEmployeeForm() {
   const [activeStep, setActiveStep] = useState(1);
+  const [hasRealtimeValidationErrors, setHasRealtimeValidationErrors] = useState(false);
   const profilePhotoInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
@@ -131,7 +132,31 @@ export function useAddEmployeeForm() {
         }
       }
     } else {
-      setValue(name as keyof FormEmployeeData, value);
+      // Handle numeric-only fields
+      let processedValue = value;
+
+      if (name === 'nik') {
+        // Only allow numbers for NIK, max 16 digits
+        processedValue = value.replace(/\D/g, '').slice(0, 16);
+      } else if (name === 'phoneNumber') {
+        // Allow + at the beginning and numbers only
+        if (value.startsWith('+')) {
+          processedValue = '+' + value.slice(1).replace(/\D/g, '');
+        } else if (value === '') {
+          processedValue = '';
+        } else {
+          // If user types without +, add + and keep only numbers
+          processedValue = '+' + value.replace(/\D/g, '');
+        }
+      } else if (name === 'bankAccountNumber') {
+        // Only allow numbers for bank account number
+        processedValue = value.replace(/\D/g, '');
+      } else if (name === 'dateOfBirth') {
+        // For date inputs, ensure the value is in correct format
+        processedValue = value;
+      }
+
+      setValue(name as keyof FormEmployeeData, processedValue);
     }
   };
 
@@ -158,6 +183,12 @@ export function useAddEmployeeForm() {
 
   const handleNextStep = async () => {
     console.log('HandleNextStep called for step:', activeStep);
+
+    // Check for real-time validation errors on step 1 (Personal Information)
+    if (activeStep === 1 && hasRealtimeValidationErrors) {
+      console.log('Cannot proceed: Real-time validation errors detected');
+      return;
+    }
 
     const stepFields = {
       1: [
@@ -197,6 +228,10 @@ export function useAddEmployeeForm() {
     if (activeStep > 1) {
       setActiveStep((prev) => prev - 1);
     }
+  };
+
+  const handleValidationChange = (hasErrors: boolean) => {
+    setHasRealtimeValidationErrors(hasErrors);
   };
 
   const handleRemovePhoto = () => {
@@ -276,14 +311,23 @@ export function useAddEmployeeForm() {
   };
 
   const goToStep = async (stepNumber: number) => {
+    // Only allow going back to previous steps, not forward to incomplete steps
     if (stepNumber <= activeStep) {
       setActiveStep(stepNumber);
       return;
     }
 
+    // Check if we can proceed forward step by step
     let canProceed = true;
 
     for (let step = activeStep; step < stepNumber; step++) {
+      // Check for real-time validation errors on step 1 (Personal Information)
+      if (step === 1 && hasRealtimeValidationErrors) {
+        console.log('Cannot proceed: Real-time validation errors detected');
+        canProceed = false;
+        break;
+      }
+
       const stepFields = {
         1: [
           'firstName',
@@ -306,7 +350,7 @@ export function useAddEmployeeForm() {
       if (currentStepFields && currentStepFields.length > 0) {
         const isValid = await form.trigger(currentStepFields);
         if (!isValid) {
-          console.log(`Step ${step} validation failed`);
+          console.log(`Step ${step} validation failed, cannot proceed to step ${stepNumber}`);
           canProceed = false;
           break;
         }
@@ -315,6 +359,11 @@ export function useAddEmployeeForm() {
 
     if (canProceed) {
       setActiveStep(stepNumber);
+    } else {
+      // Show a toast to inform user about validation errors
+      toast.error(
+        'Please complete and fix all validation errors in the current step before proceeding',
+      );
     }
   };
 
@@ -378,6 +427,7 @@ export function useAddEmployeeForm() {
     isStepValid,
     validateCurrentStep,
     form,
+    handleValidationChange,
   };
 }
 

@@ -23,6 +23,7 @@ export const API_ROUTES = {
         list: '/api/employees',
         detail: (id: number) => `/api/employees/${id}`,
         resign: (id: number) => `/api/employees/${id}/status`,
+        validateUnique: '/api/employees/validate-unique',
         documents: {
           base: '/api/employees/documents',
           list: (id: number) => `/api/employees/${id}/documents`,

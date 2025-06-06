@@ -20,7 +20,11 @@ import (
 	"gorm.io/gorm"
 )
 
-const bucketNamePhoto = "photo"
+const (
+	defaultPassword = "password"
+	unknownValue    = "unknown"
+	bucketNamePhoto = "photo"
+)
 
 const (
 	mimeTypeJPEG = "image/jpeg"
@@ -51,78 +55,9 @@ func (uc *EmployeeUseCase) List(ctx context.Context, filters map[string]interfac
 		return nil, fmt.Errorf("failed to list employees from repository: %w", err)
 	}
 
-	employeeDTOs := make([]*dtoemployee.EmployeeResponseDTO, len(domainEmployees))
-	for i, emp := range domainEmployees {
-		var genderDTO *string
-		if emp.Gender != nil {
-			genderStr := string(*emp.Gender)
-			genderDTO = &genderStr
-		}
+	employeeDTOs := dtoemployee.ToEmployeeResponseDTOList(domainEmployees)
 
-		var phoneDTO *string
-		if emp.User.Phone != "" {
-			phoneDTO = &emp.User.Phone
-		}
-
-		employeeDTOs[i] = &dtoemployee.EmployeeResponseDTO{
-			ID:                    emp.ID,
-			Email:                 &emp.User.Email,
-			Phone:                 phoneDTO,
-			FirstName:             emp.FirstName,
-			LastName:              emp.LastName,
-			EmployeeCode:          emp.EmployeeCode,
-			PositionName:          emp.PositionName,
-			Branch:                emp.Branch,
-			Gender:                genderDTO,
-			NIK:                   emp.NIK,
-			PlaceOfBirth:          emp.PlaceOfBirth,
-			Grade:                 emp.Grade,
-			EmploymentStatus:      emp.EmploymentStatus,
-			BankName:              emp.BankName,
-			BankAccountNumber:     emp.BankAccountNumber,
-			BankAccountHolderName: emp.BankAccountHolderName,
-			ProfilePhotoURL:       emp.ProfilePhotoURL,
-		}
-
-		if emp.LastEducation != nil {
-			lastEducationStr := string(*emp.LastEducation)
-			employeeDTOs[i].LastEducation = &lastEducationStr
-		}
-		if emp.ContractType != nil {
-			contractTypeStr := string(*emp.ContractType)
-			employeeDTOs[i].ContractType = &contractTypeStr
-		}
-		if emp.TaxStatus != nil {
-			taxStatusStr := string(*emp.TaxStatus)
-			employeeDTOs[i].TaxStatus = &taxStatusStr
-		}
-		if emp.DateOfBirth != nil {
-			dateOfBirthStr := emp.DateOfBirth.Format("2006-01-02")
-			employeeDTOs[i].DateOfBirth = &dateOfBirthStr
-		}
-		if emp.HireDate != nil {
-			hireDateStr := emp.HireDate.Format("2006-01-02")
-			employeeDTOs[i].HireDate = &hireDateStr
-		}
-		if emp.ResignationDate != nil {
-			resignationDateStr := emp.ResignationDate.Format("2006-01-02")
-			employeeDTOs[i].ResignationDate = &resignationDateStr
-		}
-
-		if emp.User.Email == "" {
-			employeeDTOs[i].Email = nil
-		}
-	}
-
-	totalPages := 0
-	if paginationParams.PageSize > 0 {
-		totalPages = int((totalItems + int64(paginationParams.PageSize) - 1) / int64(paginationParams.PageSize))
-	}
-	if totalPages < 1 && totalItems > 0 {
-		totalPages = 1
-	} else if totalItems == 0 {
-		totalPages = 0
-	}
+	totalPages := uc.calculateTotalPages(totalItems, paginationParams.PageSize)
 
 	response := &dtoemployee.EmployeeListResponseData{
 		Items: employeeDTOs,
@@ -139,6 +74,19 @@ func (uc *EmployeeUseCase) List(ctx context.Context, filters map[string]interfac
 	return response, nil
 }
 
+func (uc *EmployeeUseCase) calculateTotalPages(totalItems int64, pageSize int) int {
+	if pageSize <= 0 {
+		return 0
+	}
+	totalPages := int((totalItems + int64(pageSize) - 1) / int64(pageSize))
+	if totalPages < 1 && totalItems > 0 {
+		totalPages = 1
+	} else if totalItems == 0 {
+		totalPages = 0
+	}
+	return totalPages
+}
+
 func (uc *EmployeeUseCase) Create(ctx context.Context, employee *domain.Employee, creatorEmployeeID uint) (*domain.Employee, error) {
 	if employee.User.Email != "" {
 		log.Printf("EmployeeUseCase: Create called for employee. FirstName: %s, UserEmail: %s, CreatorEmployeeID: %d", employee.FirstName, employee.User.Email, creatorEmployeeID)
@@ -149,7 +97,7 @@ func (uc *EmployeeUseCase) Create(ctx context.Context, employee *domain.Employee
 	employee.ManagerID = &creatorEmployeeID
 
 	if employee.User.Password == "" {
-		employee.User.Password = "password"
+		employee.User.Password = defaultPassword
 	}
 
 	err := uc.authRepo.RegisterEmployeeUser(ctx, &employee.User, employee)
@@ -174,65 +122,7 @@ func (uc *EmployeeUseCase) GetByID(ctx context.Context, id uint) (*dtoemployee.E
 		return nil, fmt.Errorf("failed to get employee by ID %d: %w", id, err)
 	}
 
-	var genderDTO *string
-	if employee.Gender != nil {
-		genderStr := string(*employee.Gender)
-		genderDTO = &genderStr
-	}
-
-	var phoneDTO *string
-	if employee.User.Phone != "" {
-		phoneDTO = &employee.User.Phone
-	}
-
-	employeeDTO := &dtoemployee.EmployeeResponseDTO{
-		ID:                    employee.ID,
-		Email:                 &employee.User.Email,
-		Phone:                 phoneDTO,
-		FirstName:             employee.FirstName,
-		LastName:              employee.LastName,
-		EmployeeCode:          employee.EmployeeCode,
-		PositionName:          employee.PositionName,
-		Branch:                employee.Branch,
-		Gender:                genderDTO,
-		NIK:                   employee.NIK,
-		PlaceOfBirth:          employee.PlaceOfBirth,
-		Grade:                 employee.Grade,
-		EmploymentStatus:      employee.EmploymentStatus,
-		BankName:              employee.BankName,
-		BankAccountNumber:     employee.BankAccountNumber,
-		BankAccountHolderName: employee.BankAccountHolderName,
-		ProfilePhotoURL:       employee.ProfilePhotoURL,
-	}
-
-	if employee.LastEducation != nil {
-		lastEducationStr := string(*employee.LastEducation)
-		employeeDTO.LastEducation = &lastEducationStr
-	}
-	if employee.ContractType != nil {
-		contractTypeStr := string(*employee.ContractType)
-		employeeDTO.ContractType = &contractTypeStr
-	}
-	if employee.TaxStatus != nil {
-		taxStatusStr := string(*employee.TaxStatus)
-		employeeDTO.TaxStatus = &taxStatusStr
-	}
-	if employee.DateOfBirth != nil {
-		dateOfBirthStr := employee.DateOfBirth.Format("2006-01-02")
-		employeeDTO.DateOfBirth = &dateOfBirthStr
-	}
-	if employee.HireDate != nil {
-		hireDateStr := employee.HireDate.Format("2006-01-02")
-		employeeDTO.HireDate = &hireDateStr
-	}
-	if employee.ResignationDate != nil {
-		resignationDateStr := employee.ResignationDate.Format("2006-01-02")
-		employeeDTO.ResignationDate = &resignationDateStr
-	}
-
-	if employee.User.Email == "" {
-		employeeDTO.Email = nil
-	}
+	employeeDTO := dtoemployee.ToEmployeeResponseDTO(employee)
 
 	log.Printf("EmployeeUseCase: Successfully retrieved employee with ID %d", id)
 	return employeeDTO, nil
@@ -254,84 +144,78 @@ func (uc *EmployeeUseCase) GetEmployeeByUserID(ctx context.Context, userID uint)
 	return employee, nil
 }
 
+func (uc *EmployeeUseCase) GetByNIK(ctx context.Context, nik string) (*domain.Employee, error) {
+	log.Printf("EmployeeUseCase: GetByNIK called for NIK: %s", nik)
+	employee, err := uc.employeeRepo.GetByNIK(ctx, nik)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			log.Printf("EmployeeUseCase: No employee found with NIK %s", nik)
+			return nil, domain.ErrEmployeeNotFound
+		}
+		log.Printf("EmployeeUseCase: Error getting employee by NIK %s from repository: %v", nik, err)
+		return nil, fmt.Errorf("failed to get employee by NIK %s: %w", nik, err)
+	}
+
+	log.Printf("EmployeeUseCase: Successfully retrieved employee with ID %d for NIK %s", employee.ID, nik)
+	return employee, nil
+}
+
+func (uc *EmployeeUseCase) GetByEmployeeCode(ctx context.Context, employeeCode string) (*domain.Employee, error) {
+	log.Printf("EmployeeUseCase: GetByEmployeeCode called for EmployeeCode: %s", employeeCode)
+	employee, err := uc.employeeRepo.GetByEmployeeCode(ctx, employeeCode)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			log.Printf("EmployeeUseCase: No employee found with EmployeeCode %s", employeeCode)
+			return nil, domain.ErrEmployeeNotFound
+		}
+		log.Printf("EmployeeUseCase: Error getting employee by EmployeeCode %s from repository: %v", employeeCode, err)
+		return nil, fmt.Errorf("failed to get employee by EmployeeCode %s: %w", employeeCode, err)
+	}
+
+	log.Printf("EmployeeUseCase: Successfully retrieved employee with ID %d for EmployeeCode %s", employee.ID, employeeCode)
+	return employee, nil
+}
+
+func (uc *EmployeeUseCase) GetUserByEmail(ctx context.Context, email string) (*domain.User, error) {
+	log.Printf("EmployeeUseCase: GetUserByEmail called with email: %s", email)
+
+	user, err := uc.authRepo.GetUserByEmail(ctx, email)
+	if err != nil {
+		log.Printf("EmployeeUseCase: User not found with email %s: %v", email, err)
+		return nil, err
+	}
+
+	log.Printf("EmployeeUseCase: Successfully found user with email %s, UserID: %d", email, user.ID)
+	return user, nil
+}
+
+func (uc *EmployeeUseCase) GetUserByPhone(ctx context.Context, phone string) (*domain.User, error) {
+	log.Printf("EmployeeUseCase: GetUserByPhone called with phone: %s", phone)
+
+	user, err := uc.authRepo.GetUserByPhone(ctx, phone)
+	if err != nil {
+		log.Printf("EmployeeUseCase: User not found with phone %s: %v", phone, err)
+		return nil, err
+	}
+
+	log.Printf("EmployeeUseCase: Successfully found user with phone %s, UserID: %d", phone, user.ID)
+	return user, nil
+}
+
 func (uc *EmployeeUseCase) Update(ctx context.Context, employee *domain.Employee) (*domain.Employee, error) {
-	log.Printf("EmployeeUseCase: Update called for employee ID %d: %+v", employee.ID, employee)
+	log.Printf("EmployeeUseCase: Update called for employee ID %d", employee.ID)
 
 	existingEmployee, err := uc.employeeRepo.GetByID(ctx, employee.ID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve existing employee for update: %w", err)
+		log.Printf("EmployeeUseCase: Error getting existing employee ID %d: %v", employee.ID, err)
+		return nil, fmt.Errorf("failed to get employee for update: %w", err)
 	}
 	if existingEmployee == nil {
-		return nil, fmt.Errorf("employee with ID %d not found for update", employee.ID)
+		log.Printf("EmployeeUseCase: Employee ID %d not found for update", employee.ID)
+		return nil, domain.ErrEmployeeNotFound
 	}
 
-	if employee.FirstName != "" {
-		existingEmployee.FirstName = employee.FirstName
-	}
-	if employee.LastName != nil {
-		existingEmployee.LastName = employee.LastName
-	}
-	if employee.EmployeeCode != nil {
-		existingEmployee.EmployeeCode = employee.EmployeeCode
-	}
-	if employee.Branch != nil {
-		existingEmployee.Branch = employee.Branch
-	}
-	if employee.Gender != nil {
-		existingEmployee.Gender = employee.Gender
-	}
-	if employee.NIK != nil {
-		existingEmployee.NIK = employee.NIK
-	}
-	if employee.PlaceOfBirth != nil {
-		existingEmployee.PlaceOfBirth = employee.PlaceOfBirth
-	}
-	if employee.DateOfBirth != nil {
-		existingEmployee.DateOfBirth = employee.DateOfBirth
-	}
-	if employee.LastEducation != nil {
-		existingEmployee.LastEducation = employee.LastEducation
-	}
-	if employee.Grade != nil {
-		existingEmployee.Grade = employee.Grade
-	}
-	if employee.ContractType != nil {
-		existingEmployee.ContractType = employee.ContractType
-	}
-	if employee.ResignationDate != nil {
-		existingEmployee.ResignationDate = employee.ResignationDate
-	}
-	if employee.HireDate != nil {
-		existingEmployee.HireDate = employee.HireDate
-	}
-	if employee.BankName != nil {
-		existingEmployee.BankName = employee.BankName
-	}
-	if employee.BankAccountNumber != nil {
-		existingEmployee.BankAccountNumber = employee.BankAccountNumber
-	}
-	if employee.BankAccountHolderName != nil {
-		existingEmployee.BankAccountHolderName = employee.BankAccountHolderName
-	}
-	if employee.TaxStatus != nil {
-		existingEmployee.TaxStatus = employee.TaxStatus
-	}
-	if employee.ProfilePhotoURL != nil {
-		existingEmployee.ProfilePhotoURL = employee.ProfilePhotoURL
-	}
-
-	if employee.PositionName != "" {
-		existingEmployee.PositionName = employee.PositionName
-	}
-
-	if employee.User.Email != "" {
-		log.Printf("EmployeeUseCase: Updating User Email for UserID %d to %s", existingEmployee.UserID, employee.User.Email)
-		existingEmployee.User.Email = employee.User.Email
-	}
-	if employee.User.Phone != "" {
-		log.Printf("EmployeeUseCase: Updating User Phone for UserID %d to %s", existingEmployee.UserID, employee.User.Phone)
-		existingEmployee.User.Phone = employee.User.Phone
-	}
+	uc.updateEmployeeFields(existingEmployee, employee)
 
 	if employee.User.Email != "" || employee.User.Phone != "" {
 		if existingEmployee.User.ID == 0 && existingEmployee.UserID != 0 {
@@ -357,6 +241,452 @@ func (uc *EmployeeUseCase) Update(ctx context.Context, employee *domain.Employee
 	}
 	log.Printf("EmployeeUseCase: Successfully updated employee with ID %d", existingEmployee.ID)
 	return existingEmployee, nil
+}
+
+func (uc *EmployeeUseCase) updateEmployeeFields(existing *domain.Employee, update *domain.Employee) {
+	if update.FirstName != "" {
+		existing.FirstName = update.FirstName
+	}
+	if update.LastName != nil {
+		existing.LastName = update.LastName
+	}
+	if update.EmployeeCode != nil {
+		existing.EmployeeCode = update.EmployeeCode
+	}
+	if update.Branch != nil {
+		existing.Branch = update.Branch
+	}
+	if update.Gender != nil {
+		existing.Gender = update.Gender
+	}
+	if update.NIK != nil {
+		existing.NIK = update.NIK
+	}
+	if update.PlaceOfBirth != nil {
+		existing.PlaceOfBirth = update.PlaceOfBirth
+	}
+	if update.DateOfBirth != nil {
+		existing.DateOfBirth = update.DateOfBirth
+	}
+	if update.LastEducation != nil {
+		existing.LastEducation = update.LastEducation
+	}
+	if update.Grade != nil {
+		existing.Grade = update.Grade
+	}
+	if update.ContractType != nil {
+		existing.ContractType = update.ContractType
+	}
+	if update.ResignationDate != nil {
+		existing.ResignationDate = update.ResignationDate
+	}
+	if update.HireDate != nil {
+		existing.HireDate = update.HireDate
+	}
+	if update.BankName != nil {
+		existing.BankName = update.BankName
+	}
+	if update.BankAccountNumber != nil {
+		existing.BankAccountNumber = update.BankAccountNumber
+	}
+	if update.BankAccountHolderName != nil {
+		existing.BankAccountHolderName = update.BankAccountHolderName
+	}
+	if update.TaxStatus != nil {
+		existing.TaxStatus = update.TaxStatus
+	}
+	if update.ProfilePhotoURL != nil {
+		existing.ProfilePhotoURL = update.ProfilePhotoURL
+	}
+	if update.PositionName != "" {
+		existing.PositionName = update.PositionName
+	}
+	if update.User.Email != "" {
+		log.Printf("EmployeeUseCase: Updating User Email for UserID %d to %s", existing.UserID, update.User.Email)
+		existing.User.Email = update.User.Email
+	}
+	if update.User.Phone != "" {
+		log.Printf("EmployeeUseCase: Updating User Phone for UserID %d to %s", existing.UserID, update.User.Phone)
+		existing.User.Phone = update.User.Phone
+	}
+}
+
+func (uc *EmployeeUseCase) BulkImport(ctx context.Context, employees []*domain.Employee, creatorEmployeeID uint) ([]uint, []EmployeeImportError) {
+	log.Printf("EmployeeUseCase: BulkImport called for %d employees by creator %d", len(employees), creatorEmployeeID)
+
+	var successfulIDs []uint
+	var errors []EmployeeImportError
+
+	for i, employee := range employees {
+		log.Printf("EmployeeUseCase: Processing employee %d/%d: %s", i+1, len(employees), employee.FirstName)
+
+		employee.ManagerID = &creatorEmployeeID
+
+		if employee.User.Password == "" {
+			employee.User.Password = defaultPassword
+		}
+
+		err := uc.authRepo.RegisterEmployeeUser(ctx, &employee.User, employee)
+		if err != nil {
+			log.Printf("EmployeeUseCase: Error creating employee %s: %v", employee.FirstName, err)
+			importError := uc.convertToImportError(err, employee, i+2)
+			errors = append(errors, importError)
+			continue
+		}
+
+		successfulIDs = append(successfulIDs, employee.ID)
+		log.Printf("EmployeeUseCase: Successfully created employee %s with ID %d", employee.FirstName, employee.ID)
+	}
+
+	log.Printf("EmployeeUseCase: BulkImport completed. Success: %d, Errors: %d", len(successfulIDs), len(errors))
+	return successfulIDs, errors
+}
+
+func (uc *EmployeeUseCase) BulkImportWithTransaction(ctx context.Context, employees []*domain.Employee, creatorEmployeeID uint) ([]uint, []EmployeeImportError) {
+	log.Printf("EmployeeUseCase: BulkImportWithTransaction called for %d employees by creator %d", len(employees), creatorEmployeeID)
+
+	validationErrors := uc.preValidateEmployees(ctx, employees)
+
+	if len(validationErrors) > 0 {
+		log.Printf("EmployeeUseCase: BulkImportWithTransaction failed validation. Found %d errors", len(validationErrors))
+		return nil, validationErrors
+	}
+
+	log.Printf("EmployeeUseCase: All employees passed validation. Starting transaction import...")
+
+	var successfulIDs []uint
+
+	for i, employee := range employees {
+		log.Printf("EmployeeUseCase: Processing employee %d/%d: %s", i+1, len(employees), employee.FirstName)
+
+		employee.ManagerID = &creatorEmployeeID
+
+		err := uc.authRepo.RegisterEmployeeUser(ctx, &employee.User, employee)
+		if err != nil {
+			log.Printf("EmployeeUseCase: Error creating employee %s: %v", employee.FirstName, err)
+			importError := uc.convertToImportError(err, employee, i+2)
+
+			log.Printf("EmployeeUseCase: BulkImportWithTransaction failed on employee %d. Aborting entire import.", i+1)
+			return nil, []EmployeeImportError{importError}
+		}
+
+		successfulIDs = append(successfulIDs, employee.ID)
+		log.Printf("EmployeeUseCase: Successfully created employee %s with ID %d", employee.FirstName, employee.ID)
+	}
+
+	log.Printf("EmployeeUseCase: BulkImportWithTransaction completed successfully. All %d employees imported", len(successfulIDs))
+	return successfulIDs, nil
+}
+
+func (uc *EmployeeUseCase) preValidateEmployees(ctx context.Context, employees []*domain.Employee) []EmployeeImportError {
+	var validationErrors []EmployeeImportError
+
+	for i, employee := range employees {
+
+		if employee.User.Password == "" {
+			employee.User.Password = defaultPassword
+		}
+
+		rowErrors := uc.validateRequiredFields(employee, i+2)
+		validationErrors = append(validationErrors, rowErrors...)
+
+		duplicateErrors := uc.checkBatchDuplicates(employee, employees, i)
+		validationErrors = append(validationErrors, duplicateErrors...)
+
+		dbErrors := uc.checkExistingRecords(ctx, employee, i+2)
+		validationErrors = append(validationErrors, dbErrors...)
+	}
+
+	return validationErrors
+}
+
+func (uc *EmployeeUseCase) validateRequiredFields(employee *domain.Employee, rowNum int) []EmployeeImportError {
+	var errors []EmployeeImportError
+
+	if employee.User.Email == "" {
+		errors = append(errors, EmployeeImportError{
+			Row:      rowNum,
+			Field:    "email",
+			Message:  "Email is required",
+			Value:    "",
+			Employee: employee,
+		})
+	}
+	if employee.FirstName == "" {
+		errors = append(errors, EmployeeImportError{
+			Row:      rowNum,
+			Field:    "first_name",
+			Message:  "First name is required",
+			Value:    "",
+			Employee: employee,
+		})
+	}
+	if employee.PositionName == "" {
+		errors = append(errors, EmployeeImportError{
+			Row:      rowNum,
+			Field:    "position_name",
+			Message:  "Position name is required",
+			Value:    "",
+			Employee: employee,
+		})
+	}
+
+	return errors
+}
+
+func (uc *EmployeeUseCase) checkBatchDuplicates(employee *domain.Employee, employees []*domain.Employee, currentIndex int) []EmployeeImportError {
+	var errors []EmployeeImportError
+	rowNum := currentIndex + 2
+
+	for j, otherEmployee := range employees {
+		if currentIndex != j && employee.User.Email == otherEmployee.User.Email {
+			errors = append(errors, EmployeeImportError{
+				Row:      rowNum,
+				Field:    "email",
+				Message:  fmt.Sprintf("Duplicate email '%s' found in row %d", employee.User.Email, j+2),
+				Value:    employee.User.Email,
+				Employee: employee,
+			})
+			break
+		}
+	}
+
+	if employee.User.Phone != "" {
+		for j, otherEmployee := range employees {
+			if currentIndex != j && employee.User.Phone == otherEmployee.User.Phone {
+				errors = append(errors, EmployeeImportError{
+					Row:      rowNum,
+					Field:    "phone",
+					Message:  fmt.Sprintf("Duplicate phone number '%s' found in row %d", employee.User.Phone, j+2),
+					Value:    employee.User.Phone,
+					Employee: employee,
+				})
+				break
+			}
+		}
+	}
+
+	if employee.NIK != nil {
+		for j, otherEmployee := range employees {
+			if currentIndex != j && otherEmployee.NIK != nil && *employee.NIK == *otherEmployee.NIK {
+				errors = append(errors, EmployeeImportError{
+					Row:      rowNum,
+					Field:    "nik",
+					Message:  fmt.Sprintf("Duplicate NIK '%s' found in row %d", *employee.NIK, j+2),
+					Value:    *employee.NIK,
+					Employee: employee,
+				})
+				break
+			}
+		}
+	}
+
+	if employee.EmployeeCode != nil {
+		for j, otherEmployee := range employees {
+			if currentIndex != j && otherEmployee.EmployeeCode != nil && *employee.EmployeeCode == *otherEmployee.EmployeeCode {
+				errors = append(errors, EmployeeImportError{
+					Row:      rowNum,
+					Field:    "employee_code",
+					Message:  fmt.Sprintf("Duplicate employee code '%s' found in row %d", *employee.EmployeeCode, j+2),
+					Value:    *employee.EmployeeCode,
+					Employee: employee,
+				})
+				break
+			}
+		}
+	}
+
+	return errors
+}
+
+func (uc *EmployeeUseCase) checkExistingRecords(ctx context.Context, employee *domain.Employee, rowNum int) []EmployeeImportError {
+	var errors []EmployeeImportError
+
+	if employee.User.Email != "" {
+		existingUser, err := uc.authRepo.GetUserByEmail(ctx, employee.User.Email)
+		if err == nil && existingUser != nil {
+			errors = append(errors, EmployeeImportError{
+				Row:      rowNum,
+				Field:    "email",
+				Message:  fmt.Sprintf("Email '%s' is already used by another employee", employee.User.Email),
+				Value:    employee.User.Email,
+				Employee: employee,
+			})
+		}
+	}
+
+	if employee.User.Phone != "" {
+		existingUser, err := uc.authRepo.GetUserByPhone(ctx, employee.User.Phone)
+		if err == nil && existingUser != nil {
+			errors = append(errors, EmployeeImportError{
+				Row:      rowNum,
+				Field:    "phone",
+				Message:  fmt.Sprintf("Phone number '%s' is already used by another employee", employee.User.Phone),
+				Value:    employee.User.Phone,
+				Employee: employee,
+			})
+		}
+	}
+
+	if employee.NIK != nil && *employee.NIK != "" {
+		existingEmployee, err := uc.employeeRepo.GetByNIK(ctx, *employee.NIK)
+		if err == nil && existingEmployee != nil {
+			errors = append(errors, EmployeeImportError{
+				Row:      rowNum,
+				Field:    "nik",
+				Message:  fmt.Sprintf("NIK '%s' is already registered to another employee", *employee.NIK),
+				Value:    *employee.NIK,
+				Employee: employee,
+			})
+		}
+	}
+
+	if employee.EmployeeCode != nil && *employee.EmployeeCode != "" {
+		existingEmployee, err := uc.employeeRepo.GetByEmployeeCode(ctx, *employee.EmployeeCode)
+		if err == nil && existingEmployee != nil {
+			errors = append(errors, EmployeeImportError{
+				Row:      rowNum,
+				Field:    "employee_code",
+				Message:  fmt.Sprintf("Employee code '%s' is already used by another employee", *employee.EmployeeCode),
+				Value:    *employee.EmployeeCode,
+				Employee: employee,
+			})
+		}
+	}
+
+	return errors
+}
+
+type EmployeeImportError struct {
+	Row      int
+	Field    string
+	Message  string
+	Value    string
+	Employee *domain.Employee
+}
+
+func (uc *EmployeeUseCase) convertToImportError(err error, employee *domain.Employee, rowNum int) EmployeeImportError {
+	errorMsg := err.Error()
+	employeeName := employee.FirstName
+	if employee.LastName != nil {
+		employeeName += " " + *employee.LastName
+	}
+
+	if strings.Contains(errorMsg, "uni_users_email") || strings.Contains(errorMsg, "duplicate key") && strings.Contains(errorMsg, "email") {
+		return EmployeeImportError{
+			Row:      rowNum,
+			Field:    "email",
+			Message:  fmt.Sprintf("Email '%s' is already used by another employee", employee.User.Email),
+			Value:    employee.User.Email,
+			Employee: employee,
+		}
+	}
+
+	if strings.Contains(errorMsg, "uni_users_phone") || strings.Contains(errorMsg, "duplicate key") && strings.Contains(errorMsg, "phone") {
+		return EmployeeImportError{
+			Row:      rowNum,
+			Field:    "phone",
+			Message:  fmt.Sprintf("Phone number '%s' is already used by another employee", employee.User.Phone),
+			Value:    employee.User.Phone,
+			Employee: employee,
+		}
+	}
+
+	if strings.Contains(errorMsg, "uni_employees_nik") || strings.Contains(errorMsg, "duplicate key") && strings.Contains(errorMsg, "nik") {
+		nikValue := unknownValue
+		if employee.NIK != nil {
+			nikValue = *employee.NIK
+		}
+		return EmployeeImportError{
+			Row:      rowNum,
+			Field:    "nik",
+			Message:  fmt.Sprintf("NIK '%s' is already registered for another employee", nikValue),
+			Value:    nikValue,
+			Employee: employee,
+		}
+	}
+
+	if strings.Contains(errorMsg, "uni_employees_employee_code") || strings.Contains(errorMsg, "duplicate key") && strings.Contains(errorMsg, "employee_code") {
+		codeValue := unknownValue
+		if employee.EmployeeCode != nil {
+			codeValue = *employee.EmployeeCode
+		}
+		return EmployeeImportError{
+			Row:      rowNum,
+			Field:    "employee_code",
+			Message:  fmt.Sprintf("Employee code '%s' is already used", codeValue),
+			Value:    codeValue,
+			Employee: employee,
+		}
+	}
+
+	if strings.Contains(errorMsg, "invalid email format") {
+		return EmployeeImportError{
+			Row:      rowNum,
+			Field:    "email",
+			Message:  fmt.Sprintf("Invalid email format '%s'", employee.User.Email),
+			Value:    employee.User.Email,
+			Employee: employee,
+		}
+	}
+
+	if strings.Contains(errorMsg, "phone number") && strings.Contains(errorMsg, "format") {
+		return EmployeeImportError{
+			Row:      rowNum,
+			Field:    "phone",
+			Message:  fmt.Sprintf("Invalid phone format '%s'. Use international format like +628123456789", employee.User.Phone),
+			Value:    employee.User.Phone,
+			Employee: employee,
+		}
+	}
+
+	if strings.Contains(errorMsg, "email") && strings.Contains(errorMsg, "required") {
+		return EmployeeImportError{
+			Row:      rowNum,
+			Field:    "email",
+			Message:  "Email is required",
+			Value:    employee.User.Email,
+			Employee: employee,
+		}
+	}
+
+	if strings.Contains(errorMsg, "first_name") && strings.Contains(errorMsg, "required") {
+		return EmployeeImportError{
+			Row:      rowNum,
+			Field:    "first_name",
+			Message:  "First name is required",
+			Value:    employee.FirstName,
+			Employee: employee,
+		}
+	}
+
+	if strings.Contains(errorMsg, "position_name") && strings.Contains(errorMsg, "required") {
+		return EmployeeImportError{
+			Row:      rowNum,
+			Field:    "position_name",
+			Message:  "Position name is required",
+			Value:    employee.PositionName,
+			Employee: employee,
+		}
+	}
+
+	if strings.Contains(errorMsg, "connection") || strings.Contains(errorMsg, "timeout") {
+		return EmployeeImportError{
+			Row:      rowNum,
+			Field:    "general",
+			Message:  "Failed to connect to database. Please try again in a few moments",
+			Value:    "",
+			Employee: employee,
+		}
+	}
+
+	return EmployeeImportError{
+		Row:      rowNum,
+		Field:    "general",
+		Message:  fmt.Sprintf("Failed to create account for employee '%s'. Please check the data entered", employeeName),
+		Value:    "",
+		Employee: employee,
+	}
 }
 
 func (uc *EmployeeUseCase) Resign(ctx context.Context, id uint) error {
@@ -516,7 +846,6 @@ func (uc *EmployeeUseCase) UploadProfilePhoto(ctx context.Context, employeeID ui
 
 	err = uc.employeeRepo.Update(ctx, employee)
 	if err != nil {
-
 		log.Printf("EmployeeUseCase: Database update failed, cleaning up uploaded file: %s", fileName)
 		if uc.supabaseClient != nil && uc.supabaseClient.Storage != nil {
 			if _, removeErr := uc.supabaseClient.Storage.RemoveFile(bucketNamePhoto, []string{fileName}); removeErr != nil {
@@ -538,16 +867,6 @@ func (uc *EmployeeUseCase) deleteFileWithRetry(fileName string, maxRetries int) 
 
 	for attempt := 1; attempt <= maxRetries; attempt++ {
 		log.Printf("EmployeeUseCase: Deletion attempt %d/%d for file: %s", attempt, maxRetries, fileName)
-		log.Printf("EmployeeUseCase: Attempting to delete file with details:")
-		log.Printf("  - Bucket: %s", bucketNamePhoto)
-		log.Printf("  - File: %s", fileName)
-		log.Printf("  - Client type: service_role (backend)")
-		log.Printf("  - Attempt: %d", attempt)
-
-		if attempt == 1 {
-			log.Printf("EmployeeUseCase: Verifying file existence before deletion...")
-
-		}
 
 		removeResponse, removeErr := uc.supabaseClient.Storage.RemoveFile(bucketNamePhoto, []string{fileName})
 		if removeErr == nil {
@@ -558,43 +877,13 @@ func (uc *EmployeeUseCase) deleteFileWithRetry(fileName string, maxRetries int) 
 		errorMsg := removeErr.Error()
 		log.Printf("EmployeeUseCase: Deletion attempt %d failed with error: %v", attempt, removeErr)
 
-		if strings.Contains(errorMsg, "body must be object") {
-			log.Printf("EmployeeUseCase: 'body must be object' error detected on attempt %d. This indicates storage policy issues:", attempt)
-			log.Printf("  1. Missing DELETE policy for service_role on bucket '%s'", bucketNamePhoto)
-			log.Printf("  2. Missing SELECT policy for service_role on bucket '%s'", bucketNamePhoto)
-			log.Printf("  3. Policies may be configured for authenticated users instead of service_role")
-			log.Printf("  4. Potential policy caching or race condition issue")
-
-			if attempt == 1 {
-				log.Printf("EmployeeUseCase: Required storage policies for service_role:")
-				log.Printf("  DELETE: CREATE POLICY \"Enable delete for service role\" ON storage.objects FOR DELETE USING (auth.role() = 'service_role');")
-				log.Printf("  SELECT: CREATE POLICY \"Enable select for service role\" ON storage.objects FOR SELECT USING (auth.role() = 'service_role');")
-				log.Printf("  Alternative bucket-specific DELETE: CREATE POLICY \"Enable delete for service role on photo bucket\" " +
-					"ON storage.objects FOR DELETE USING (bucket_id = 'photo' AND auth.role() = 'service_role');")
-			}
-
-			if attempt < maxRetries {
-				log.Printf("EmployeeUseCase: Waiting 1 second before retry due to policy issue...")
-				time.Sleep(1 * time.Second)
-			}
-		} else if strings.Contains(errorMsg, "not found") || strings.Contains(errorMsg, "404") {
+		if strings.Contains(errorMsg, "not found") || strings.Contains(errorMsg, "404") {
 			log.Printf("EmployeeUseCase: Old photo file not found in storage (may have been deleted already): %s", fileName)
 			return true
-		} else if strings.Contains(errorMsg, "unauthorized") || strings.Contains(errorMsg, "403") {
-			log.Printf("EmployeeUseCase: Authorization error on attempt %d - service role may lack proper storage permissions", attempt)
-			if attempt < maxRetries {
-				time.Sleep(1 * time.Second)
-			}
-		} else if strings.Contains(errorMsg, "policy") {
-			log.Printf("EmployeeUseCase: Policy violation detected on attempt %d - check storage policies for service_role access", attempt)
-			if attempt < maxRetries {
-				time.Sleep(1 * time.Second)
-			}
-		} else {
-			log.Printf("EmployeeUseCase: Unexpected error on attempt %d deleting old photo: %v", attempt, removeErr)
-			if attempt < maxRetries {
-				time.Sleep(500 * time.Millisecond)
-			}
+		}
+
+		if attempt < maxRetries {
+			time.Sleep(time.Duration(attempt) * time.Second)
 		}
 	}
 
@@ -631,17 +920,12 @@ func (uc *EmployeeUseCase) extractFileNameFromURL(url string) string {
 	log.Printf("EmployeeUseCase: Extracting filename from URL: %s", url)
 
 	if strings.Contains(url, "/storage/v1/object/public/") {
-
 		parts := strings.Split(url, "/storage/v1/object/public/")
 		if len(parts) > 1 {
-
 			pathAfterPublic := parts[1]
-
 			pathParts := strings.Split(pathAfterPublic, "/")
 			if len(pathParts) >= 2 {
-
 				fileName := strings.Join(pathParts[1:], "/")
-
 				if idx := strings.Index(fileName, "?"); idx != -1 {
 					fileName = fileName[:idx]
 				}
@@ -654,7 +938,6 @@ func (uc *EmployeeUseCase) extractFileNameFromURL(url string) string {
 	parts := strings.Split(url, "/")
 	if len(parts) > 0 {
 		fileName := parts[len(parts)-1]
-
 		if idx := strings.Index(fileName, "?"); idx != -1 {
 			fileName = fileName[:idx]
 		}

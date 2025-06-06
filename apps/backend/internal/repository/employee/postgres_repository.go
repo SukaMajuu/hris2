@@ -48,6 +48,15 @@ func (r *PostgresRepository) GetByEmployeeCode(ctx context.Context, employeeCode
 	return &employee, nil
 }
 
+func (r *PostgresRepository) GetByNIK(ctx context.Context, nik string) (*domain.Employee, error) {
+	var employee domain.Employee
+	err := r.db.WithContext(ctx).Where("nik = ?", nik).First(&employee).Error
+	if err != nil {
+		return nil, err
+	}
+	return &employee, nil
+}
+
 func (r *PostgresRepository) Update(ctx context.Context, employee *domain.Employee) error {
 	return r.db.WithContext(ctx).Save(employee).Error
 }

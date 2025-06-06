@@ -11,6 +11,7 @@ type EmployeeRepository interface {
 	GetByID(ctx context.Context, id uint) (*domain.Employee, error)
 	GetByUserID(ctx context.Context, userID uint) (*domain.Employee, error)
 	GetByEmployeeCode(ctx context.Context, employeeCode string) (*domain.Employee, error)
+	GetByNIK(ctx context.Context, nik string) (*domain.Employee, error)
 	Update(ctx context.Context, employee *domain.Employee) error
 	Delete(ctx context.Context, id uint) error
 	List(ctx context.Context, filters map[string]interface{}, pagination domain.PaginationParams) ([]*domain.Employee, int64, error)

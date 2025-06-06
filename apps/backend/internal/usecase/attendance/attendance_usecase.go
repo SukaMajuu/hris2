@@ -65,11 +65,9 @@ func (uc *AttendanceUseCase) Create(ctx context.Context, reqDTO *dtoAttendance.C
 	}
 
 	attendance := reqDTO.ToDomainAttendance() // Convert DTO to domain model
-
 	// Calculate work hours if both clock in and out are provided
 	if attendance.ClockIn != nil && attendance.ClockOut != nil {
-		duration := attendance.ClockOut.Sub(*attendance.ClockIn).Hours()
-		attendance.WorkHours = &duration
+		attendance.WorkHours = calculateWorkHours(attendance.ClockIn, attendance.ClockOut)
 	}
 
 	// Set default status if not provided

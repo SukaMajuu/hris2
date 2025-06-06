@@ -1,17 +1,30 @@
 package database
 
 import (
+	"crypto/rand"
 	"fmt"
 	"log"
-	"math/rand"
+	"math/big"
 	"time"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
 	"github.com/SukaMajuu/hris/apps/backend/domain/enums"
 	"github.com/shopspring/decimal"
-
 	"gorm.io/gorm"
 )
+
+// secureRandInt generates a secure random integer in the range [0, max)
+func secureRandInt(max int) int {
+	if max <= 0 {
+		return 0
+	}
+	n, err := rand.Int(rand.Reader, big.NewInt(int64(max)))
+	if err != nil {
+		// Fallback to 0 if random generation fails
+		return 0
+	}
+	return int(n.Int64())
+}
 
 func seedSubscriptionFeatures(db *gorm.DB) error {
 	var count int64
@@ -601,10 +614,9 @@ func generateAttendanceByStatus(attendance domain.Attendance, date time.Time, st
 		// Standard work hours: 8:00 AM - 5:00 PM
 		clockIn := time.Date(date.Year(), date.Month(), date.Day(), 8, 0, 0, 0, date.Location())
 		clockOut := time.Date(date.Year(), date.Month(), date.Day(), 17, 0, 0, 0, date.Location())
-
 		// Add small variation (0-15 minutes)
-		clockIn = clockIn.Add(time.Duration(rand.Intn(15)) * time.Minute)
-		clockOut = clockOut.Add(time.Duration(rand.Intn(15)) * time.Minute)
+		clockIn = clockIn.Add(time.Duration(secureRandInt(15)) * time.Minute)
+		clockOut = clockOut.Add(time.Duration(secureRandInt(15)) * time.Minute)
 
 		workHours := clockOut.Sub(clockIn).Hours() - 1.0 // Subtract 1 hour for lunch
 
@@ -619,7 +631,7 @@ func generateAttendanceByStatus(attendance domain.Attendance, date time.Time, st
 	case domain.Late:
 		// Late arrival: 8:30 AM - 9:30 AM
 		clockIn := time.Date(date.Year(), date.Month(), date.Day(), 8, 30, 0, 0, date.Location())
-		clockIn = clockIn.Add(time.Duration(rand.Intn(60)) * time.Minute) // 30-90 min late
+		clockIn = clockIn.Add(time.Duration(secureRandInt(60)) * time.Minute) // 30-90 min late
 		clockOut := time.Date(date.Year(), date.Month(), date.Day(), 17, 30, 0, 0, date.Location())
 
 		workHours := clockOut.Sub(clockIn).Hours() - 1.0
@@ -636,7 +648,7 @@ func generateAttendanceByStatus(attendance domain.Attendance, date time.Time, st
 		// Early leave: Clock out between 3:00 PM - 4:30 PM
 		clockIn := time.Date(date.Year(), date.Month(), date.Day(), 8, 0, 0, 0, date.Location())
 		clockOut := time.Date(date.Year(), date.Month(), date.Day(), 15, 0, 0, 0, date.Location())
-		clockOut = clockOut.Add(time.Duration(rand.Intn(90)) * time.Minute) // Leave between 3:00-4:30 PM
+		clockOut = clockOut.Add(time.Duration(secureRandInt(90)) * time.Minute) // Leave between 3:00-4:30 PM
 
 		workHours := clockOut.Sub(clockIn).Hours() - 1.0
 

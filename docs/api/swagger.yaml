@@ -1084,7 +1084,7 @@ components:
         - permanent_employees
         - contract_employees
         - freelance_employees
-
+            
     LeaveRequest:
       type: object
       description: Represents a leave request submitted by an employee
@@ -1206,6 +1206,123 @@ components:
         - page_size
         - has_next_page
         - has_prev_page
+
+        Attendance:
+            type: object
+            description: Represents all employee attendance data.
+            properties:
+                id:
+                    type: integer
+                    format: uint
+                    description: Unique identifier for the attendance record.
+                    readOnly: true
+                    example: 1
+                employee_id:
+                    type: integer
+                    format: uint
+                    description: Foreign key referencing the Employee ID.
+                    example: 1
+                work_schedule_id:
+                    type: integer
+                    format: uint
+                    description: Foreign key referencing the Work Schedule ID.
+                    example: 1
+                date:
+                    type: string
+                    format: date
+                    description: The date of the attendance record.
+                    example: "2024-01-15"
+                clock_in:
+                    type: string
+                    format: date-time
+                    description: Timestamp when the employee clocked in.
+                    example: "2024-01-15T08:00:00Z"
+                clock_out:
+                    type: string
+                    format: date-time
+                    description: Timestamp when the employee clocked out.
+                    example: "2024-01-15T17:00:00Z"
+                check_in_lat:
+                    type: number
+                    format: double
+                    description: Latitude of the clock-in location.
+                    example: -6.200000
+                check_in_long:
+                    type: number
+                    format: double
+                    description: Longitude of the clock-in location.
+                    example: 106.816666
+                check_out_lat:
+                    type: number
+                    format: double
+                    description: Latitude of the clock-out location.
+                    example: -6.200000
+                check_out_long:
+                    type: number
+                    format: double
+                    description: Longitude of the clock-out location.
+                    example: 106.816666
+                work_hours:
+                    type: number
+                    format: double
+                    description: Total work hours for the day.
+                    example: 8.0
+                status:
+                    type: string
+                    enum: ["on_time", "late", "early_leave", "absent", "leave"]
+                    description: Attendance status for the day.
+                    example: "on_time"
+        
+        AttendanceCheckInRequest:
+            type: object
+            properties:
+                employee_id:
+                    type: integer
+                    example: 8
+                work_schedule_id:
+                    type: integer
+                    example: 2
+                date:
+                    type: string
+                    format: date
+                    example: "2024-03-15"
+                clock_in:
+                    type: string
+                    format: date-time
+                    example: "2024-03-15T08:00:00Z"
+                check_in_lat:
+                    type: number
+                    format: double
+                    example: -6.200000
+                check_in_long:
+                    type: number
+                    format: double
+                    example: 106.816666
+        
+        AttendanceCheckOutRequest:
+            properties:
+                employee_id:
+                    type: integer
+                    example: 8
+                work_schedule_id:
+                    type: integer
+                    example: 2
+                date:
+                    type: string
+                    format: date
+                    example: "2024-03-15"
+                clock_out:
+                    type: string
+                    format: date-time
+                    example: "2024-03-15T17:00:00Z"
+                check_out_lat:
+                    type: number
+                    format: double
+                    example: -6.200000
+                check_out_long:
+                    type: number
+                    format: double
+                    example: 106.816666
 
 paths:
   /auth/login:
@@ -2707,61 +2824,61 @@ paths:
                     type: string
                     example: "Failed to update employee status"
 
-  /api/employee/statistics:
-    get:
-      tags: [Employees]
-      summary: Get employee statistics
-      description: Retrieve statistical information about employees including total count, new hires, active and resigned employees
-      security:
-        - bearerAuth: []
-      responses:
-        200:
-          description: Employee statistics retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: integer
-                    example: 200
-                  message:
-                    type: string
-                    example: "Employee statistics retrieved successfully"
-                  data:
-                    $ref: "#/components/schemas/EmployeeStatisticsResponse"
-        401:
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: integer
-                    example: 401
-                  message:
-                    type: string
-                    example: "Unauthorized"
-                  error:
-                    type: string
-                    example: "Invalid or missing authentication token"
-        500:
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: integer
-                    example: 500
-                  message:
-                    type: string
-                    example: "Internal server error"
-                  error:
-                    type: string
-                    example: "Failed to retrieve employee statistics"
+    /api/employee/statistics:
+        get:
+            tags: [Employees]
+            summary: Get employee statistics
+            description: Retrieve statistical information about employees including total count, new hires, active and resigned employees
+            security:
+                - bearerAuth: []
+            responses:
+                200:
+                    description: Employee statistics retrieved successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "Employee statistics retrieved successfully"
+                                    data:
+                                        $ref: "#/components/schemas/EmployeeStatisticsResponse"
+                401:
+                    description: Unauthorized
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 401
+                                    message:
+                                        type: string
+                                        example: "Unauthorized"
+                                    error:
+                                        type: string
+                                        example: "Invalid or missing authentication token"
+                500:
+                    description: Internal server error
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 500
+                                    message:
+                                        type: string
+                                        example: "Internal server error"
+                                    error:
+                                        type: string
+                                        example: "Failed to retrieve employee statistics"
 
   /api/checkclock-settings:
     post:
@@ -3190,322 +3307,434 @@ paths:
                     type: string
                     example: "Failed to delete document"
 
-  #    /attendance/check-in:
-  #        post:
-  #            tags: [ Attendance ]
-  #            summary: Employee check-in
-  #            requestBody:
-  #                required: true
-  #                content:
-  #                    application/json:
-  #                        schema:
-  #                            type: object
-  #                            properties:
-  #                                employee_id:
-  #                                    type: integer
-  #                                    example: 1
-  #                                work_arrangement_id:
-  #                                    type: integer
-  #                                    example: 1
-  #                                ip_address:
-  #                                    type: string
-  #                                notes:
-  #                                    type: string
-  #            responses:
-  #                200:
-  #                    description: Check-in recorded successfully
-  #                    content:
-  #                        application/json:
-  #                            schema:
-  #                                allOf:
-  #                                    -   $ref: "#/components/schemas/AttendanceLog"
-  #                                    -   type: object
-  #                                        properties:
-  #                                            event_type:
-  #                                                type: string
-  #                                                enum: [ check_in ]
-  #                400:
-  #                    description: Invalid request
-  #
-  #    /attendance/check-out:
-  #        post:
-  #            tags: [ Attendance ]
-  #            summary: Employee check-out
-  #            requestBody:
-  #                required: true
-  #                content:
-  #                    application/json:
-  #                        schema:
-  #                            type: object
-  #                            properties:
-  #                                employee_id:
-  #                                    type: integer
-  #                                    example: 1
-  #                                work_arrangement_id:
-  #                                    type: integer
-  #                                    example: 1
-  #                                ip_address:
-  #                                    type: string
-  #                                notes:
-  #                                    type: string
-  #            responses:
-  #                200:
-  #                    description: Check-out recorded successfully
-  #                    content:
-  #                        application/json:
-  #                            schema:
-  #                                allOf:
-  #                                    -   $ref: "#/components/schemas/AttendanceLog"
-  #                                    -   type: object
-  #                                        properties:
-  #                                            event_type:
-  #                                                type: string
-  #                                                enum: [ check_out ]
-  #                400:
-  #                    description: Invalid request
-  #
-  #    /attendance/logs:
-  #        get:
-  #            tags: [ Attendance ]
-  #            summary: Get attendance logs
-  #            parameters:
-  #                -   in: query
-  #                    name: start_date
-  #                    schema:
-  #                        type: string
-  #                        format: date
-  #                -   in: query
-  #                    name: end_date
-  #                    schema:
-  #                        type: string
-  #                        format: date
-  #                -   in: query
-  #                    name: employee_id
-  #                    schema:
-  #                        type: integer
-  #            responses:
-  #                200:
-  #                    description: List of attendance logs
-  #                    content:
-  #                        application/json:
-  #                            schema:
-  #                                type: array
-  #                                items:
-  #                                    $ref: "#/components/schemas/AttendanceLog"
-  #
-  #    /daily-attendance:
-  #        get:
-  #            tags: [ Daily Attendance ]
-  #            summary: Get daily attendance records
-  #            parameters:
-  #                -   in: query
-  #                    name: start_date
-  #                    schema:
-  #                        type: string
-  #                        format: date
-  #                -   in: query
-  #                    name: end_date
-  #                    schema:
-  #                        type: string
-  #                        format: date
-  #                -   in: query
-  #                    name: employee_id
-  #                    schema:
-  #                        type: integer
-  #            responses:
-  #                200:
-  #                    description: List of daily attendance records
-  #                    content:
-  #                        application/json:
-  #                            schema:
-  #                                type: array
-  #                                items:
-  #                                    $ref: "#/components/schemas/DailyAttendance"
-  #
-  #    /daily-attendance/{id}:
-  #        get:
-  #            tags: [ Daily Attendance ]
-  #            summary: Get daily attendance by ID
-  #            parameters:
-  #                -   in: path
-  #                    name: id
-  #                    required: true
-  #                    schema:
-  #                        type: integer
-  #            responses:
-  #                200:
-  #                    description: Daily attendance record
-  #                    content:
-  #                        application/json:
-  #                            schema:
-  #                                $ref: "#/components/schemas/DailyAttendance"
-  #                404:
-  #                    description: Attendance record not found
-  #
-  #    /overtime:
-  #        post:
-  #            tags: [ Overtime ]
-  #            summary: Submit overtime request
-  #            requestBody:
-  #                required: true
-  #                content:
-  #                    application/json:
-  #                        schema:
-  #                            $ref: "#/components/schemas/OvertimeRequest"
-  #            responses:
-  #                201:
-  #                    description: Overtime request submitted
-  #
-  #        get:
-  #            tags: [ Overtime ]
-  #            summary: Get overtime requests
-  #            parameters:
-  #                -   in: query
-  #                    name: status
-  #                    schema:
-  #                        type: string
-  #                        enum: [ pending, approved, rejected ]
-  #                -   in: query
-  #                    name: employee_id
-  #                    schema:
-  #                        type: integer
-  #            responses:
-  #                200:
-  #                    description: List of overtime requests
-  #                    content:
-  #                        application/json:
-  #                            schema:
-  #                                type: array
-  #                                items:
-  #                                    $ref: "#/components/schemas/OvertimeRequest"
-  #
-  #    /overtime/{id}/approve:
-  #        post:
-  #            tags: [ Overtime ]
-  #            summary: Approve/reject overtime request
-  #            parameters:
-  #                -   in: path
-  #                    name: id
-  #                    required: true
-  #                    schema:
-  #                        type: integer
-  #            requestBody:
-  #                required: true
-  #                content:
-  #                    application/json:
-  #                        schema:
-  #                            type: object
-  #                            properties:
-  #                                status:
-  #                                    type: string
-  #                                    enum: [ approved, rejected ]
-  #                                notes:
-  #                                    type: string
-  #            responses:
-  #                200:
-  #                    description: Overtime request updated
-  #
-  #    /departments:
-  #        get:
-  #            tags: [ Departments ]
-  #            summary: Get all departments
-  #            responses:
-  #                200:
-  #                    description: List of all departments
-  #                    content:
-  #                        application/json:
-  #                            schema:
-  #                                type: array
-  #                                items:
-  #                                    $ref: "#/components/schemas/Department"
-  #        post:
-  #            tags: [ Departments ]
-  #            summary: Create a new department
-  #            requestBody:
-  #                required: true
-  #                content:
-  #                    application/json:
-  #                        schema:
-  #                            type: object
-  #                            properties:
-  #                                name:
-  #                                    type: string
-  #                                description:
-  #                                    type: string
-  #                                active:
-  #                                    type: boolean
-  #            responses:
-  #                201:
-  #                    description: Department created successfully
-  #                    content:
-  #                        application/json:
-  #                            schema:
-  #                                $ref: "#/components/schemas/Department"
-  #
-  #    /departments/{id}:
-  #        get:
-  #            tags: [ Departments ]
-  #            summary: Get department by ID
-  #            parameters:
-  #                -   in: path
-  #                    name: id
-  #                    required: true
-  #                    schema:
-  #                        type: integer
-  #            responses:
-  #                200:
-  #                    description: Department details
-  #                    content:
-  #                        application/json:
-  #                            schema:
-  #                                $ref: "#/components/schemas/Department"
-  #                404:
-  #                    description: Department not found
-  #        put:
-  #            tags: [ Departments ]
-  #            summary: Update department by ID
-  #            parameters:
-  #                -   in: path
-  #                    name: id
-  #                    required: true
-  #                    schema:
-  #                        type: integer
-  #            requestBody:
-  #                required: true
-  #                content:
-  #                    application/json:
-  #                        schema:
-  #                            type: object
-  #                            properties:
-  #                                name:
-  #                                    type: string
-  #                                description:
-  #                                    type: string
-  #                                active:
-  #                                    type: boolean
-  #            responses:
-  #                200:
-  #                    description: Department updated successfully
-  #                    content:
-  #                        application/json:
-  #                            schema:
-  #                                $ref: "#/components/schemas/Department"
-  #                404:
-  #                    description: Department not found
-  #        delete:
-  #            tags: [ Departments ]
-  #            summary: Delete department by ID
-  #            parameters:
-  #                -   in: path
-  #                    name: id
-  #                    required: true
-  #                    schema:
-  #                        type: integer
-  #            responses:
-  #                204:
-  #                    description: Department deleted successfully
-  #                404:
-  #                    description: Department not found
+    /api/attendances/check-in:
+        post:
+            tags: [ Attendance ]
+            summary: Employee check-in
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/AttendanceCheckInRequest"
+            responses:
+                201:
+                    description: Check-in recorded successfully
+                    content:
+                        application/json:
+                            schema:
+                                allOf:
+                                    - $ref: "#/components/schemas/Attendance"
+                400:
+                    description: Invalid request
+
+    /api/attendances/check-out:
+        post:
+            tags: [Attendance]
+            summary: Employee check-out
+            description: Record check-out for an employee. The system will find the existing attendance record by employee ID and date.
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/AttendanceCheckOutRequest"
+            responses:
+                200:
+                    description: Check-out recorded successfully
+                    content:
+                        application/json:
+                            schema:
+                                allOf:
+                                    - $ref: "#/components/schemas/Attendance"
+                400:
+                    description: Invalid request
+                404:
+                    description: No attendance record found for the employee on the specified date
+
+    /api/attendances:
+        get:
+            tags: [Attendance]
+            summary: Get all attendance records with pagination
+            description: Retrieve a paginated list of all attendance records in the system.
+            parameters:
+                - in: query
+                  name: page
+                  schema:
+                      type: integer
+                      minimum: 1
+                      default: 1
+                  description: Page number for pagination.
+                  example: 1
+                - in: query
+                  name: page_size
+                  schema:
+                      type: integer
+                      minimum: 1
+                      maximum: 100
+                      default: 10
+                  description: Number of items per page.
+                  example: 10
+            responses:
+                200:
+                    description: List of attendance records retrieved successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "Attendance records retrieved successfully"
+                                    data:
+                                        type: object
+                                        properties:
+                                            items:
+                                                type: array
+                                                items:
+                                                    $ref: "#/components/schemas/Attendance"
+                                            pagination:
+                                                type: object
+                                                properties:
+                                                    total_items:
+                                                        type: integer
+                                                        format: int64
+                                                        example: 100
+                                                    total_pages:
+                                                        type: integer
+                                                        example: 10
+                                                    current_page:
+                                                        type: integer
+                                                        example: 1
+                                                    page_size:
+                                                        type: integer
+                                                        example: 10
+                400:
+                    description: Invalid request parameters
+                500:
+                    description: Internal server error
+
+    /api/attendances/employees/{employee_id}:
+        get:
+            tags: [Attendance]
+            summary: Get attendance records by employee ID with pagination
+            description: Retrieve a paginated list of attendance records for a specific employee.
+            parameters:
+                - in: path
+                  name: employee_id
+                  required: true
+                  schema:
+                      type: integer
+                  description: The ID of the employee
+                  example: 1
+                - in: query
+                  name: page
+                  schema:
+                      type: integer
+                      minimum: 1
+                      default: 1
+                  description: Page number for pagination.
+                  example: 1
+                - in: query
+                  name: page_size
+                  schema:
+                      type: integer
+                      minimum: 1
+                      maximum: 100
+                      default: 10
+                  description: Number of items per page.
+                  example: 10
+            responses:
+                200:
+                    description: Employee attendance records retrieved successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "Employee attendance records retrieved successfully"
+                                    data:
+                                        type: object
+                                        properties:
+                                            items:
+                                                type: array
+                                                items:
+                                                    $ref: "#/components/schemas/Attendance"
+                                            pagination:
+                                                type: object
+                                                properties:
+                                                    total_items:
+                                                        type: integer
+                                                        format: int64
+                                                        example: 50
+                                                    total_pages:
+                                                        type: integer
+                                                        example: 5
+                                                    current_page:
+                                                        type: integer
+                                                        example: 1
+                                                    page_size:
+                                                        type: integer
+                                                        example: 10
+                400:
+                    description: Invalid request parameters
+                404:
+                    description: Employee not found
+                500:
+                    description: Internal server error
+
+
+    #
+    #    /attendance/logs:
+    #        get:
+    #            tags: [ Attendance ]
+    #            summary: Get attendance logs
+    #            parameters:
+    #                -   in: query
+    #                    name: start_date
+    #                    schema:
+    #                        type: string
+    #                        format: date
+    #                -   in: query
+    #                    name: end_date
+    #                    schema:
+    #                        type: string
+    #                        format: date
+    #                -   in: query
+    #                    name: employee_id
+    #                    schema:
+    #                        type: integer
+    #            responses:
+    #                200:
+    #                    description: List of attendance logs
+    #                    content:
+    #                        application/json:
+    #                            schema:
+    #                                type: array
+    #                                items:
+    #                                    $ref: "#/components/schemas/AttendanceLog"
+    #
+    #    /daily-attendance:
+    #        get:
+    #            tags: [ Daily Attendance ]
+    #            summary: Get daily attendance records
+    #            parameters:
+    #                -   in: query
+    #                    name: start_date
+    #                    schema:
+    #                        type: string
+    #                        format: date
+    #                -   in: query
+    #                    name: end_date
+    #                    schema:
+    #                        type: string
+    #                        format: date
+    #                -   in: query
+    #                    name: employee_id
+    #                    schema:
+    #                        type: integer
+    #            responses:
+    #                200:
+    #                    description: List of daily attendance records
+    #                    content:
+    #                        application/json:
+    #                            schema:
+    #                                type: array
+    #                                items:
+    #                                    $ref: "#/components/schemas/DailyAttendance"
+    #
+    #    /daily-attendance/{id}:
+    #        get:
+    #            tags: [ Daily Attendance ]
+    #            summary: Get daily attendance by ID
+    #            parameters:
+    #                -   in: path
+    #                    name: id
+    #                    required: true
+    #                    schema:
+    #                        type: integer
+    #            responses:
+    #                200:
+    #                    description: Daily attendance record
+    #                    content:
+    #                        application/json:
+    #                            schema:
+    #                                $ref: "#/components/schemas/DailyAttendance"
+    #                404:
+    #                    description: Attendance record not found
+    #
+    #    /overtime:
+    #        post:
+    #            tags: [ Overtime ]
+    #            summary: Submit overtime request
+    #            requestBody:
+    #                required: true
+    #                content:
+    #                    application/json:
+    #                        schema:
+    #                            $ref: "#/components/schemas/OvertimeRequest"
+    #            responses:
+    #                201:
+    #                    description: Overtime request submitted
+    #
+    #        get:
+    #            tags: [ Overtime ]
+    #            summary: Get overtime requests
+    #            parameters:
+    #                -   in: query
+    #                    name: status
+    #                    schema:
+    #                        type: string
+    #                        enum: [ pending, approved, rejected ]
+    #                -   in: query
+    #                    name: employee_id
+    #                    schema:
+    #                        type: integer
+    #            responses:
+    #                200:
+    #                    description: List of overtime requests
+    #                    content:
+    #                        application/json:
+    #                            schema:
+    #                                type: array
+    #                                items:
+    #                                    $ref: "#/components/schemas/OvertimeRequest"
+    #
+    #    /overtime/{id}/approve:
+    #        post:
+    #            tags: [ Overtime ]
+    #            summary: Approve/reject overtime request
+    #            parameters:
+    #                -   in: path
+    #                    name: id
+    #                    required: true
+    #                    schema:
+    #                        type: integer
+    #            requestBody:
+    #                required: true
+    #                content:
+    #                    application/json:
+    #                        schema:
+    #                            type: object
+    #                            properties:
+    #                                status:
+    #                                    type: string
+    #                                    enum: [ approved, rejected ]
+    #                                notes:
+    #                                    type: string
+    #            responses:
+    #                200:
+    #                    description: Overtime request updated
+    #
+    #    /departments:
+    #        get:
+    #            tags: [ Departments ]
+    #            summary: Get all departments
+    #            responses:
+    #                200:
+    #                    description: List of all departments
+    #                    content:
+    #                        application/json:
+    #                            schema:
+    #                                type: array
+    #                                items:
+    #                                    $ref: "#/components/schemas/Department"
+    #        post:
+    #            tags: [ Departments ]
+    #            summary: Create a new department
+    #            requestBody:
+    #                required: true
+    #                content:
+    #                    application/json:
+    #                        schema:
+    #                            type: object
+    #                            properties:
+    #                                name:
+    #                                    type: string
+    #                                description:
+    #                                    type: string
+    #                                active:
+    #                                    type: boolean
+    #            responses:
+    #                201:
+    #                    description: Department created successfully
+    #                    content:
+    #                        application/json:
+    #                            schema:
+    #                                $ref: "#/components/schemas/Department"
+    #
+    #    /departments/{id}:
+    #        get:
+    #            tags: [ Departments ]
+    #            summary: Get department by ID
+    #            parameters:
+    #                -   in: path
+    #                    name: id
+    #                    required: true
+    #                    schema:
+    #                        type: integer
+    #            responses:
+    #                200:
+    #                    description: Department details
+    #                    content:
+    #                        application/json:
+    #                            schema:
+    #                                $ref: "#/components/schemas/Department"
+    #                404:
+    #                    description: Department not found
+    #        put:
+    #            tags: [ Departments ]
+    #            summary: Update department by ID
+    #            parameters:
+    #                -   in: path
+    #                    name: id
+    #                    required: true
+    #                    schema:
+    #                        type: integer
+    #            requestBody:
+    #                required: true
+    #                content:
+    #                    application/json:
+    #                        schema:
+    #                            type: object
+    #                            properties:
+    #                                name:
+    #                                    type: string
+    #                                description:
+    #                                    type: string
+    #                                active:
+    #                                    type: boolean
+    #            responses:
+    #                200:
+    #                    description: Department updated successfully
+    #                    content:
+    #                        application/json:
+    #                            schema:
+    #                                $ref: "#/components/schemas/Department"
+    #                404:
+    #                    description: Department not found
+    #        delete:
+    #            tags: [ Departments ]
+    #            summary: Delete department by ID
+    #            parameters:
+    #                -   in: path
+    #                    name: id
+    #                    required: true
+    #                    schema:
+    #                        type: integer
+    #            responses:
+    #                204:
+    #                    description: Department deleted successfully
+    #                404:
+    #                    description: Department not found
 
   /positions:
     get:
@@ -4118,59 +4347,59 @@ paths:
         500:
           description: Internal server error
 
-  /api/documents/{id}:
-    delete:
-      tags: [Documents]
-      summary: Delete document
-      description: Delete a document by its ID. This will remove both the database record and the file from Supabase storage.
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: integer
-            format: uint
-          description: The document ID
-          example: 1
-      responses:
-        200:
-          description: Document deleted successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: integer
-                    example: 200
-                  message:
-                    type: string
-                    example: "Document deleted successfully"
-                  data:
-                    type: object
-                    nullable: true
-        400:
-          description: Invalid document ID
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: integer
-                    example: 400
-                  message:
-                    type: string
-                    example: "Invalid document ID"
-                  error:
-                    type: string
-                    example: 'strconv.ParseUint: parsing "abc": invalid syntax'
-        404:
-          description: Document not found
-        500:
-          description: Internal server error
+    /api/documents/{id}:
+        delete:
+            tags: [Documents]
+            summary: Delete document
+            description: Delete a document by its ID. This will remove both the database record and the file from Supabase storage.
+            security:
+                - bearerAuth: []
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: integer
+                      format: uint
+                  description: The document ID
+                  example: 1
+            responses:
+                200:
+                    description: Document deleted successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "Document deleted successfully"
+                                    data:
+                                        type: object
+                                        nullable: true
+                400:
+                    description: Invalid document ID
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 400
+                                    message:
+                                        type: string
+                                        example: "Invalid document ID"
+                                    error:
+                                        type: string
+                                        example: 'strconv.ParseUint: parsing "abc": invalid syntax'
+                404:
+                    description: Document not found
+                500:
+                    description: Internal server error
 
   /health:
     get:

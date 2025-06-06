@@ -31,18 +31,17 @@ export function useCheckClockApproval() {
   );
 
   // Mutation for updating leave request status
-  const updateStatusMutation = useUpdateLeaveRequestStatusMutation();  // Transform leave request data to approval items
+  const updateStatusMutation = useUpdateLeaveRequestStatusMutation(); // Transform leave request data to approval items
   const approvalData: ApprovalItem[] =
     leaveRequestsData?.items.map((leaveRequest) => {
-      console.log('Leave Request Data:', leaveRequest);
-      console.log('Employee Data:', leaveRequest.employee);
-        // Handle both possible response formats
+      // Handle both possible response formats
       let employeeName = 'Unknown Employee';
       let positionName = 'Unknown Position';
-      
+
       if (leaveRequest.employee) {
         // If employee object exists (expected format)
-        employeeName = leaveRequest.employee.first_name + 
+        employeeName =
+          leaveRequest.employee.first_name +
           (leaveRequest.employee.last_name ? ` ${leaveRequest.employee.last_name}` : '');
         positionName = leaveRequest.employee.position_name || 'Unknown Position';
       } else if (leaveRequest.employee_name) {
@@ -50,7 +49,7 @@ export function useCheckClockApproval() {
         employeeName = leaveRequest.employee_name;
         positionName = leaveRequest.position_name || 'Unknown Position';
       }
-        return {
+      return {
         id: leaveRequest.id,
         name: employeeName,
         type: positionName,

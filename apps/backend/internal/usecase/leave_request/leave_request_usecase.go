@@ -110,7 +110,11 @@ func (uc *LeaveRequestUseCase) Create(ctx context.Context, leaveRequest *domain.
 		if err != nil {
 			return nil, fmt.Errorf("failed to open attachment file: %w", err)
 		}
-		defer src.Close()
+		defer func() {
+			if closeErr := src.Close(); closeErr != nil {
+				log.Printf("Warning: failed to close attachment file: %v", closeErr)
+			}
+		}()
 
 		// Upload to Supabase Storage with proper content type
 		_, err = uc.supabaseClient.Storage.UploadFile(bucketNameAttachments, fileName, src, storage.FileOptions{
@@ -229,7 +233,12 @@ func (uc *LeaveRequestUseCase) List(ctx context.Context, filters map[string]inte
 	return response, nil
 }
 
-func (uc *LeaveRequestUseCase) GetByEmployeeUserID(ctx context.Context, userID uint, filters map[string]interface{}, pagination domain.PaginationParams) (*dtoleave.LeaveRequestListResponseData, error) {
+func (uc *LeaveRequestUseCase) GetByEmployeeUserID(
+	ctx context.Context,
+	userID uint,
+	filters map[string]interface{},
+	pagination domain.PaginationParams,
+) (*dtoleave.LeaveRequestListResponseData, error) {
 	log.Printf("LeaveRequestUseCase: GetByEmployeeUserID called for userID %d", userID)
 	// Get employee by user ID
 	employee, err := uc.employeeRepo.GetByUserID(ctx, userID)
@@ -333,17 +342,18 @@ func (uc *LeaveRequestUseCase) Update(ctx context.Context, id uint, updates *dom
 	if updates.EmployeeNote != nil {
 		existingLeaveRequest.EmployeeNote = updates.EmployeeNote
 	}
-
 	// Validate dates
 	if existingLeaveRequest.StartDate.After(existingLeaveRequest.EndDate) {
 		return nil, fmt.Errorf("start date cannot be after end date")
-	}	// Handle file upload if provided
+	}
+
+	// Handle file upload if provided
 	var oldAttachment *string
-	if file != nil && file.Size > 0 && file.Filename != "" && uc.supabaseClient != nil {
-		// Validate file type
+	if file != nil && file.Size > 0 && file.Filename != "" && uc.supabaseClient != nil {		// Validate file type
 		if err := uc.validateAttachmentFile(file); err != nil {
 			return nil, err
 		}
+
 		employee, _ := uc.employeeRepo.GetByID(ctx, existingLeaveRequest.EmployeeID)
 		fileName := uc.generateFileName(employee, file.Filename)
 		
@@ -352,7 +362,11 @@ func (uc *LeaveRequestUseCase) Update(ctx context.Context, id uint, updates *dom
 		if err != nil {
 			return nil, fmt.Errorf("failed to open attachment file: %w", err)
 		}
-		defer src.Close()
+		defer func() {
+			if closeErr := src.Close(); closeErr != nil {
+				log.Printf("Warning: failed to close attachment file: %v", closeErr)
+			}
+		}()
 
 		// Upload to Supabase Storage with proper content type
 		_, err = uc.supabaseClient.Storage.UploadFile(bucketNameAttachments, fileName, src, storage.FileOptions{
@@ -504,9 +518,12 @@ func (uc *LeaveRequestUseCase) validateAttachmentFile(file *multipart.FileHeader
 	if err != nil {
 		return fmt.Errorf("failed to open file for validation: %w", err)
 	}
-	defer src.Close()
-	
-	// Read first 512 bytes to detect MIME type
+	defer func() {
+			if closeErr := src.Close(); closeErr != nil {
+				log.Printf("Warning: failed to close attachment file: %v", closeErr)
+			}
+		}()
+		// Read first 512 bytes to detect MIME type
 	buffer := make([]byte, 512)
 	_, err = src.Read(buffer)
 	if err != nil {
@@ -514,7 +531,9 @@ func (uc *LeaveRequestUseCase) validateAttachmentFile(file *multipart.FileHeader
 	}
 	
 	// Reset file pointer for later use
-	src.Seek(0, 0)
+	if _, err := src.Seek(0, 0); err != nil {
+		return fmt.Errorf("failed to reset file pointer: %w", err)
+	}
 	
 	// Check MIME type
 	mimeType := http.DetectContentType(buffer)

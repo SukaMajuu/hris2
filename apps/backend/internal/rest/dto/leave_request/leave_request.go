@@ -82,30 +82,9 @@ func (dto *UpdateLeaveRequestDTO) ToDomain(employeeID uint) (*domain.LeaveReques
 		}
 		updateData.EndDate = endDate
 	}
-
 	if dto.EmployeeNote != nil {
 		updateData.EmployeeNote = dto.EmployeeNote
 	}
 
 	return updateData, nil
-}
-
-func MapCreateDTOToDomain(dto *CreateLeaveRequestDTO) (*domain.LeaveRequest, error) {
-	startDate, err := time.Parse("2006-01-02", dto.StartDate)
-	if err != nil {
-		return nil, err
-	}
-
-	endDate, err := time.Parse("2006-01-02", dto.EndDate)
-	if err != nil {
-		return nil, err
-	}
-
-	return &domain.LeaveRequest{
-		LeaveType:    dto.LeaveType,
-		StartDate:    startDate,
-		EndDate:      endDate,
-		EmployeeNote: dto.EmployeeNote,
-		Status:       domain.LeaveStatusPending,
-	}, nil
 }

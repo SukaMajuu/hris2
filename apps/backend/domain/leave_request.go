@@ -17,14 +17,13 @@ type LeaveRequest struct {
 	ID           uint            `gorm:"primaryKey"`
 	EmployeeID   uint            `gorm:"not null"`
 	Employee     Employee        `gorm:"foreignKey:EmployeeID"`
-	LeaveTypeID  uint            `gorm:"not null"`
-	LeaveType    enums.LeaveType `gorm:"foreignKey:LeaveTypeID"`
-	StartDate    *time.Time      `gorm:"not null"`
-	EndDate      *time.Time      `gorm:"not null"`
+	LeaveType    enums.LeaveType `gorm:"type:leave_type;not null"`
+	StartDate    time.Time       `gorm:"type:timestamp;not null"`
+	EndDate      time.Time       `gorm:"type:timestamp;not null"`
 	Attachment   *string         `gorm:"type:varchar(255)"`
 	EmployeeNote *string         `gorm:"type:varchar(255)"`
 	AdminNote    *string         `gorm:"type:varchar(255)"`
-	Status       LeaveStatus     `gorm:"type:leave_status;not null;default:Waiting Approval"`
+	Status       LeaveStatus     `gorm:"type:leave_status;not null;default:'Waiting Approval'"`
 
 	CreatedAt time.Time `gorm:"autoCreateTime"`
 	UpdatedAt time.Time `gorm:"autoUpdateTime"`

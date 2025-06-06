@@ -15,7 +15,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Crosshair } from "lucide-react";
 import dynamic from "next/dynamic";
-import { DialogFormData } from "../_interfaces/DialogFormData";
 
 const MapComponent = dynamic(
 	() =>
@@ -25,12 +24,24 @@ const MapComponent = dynamic(
 	{
 		ssr: false,
 		loading: () => (
-			<div className="flex items-center justify-center h-full text-gray-400">
+			<div className="flex h-full items-center justify-center text-gray-400">
 				Loading map...
 			</div>
 		),
 	}
 );
+
+interface DialogFormData {
+	attendanceType: string;
+	checkIn: string;
+	checkOut: string;
+	latitude: string;
+	longitude: string;
+	permitEndDate: string;
+	startDate: string;
+	reason: string;
+	evidence: FileList | null;
+}
 
 interface CheckInOutDialogProps {
 	open: boolean;
@@ -68,8 +79,8 @@ export function CheckInOutDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-[700px] bg-slate-50 dark:bg-slate-900 p-0">
-				<DialogHeader className="px-6 py-4 border-b dark:border-slate-700">
+			<DialogContent className="bg-slate-50 p-0 sm:max-w-[700px] dark:bg-slate-900">
+				<DialogHeader className="border-b px-6 py-4 dark:border-slate-700">
 					<DialogTitle className="text-xl font-semibold text-slate-800 dark:text-slate-100">
 						{dialogTitle}
 					</DialogTitle>
@@ -80,9 +91,9 @@ export function CheckInOutDialog({
 				</DialogHeader>
 
 				<form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-					<div className="px-6 py-4 space-y-6 overflow-y-auto max-h-[calc(100vh-220px)]">
+					<div className="max-h-[calc(100vh-220px)] space-y-6 overflow-y-auto px-6 py-4">
 						{/* Section 1: Attendance Type */}
-						<div className="bg-white dark:bg-slate-800 shadow-md rounded-lg p-6">
+						<div className="rounded-lg bg-white p-6 shadow-md dark:bg-slate-800">
 							<div className="space-y-2">
 								<Label
 									htmlFor="attendanceType"
@@ -92,7 +103,7 @@ export function CheckInOutDialog({
 								</Label>
 								<select
 									id="attendanceType"
-									className="flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-700 px-3 py-2 text-sm text-slate-700 dark:text-slate-300 ring-offset-white dark:ring-offset-slate-900 cursor-not-allowed opacity-70"
+									className="flex h-10 w-full cursor-not-allowed rounded-md border border-slate-300 bg-slate-100 px-3 py-2 text-sm text-slate-700 opacity-70 ring-offset-white dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300 dark:ring-offset-slate-900"
 									{...register("attendanceType")}
 									disabled // Always disabled for CheckIn/Out dialog
 								>
@@ -111,11 +122,11 @@ export function CheckInOutDialog({
 						</div>
 
 						{/* Section 2: Work Schedule (Display only) */}
-						<div className="bg-white dark:bg-slate-800 shadow-md rounded-lg p-6">
-							<Label className="block text-base font-semibold mb-4 text-slate-800 dark:text-slate-200">
+						<div className="rounded-lg bg-white p-6 shadow-md dark:bg-slate-800">
+							<Label className="mb-4 block text-base font-semibold text-slate-800 dark:text-slate-200">
 								Work Schedule (Information)
 							</Label>
-							<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+							<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 								<div className="space-y-1">
 									<Label
 										htmlFor="workType"
@@ -127,7 +138,7 @@ export function CheckInOutDialog({
 										id="workType"
 										placeholder="WFO"
 										disabled
-										className="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 cursor-not-allowed"
+										className="cursor-not-allowed bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300"
 									/>
 								</div>
 								<div className="space-y-1">
@@ -141,7 +152,7 @@ export function CheckInOutDialog({
 										id="checkInSchedule"
 										placeholder="07:00 - 08:00"
 										disabled
-										className="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 cursor-not-allowed"
+										className="cursor-not-allowed bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300"
 									/>
 								</div>
 								<div className="space-y-1">
@@ -155,7 +166,7 @@ export function CheckInOutDialog({
 										id="breakSchedule"
 										placeholder="12:00 - 13:00"
 										disabled
-										className="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 cursor-not-allowed"
+										className="cursor-not-allowed bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300"
 									/>
 								</div>
 								<div className="space-y-1">
@@ -169,16 +180,16 @@ export function CheckInOutDialog({
 										id="checkOutSchedule"
 										placeholder="17:00 - 18:00"
 										disabled
-										className="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 cursor-not-allowed"
+										className="cursor-not-allowed bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300"
 									/>
 								</div>
 							</div>
 						</div>
 
 						{/* Section 3: Location (Display & Map) */}
-						<div className="bg-white dark:bg-slate-800 shadow-md rounded-lg p-6 space-y-4">
+						<div className="space-y-4 rounded-lg bg-white p-6 shadow-md dark:bg-slate-800">
 							<div>
-								<Label className="block text-base font-semibold mb-2 text-slate-800 dark:text-slate-200">
+								<Label className="mb-2 block text-base font-semibold text-slate-800 dark:text-slate-200">
 									Current Location (Information)
 								</Label>
 								<Button
@@ -203,13 +214,13 @@ export function CheckInOutDialog({
 												)
 										);
 									}}
-									className="w-full flex items-center gap-2 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+									className="flex w-full items-center gap-2 border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700"
 								>
 									<Crosshair className="h-4 w-4" />
 									Refresh Current Location
 								</Button>
 							</div>
-							<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+							<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 								<div className="space-y-1">
 									<Label
 										htmlFor="latitude"
@@ -221,7 +232,7 @@ export function CheckInOutDialog({
 										id="latitude"
 										value={formData.latitude || ""}
 										disabled
-										className="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 cursor-not-allowed"
+										className="cursor-not-allowed bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300"
 									/>
 								</div>
 								<div className="space-y-1">
@@ -235,11 +246,11 @@ export function CheckInOutDialog({
 										id="longitude"
 										value={formData.longitude || ""}
 										disabled
-										className="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 cursor-not-allowed"
+										className="cursor-not-allowed bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300"
 									/>
 								</div>
 							</div>
-							<div className="min-h-[150px] rounded-md overflow-hidden border border-slate-300 dark:border-slate-700">
+							<div className="min-h-[150px] overflow-hidden rounded-md border border-slate-300 dark:border-slate-700">
 								<MapComponent
 									latitude={parseFloat(
 										formData.latitude || "-6.2088"
@@ -251,22 +262,23 @@ export function CheckInOutDialog({
 									onPositionChange={() => {
 										/* readonly, do nothing */
 									}}
+									interactive={false}
 								/>
 							</div>
 						</div>
 					</div>
-					<DialogFooter className="px-6 py-4 border-t dark:border-slate-700 bg-slate-100 dark:bg-slate-800/50 rounded-b-lg">
+					<DialogFooter className="rounded-b-lg border-t bg-slate-100 px-6 py-4 dark:border-slate-700 dark:bg-slate-800/50">
 						<Button
 							type="button"
 							variant="outline"
 							onClick={() => onOpenChange(false)}
-							className="border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-slate-100"
+							className="border-slate-300 text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100"
 						>
 							Cancel
 						</Button>
 						<Button
 							type="submit"
-							className="bg-[#6B9AC4] hover:bg-[#5A89B3] text-white"
+							className="bg-[#6B9AC4] text-white hover:bg-[#5A89B3]"
 						>
 							{actionType === "check-in"
 								? "Confirm Check-In"

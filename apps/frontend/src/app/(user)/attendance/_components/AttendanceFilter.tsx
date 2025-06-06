@@ -12,13 +12,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { 
-	FilterX, 
-	Calendar,
-	CheckCircle,
-	Clock,
-	Timer
-} from "lucide-react";
+import { FilterX, Calendar, CheckCircle, Clock, Timer } from "lucide-react";
 
 interface FilterOptions {
 	date?: string;
@@ -38,10 +32,12 @@ export function AttendanceFilter({
 	currentFilters,
 	isVisible,
 }: AttendanceFilterProps) {
-	const [localFilters, setLocalFilters] = useState<FilterOptions>(currentFilters);
+	const [localFilters, setLocalFilters] = useState<FilterOptions>(
+		currentFilters
+	);
 
 	const handleInputChange = (field: keyof FilterOptions, value: string) => {
-		setLocalFilters(prev => ({
+		setLocalFilters((prev) => ({
 			...prev,
 			[field]: value || undefined,
 		}));
@@ -49,13 +45,16 @@ export function AttendanceFilter({
 
 	const handleApply = () => {
 		// Remove empty values
-		const cleanFilters = Object.entries(localFilters).reduce((acc, [key, value]) => {
-			if (value && value.trim() !== "") {
-				acc[key as keyof FilterOptions] = value.trim();
-			}
-			return acc;
-		}, {} as FilterOptions);
-		
+		const cleanFilters = Object.entries(localFilters).reduce(
+			(acc, [key, value]) => {
+				if (value && value.trim() !== "") {
+					acc[key as keyof FilterOptions] = value.trim();
+				}
+				return acc;
+			},
+			{} as FilterOptions
+		);
+
 		onApplyFilters(cleanFilters);
 	};
 
@@ -75,86 +74,95 @@ export function AttendanceFilter({
 				return <Timer className="h-4 w-4 text-purple-500" />;
 			default:
 				return <CheckCircle className="h-4 w-4 text-slate-500" />;
-		}	};
+		}
+	};
 	// Always show filter regardless of isVisible prop
 	return (
-		<Card className="border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 mb-6 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200">
-			<CardContent className="p-6">				<div className="space-y-6">
+		<Card className="border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-xl shadow-xs transition-shadow duration-200 py-0">
+			<CardContent className="p-6">
+				{" "}
+				<div className="space-y-6">
 					{/* Filter Controls */}
 					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 						{/* Date Filter */}
 						<div className="space-y-2">
-							<Label htmlFor="date-filter" className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+							<Label
+								htmlFor="date-filter"
+								className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2"
+							>
 								<Calendar className="h-4 w-4 flex-shrink-0 text-slate-500" />
 								<span className="truncate">Select Date</span>
-							</Label>							<Input
+							</Label>{" "}
+							<Input
 								id="date-filter"
 								type="date"
 								value={localFilters.date || ""}
-								onChange={(e) => handleInputChange("date", e.target.value)}
+								onChange={(e) =>
+									handleInputChange("date", e.target.value)
+								}
 								className="w-full bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800 transition-colors duration-200 h-11 rounded-md px-3"
 								placeholder="dd/mm/yyyy"
 							/>
 						</div>
 
 						{/* Attendance Status Filter */}
-						<div className="space-y-2">
-							<Label htmlFor="status-filter" className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+						<div className="flex flex-col gap-2">
+							<Label
+								htmlFor="status-filter"
+								className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2"
+							>
 								<CheckCircle className="h-4 w-4 flex-shrink-0 text-green-500" />
-								<span className="truncate">Attendance Status</span>
+								<span className="truncate">
+									Attendance Status
+								</span>
 							</Label>
 							<Select
 								value={localFilters.attendanceStatus || "all"}
-								onValueChange={(value) => handleInputChange("attendanceStatus", value === "all" ? "" : value)}
-							>								<SelectTrigger className="w-full bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800 transition-colors duration-200 h-11 rounded-md px-3">
+								onValueChange={(value) =>
+									handleInputChange(
+										"attendanceStatus",
+										value === "all" ? "" : value
+									)
+								}
+							>
+								<SelectTrigger className="w-full flex-1 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800 transition-colors duration-200 rounded-md px-3">
 									<SelectValue placeholder="All Status" />
 								</SelectTrigger>
 								<SelectContent className="bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 rounded-md shadow-lg p-1">
-									<SelectItem 
-										value="all" 
+									<SelectItem
+										value="all"
 										className="hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer rounded-sm py-2 px-3 transition-colors duration-150"
 									>
 										<div className="flex items-center gap-3 w-full">
 											<CheckCircle className="h-4 w-4 text-slate-500 flex-shrink-0" />
-											<span className="font-medium">All Status</span>
+											<span className="font-medium">
+												All Status
+											</span>
 										</div>
 									</SelectItem>
-									<SelectItem 
-										value="Present" 
+									<SelectItem
+										value="Present"
 										className="hover:bg-green-50 dark:hover:bg-green-950 cursor-pointer rounded-sm py-2 px-3 transition-colors duration-150"
 									>
 										<div className="flex items-center gap-3 w-full">
 											<CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
-											<span className="font-medium text-green-700 dark:text-green-300">Present</span>
+											<span className="font-medium text-green-700 dark:text-green-300">
+												Present
+											</span>
 										</div>
 									</SelectItem>
-									<SelectItem 
-										value="Late" 
+									<SelectItem
+										value="Late"
 										className="hover:bg-red-50 dark:hover:bg-red-950 cursor-pointer rounded-sm py-2 px-3 transition-colors duration-150"
 									>
 										<div className="flex items-center gap-3 w-full">
 											<Clock className="h-4 w-4 text-red-500 flex-shrink-0" />
-											<span className="font-medium text-red-700 dark:text-red-300">Late</span>
+											<span className="font-medium text-red-700 dark:text-red-300">
+												Late
+											</span>
 										</div>
 									</SelectItem>
-									<SelectItem 
-										value="Leave" 
-										className="hover:bg-yellow-50 dark:hover:bg-yellow-950 cursor-pointer rounded-sm py-2 px-3 transition-colors duration-150"
-									>
-										<div className="flex items-center gap-3 w-full">
-											<Timer className="h-4 w-4 text-yellow-500 flex-shrink-0" />
-											<span className="font-medium text-yellow-700 dark:text-yellow-300">Leave</span>
-										</div>
-									</SelectItem>
-									<SelectItem 
-										value="Permission" 
-										className="hover:bg-purple-50 dark:hover:bg-purple-950 cursor-pointer rounded-sm py-2 px-3 transition-colors duration-150"
-									>
-										<div className="flex items-center gap-3 w-full">
-											<Timer className="h-4 w-4 text-purple-500 flex-shrink-0" />
-											<span className="font-medium text-purple-700 dark:text-purple-300">Permission</span>
-										</div>
-									</SelectItem>								</SelectContent>
+								</SelectContent>
 							</Select>
 						</div>
 
@@ -193,12 +201,16 @@ export function AttendanceFilter({
 								{localFilters.date && (
 									<span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs rounded-full">
 										<Calendar className="h-3 w-3" />
-										{new Date(localFilters.date).toLocaleDateString()}
+										{new Date(
+											localFilters.date
+										).toLocaleDateString()}
 									</span>
 								)}
 								{localFilters.attendanceStatus && (
 									<span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 text-xs rounded-full">
-										{getStatusIcon(localFilters.attendanceStatus)}
+										{getStatusIcon(
+											localFilters.attendanceStatus
+										)}
 										{localFilters.attendanceStatus}
 									</span>
 								)}

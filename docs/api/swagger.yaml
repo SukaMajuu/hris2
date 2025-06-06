@@ -1097,6 +1097,245 @@ components:
                 - contract_employees
                 - freelance_employees
 
+        LeaveRequest:
+            type: object
+            description: Represents a leave request submitted by an employee
+            properties:
+                id:
+                    type: integer
+                    format: uint
+                    description: Unique identifier for the leave request
+                    readOnly: true
+                    example: 1
+                employee_id:
+                    type: integer
+                    format: uint
+                    description: ID of the employee who submitted the request
+                    example: 1
+                employee_name:
+                    type: string
+                    description: Name of the employee who submitted the request
+                    readOnly: true
+                    example: "John Doe"
+                leave_type:
+                    type: string
+                    enum:
+                        [
+                            sick_leave,
+                            compassionate_leave,
+                            maternity_leave,
+                            annual_leave,
+                            marriage_leave,
+                        ]
+                    description: Type of leave being requested
+                    example: "annual"
+                start_date:
+                    type: string
+                    format: date
+                    description: Start date of the leave period
+                    example: "2024-06-10"
+                end_date:
+                    type: string
+                    format: date
+                    description: End date of the leave period
+                    example: "2024-06-15"
+                attachment:
+                    type: string
+                    nullable: true
+                    description: URL or path to the uploaded attachment file
+                    example: "leave_requests/EMP001_20240604_143022_medical_certificate.pdf"
+                employee_note:
+                    type: string
+                    nullable: true
+                    description: Optional note from the employee
+                    example: "Family vacation trip to Bali"
+                admin_note:
+                    type: string
+                    nullable: true
+                    description: Optional note from the administrator (for approval/rejection)
+                    example: "Approved for annual leave"
+                status:
+                    type: string
+                    enum: [Waiting Approval, Approved, Rejected]
+                    description: Current status of the leave request
+                    example: "Waiting Approval"
+                created_at:
+                    type: string
+                    format: date-time
+                    description: Timestamp when the leave request was created
+                    readOnly: true
+                    example: "2024-06-04T14:30:22Z"
+                updated_at:
+                    type: string
+                    format: date-time
+                    description: Timestamp when the leave request was last updated
+                    readOnly: true
+                    example: "2024-06-04T14:30:22Z"
+            required:
+                - id
+                - employee_id
+                - employee_name
+                - leave_type
+                - start_date
+                - end_date
+                - status
+                - created_at
+                - updated_at
+
+        Pagination:
+            type: object
+            description: Pagination information for list responses
+            properties:
+                total_items:
+                    type: integer
+                    format: int64
+                    description: Total number of items available
+                    example: 150
+                total_pages:
+                    type: integer
+                    description: Total number of pages available
+                    example: 15
+                current_page:
+                    type: integer
+                    description: Current page number
+                    example: 1
+                page_size:
+                    type: integer
+                    description: Number of items per page
+                    example: 10
+                has_next_page:
+                    type: boolean
+                    description: Whether there is a next page available
+                    example: true
+                has_prev_page:
+                    type: boolean
+                    description: Whether there is a previous page available
+                    example: false
+            required:
+                - total_items
+                - total_pages
+                - current_page
+                - page_size
+                - has_next_page
+                - has_prev_page
+
+        Attendance:
+            type: object
+            description: Represents all employee attendance data.
+            properties:
+                id:
+                    type: integer
+                    format: uint
+                    description: Unique identifier for the attendance record.
+                    readOnly: true
+                    example: 1
+                employee_id:
+                    type: integer
+                    format: uint
+                    description: Foreign key referencing the Employee ID.
+                    example: 1
+                work_schedule_id:
+                    type: integer
+                    format: uint
+                    description: Foreign key referencing the Work Schedule ID.
+                    example: 1
+                date:
+                    type: string
+                    format: date
+                    description: The date of the attendance record.
+                    example: "2024-01-15"
+                clock_in:
+                    type: string
+                    format: date-time
+                    description: Timestamp when the employee clocked in.
+                    example: "2024-01-15T08:00:00Z"
+                clock_out:
+                    type: string
+                    format: date-time
+                    description: Timestamp when the employee clocked out.
+                    example: "2024-01-15T17:00:00Z"
+                check_in_lat:
+                    type: number
+                    format: double
+                    description: Latitude of the clock-in location.
+                    example: -6.200000
+                check_in_long:
+                    type: number
+                    format: double
+                    description: Longitude of the clock-in location.
+                    example: 106.816666
+                check_out_lat:
+                    type: number
+                    format: double
+                    description: Latitude of the clock-out location.
+                    example: -6.200000
+                check_out_long:
+                    type: number
+                    format: double
+                    description: Longitude of the clock-out location.
+                    example: 106.816666
+                work_hours:
+                    type: number
+                    format: double
+                    description: Total work hours for the day.
+                    example: 8.0
+                status:
+                    type: string
+                    enum: ["on_time", "late", "early_leave", "absent", "leave"]
+                    description: Attendance status for the day.
+                    example: "on_time"
+
+        AttendanceCheckInRequest:
+            type: object
+            properties:
+                employee_id:
+                    type: integer
+                    example: 8
+                work_schedule_id:
+                    type: integer
+                    example: 2
+                date:
+                    type: string
+                    format: date
+                    example: "2024-03-15"
+                clock_in:
+                    type: string
+                    format: date-time
+                    example: "2024-03-15T08:00:00Z"
+                check_in_lat:
+                    type: number
+                    format: double
+                    example: -6.200000
+                check_in_long:
+                    type: number
+                    format: double
+                    example: 106.816666
+
+        AttendanceCheckOutRequest:
+            properties:
+                employee_id:
+                    type: integer
+                    example: 8
+                work_schedule_id:
+                    type: integer
+                    example: 2
+                date:
+                    type: string
+                    format: date
+                    example: "2024-03-15"
+                clock_out:
+                    type: string
+                    format: date-time
+                    example: "2024-03-15T17:00:00Z"
+                check_out_lat:
+                    type: number
+                    format: double
+                    example: -6.200000
+                check_out_long:
+                    type: number
+                    format: double
+                    example: 106.816666
+
 paths:
     /auth/login:
         post:
@@ -1584,7 +1823,7 @@ paths:
                                         type: string
                                         example: "Internal Server Error"
 
-    /api/employee:
+    /api/employees:
         get:
             tags: [Employees]
             summary: Get all employees
@@ -2648,61 +2887,61 @@ paths:
                                         type: string
                                         example: "Failed to update employee status"
 
-    /api/employee/statistics:
-        get:
-            tags: [Employees]
-            summary: Get employee statistics
-            description: Retrieve statistical information about employees including total count, new hires, active and resigned employees
-            security:
-                - bearerAuth: []
-            responses:
-                200:
-                    description: Employee statistics retrieved successfully
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    status:
-                                        type: integer
-                                        example: 200
-                                    message:
-                                        type: string
-                                        example: "Employee statistics retrieved successfully"
-                                    data:
-                                        $ref: "#/components/schemas/EmployeeStatisticsResponse"
-                401:
-                    description: Unauthorized
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    status:
-                                        type: integer
-                                        example: 401
-                                    message:
-                                        type: string
-                                        example: "Unauthorized"
-                                    error:
-                                        type: string
-                                        example: "Invalid or missing authentication token"
-                500:
-                    description: Internal server error
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    status:
-                                        type: integer
-                                        example: 500
-                                    message:
-                                        type: string
-                                        example: "Internal server error"
-                                    error:
-                                        type: string
-                                        example: "Failed to retrieve employee statistics"                                    
+        /api/employee/statistics:
+            get:
+                tags: [Employees]
+                summary: Get employee statistics
+                description: Retrieve statistical information about employees including total count, new hires, active and resigned employees
+                security:
+                    - bearerAuth: []
+                responses:
+                    200:
+                        description: Employee statistics retrieved successfully
+                        content:
+                            application/json:
+                                schema:
+                                    type: object
+                                    properties:
+                                        status:
+                                            type: integer
+                                            example: 200
+                                        message:
+                                            type: string
+                                            example: "Employee statistics retrieved successfully"
+                                        data:
+                                            $ref: "#/components/schemas/EmployeeStatisticsResponse"
+                    401:
+                        description: Unauthorized
+                        content:
+                            application/json:
+                                schema:
+                                    type: object
+                                    properties:
+                                        status:
+                                            type: integer
+                                            example: 401
+                                        message:
+                                            type: string
+                                            example: "Unauthorized"
+                                        error:
+                                            type: string
+                                            example: "Invalid or missing authentication token"
+                    500:
+                        description: Internal server error
+                        content:
+                            application/json:
+                                schema:
+                                    type: object
+                                    properties:
+                                        status:
+                                            type: integer
+                                            example: 500
+                                        message:
+                                            type: string
+                                            example: "Internal server error"
+                                        error:
+                                            type: string
+                                            example: "Failed to retrieve employee statistics"
 
     /api/checkclock-settings:
         post:
@@ -3131,322 +3370,433 @@ paths:
                                         type: string
                                         example: "Failed to delete document"
 
-    #    /attendance/check-in:
-    #        post:
-    #            tags: [ Attendance ]
-    #            summary: Employee check-in
-    #            requestBody:
-    #                required: true
-    #                content:
-    #                    application/json:
-    #                        schema:
-    #                            type: object
-    #                            properties:
-    #                                employee_id:
-    #                                    type: integer
-    #                                    example: 1
-    #                                work_arrangement_id:
-    #                                    type: integer
-    #                                    example: 1
-    #                                ip_address:
-    #                                    type: string
-    #                                notes:
-    #                                    type: string
-    #            responses:
-    #                200:
-    #                    description: Check-in recorded successfully
-    #                    content:
-    #                        application/json:
-    #                            schema:
-    #                                allOf:
-    #                                    -   $ref: "#/components/schemas/AttendanceLog"
-    #                                    -   type: object
-    #                                        properties:
-    #                                            event_type:
-    #                                                type: string
-    #                                                enum: [ check_in ]
-    #                400:
-    #                    description: Invalid request
-    #
-    #    /attendance/check-out:
-    #        post:
-    #            tags: [ Attendance ]
-    #            summary: Employee check-out
-    #            requestBody:
-    #                required: true
-    #                content:
-    #                    application/json:
-    #                        schema:
-    #                            type: object
-    #                            properties:
-    #                                employee_id:
-    #                                    type: integer
-    #                                    example: 1
-    #                                work_arrangement_id:
-    #                                    type: integer
-    #                                    example: 1
-    #                                ip_address:
-    #                                    type: string
-    #                                notes:
-    #                                    type: string
-    #            responses:
-    #                200:
-    #                    description: Check-out recorded successfully
-    #                    content:
-    #                        application/json:
-    #                            schema:
-    #                                allOf:
-    #                                    -   $ref: "#/components/schemas/AttendanceLog"
-    #                                    -   type: object
-    #                                        properties:
-    #                                            event_type:
-    #                                                type: string
-    #                                                enum: [ check_out ]
-    #                400:
-    #                    description: Invalid request
-    #
-    #    /attendance/logs:
-    #        get:
-    #            tags: [ Attendance ]
-    #            summary: Get attendance logs
-    #            parameters:
-    #                -   in: query
-    #                    name: start_date
-    #                    schema:
-    #                        type: string
-    #                        format: date
-    #                -   in: query
-    #                    name: end_date
-    #                    schema:
-    #                        type: string
-    #                        format: date
-    #                -   in: query
-    #                    name: employee_id
-    #                    schema:
-    #                        type: integer
-    #            responses:
-    #                200:
-    #                    description: List of attendance logs
-    #                    content:
-    #                        application/json:
-    #                            schema:
-    #                                type: array
-    #                                items:
-    #                                    $ref: "#/components/schemas/AttendanceLog"
-    #
-    #    /daily-attendance:
-    #        get:
-    #            tags: [ Daily Attendance ]
-    #            summary: Get daily attendance records
-    #            parameters:
-    #                -   in: query
-    #                    name: start_date
-    #                    schema:
-    #                        type: string
-    #                        format: date
-    #                -   in: query
-    #                    name: end_date
-    #                    schema:
-    #                        type: string
-    #                        format: date
-    #                -   in: query
-    #                    name: employee_id
-    #                    schema:
-    #                        type: integer
-    #            responses:
-    #                200:
-    #                    description: List of daily attendance records
-    #                    content:
-    #                        application/json:
-    #                            schema:
-    #                                type: array
-    #                                items:
-    #                                    $ref: "#/components/schemas/DailyAttendance"
-    #
-    #    /daily-attendance/{id}:
-    #        get:
-    #            tags: [ Daily Attendance ]
-    #            summary: Get daily attendance by ID
-    #            parameters:
-    #                -   in: path
-    #                    name: id
-    #                    required: true
-    #                    schema:
-    #                        type: integer
-    #            responses:
-    #                200:
-    #                    description: Daily attendance record
-    #                    content:
-    #                        application/json:
-    #                            schema:
-    #                                $ref: "#/components/schemas/DailyAttendance"
-    #                404:
-    #                    description: Attendance record not found
-    #
-    #    /overtime:
-    #        post:
-    #            tags: [ Overtime ]
-    #            summary: Submit overtime request
-    #            requestBody:
-    #                required: true
-    #                content:
-    #                    application/json:
-    #                        schema:
-    #                            $ref: "#/components/schemas/OvertimeRequest"
-    #            responses:
-    #                201:
-    #                    description: Overtime request submitted
-    #
-    #        get:
-    #            tags: [ Overtime ]
-    #            summary: Get overtime requests
-    #            parameters:
-    #                -   in: query
-    #                    name: status
-    #                    schema:
-    #                        type: string
-    #                        enum: [ pending, approved, rejected ]
-    #                -   in: query
-    #                    name: employee_id
-    #                    schema:
-    #                        type: integer
-    #            responses:
-    #                200:
-    #                    description: List of overtime requests
-    #                    content:
-    #                        application/json:
-    #                            schema:
-    #                                type: array
-    #                                items:
-    #                                    $ref: "#/components/schemas/OvertimeRequest"
-    #
-    #    /overtime/{id}/approve:
-    #        post:
-    #            tags: [ Overtime ]
-    #            summary: Approve/reject overtime request
-    #            parameters:
-    #                -   in: path
-    #                    name: id
-    #                    required: true
-    #                    schema:
-    #                        type: integer
-    #            requestBody:
-    #                required: true
-    #                content:
-    #                    application/json:
-    #                        schema:
-    #                            type: object
-    #                            properties:
-    #                                status:
-    #                                    type: string
-    #                                    enum: [ approved, rejected ]
-    #                                notes:
-    #                                    type: string
-    #            responses:
-    #                200:
-    #                    description: Overtime request updated
-    #
-    #    /departments:
-    #        get:
-    #            tags: [ Departments ]
-    #            summary: Get all departments
-    #            responses:
-    #                200:
-    #                    description: List of all departments
-    #                    content:
-    #                        application/json:
-    #                            schema:
-    #                                type: array
-    #                                items:
-    #                                    $ref: "#/components/schemas/Department"
-    #        post:
-    #            tags: [ Departments ]
-    #            summary: Create a new department
-    #            requestBody:
-    #                required: true
-    #                content:
-    #                    application/json:
-    #                        schema:
-    #                            type: object
-    #                            properties:
-    #                                name:
-    #                                    type: string
-    #                                description:
-    #                                    type: string
-    #                                active:
-    #                                    type: boolean
-    #            responses:
-    #                201:
-    #                    description: Department created successfully
-    #                    content:
-    #                        application/json:
-    #                            schema:
-    #                                $ref: "#/components/schemas/Department"
-    #
-    #    /departments/{id}:
-    #        get:
-    #            tags: [ Departments ]
-    #            summary: Get department by ID
-    #            parameters:
-    #                -   in: path
-    #                    name: id
-    #                    required: true
-    #                    schema:
-    #                        type: integer
-    #            responses:
-    #                200:
-    #                    description: Department details
-    #                    content:
-    #                        application/json:
-    #                            schema:
-    #                                $ref: "#/components/schemas/Department"
-    #                404:
-    #                    description: Department not found
-    #        put:
-    #            tags: [ Departments ]
-    #            summary: Update department by ID
-    #            parameters:
-    #                -   in: path
-    #                    name: id
-    #                    required: true
-    #                    schema:
-    #                        type: integer
-    #            requestBody:
-    #                required: true
-    #                content:
-    #                    application/json:
-    #                        schema:
-    #                            type: object
-    #                            properties:
-    #                                name:
-    #                                    type: string
-    #                                description:
-    #                                    type: string
-    #                                active:
-    #                                    type: boolean
-    #            responses:
-    #                200:
-    #                    description: Department updated successfully
-    #                    content:
-    #                        application/json:
-    #                            schema:
-    #                                $ref: "#/components/schemas/Department"
-    #                404:
-    #                    description: Department not found
-    #        delete:
-    #            tags: [ Departments ]
-    #            summary: Delete department by ID
-    #            parameters:
-    #                -   in: path
-    #                    name: id
-    #                    required: true
-    #                    schema:
-    #                        type: integer
-    #            responses:
-    #                204:
-    #                    description: Department deleted successfully
-    #                404:
-    #                    description: Department not found
+        /api/attendances/check-in:
+            post:
+                tags: [Attendance]
+                summary: Employee check-in
+                requestBody:
+                    required: true
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/AttendanceCheckInRequest"
+                responses:
+                    201:
+                        description: Check-in recorded successfully
+                        content:
+                            application/json:
+                                schema:
+                                    allOf:
+                                        - $ref: "#/components/schemas/Attendance"
+                    400:
+                        description: Invalid request
+
+        /api/attendances/check-out:
+            post:
+                tags: [Attendance]
+                summary: Employee check-out
+                description: Record check-out for an employee. The system will find the existing attendance record by employee ID and date.
+                requestBody:
+                    required: true
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/AttendanceCheckOutRequest"
+                responses:
+                    200:
+                        description: Check-out recorded successfully
+                        content:
+                            application/json:
+                                schema:
+                                    allOf:
+                                        - $ref: "#/components/schemas/Attendance"
+                    400:
+                        description: Invalid request
+                    404:
+                        description: No attendance record found for the employee on the specified date
+
+        /api/attendances:
+            get:
+                tags: [Attendance]
+                summary: Get all attendance records with pagination
+                description: Retrieve a paginated list of all attendance records in the system.
+                parameters:
+                    - in: query
+                      name: page
+                      schema:
+                          type: integer
+                          minimum: 1
+                          default: 1
+                      description: Page number for pagination.
+                      example: 1
+                    - in: query
+                      name: page_size
+                      schema:
+                          type: integer
+                          minimum: 1
+                          maximum: 100
+                          default: 10
+                      description: Number of items per page.
+                      example: 10
+                responses:
+                    200:
+                        description: List of attendance records retrieved successfully
+                        content:
+                            application/json:
+                                schema:
+                                    type: object
+                                    properties:
+                                        status:
+                                            type: integer
+                                            example: 200
+                                        message:
+                                            type: string
+                                            example: "Attendance records retrieved successfully"
+                                        data:
+                                            type: object
+                                            properties:
+                                                items:
+                                                    type: array
+                                                    items:
+                                                        $ref: "#/components/schemas/Attendance"
+                                                pagination:
+                                                    type: object
+                                                    properties:
+                                                        total_items:
+                                                            type: integer
+                                                            format: int64
+                                                            example: 100
+                                                        total_pages:
+                                                            type: integer
+                                                            example: 10
+                                                        current_page:
+                                                            type: integer
+                                                            example: 1
+                                                        page_size:
+                                                            type: integer
+                                                            example: 10
+                    400:
+                        description: Invalid request parameters
+                    500:
+                        description: Internal server error
+
+        /api/attendances/employees/{employee_id}:
+            get:
+                tags: [Attendance]
+                summary: Get attendance records by employee ID with pagination
+                description: Retrieve a paginated list of attendance records for a specific employee.
+                parameters:
+                    - in: path
+                      name: employee_id
+                      required: true
+                      schema:
+                          type: integer
+                      description: The ID of the employee
+                      example: 1
+                    - in: query
+                      name: page
+                      schema:
+                          type: integer
+                          minimum: 1
+                          default: 1
+                      description: Page number for pagination.
+                      example: 1
+                    - in: query
+                      name: page_size
+                      schema:
+                          type: integer
+                          minimum: 1
+                          maximum: 100
+                          default: 10
+                      description: Number of items per page.
+                      example: 10
+                responses:
+                    200:
+                        description: Employee attendance records retrieved successfully
+                        content:
+                            application/json:
+                                schema:
+                                    type: object
+                                    properties:
+                                        status:
+                                            type: integer
+                                            example: 200
+                                        message:
+                                            type: string
+                                            example: "Employee attendance records retrieved successfully"
+                                        data:
+                                            type: object
+                                            properties:
+                                                items:
+                                                    type: array
+                                                    items:
+                                                        $ref: "#/components/schemas/Attendance"
+                                                pagination:
+                                                    type: object
+                                                    properties:
+                                                        total_items:
+                                                            type: integer
+                                                            format: int64
+                                                            example: 50
+                                                        total_pages:
+                                                            type: integer
+                                                            example: 5
+                                                        current_page:
+                                                            type: integer
+                                                            example: 1
+                                                        page_size:
+                                                            type: integer
+                                                            example: 10
+                    400:
+                        description: Invalid request parameters
+                    404:
+                        description: Employee not found
+                    500:
+                        description: Internal server error
+
+        #
+        #    /attendance/logs:
+        #        get:
+        #            tags: [ Attendance ]
+        #            summary: Get attendance logs
+        #            parameters:
+        #                -   in: query
+        #                    name: start_date
+        #                    schema:
+        #                        type: string
+        #                        format: date
+        #                -   in: query
+        #                    name: end_date
+        #                    schema:
+        #                        type: string
+        #                        format: date
+        #                -   in: query
+        #                    name: employee_id
+        #                    schema:
+        #                        type: integer
+        #            responses:
+        #                200:
+        #                    description: List of attendance logs
+        #                    content:
+        #                        application/json:
+        #                            schema:
+        #                                type: array
+        #                                items:
+        #                                    $ref: "#/components/schemas/AttendanceLog"
+        #
+        #    /daily-attendance:
+        #        get:
+        #            tags: [ Daily Attendance ]
+        #            summary: Get daily attendance records
+        #            parameters:
+        #                -   in: query
+        #                    name: start_date
+        #                    schema:
+        #                        type: string
+        #                        format: date
+        #                -   in: query
+        #                    name: end_date
+        #                    schema:
+        #                        type: string
+        #                        format: date
+        #                -   in: query
+        #                    name: employee_id
+        #                    schema:
+        #                        type: integer
+        #            responses:
+        #                200:
+        #                    description: List of daily attendance records
+        #                    content:
+        #                        application/json:
+        #                            schema:
+        #                                type: array
+        #                                items:
+        #                                    $ref: "#/components/schemas/DailyAttendance"
+        #
+        #    /daily-attendance/{id}:
+        #        get:
+        #            tags: [ Daily Attendance ]
+        #            summary: Get daily attendance by ID
+        #            parameters:
+        #                -   in: path
+        #                    name: id
+        #                    required: true
+        #                    schema:
+        #                        type: integer
+        #            responses:
+        #                200:
+        #                    description: Daily attendance record
+        #                    content:
+        #                        application/json:
+        #                            schema:
+        #                                $ref: "#/components/schemas/DailyAttendance"
+        #                404:
+        #                    description: Attendance record not found
+        #
+        #    /overtime:
+        #        post:
+        #            tags: [ Overtime ]
+        #            summary: Submit overtime request
+        #            requestBody:
+        #                required: true
+        #                content:
+        #                    application/json:
+        #                        schema:
+        #                            $ref: "#/components/schemas/OvertimeRequest"
+        #            responses:
+        #                201:
+        #                    description: Overtime request submitted
+        #
+        #        get:
+        #            tags: [ Overtime ]
+        #            summary: Get overtime requests
+        #            parameters:
+        #                -   in: query
+        #                    name: status
+        #                    schema:
+        #                        type: string
+        #                        enum: [ pending, approved, rejected ]
+        #                -   in: query
+        #                    name: employee_id
+        #                    schema:
+        #                        type: integer
+        #            responses:
+        #                200:
+        #                    description: List of overtime requests
+        #                    content:
+        #                        application/json:
+        #                            schema:
+        #                                type: array
+        #                                items:
+        #                                    $ref: "#/components/schemas/OvertimeRequest"
+        #
+        #    /overtime/{id}/approve:
+        #        post:
+        #            tags: [ Overtime ]
+        #            summary: Approve/reject overtime request
+        #            parameters:
+        #                -   in: path
+        #                    name: id
+        #                    required: true
+        #                    schema:
+        #                        type: integer
+        #            requestBody:
+        #                required: true
+        #                content:
+        #                    application/json:
+        #                        schema:
+        #                            type: object
+        #                            properties:
+        #                                status:
+        #                                    type: string
+        #                                    enum: [ approved, rejected ]
+        #                                notes:
+        #                                    type: string
+        #            responses:
+        #                200:
+        #                    description: Overtime request updated
+        #
+        #    /departments:
+        #        get:
+        #            tags: [ Departments ]
+        #            summary: Get all departments
+        #            responses:
+        #                200:
+        #                    description: List of all departments
+        #                    content:
+        #                        application/json:
+        #                            schema:
+        #                                type: array
+        #                                items:
+        #                                    $ref: "#/components/schemas/Department"
+        #        post:
+        #            tags: [ Departments ]
+        #            summary: Create a new department
+        #            requestBody:
+        #                required: true
+        #                content:
+        #                    application/json:
+        #                        schema:
+        #                            type: object
+        #                            properties:
+        #                                name:
+        #                                    type: string
+        #                                description:
+        #                                    type: string
+        #                                active:
+        #                                    type: boolean
+        #            responses:
+        #                201:
+        #                    description: Department created successfully
+        #                    content:
+        #                        application/json:
+        #                            schema:
+        #                                $ref: "#/components/schemas/Department"
+        #
+        #    /departments/{id}:
+        #        get:
+        #            tags: [ Departments ]
+        #            summary: Get department by ID
+        #            parameters:
+        #                -   in: path
+        #                    name: id
+        #                    required: true
+        #                    schema:
+        #                        type: integer
+        #            responses:
+        #                200:
+        #                    description: Department details
+        #                    content:
+        #                        application/json:
+        #                            schema:
+        #                                $ref: "#/components/schemas/Department"
+        #                404:
+        #                    description: Department not found
+        #        put:
+        #            tags: [ Departments ]
+        #            summary: Update department by ID
+        #            parameters:
+        #                -   in: path
+        #                    name: id
+        #                    required: true
+        #                    schema:
+        #                        type: integer
+        #            requestBody:
+        #                required: true
+        #                content:
+        #                    application/json:
+        #                        schema:
+        #                            type: object
+        #                            properties:
+        #                                name:
+        #                                    type: string
+        #                                description:
+        #                                    type: string
+        #                                active:
+        #                                    type: boolean
+        #            responses:
+        #                200:
+        #                    description: Department updated successfully
+        #                    content:
+        #                        application/json:
+        #                            schema:
+        #                                $ref: "#/components/schemas/Department"
+        #                404:
+        #                    description: Department not found
+        #        delete:
+        #            tags: [ Departments ]
+        #            summary: Delete department by ID
+        #            parameters:
+        #                -   in: path
+        #                    name: id
+        #                    required: true
+        #                    schema:
+        #                        type: integer
+        #            responses:
+        #                204:
+        #                    description: Department deleted successfully
+        #                404:
+        #                    description: Department not found
 
     /positions:
         get:
@@ -4059,59 +4409,59 @@ paths:
                 500:
                     description: Internal server error
 
-    /api/documents/{id}:
-        delete:
-            tags: [Documents]
-            summary: Delete document
-            description: Delete a document by its ID. This will remove both the database record and the file from Supabase storage.
-            security:
-                - bearerAuth: []
-            parameters:
-                - in: path
-                  name: id
-                  required: true
-                  schema:
-                      type: integer
-                      format: uint
-                  description: The document ID
-                  example: 1
-            responses:
-                200:
-                    description: Document deleted successfully
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    status:
-                                        type: integer
-                                        example: 200
-                                    message:
-                                        type: string
-                                        example: "Document deleted successfully"
-                                    data:
-                                        type: object
-                                        nullable: true
-                400:
-                    description: Invalid document ID
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    status:
-                                        type: integer
-                                        example: 400
-                                    message:
-                                        type: string
-                                        example: "Invalid document ID"
-                                    error:
-                                        type: string
-                                        example: "strconv.ParseUint: parsing \"abc\": invalid syntax"
-                404:
-                    description: Document not found
-                500:
-                    description: Internal server error
+        /api/documents/{id}:
+            delete:
+                tags: [Documents]
+                summary: Delete document
+                description: Delete a document by its ID. This will remove both the database record and the file from Supabase storage.
+                security:
+                    - bearerAuth: []
+                parameters:
+                    - in: path
+                      name: id
+                      required: true
+                      schema:
+                          type: integer
+                          format: uint
+                      description: The document ID
+                      example: 1
+                responses:
+                    200:
+                        description: Document deleted successfully
+                        content:
+                            application/json:
+                                schema:
+                                    type: object
+                                    properties:
+                                        status:
+                                            type: integer
+                                            example: 200
+                                        message:
+                                            type: string
+                                            example: "Document deleted successfully"
+                                        data:
+                                            type: object
+                                            nullable: true
+                    400:
+                        description: Invalid document ID
+                        content:
+                            application/json:
+                                schema:
+                                    type: object
+                                    properties:
+                                        status:
+                                            type: integer
+                                            example: 400
+                                        message:
+                                            type: string
+                                            example: "Invalid document ID"
+                                        error:
+                                            type: string
+                                            example: 'strconv.ParseUint: parsing "abc": invalid syntax'
+                    404:
+                        description: Document not found
+                    500:
+                        description: Internal server error
 
     /health:
         get:
@@ -5094,6 +5444,470 @@ paths:
                     description: Unauthorized
                 404:
                     description: Position not found
+                500:
+                    description: Internal server error
+
+    # Leave Request Endpoints
+    /api/leave-requests:
+        post:
+            tags: [Leave Requests]
+            summary: Create a new leave request
+            description: Allows employees to submit a new leave request with optional file attachment
+            security:
+                - bearerAuth: []
+            requestBody:
+                required: true
+                content:
+                    multipart/form-data:
+                        schema:
+                            type: object
+                            required:
+                                - leave_type
+                                - start_date
+                                - end_date
+                            properties:
+                                leave_type:
+                                    type: string
+                                    enum:
+                                        [
+                                            sick_leave,
+                                            compassionate_leave,
+                                            maternity_leave,
+                                            annual_leave,
+                                            marriage_leave,
+                                        ]
+                                    description: Type of leave being requested
+                                    example: "sick_leave"
+                                start_date:
+                                    type: string
+                                    format: date
+                                    description: Start date of the leave (YYYY-MM-DD)
+                                    example: "2024-06-10"
+                                end_date:
+                                    type: string
+                                    format: date
+                                    description: End date of the leave (YYYY-MM-DD)
+                                    example: "2024-06-15"
+                                employee_note:
+                                    type: string
+                                    description: Optional note from the employee
+                                    example: "Family vacation trip"
+                                attachment:
+                                    type: string
+                                    format: binary
+                                    description: Optional file attachment (PDF, DOC, DOCX, JPG, PNG)
+            responses:
+                201:
+                    description: Leave request created successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 201
+                                    message:
+                                        type: string
+                                        example: "Leave request created successfully"
+                                    data:
+                                        $ref: "#/components/schemas/LeaveRequest"
+                400:
+                    description: Invalid request data
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 400
+                                    message:
+                                        type: string
+                                        example: "Invalid request data"
+                                    error:
+                                        type: string
+                                        example: "Start date cannot be after end date"
+                401:
+                    description: Unauthorized
+                403:
+                    description: Forbidden
+                500:
+                    description: Internal server error
+
+        get:
+            tags: [Leave Requests]
+            summary: List all leave requests (Admin only)
+            description: Retrieves a paginated list of all leave requests in the system. Admin access required.
+            security:
+                - bearerAuth: []
+            parameters:
+                - in: query
+                  name: page
+                  schema:
+                      type: integer
+                      minimum: 1
+                      default: 1
+                  description: Page number for pagination
+                - in: query
+                  name: page_size
+                  schema:
+                      type: integer
+                      minimum: 1
+                      maximum: 100
+                      default: 10
+                  description: Number of items per page
+                - in: query
+                  name: employee_id
+                  schema:
+                      type: integer
+                  description: Filter by employee ID
+                - in: query
+                  name: status
+                  schema:
+                      type: string
+                      enum: [Waiting Approval, Approved, Rejected]
+                  description: Filter by leave request status
+                - in: query
+                  name: leave_type
+                  schema:
+                      type: string
+                      enum:
+                          [
+                              sick,
+                              annual,
+                              maternity,
+                              paternity,
+                              unpaid,
+                              emergency,
+                          ]
+                  description: Filter by leave type
+                - in: query
+                  name: start_date
+                  schema:
+                      type: string
+                      format: date
+                  description: Filter by start date (from this date)
+                - in: query
+                  name: end_date
+                  schema:
+                      type: string
+                      format: date
+                  description: Filter by end date (to this date)
+            responses:
+                200:
+                    description: Leave requests retrieved successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "Leave requests retrieved successfully"
+                                    data:
+                                        type: object
+                                        properties:
+                                            items:
+                                                type: array
+                                                items:
+                                                    $ref: "#/components/schemas/LeaveRequest"
+                                            pagination:
+                                                $ref: "#/components/schemas/Pagination"
+                401:
+                    description: Unauthorized
+                403:
+                    description: Forbidden - Admin access required
+                500:
+                    description: Internal server error
+
+    /api/leave-requests/my:
+        get:
+            tags: [Leave Requests]
+            summary: Get my leave requests
+            description: Retrieves leave requests for the authenticated employee
+            security:
+                - bearerAuth: []
+            parameters:
+                - in: query
+                  name: page
+                  schema:
+                      type: integer
+                      minimum: 1
+                      default: 1
+                  description: Page number for pagination
+                - in: query
+                  name: page_size
+                  schema:
+                      type: integer
+                      minimum: 1
+                      maximum: 100
+                      default: 10
+                  description: Number of items per page
+                - in: query
+                  name: status
+                  schema:
+                      type: string
+                      enum: [Waiting Approval, Approved, Rejected]
+                  description: Filter by leave request status
+                - in: query
+                  name: leave_type
+                  schema:
+                      type: string
+                      enum:
+                          [
+                              sick,
+                              annual,
+                              maternity,
+                              paternity,
+                              unpaid,
+                              emergency,
+                          ]
+                  description: Filter by leave type
+            responses:
+                200:
+                    description: My leave requests retrieved successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "My leave requests retrieved successfully"
+                                    data:
+                                        type: object
+                                        properties:
+                                            items:
+                                                type: array
+                                                items:
+                                                    $ref: "#/components/schemas/LeaveRequest"
+                                            pagination:
+                                                $ref: "#/components/schemas/Pagination"
+                401:
+                    description: Unauthorized
+                404:
+                    description: Employee not found
+                500:
+                    description: Internal server error
+
+    /api/leave-requests/{id}:
+        get:
+            tags: [Leave Requests]
+            summary: Get leave request by ID
+            description: Retrieves a specific leave request by its ID
+            security:
+                - bearerAuth: []
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: integer
+                  description: Leave request ID
+            responses:
+                200:
+                    description: Leave request retrieved successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "Leave request retrieved successfully"
+                                    data:
+                                        $ref: "#/components/schemas/LeaveRequest"
+                401:
+                    description: Unauthorized
+                404:
+                    description: Leave request not found
+                500:
+                    description: Internal server error
+
+        put:
+            tags: [Leave Requests]
+            summary: Update leave request
+            description: Updates an existing leave request. Only allowed when status is still waiting approval.
+            security:
+                - bearerAuth: []
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: integer
+                  description: Leave request ID
+            requestBody:
+                required: true
+                content:
+                    multipart/form-data:
+                        schema:
+                            type: object
+                            properties:
+                                leave_type:
+                                    type: string
+                                    enum:
+                                        [
+                                            sick_leave,
+                                            compassionate_leave,
+                                            maternity_leave,
+                                            annual_leave,
+                                            marriage_leave,
+                                        ]
+                                    description: Type of leave being requested
+                                    example: "sick_leave"
+                                start_date:
+                                    type: string
+                                    format: date
+                                    description: Start date of the leave (YYYY-MM-DD)
+                                    example: "2024-06-10"
+                                end_date:
+                                    type: string
+                                    format: date
+                                    description: End date of the leave (YYYY-MM-DD)
+                                    example: "2024-06-15"
+                                employee_note:
+                                    type: string
+                                    description: Note from the employee
+                                    example: "Updated family vacation trip"
+                                attachment:
+                                    type: string
+                                    format: binary
+                                    description: Optional new file attachment (PDF, DOC, DOCX, JPG, PNG)
+            responses:
+                200:
+                    description: Leave request updated successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "Leave request updated successfully"
+                                    data:
+                                        $ref: "#/components/schemas/LeaveRequest"
+                400:
+                    description: Invalid request data or cannot update approved/rejected request
+                401:
+                    description: Unauthorized
+                403:
+                    description: Forbidden - Cannot update leave request
+                404:
+                    description: Leave request not found
+                500:
+                    description: Internal server error
+
+        delete:
+            tags: [Leave Requests]
+            summary: Delete leave request
+            description: Deletes a leave request. Only allowed when status is still waiting approval.
+            security:
+                - bearerAuth: []
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: integer
+                  description: Leave request ID
+            responses:
+                200:
+                    description: Leave request deleted successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "Leave request deleted successfully"
+                                    data:
+                                        type: object
+                                        nullable: true
+                400:
+                    description: Cannot delete approved/rejected request
+                401:
+                    description: Unauthorized
+                403:
+                    description: Forbidden - Cannot delete leave request
+                404:
+                    description: Leave request not found
+                500:
+                    description: Internal server error
+
+    /api/leave-requests/{id}/status:
+        patch:
+            tags: [Leave Requests]
+            summary: Update leave request status (Admin only)
+            description: Allows administrators to approve or reject leave requests
+            security:
+                - bearerAuth: []
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                      type: integer
+                  description: Leave request ID
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            required:
+                                - status
+                            properties:
+                                status:
+                                    type: string
+                                    enum: [approved, rejected]
+                                    description: New status for the leave request
+                                    example: "approved"
+                                admin_note:
+                                    type: string
+                                    description: Optional note from the administrator
+                                    example: "Approved for vacation time"
+            responses:
+                200:
+                    description: Leave request status updated successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "Leave request status updated successfully"
+                                    data:
+                                        $ref: "#/components/schemas/LeaveRequest"
+                400:
+                    description: Invalid status value
+                401:
+                    description: Unauthorized
+                403:
+                    description: Forbidden - Admin access required
+                404:
+                    description: Leave request not found
                 500:
                     description: Internal server error
 

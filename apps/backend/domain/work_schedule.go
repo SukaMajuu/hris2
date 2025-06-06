@@ -45,6 +45,7 @@ type WorkScheduleDetail struct {
 	CheckoutEnd    *time.Time     `gorm:"type:time"`
 	LocationID     *uint          `gorm:"type:uint"` // FK ke tabel location
 	Location       *Location      `gorm:"foreignKey:LocationID"`
+	IsActive       bool           `gorm:"type:boolean;default:true;not null"`
 
 	CreatedAt time.Time `gorm:"autoCreateTime"`
 	UpdatedAt time.Time `gorm:"autoUpdateTime"`

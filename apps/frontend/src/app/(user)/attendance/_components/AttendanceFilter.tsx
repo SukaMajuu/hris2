@@ -76,84 +76,106 @@ export function AttendanceFilter({
 			default:
 				return <CheckCircle className="h-4 w-4 text-slate-500" />;
 		}	};
-
 	// Always show filter regardless of isVisible prop
-	return (		<Card className="border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 mb-6 rounded-lg">
-			<CardContent className="p-6">
-				<div className="space-y-6">
+	return (
+		<Card className="border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 mb-6 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200">
+			<CardContent className="p-6">				<div className="space-y-6">
 					{/* Filter Controls */}
 					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 						{/* Date Filter */}
-						<div className="space-y-2">							<Label htmlFor="date-filter" className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
-								<Calendar className="h-4 w-4 flex-shrink-0 text-blue-500" />
+						<div className="space-y-2">
+							<Label htmlFor="date-filter" className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+								<Calendar className="h-4 w-4 flex-shrink-0 text-slate-500" />
 								<span className="truncate">Select Date</span>
-							</Label>							<div className="relative">
-								<Input
-									id="date-filter"
-									type="date"
-									value={localFilters.date || ""}
-									onChange={(e) => handleInputChange("date", e.target.value)}
-									className="w-full bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 pl-3 h-11 rounded-md"
-									placeholder="dd/mm/yyyy"
-								/>
-								<Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-							</div>
+							</Label>							<Input
+								id="date-filter"
+								type="date"
+								value={localFilters.date || ""}
+								onChange={(e) => handleInputChange("date", e.target.value)}
+								className="w-full bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800 transition-colors duration-200 h-11 rounded-md px-3"
+								placeholder="dd/mm/yyyy"
+							/>
 						</div>
 
 						{/* Attendance Status Filter */}
-						<div className="space-y-2">							<Label htmlFor="status-filter" className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
+						<div className="space-y-2">
+							<Label htmlFor="status-filter" className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
 								<CheckCircle className="h-4 w-4 flex-shrink-0 text-green-500" />
 								<span className="truncate">Attendance Status</span>
-							</Label>							<Select
+							</Label>
+							<Select
 								value={localFilters.attendanceStatus || "all"}
 								onValueChange={(value) => handleInputChange("attendanceStatus", value === "all" ? "" : value)}
-							>
-								<SelectTrigger className="w-full bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 h-11 rounded-md">
+							>								<SelectTrigger className="w-full bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800 transition-colors duration-200 h-11 rounded-md px-3">
 									<SelectValue placeholder="All Status" />
-								</SelectTrigger>								<SelectContent>									<SelectItem value="all" className="flex items-center gap-2">
-										<div className="flex items-center gap-2">
-											<CheckCircle className="h-4 w-4 text-slate-500" />
-											<span>All Status</span>
+								</SelectTrigger>
+								<SelectContent className="bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 rounded-md shadow-lg p-1">
+									<SelectItem 
+										value="all" 
+										className="hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer rounded-sm py-2 px-3 transition-colors duration-150"
+									>
+										<div className="flex items-center gap-3 w-full">
+											<CheckCircle className="h-4 w-4 text-slate-500 flex-shrink-0" />
+											<span className="font-medium">All Status</span>
 										</div>
 									</SelectItem>
-									<SelectItem value="Present" className="flex items-center gap-2">
-										<div className="flex items-center gap-2">
-											{getStatusIcon("On Time")}
-											<span>Present</span>
+									<SelectItem 
+										value="Present" 
+										className="hover:bg-green-50 dark:hover:bg-green-950 cursor-pointer rounded-sm py-2 px-3 transition-colors duration-150"
+									>
+										<div className="flex items-center gap-3 w-full">
+											<CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
+											<span className="font-medium text-green-700 dark:text-green-300">Present</span>
 										</div>
 									</SelectItem>
-									<SelectItem value="Late" className="flex items-center gap-2">
-										<div className="flex items-center gap-2">
-											{getStatusIcon("Late")}
-											<span>Late</span>
+									<SelectItem 
+										value="Late" 
+										className="hover:bg-red-50 dark:hover:bg-red-950 cursor-pointer rounded-sm py-2 px-3 transition-colors duration-150"
+									>
+										<div className="flex items-center gap-3 w-full">
+											<Clock className="h-4 w-4 text-red-500 flex-shrink-0" />
+											<span className="font-medium text-red-700 dark:text-red-300">Late</span>
 										</div>
 									</SelectItem>
-									<SelectItem value="Leave" className="flex items-center gap-2">
-										<div className="flex items-center gap-2">
-											{getStatusIcon("Leave")}
-											<span>Leave</span>
+									<SelectItem 
+										value="Leave" 
+										className="hover:bg-yellow-50 dark:hover:bg-yellow-950 cursor-pointer rounded-sm py-2 px-3 transition-colors duration-150"
+									>
+										<div className="flex items-center gap-3 w-full">
+											<Timer className="h-4 w-4 text-yellow-500 flex-shrink-0" />
+											<span className="font-medium text-yellow-700 dark:text-yellow-300">Leave</span>
 										</div>
 									</SelectItem>
-									<SelectItem value="Permission" className="flex items-center gap-2">
-										<div className="flex items-center gap-2">
-											<Timer className="h-4 w-4 text-purple-500" />
-											<span>Permission</span>
+									<SelectItem 
+										value="Permission" 
+										className="hover:bg-purple-50 dark:hover:bg-purple-950 cursor-pointer rounded-sm py-2 px-3 transition-colors duration-150"
+									>
+										<div className="flex items-center gap-3 w-full">
+											<Timer className="h-4 w-4 text-purple-500 flex-shrink-0" />
+											<span className="font-medium text-purple-700 dark:text-purple-300">Permission</span>
 										</div>
-									</SelectItem>
-								</SelectContent>
+									</SelectItem>								</SelectContent>
 							</Select>
-						</div>						{/* Filter Actions */}
-						<div className="space-y-2 flex flex-col justify-end">
-							<div className="flex gap-3">								<Button
+						</div>
+
+						{/* Filter Actions */}
+						<div className="space-y-2">
+							<Label className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+								<FilterX className="h-4 w-4 flex-shrink-0 text-slate-500" />
+								<span className="truncate">Actions</span>
+							</Label>
+							<div className="flex gap-3 w-full">
+								<Button
 									onClick={handleReset}
 									variant="outline"
-									className="flex-1 gap-2 h-11 px-6 border border-red-300 text-red-600"
+									className="flex-1 gap-2 h-11 px-6 border-2 border-red-300 hover:border-red-400 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950 transition-colors duration-200 rounded-md font-medium"
 								>
 									<FilterX className="h-4 w-4" />
 									Reset
-								</Button>								<Button
+								</Button>
+								<Button
 									onClick={handleApply}
-									className="flex-1 gap-2 h-11 px-6 font-semibold bg-blue-500 hover:bg-blue-600 text-white"
+									className="flex-1 gap-2 h-11 px-6 font-semibold bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white border-2 border-blue-500 hover:border-blue-600 transition-colors duration-200 rounded-md shadow-sm hover:shadow-md"
 								>
 									<span>Apply Filter</span>
 								</Button>

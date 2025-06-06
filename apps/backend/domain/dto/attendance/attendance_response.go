@@ -143,6 +143,8 @@ func NewAttendanceResponseDTOWithoutRelations(attendance *domain.Attendance) *At
 		Date:           attendance.Date.Format("2006-01-02"),
 		CheckInLat:     attendance.CheckInLat,
 		CheckInLong:    attendance.CheckInLong,
+		CheckOutLat:    attendance.CheckOutLat,
+		CheckOutLong:   attendance.CheckOutLong,
 		WorkHours:      attendance.WorkHours,
 		Status:         string(attendance.Status),
 		CreatedAt:      attendance.CreatedAt,

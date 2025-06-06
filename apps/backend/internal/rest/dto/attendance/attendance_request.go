@@ -74,18 +74,33 @@ func (dto *CreateAttendanceRequestDTO) ToDomainAttendance() *domain.Attendance {
 			attendance.Date = parsedDate
 		}
 	}
-
 	// Parse clock in time
 	if dto.ClockIn != nil && *dto.ClockIn != "" {
 		if parsedTime, err := time.Parse("15:04:05", *dto.ClockIn); err == nil {
-			attendance.ClockIn = &parsedTime
+			// Combine the parsed date with the parsed time
+			if !attendance.Date.IsZero() {
+				clockInDateTime := time.Date(attendance.Date.Year(), attendance.Date.Month(), attendance.Date.Day(),
+					parsedTime.Hour(), parsedTime.Minute(), parsedTime.Second(), 0, attendance.Date.Location())
+				attendance.ClockIn = &clockInDateTime
+			} else {
+				// If no date is set, log the error instead of silently ignoring
+				return nil
+			}
 		}
 	}
 
 	// Parse clock out time
 	if dto.ClockOut != nil && *dto.ClockOut != "" {
 		if parsedTime, err := time.Parse("15:04:05", *dto.ClockOut); err == nil {
-			attendance.ClockOut = &parsedTime
+			// Combine the parsed date with the parsed time
+			if !attendance.Date.IsZero() {
+				clockOutDateTime := time.Date(attendance.Date.Year(), attendance.Date.Month(), attendance.Date.Day(),
+					parsedTime.Hour(), parsedTime.Minute(), parsedTime.Second(), 0, attendance.Date.Location())
+				attendance.ClockOut = &clockOutDateTime
+			} else {
+				// If no date is set, log the error instead of silently ignoring
+				return nil
+			}
 		}
 	}
 	// Set status

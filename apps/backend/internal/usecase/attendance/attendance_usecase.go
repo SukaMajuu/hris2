@@ -441,13 +441,15 @@ func (uc *AttendanceUseCase) Update(ctx context.Context, id uint, reqDTO *dtoAtt
 			return nil, fmt.Errorf("invalid date format: %w", err)
 		}
 	}
-
 	if reqDTO.ClockIn != nil {
 		if *reqDTO.ClockIn == "" {
 			attendance.ClockIn = nil
 		} else {
 			if parsedTime, err := time.Parse("15:04:05", *reqDTO.ClockIn); err == nil {
-				attendance.ClockIn = &parsedTime
+				// Combine the attendance date with the parsed time
+				clockInDateTime := time.Date(attendance.Date.Year(), attendance.Date.Month(), attendance.Date.Day(),
+					parsedTime.Hour(), parsedTime.Minute(), parsedTime.Second(), 0, attendance.Date.Location())
+				attendance.ClockIn = &clockInDateTime
 			} else {
 				return nil, fmt.Errorf("invalid clock in time format: %w", err)
 			}
@@ -459,7 +461,10 @@ func (uc *AttendanceUseCase) Update(ctx context.Context, id uint, reqDTO *dtoAtt
 			attendance.ClockOut = nil
 		} else {
 			if parsedTime, err := time.Parse("15:04:05", *reqDTO.ClockOut); err == nil {
-				attendance.ClockOut = &parsedTime
+				// Combine the attendance date with the parsed time
+				clockOutDateTime := time.Date(attendance.Date.Year(), attendance.Date.Month(), attendance.Date.Day(),
+					parsedTime.Hour(), parsedTime.Minute(), parsedTime.Second(), 0, attendance.Date.Location())
+				attendance.ClockOut = &clockOutDateTime
 			} else {
 				return nil, fmt.Errorf("invalid clock out time format: %w", err)
 			}

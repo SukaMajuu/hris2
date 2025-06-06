@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { CheckClockData, useCheckClock } from "./_hooks/useAttendance";
 import { useForm } from "react-hook-form";
 import { DataTable } from "@/components/dataTable";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Filter, Search, LogIn, LogOut, FileText } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Filter, LogIn, LogOut, FileText } from "lucide-react";
 import { PageSizeComponent } from "@/components/pageSize";
 import { PaginationComponent } from "@/components/pagination";
 import {
@@ -27,19 +27,13 @@ import {
 } from "@tanstack/react-table";
 import { CheckInOutDialog } from "./_components/CheckInOutDialog";
 import { PermitDialog } from "./_components/PermitDialog";
-
-interface DialogFormData {
-	attendanceType: string;
-	checkIn: string;
-	checkOut: string;
-	latitude: string;
-	longitude: string;
-	permitEndDate: string;
-	evidence: FileList | null;
-}
+import { AttendanceFilter } from "./_components/AttendanceFilter";
+import { filterAttendanceData, getFilterSummary } from "./_utils/attendanceFilters";
+import { DialogFormData } from "./_interfaces/DialogFormData";
 
 export default function CheckClock() {
 	const { checkClockData } = useCheckClock();
+	const searchParams = useSearchParams();
 
 	const [openSheet, setOpenSheet] = useState(false);
 	const [selectedData, setSelectedData] = useState<CheckClockData | null>(
@@ -48,10 +42,30 @@ export default function CheckClock() {
 	const [openDialog, setOpenDialog] = useState(false);
 	const [dialogActionType, setDialogActionType] = useState<
 		"check-in" | "check-out" | "permit"
-	>("check-in");
-	const [dialogTitle, setDialogTitle] = useState("Add Attendance Data");
+	>("check-in");	const [dialogTitle, setDialogTitle] = useState("Add Attendance Data");
 	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-	const [nameFilter, setNameFilter] = useState("");
+	// Filter component state
+	const [isFilterVisible, setIsFilterVisible] = useState(true); // Set to true by default so filter is always shown
+	const [filters, setFilters] = useState({
+		date: "",
+		attendanceStatus: "",
+	});
+
+	// Apply filters to the data
+	const filteredData = useMemo(() => {
+		return filterAttendanceData(checkClockData, filters);
+	}, [checkClockData, filters]);
+
+	// Effect to handle URL parameters - automatically apply Leave filter if type=leave
+	useEffect(() => {
+		const typeParam = searchParams.get('type');
+		if (typeParam === 'leave') {
+			setFilters(prev => ({
+				...prev,
+				attendanceStatus: 'Leave'
+			}));
+		}
+	}, [searchParams]);
 
 	const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
 		pageIndex: 0,
@@ -65,7 +79,6 @@ export default function CheckClock() {
 		}),
 		[pageIndex, pageSize]
 	);
-
 	const form = useForm<DialogFormData>({
 		defaultValues: {
 			attendanceType: "check-in",
@@ -74,16 +87,17 @@ export default function CheckClock() {
 			latitude: "",
 			longitude: "",
 			permitEndDate: "",
+			startDate: "",
+			endDate: "",
 			evidence: null,
 		},
 	});
 
 	const { reset, setValue, watch } = form;
 	const formData = watch();
-
 	const handleViewDetails = useCallback(
 		(id: number) => {
-			const data = checkClockData.find(
+			const data = filteredData.find(
 				(item: CheckClockData) => item.id === id
 			);
 			if (data) {
@@ -91,13 +105,36 @@ export default function CheckClock() {
 				setOpenSheet(true);
 			}
 		},
-		[checkClockData]
-	);
-
-	const onSubmit = (data: DialogFormData) => {
+		[filteredData]
+	);	const onSubmit = (data: DialogFormData) => {
 		console.log("Form submitted for:", dialogActionType, data);
 		setOpenDialog(false);
 		reset();
+	};
+
+	// Filter handler functions
+	const handleToggleFilterVisibility = () => {
+		setIsFilterVisible(!isFilterVisible);
+	};
+	
+	const handleApplyFilters = (newFilters: { date?: string; attendanceStatus?: string }) => {
+		setFilters({
+			date: newFilters.date || "",
+			attendanceStatus: newFilters.attendanceStatus || "",
+		});
+		// Reset pagination to first page when filters change
+		setPagination(prev => ({ ...prev, pageIndex: 0 }));
+		console.log("Applying filters:", newFilters);
+	};
+
+	const handleResetFilters = () => {
+		setFilters({
+			date: "",
+			attendanceStatus: "",
+		});
+		// Reset pagination when filters are cleared
+		setPagination(prev => ({ ...prev, pageIndex: 0 }));
+		console.log("Resetting filters");
 	};
 
 	const openDialogHandler = (action: "check-in" | "check-out" | "permit") => {
@@ -205,9 +242,8 @@ export default function CheckClock() {
 		],
 		[handleViewDetails]
 	);
-
 	const table = useReactTable({
-		data: checkClockData,
+		data: filteredData,
 		columns,
 		getCoreRowModel: getCoreRowModel(),
 		getPaginationRowModel: getPaginationRowModel(),
@@ -219,8 +255,19 @@ export default function CheckClock() {
 		onPaginationChange: setPagination,
 		onColumnFiltersChange: setColumnFilters,
 		manualPagination: false,
-		pageCount: Math.ceil(checkClockData.length / pageSize),
+		pageCount: Math.ceil(filteredData.length / pageSize),
 	});
+
+	// Effect to handle URL parameter for Leave filter
+	useEffect(() => {
+		const typeParam = searchParams.get("type");
+		if (typeParam === "leave") {
+			setFilters((prev) => ({
+				...prev,
+				attendanceStatus: "Leave",
+			}));
+		}
+	}, [searchParams]);
 
 	return (
 		<div>
@@ -258,28 +305,32 @@ export default function CheckClock() {
 									Permit
 								</Button>
 							</div>
-						</div>
-						<div className="flex flex-wrap items-center gap-4 md:w-[400px]">
-							<div className="relative flex-[1]">
-								<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-								<Input
-									className="pl-10 w-full bg-white border-gray-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
-									placeholder="Search Employee"
-									value={nameFilter}
-									onChange={(e) => {
-										setNameFilter(e.target.value);
-									}}
-								/>
+						</div>						{/* Search input removed as requested */}</header>					{/* Filter Component - Always visible */}
+					<div className="mb-6">
+						<AttendanceFilter
+							currentFilters={filters}
+							onApplyFilters={handleApplyFilters}
+							onResetFilters={handleResetFilters}
+							isVisible={true}
+						/>
+					</div>
+
+					{/* Filter Summary */}
+					{(filters.date || filters.attendanceStatus) && (
+						<div className="mb-4 p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
+							<div className="flex items-center justify-between">
+								<div className="flex items-center gap-2">
+									<Filter className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+									<span className="text-sm text-blue-800 dark:text-blue-200">
+										{getFilterSummary(filters)}
+									</span>
+								</div>
+								<span className="text-sm font-medium text-blue-600 dark:text-blue-400">
+									{filteredData.length} of {checkClockData.length} records
+								</span>
 							</div>
-							<Button
-								variant="outline"
-								className="gap-2 hover:bg-[#5A89B3] hover:text-white dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100"
-							>
-								<Filter className="h-4 w-4" />
-								Filter
-							</Button>
 						</div>
-					</header>
+					)}
 
 					<DataTable table={table} />
 

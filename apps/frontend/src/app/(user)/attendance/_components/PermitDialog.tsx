@@ -14,17 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
-
-interface DialogFormData {
-	attendanceType: string;
-	checkIn: string;
-	checkOut: string;
-	latitude: string;
-	longitude: string;
-	startDate: string;
-	endDate: string;
-	evidence: FileList | null;
-}
+import { DialogFormData } from "../_interfaces/DialogFormData";
 
 interface PermitDialogProps {
 	open: boolean;
@@ -72,8 +62,7 @@ export function PermitDialog({
 					<div className="px-6 py-4 space-y-6 overflow-y-auto max-h-[calc(100vh-220px)]">
 						{/* Section 1: Attendance Type & Permit Duration */}
 						<div className="bg-white dark:bg-slate-800 shadow-md rounded-lg p-6">
-							<div className="space-y-2">
-								<Label
+							<div className="space-y-2">								<Label
 									htmlFor="attendanceType"
 									className="text-sm font-medium text-slate-700 dark:text-slate-300"
 								>
@@ -146,8 +135,7 @@ export function PermitDialog({
 						{permitRelatedLeaveTypes.includes(
 							currentAttendanceType
 						) && (
-							<div className="bg-white dark:bg-slate-800 shadow-md rounded-lg p-6">
-								<Label
+							<div className="bg-white dark:bg-slate-800 shadow-md rounded-lg p-6">								<Label
 									htmlFor="evidence"
 									className="block text-base font-semibold mb-2 text-slate-800 dark:text-slate-200"
 								>

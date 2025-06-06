@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Crosshair } from "lucide-react";
 import dynamic from "next/dynamic";
+import { DialogFormData } from "../_interfaces/DialogFormData";
 
 const MapComponent = dynamic(
 	() =>
@@ -30,16 +31,6 @@ const MapComponent = dynamic(
 		),
 	}
 );
-
-interface DialogFormData {
-	attendanceType: string;
-	checkIn: string;
-	checkOut: string;
-	latitude: string;
-	longitude: string;
-	permitEndDate: string;
-	evidence: FileList | null;
-}
 
 interface CheckInOutDialogProps {
 	open: boolean;

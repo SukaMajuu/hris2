@@ -177,6 +177,36 @@ export class EmployeeService {
     await this.api.patch(API_ROUTES.v1.api.employees.resign(id));
   }
 
+  async validateUniqueField(
+    field: 'email' | 'nik' | 'employee_code',
+    value: string,
+  ): Promise<{
+    field: string;
+    value: string;
+    exists: boolean;
+    message?: string;
+  }> {
+    try {
+      const params = new URLSearchParams();
+      params.append('field', field);
+      params.append('value', value);
+
+      const response = await this.api.get<
+        ApiResponse<{
+          field: string;
+          value: string;
+          exists: boolean;
+          message?: string;
+        }>
+      >(`${API_ROUTES.v1.api.employees.list}/validate-unique?${params.toString()}`);
+
+      return response.data.data;
+    } catch (error) {
+      console.error('Error validating unique field:', error);
+      throw error;
+    }
+  }
+
   async getEmployeeDetail(id: number): Promise<Employee> {
     const response = await this.api.get<ApiResponse<Employee>>(
       API_ROUTES.v1.api.employees.detail(id),

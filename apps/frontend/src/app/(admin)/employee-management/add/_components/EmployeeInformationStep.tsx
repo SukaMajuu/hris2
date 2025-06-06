@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -11,9 +11,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 import Image from 'next/image';
 import type { FormEmployeeData } from '../_hooks/useAddEmployeeForm';
 import { FieldErrors } from 'react-hook-form';
+import { useRealtimeValidation } from '../_hooks/useRealtimeValidation';
 
 interface EmployeeInformationStepProps {
   formData: FormEmployeeData;
@@ -32,6 +34,39 @@ export function EmployeeInformationStep({
   onRemovePhoto,
   profilePhotoInputRef,
 }: EmployeeInformationStepProps) {
+  const { validationStates, validateField, clearValidation } = useRealtimeValidation();
+
+  // Trigger validation when employeeId changes
+  useEffect(() => {
+    if (formData.employeeId && formData.employeeId.trim()) {
+      validateField('employee_code', formData.employeeId);
+    } else if (!formData.employeeId) {
+      clearValidation('employee_code');
+    }
+  }, [formData.employeeId, validateField, clearValidation]);
+
+  const getFieldValidationIcon = (field: 'employee_code') => {
+    const state = validationStates[field];
+    if (state.isValidating) {
+      return <Loader2 className='h-4 w-4 animate-spin text-blue-500' />;
+    }
+    if (state.isValid === true) {
+      return <CheckCircle className='h-4 w-4 text-green-500' />;
+    }
+    if (state.isValid === false) {
+      return <XCircle className='h-4 w-4 text-red-500' />;
+    }
+    return null;
+  };
+
+  const getFieldValidationMessage = (field: 'employee_code') => {
+    const state = validationStates[field];
+    if (state.message) {
+      return <p className='mt-1 text-sm text-red-500'>{state.message}</p>;
+    }
+    return null;
+  };
+
   return (
     <>
       <h2 className='text-center text-xl font-semibold text-slate-800 dark:text-slate-100'>
@@ -92,19 +127,29 @@ export function EmployeeInformationStep({
             >
               Employee ID *
             </label>
-            <Input
-              id='employeeId'
-              name='employeeId'
-              value={formData.employeeId}
-              onChange={onInputChange}
-              placeholder='Enter employee ID'
-              className={`focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:placeholder:text-slate-500 ${
-                errors.employeeId ? 'border-red-500 focus:border-red-500' : ''
-              }`}
-            />
+            <div className='relative'>
+              <Input
+                id='employeeId'
+                name='employeeId'
+                value={formData.employeeId}
+                onChange={onInputChange}
+                placeholder='Enter employee ID'
+                className={`focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 pr-10 placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:placeholder:text-slate-500 ${
+                  errors.employeeId || validationStates.employee_code.isValid === false
+                    ? 'border-red-500 focus:border-red-500'
+                    : validationStates.employee_code.isValid === true
+                      ? 'border-green-500 focus:border-green-500'
+                      : ''
+                }`}
+              />
+              <div className='absolute top-1/2 right-3 -translate-y-1/2'>
+                {getFieldValidationIcon('employee_code')}
+              </div>
+            </div>
             {errors.employeeId && (
               <p className='mt-1 text-sm text-red-500'>{errors.employeeId.message}</p>
             )}
+            {!errors.employeeId && getFieldValidationMessage('employee_code')}
           </div>
           <div>
             <label

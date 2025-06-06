@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -10,8 +10,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 import type { FormEmployeeData } from '../_hooks/useAddEmployeeForm';
 import { FieldErrors } from 'react-hook-form';
+import { useRealtimeValidation } from '../_hooks/useRealtimeValidation';
 
 interface PersonalInformationStepProps {
   formData: FormEmployeeData;
@@ -26,6 +28,55 @@ export function PersonalInformationStep({
   onInputChange,
   onSelectChange,
 }: PersonalInformationStepProps) {
+  const { validationStates, validateField, clearValidation } = useRealtimeValidation();
+
+  // Trigger validation when values change
+  useEffect(() => {
+    if (formData.email && formData.email.includes('@')) {
+      validateField('email', formData.email);
+    } else if (!formData.email) {
+      clearValidation('email');
+    }
+  }, [formData.email, validateField, clearValidation]);
+
+  useEffect(() => {
+    if (formData.nik && formData.nik.length >= 16) {
+      validateField('nik', formData.nik);
+    } else if (!formData.nik) {
+      clearValidation('nik');
+    }
+  }, [formData.nik, validateField, clearValidation]);
+
+  useEffect(() => {
+    if (formData.employeeId && formData.employeeId.trim()) {
+      validateField('employee_code', formData.employeeId);
+    } else if (!formData.employeeId) {
+      clearValidation('employee_code');
+    }
+  }, [formData.employeeId, validateField, clearValidation]);
+
+  const getFieldValidationIcon = (field: 'email' | 'nik' | 'employee_code') => {
+    const state = validationStates[field];
+    if (state.isValidating) {
+      return <Loader2 className='h-4 w-4 animate-spin text-blue-500' />;
+    }
+    if (state.isValid === true) {
+      return <CheckCircle className='h-4 w-4 text-green-500' />;
+    }
+    if (state.isValid === false) {
+      return <XCircle className='h-4 w-4 text-red-500' />;
+    }
+    return null;
+  };
+
+  const getFieldValidationMessage = (field: 'email' | 'nik' | 'employee_code') => {
+    const state = validationStates[field];
+    if (state.message) {
+      return <p className='mt-1 text-sm text-red-500'>{state.message}</p>;
+    }
+    return null;
+  };
+
   return (
     <>
       <h2 className='text-center text-xl font-semibold text-slate-800 dark:text-slate-100'>
@@ -86,18 +137,28 @@ export function PersonalInformationStep({
             >
               Email *
             </label>
-            <Input
-              id='email'
-              name='email'
-              type='email'
-              value={formData.email}
-              onChange={onInputChange}
-              placeholder='Enter email address'
-              className={`focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:placeholder:text-slate-500 ${
-                errors.email ? 'border-red-500 focus:border-red-500' : ''
-              }`}
-            />
+            <div className='relative'>
+              <Input
+                id='email'
+                name='email'
+                type='email'
+                value={formData.email}
+                onChange={onInputChange}
+                placeholder='Enter email address'
+                className={`focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 pr-10 placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:placeholder:text-slate-500 ${
+                  errors.email || validationStates.email.isValid === false
+                    ? 'border-red-500 focus:border-red-500'
+                    : validationStates.email.isValid === true
+                      ? 'border-green-500 focus:border-green-500'
+                      : ''
+                }`}
+              />
+              <div className='absolute top-1/2 right-3 -translate-y-1/2'>
+                {getFieldValidationIcon('email')}
+              </div>
+            </div>
             {errors.email && <p className='mt-1 text-sm text-red-500'>{errors.email.message}</p>}
+            {!errors.email && getFieldValidationMessage('email')}
           </div>
           <div>
             <label
@@ -106,18 +167,28 @@ export function PersonalInformationStep({
             >
               NIK *
             </label>
-            <Input
-              id='nik'
-              name='nik'
-              value={formData.nik}
-              onChange={onInputChange}
-              placeholder='Enter NIK (16 digits)'
-              maxLength={16}
-              className={`focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:placeholder:text-slate-500 ${
-                errors.nik ? 'border-red-500 focus:border-red-500' : ''
-              }`}
-            />
+            <div className='relative'>
+              <Input
+                id='nik'
+                name='nik'
+                value={formData.nik}
+                onChange={onInputChange}
+                placeholder='Enter NIK (16 digits)'
+                maxLength={16}
+                className={`focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 pr-10 placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:placeholder:text-slate-500 ${
+                  errors.nik || validationStates.nik.isValid === false
+                    ? 'border-red-500 focus:border-red-500'
+                    : validationStates.nik.isValid === true
+                      ? 'border-green-500 focus:border-green-500'
+                      : ''
+                }`}
+              />
+              <div className='absolute top-1/2 right-3 -translate-y-1/2'>
+                {getFieldValidationIcon('nik')}
+              </div>
+            </div>
             {errors.nik && <p className='mt-1 text-sm text-red-500'>{errors.nik.message}</p>}
+            {!errors.nik && getFieldValidationMessage('nik')}
           </div>
           <div>
             <label

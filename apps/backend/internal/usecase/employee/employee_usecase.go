@@ -144,6 +144,54 @@ func (uc *EmployeeUseCase) GetEmployeeByUserID(ctx context.Context, userID uint)
 	return employee, nil
 }
 
+func (uc *EmployeeUseCase) GetByNIK(ctx context.Context, nik string) (*domain.Employee, error) {
+	log.Printf("EmployeeUseCase: GetByNIK called for NIK: %s", nik)
+	employee, err := uc.employeeRepo.GetByNIK(ctx, nik)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			log.Printf("EmployeeUseCase: No employee found with NIK %s", nik)
+			return nil, domain.ErrEmployeeNotFound
+		}
+		log.Printf("EmployeeUseCase: Error getting employee by NIK %s from repository: %v", nik, err)
+		return nil, fmt.Errorf("failed to get employee by NIK %s: %w", nik, err)
+	}
+
+	log.Printf("EmployeeUseCase: Successfully retrieved employee with ID %d for NIK %s", employee.ID, nik)
+	return employee, nil
+}
+
+func (uc *EmployeeUseCase) GetByEmployeeCode(ctx context.Context, employeeCode string) (*domain.Employee, error) {
+	log.Printf("EmployeeUseCase: GetByEmployeeCode called for EmployeeCode: %s", employeeCode)
+	employee, err := uc.employeeRepo.GetByEmployeeCode(ctx, employeeCode)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			log.Printf("EmployeeUseCase: No employee found with EmployeeCode %s", employeeCode)
+			return nil, domain.ErrEmployeeNotFound
+		}
+		log.Printf("EmployeeUseCase: Error getting employee by EmployeeCode %s from repository: %v", employeeCode, err)
+		return nil, fmt.Errorf("failed to get employee by EmployeeCode %s: %w", employeeCode, err)
+	}
+
+	log.Printf("EmployeeUseCase: Successfully retrieved employee with ID %d for EmployeeCode %s", employee.ID, employeeCode)
+	return employee, nil
+}
+
+func (uc *EmployeeUseCase) GetUserByEmail(ctx context.Context, email string) (*domain.User, error) {
+	log.Printf("EmployeeUseCase: GetUserByEmail called for email: %s", email)
+	user, err := uc.authRepo.GetUserByEmail(ctx, email)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			log.Printf("EmployeeUseCase: No user found with email %s", email)
+			return nil, domain.ErrUserNotFound
+		}
+		log.Printf("EmployeeUseCase: Error getting user by email %s from repository: %v", email, err)
+		return nil, fmt.Errorf("failed to get user by email %s: %w", email, err)
+	}
+
+	log.Printf("EmployeeUseCase: Successfully retrieved user with ID %d for email %s", user.ID, email)
+	return user, nil
+}
+
 func (uc *EmployeeUseCase) Update(ctx context.Context, employee *domain.Employee) (*domain.Employee, error) {
 	log.Printf("EmployeeUseCase: Update called for employee ID %d", employee.ID)
 

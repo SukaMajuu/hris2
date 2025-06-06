@@ -433,6 +433,55 @@ func (h *EmployeeHandler) BulkImportEmployees(c *gin.Context) {
 	}
 }
 
+func (h *EmployeeHandler) ValidateUniqueField(c *gin.Context) {
+	fieldType := c.Query("field")
+	value := c.Query("value")
+
+	if fieldType == "" || value == "" {
+		response.BadRequest(c, "Both 'field' and 'value' query parameters are required", nil)
+		return
+	}
+
+	if fieldType != "email" && fieldType != "nik" && fieldType != "employee_code" {
+		response.BadRequest(c, "Field must be one of: email, nik, employee_code", nil)
+		return
+	}
+
+	var exists bool
+	var err error
+
+	switch fieldType {
+	case "email":
+		_, err = h.employeeUseCase.GetUserByEmail(c.Request.Context(), value)
+		exists = err == nil
+	case "nik":
+		_, err = h.employeeUseCase.GetByNIK(c.Request.Context(), value)
+		exists = err == nil
+	case "employee_code":
+		_, err = h.employeeUseCase.GetByEmployeeCode(c.Request.Context(), value)
+		exists = err == nil
+	}
+
+	// If there was an error other than "not found", return server error
+	if err != nil && !strings.Contains(err.Error(), "not found") && !strings.Contains(err.Error(), "record not found") {
+		log.Printf("EmployeeHandler: Error validating unique field %s=%s: %v", fieldType, value, err)
+		response.InternalServerError(c, fmt.Errorf("validation error"))
+		return
+	}
+
+	result := map[string]interface{}{
+		"field":  fieldType,
+		"value":  value,
+		"exists": exists,
+	}
+
+	if exists {
+		result["message"] = fmt.Sprintf("%s '%s' is already in use", strings.Title(strings.ReplaceAll(fieldType, "_", " ")), value)
+	}
+
+	response.Success(c, http.StatusOK, "Field validation completed", result)
+}
+
 func (h *EmployeeHandler) isValidImportFileType(mimeType string) bool {
 	allowedTypes := []string{
 		"text/csv",

@@ -89,11 +89,12 @@ func (r *Router) Setup() *gin.Engine {
 			{
 				employee.GET("", r.employeeHandler.ListEmployees)
 				employee.GET("/statistics", r.employeeHandler.GetEmployeeStatistics)
+				employee.GET("/validate-unique", r.employeeHandler.ValidateUniqueField)
 				employee.GET("/:id", r.employeeHandler.GetEmployeeByID)
 				employee.POST("", r.employeeHandler.CreateEmployee)
 				employee.POST("/bulk-import", r.employeeHandler.BulkImportEmployees)
 				employee.PATCH("/:id", r.employeeHandler.UpdateEmployee)
-				employee.PATCH("/:id/status", r.employeeHandler.ResignEmployee)				// Employee document routes nested under employee routes
+				employee.PATCH("/:id/status", r.employeeHandler.ResignEmployee) // Employee document routes nested under employee routes
 				employee.POST("/:id/documents", r.documentHandler.UploadDocumentForEmployee)
 				employee.GET("/:id/documents", r.documentHandler.GetDocumentsByEmployee)
 			}
@@ -143,7 +144,7 @@ func (r *Router) Setup() *gin.Engine {
 				leaveRequests.DELETE("/:id", r.leaveRequestHandler.DeleteLeaveRequest)
 
 				// Admin routes (can access all leave requests and update status)
-				leaveRequests.GET("", r.leaveRequestHandler.ListLeaveRequests) // Admin only - list all
+				leaveRequests.GET("", r.leaveRequestHandler.ListLeaveRequests)                     // Admin only - list all
 				leaveRequests.PATCH("/:id/status", r.leaveRequestHandler.UpdateLeaveRequestStatus) // Admin only
 			}
 

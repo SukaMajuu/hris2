@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Loader2 } from "lucide-react";
 
 interface DialogFormData {
 	attendanceType: string;
@@ -20,7 +21,8 @@ interface DialogFormData {
 	checkOut: string;
 	latitude: string;
 	longitude: string;
-	permitEndDate: string;
+	startDate: string;
+	endDate: string;
 	evidence: FileList | null;
 }
 
@@ -31,6 +33,7 @@ interface PermitDialogProps {
 	formMethods: UseFormReturn<DialogFormData>;
 	onSubmit: (data: DialogFormData) => void;
 	currentAttendanceType: string;
+	isLoading?: boolean;
 }
 
 export function PermitDialog({
@@ -40,6 +43,7 @@ export function PermitDialog({
 	formMethods,
 	onSubmit,
 	currentAttendanceType,
+	isLoading = false,
 }: PermitDialogProps) {
 	const { register, handleSubmit } = formMethods;
 
@@ -73,7 +77,7 @@ export function PermitDialog({
 									htmlFor="attendanceType"
 									className="text-sm font-medium text-slate-700 dark:text-slate-300"
 								>
-									Permit / Leave Type
+									Leave or Permit Request
 								</Label>
 								<select
 									id="attendanceType"
@@ -98,26 +102,42 @@ export function PermitDialog({
 										Marriage Leave
 									</option>
 								</select>
-							</div>
-
-							{permitRelatedLeaveTypes.includes(
+							</div>							{permitRelatedLeaveTypes.includes(
 								currentAttendanceType
 							) && (
-								<div className="space-y-2 mt-4">
-									<Label
-										htmlFor="permitEndDate"
-										className="text-sm font-medium text-slate-700 dark:text-slate-300"
-									>
-										Permit Duration (End Date)
-									</Label>
-									<Input
-										id="permitEndDate"
-										type="date"
-										className="bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-slate-50"
-										{...register("permitEndDate", {
-											required: true,
-										})}
-									/>
+								<div className="space-y-4 mt-4">
+									<div className="space-y-2">
+										<Label
+											htmlFor="startDate"
+											className="text-sm font-medium text-slate-700 dark:text-slate-300"
+										>
+											Start Date
+										</Label>
+										<Input
+											id="startDate"
+											type="date"
+											className="bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-slate-50"
+											{...register("startDate", {
+												required: true,
+											})}
+										/>
+									</div>
+									<div className="space-y-2">
+										<Label
+											htmlFor="endDate"
+											className="text-sm font-medium text-slate-700 dark:text-slate-300"
+										>
+											End Date
+										</Label>
+										<Input
+											id="endDate"
+											type="date"
+											className="bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-slate-50"
+											{...register("endDate", {
+												required: true,
+											})}
+										/>
+									</div>
 								</div>
 							)}
 						</div>
@@ -131,7 +151,7 @@ export function PermitDialog({
 									htmlFor="evidence"
 									className="block text-base font-semibold mb-2 text-slate-800 dark:text-slate-200"
 								>
-									Upload Support Evidence
+									Upload Supporting Document
 								</Label>
 								<Input
 									id="evidence"
@@ -146,21 +166,29 @@ export function PermitDialog({
 								</p>
 							</div>
 						)}
-					</div>
-					<DialogFooter className="px-6 py-4 border-t dark:border-slate-700 bg-slate-100 dark:bg-slate-800/50 rounded-b-lg">
+					</div>					<DialogFooter className="px-6 py-4 border-t dark:border-slate-700 bg-slate-100 dark:bg-slate-800/50 rounded-b-lg">
 						<Button
 							type="button"
 							variant="outline"
 							onClick={() => onOpenChange(false)}
 							className="border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-slate-100"
+							disabled={isLoading}
 						>
 							Cancel
 						</Button>
 						<Button
 							type="submit"
 							className="bg-[#6B9AC4] hover:bg-[#5A89B3] text-white"
+							disabled={isLoading}
 						>
-							Submit Request
+							{isLoading ? (
+								<>
+									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+									Submitting...
+								</>
+							) : (
+								"Submit Request"
+							)}
 						</Button>
 					</DialogFooter>
 				</form>

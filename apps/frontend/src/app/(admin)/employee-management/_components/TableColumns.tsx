@@ -3,6 +3,7 @@ import { BookUser, UserMinusIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   AlertDialog,
   AlertDialogTrigger,
@@ -90,12 +91,18 @@ export function TableColumns({
         const fullName = `${first_name || ''} ${last_name || ''}`.trim();
         return (
           <div className='flex items-center justify-center'>
-            <div
-              className='max-w-[100px] truncate text-center text-xs md:max-w-[150px] md:text-sm'
-              title={fullName}
-            >
-              {fullName}
-            </div>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className='max-w-[100px] cursor-help truncate text-center text-xs md:max-w-[150px] md:text-sm'>
+                    {fullName}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{fullName}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         );
       },
@@ -124,12 +131,18 @@ export function TableColumns({
       accessorKey: 'phone',
       cell: ({ row }) => (
         <div className='flex items-center justify-center'>
-          <div
-            className='max-w-[80px] truncate text-center text-xs md:max-w-[120px] md:text-sm'
-            title={row.original.phone || ''}
-          >
-            {row.original.phone || '-'}
-          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className='max-w-[80px] cursor-help truncate text-center text-xs md:max-w-[120px] md:text-sm'>
+                  {row.original.phone || '-'}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{row.original.phone || 'No phone number'}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       ),
       meta: { className: 'w-[80px] md:w-[120px] text-center' },
@@ -139,12 +152,18 @@ export function TableColumns({
       accessorKey: 'branch',
       cell: ({ row }) => (
         <div className='flex items-center justify-center'>
-          <div
-            className='max-w-[90px] truncate text-center text-xs md:max-w-[130px] md:text-sm'
-            title={row.original.branch || ''}
-          >
-            {row.original.branch || '-'}
-          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className='max-w-[90px] cursor-help truncate text-center text-xs md:max-w-[130px] md:text-sm'>
+                  {row.original.branch || '-'}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{row.original.branch || 'No branch assigned'}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       ),
       meta: { className: 'w-[90px] md:w-[130px] text-center' },
@@ -154,12 +173,18 @@ export function TableColumns({
       accessorKey: 'position_name',
       cell: ({ row }) => (
         <div className='flex items-center justify-center'>
-          <div
-            className='max-w-[100px] truncate text-center text-xs md:max-w-[140px] md:text-sm'
-            title={row.original.position_name || ''}
-          >
-            {row.original.position_name || '-'}
-          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className='max-w-[100px] cursor-help truncate text-center text-xs md:max-w-[140px] md:text-sm'>
+                  {row.original.position_name || '-'}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{row.original.position_name || 'No position assigned'}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       ),
       meta: { className: 'w-[100px] md:w-[140px] text-center' },
@@ -169,12 +194,18 @@ export function TableColumns({
       accessorKey: 'grade',
       cell: ({ row }) => (
         <div className='flex items-center justify-center'>
-          <div
-            className='max-w-[60px] truncate text-center text-xs md:max-w-[80px] md:text-sm'
-            title={row.original.grade || ''}
-          >
-            {row.original.grade || '-'}
-          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className='max-w-[60px] cursor-help truncate text-center text-xs md:max-w-[80px] md:text-sm'>
+                  {row.original.grade || '-'}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{row.original.grade || 'No grade assigned'}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       ),
       meta: { className: 'w-[60px] md:w-[80px] text-center' },

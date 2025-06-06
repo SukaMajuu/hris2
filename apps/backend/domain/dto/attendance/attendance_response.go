@@ -296,11 +296,16 @@ func GetAttendanceStatistics(attendances []*domain.Attendance) map[string]interf
 	stats["leave_count"] = leaveCount
 	stats["working_days"] = workingDays
 	stats["total_work_hours"] = totalWorkHours
-
 	if workingDays > 0 {
 		stats["average_work_hours"] = totalWorkHours / float64(workingDays)
 		stats["attendance_rate"] = float64(onTimeCount) / float64(workingDays) * 100
-		stats["punctuality_rate"] = float64(onTimeCount) / float64(onTimeCount+lateCount) * 100
+
+		// Calculate punctuality rate only if there are on-time or late records
+		if onTimeCount+lateCount > 0 {
+			stats["punctuality_rate"] = float64(onTimeCount) / float64(onTimeCount+lateCount) * 100
+		} else {
+			stats["punctuality_rate"] = 0.0
+		}
 	} else {
 		stats["average_work_hours"] = 0.0
 		stats["attendance_rate"] = 0.0

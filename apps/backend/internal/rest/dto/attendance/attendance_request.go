@@ -25,7 +25,7 @@ type CreateAttendanceRequestDTO struct {
 	CheckInLong    *float64 `json:"check_in_long" binding:"omitempty"`
 	CheckOutLat    *float64 `json:"check_out_lat" binding:"omitempty"`
 	CheckOutLong   *float64 `json:"check_out_long" binding:"omitempty"`
-	Status         *string  `json:"status" binding:"omitempty,oneof=on_time late early_leave absent"`
+	Status         *string  `json:"status" binding:"omitempty,oneof=on_time late early_leave absent leave"`
 }
 
 type UpdateAttendanceRequestDTO struct {
@@ -38,7 +38,7 @@ type UpdateAttendanceRequestDTO struct {
 	CheckOutLat    *float64 `json:"check_out_lat" binding:"omitempty"`
 	CheckOutLong   *float64 `json:"check_out_long" binding:"omitempty"`
 	WorkHours      *float64 `json:"work_hours" binding:"omitempty"`
-	Status         *string  `json:"status" binding:"omitempty,oneof=on_time late early_leave absent"`
+	Status         *string  `json:"status" binding:"omitempty,oneof=on_time late early_leave absent leave"`
 }
 
 type CheckInRequestDTO struct {

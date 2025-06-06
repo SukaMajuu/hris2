@@ -46,7 +46,6 @@ type CreateEmployeeRequestDTO struct {
 	TaxStatus             *enums.TaxStatus      `form:"tax_status,omitempty"`
 	ProfilePhotoURL       *string               `form:"profile_photo_url,omitempty"`
 
-	// Optional photo file upload
 	PhotoFile *multipart.FileHeader `form:"photo_file,omitempty"`
 }
 
@@ -74,7 +73,6 @@ type UpdateEmployeeRequestDTO struct {
 	TaxStatus             *enums.TaxStatus      `form:"tax_status,omitempty"`
 	ProfilePhotoURL       *string               `form:"profile_photo_url,omitempty"`
 
-	// Optional photo file upload
 	PhotoFile *multipart.FileHeader `form:"photo_file,omitempty"`
 }
 
@@ -159,12 +157,10 @@ func MapCreateDTOToDomain(reqDTO *CreateEmployeeRequestDTO) (*domain.Employee, e
 		ProfilePhotoURL:       reqDTO.ProfilePhotoURL,
 	}
 
-	// Parse dates
 	if err := parseDatesForCreate(reqDTO, employeeDomain); err != nil {
 		return nil, err
 	}
 
-	// Set employment status
 	if reqDTO.EmploymentStatus != nil {
 		employeeDomain.EmploymentStatus = *reqDTO.EmploymentStatus
 	} else {
@@ -205,7 +201,6 @@ func parseDatesForCreate(reqDTO *CreateEmployeeRequestDTO, employeeDomain *domai
 	return nil
 }
 
-// MapUpdateDTOToDomain converts UpdateEmployeeRequestDTO to domain Employee for updates
 func MapUpdateDTOToDomain(employeeID uint, reqDTO *UpdateEmployeeRequestDTO) (*domain.Employee, error) {
 	employeeUpdatePayload := &domain.Employee{
 		ID: employeeID,
@@ -296,10 +291,37 @@ func MapUpdateDTOToDomain(employeeID uint, reqDTO *UpdateEmployeeRequestDTO) (*d
 	return employeeUpdatePayload, nil
 }
 
-// ParseEmployeeFromRecord converts a parsed record from CSV/Excel to domain Employee
 func ParseEmployeeFromRecord(headers, record []string, rowNum int) (*domain.Employee, []BulkImportError) {
 	var errors []BulkImportError
 
+	fieldMap := createFieldMap(headers, record)
+
+	if requiredErrors := validateRequiredFields(fieldMap, rowNum); len(requiredErrors) > 0 {
+		return nil, requiredErrors
+	}
+
+	employee := createBasicEmployee(fieldMap)
+
+	parseOptionalStringFields(employee, fieldMap)
+
+	if dateErrors := parseDateFields(employee, fieldMap, rowNum); len(dateErrors) > 0 {
+		errors = append(errors, dateErrors...)
+	}
+
+	if enumErrors := parseEnumFields(employee, fieldMap, rowNum); len(enumErrors) > 0 {
+		errors = append(errors, enumErrors...)
+	}
+
+	parseBankFields(employee, fieldMap)
+
+	if len(errors) > 0 {
+		return nil, errors
+	}
+
+	return employee, nil
+}
+
+func createFieldMap(headers, record []string) map[string]string {
 	fieldMap := make(map[string]string)
 	for i, header := range headers {
 		normalizedHeader := strings.ToLower(strings.TrimSpace(header))
@@ -308,9 +330,13 @@ func ParseEmployeeFromRecord(headers, record []string, rowNum int) (*domain.Empl
 			fieldMap[normalizedHeader] = strings.TrimSpace(record[i])
 		}
 	}
+	return fieldMap
+}
 
-	// Validate required fields
+func validateRequiredFields(fieldMap map[string]string, rowNum int) []BulkImportError {
+	var errors []BulkImportError
 	requiredFields := []string{"email", "first_name", "position_name"}
+
 	for _, field := range requiredFields {
 		if fieldMap[field] == "" {
 			errors = append(errors, BulkImportError{
@@ -320,11 +346,10 @@ func ParseEmployeeFromRecord(headers, record []string, rowNum int) (*domain.Empl
 			})
 		}
 	}
+	return errors
+}
 
-	if len(errors) > 0 {
-		return nil, errors
-	}
-
+func createBasicEmployee(fieldMap map[string]string) *domain.Employee {
 	user := domain.User{
 		Email:    fieldMap["email"],
 		Password: "password",
@@ -334,13 +359,14 @@ func ParseEmployeeFromRecord(headers, record []string, rowNum int) (*domain.Empl
 		user.Phone = fieldMap["phone"]
 	}
 
-	employee := &domain.Employee{
+	return &domain.Employee{
 		User:         user,
 		FirstName:    fieldMap["first_name"],
 		PositionName: fieldMap["position_name"],
 	}
+}
 
-	// Parse optional fields
+func parseOptionalStringFields(employee *domain.Employee, fieldMap map[string]string) {
 	if fieldMap["last_name"] != "" {
 		lastName := fieldMap["last_name"]
 		employee.LastName = &lastName
@@ -352,18 +378,6 @@ func ParseEmployeeFromRecord(headers, record []string, rowNum int) (*domain.Empl
 	if fieldMap["branch"] != "" {
 		branch := fieldMap["branch"]
 		employee.Branch = &branch
-	}
-	if fieldMap["gender"] != "" {
-		if fieldMap["gender"] == "Male" || fieldMap["gender"] == "Female" {
-			gender := enums.Gender(fieldMap["gender"])
-			employee.Gender = &gender
-		} else {
-			errors = append(errors, BulkImportError{
-				Field:   "gender",
-				Message: fmt.Sprintf("Row %d: gender must be 'Male' or 'Female'", rowNum),
-				Value:   fieldMap["gender"],
-			})
-		}
 	}
 	if fieldMap["nik"] != "" {
 		nik := fieldMap["nik"]
@@ -377,8 +391,11 @@ func ParseEmployeeFromRecord(headers, record []string, rowNum int) (*domain.Empl
 		grade := fieldMap["grade"]
 		employee.Grade = &grade
 	}
+}
 
-	// Parse dates
+func parseDateFields(employee *domain.Employee, fieldMap map[string]string, rowNum int) []BulkImportError {
+	var errors []BulkImportError
+
 	if fieldMap["date_of_birth"] != "" {
 		if date, err := time.Parse("2006-01-02", fieldMap["date_of_birth"]); err == nil {
 			employee.DateOfBirth = &date
@@ -403,19 +420,31 @@ func ParseEmployeeFromRecord(headers, record []string, rowNum int) (*domain.Empl
 		}
 	}
 
-	// Parse enums
+	return errors
+}
+
+func parseEnumFields(employee *domain.Employee, fieldMap map[string]string, rowNum int) []BulkImportError {
+	var errors []BulkImportError
+
+	if fieldMap["gender"] != "" {
+		if fieldMap["gender"] == "Male" || fieldMap["gender"] == "Female" {
+			gender := enums.Gender(fieldMap["gender"])
+			employee.Gender = &gender
+		} else {
+			errors = append(errors, BulkImportError{
+				Field:   "gender",
+				Message: fmt.Sprintf("Row %d: gender must be 'Male' or 'Female'", rowNum),
+				Value:   fieldMap["gender"],
+			})
+		}
+	}
+
 	if fieldMap["last_education"] != "" {
 		validEducation := []string{"SD", "SMP", "SMA/SMK", "D1", "D2", "D3", "S1/D4", "S2", "S3", "Other"}
-		found := false
-		for _, valid := range validEducation {
-			if fieldMap["last_education"] == valid {
-				education := enums.EducationLevel(fieldMap["last_education"])
-				employee.LastEducation = &education
-				found = true
-				break
-			}
-		}
-		if !found {
+		if isValidEnum(fieldMap["last_education"], validEducation) {
+			education := enums.EducationLevel(fieldMap["last_education"])
+			employee.LastEducation = &education
+		} else {
 			errors = append(errors, BulkImportError{
 				Field:   "last_education",
 				Message: fmt.Sprintf("Row %d: invalid education level", rowNum),
@@ -426,16 +455,10 @@ func ParseEmployeeFromRecord(headers, record []string, rowNum int) (*domain.Empl
 
 	if fieldMap["contract_type"] != "" {
 		validContracts := []string{"permanent", "contract", "freelance"}
-		found := false
-		for _, valid := range validContracts {
-			if fieldMap["contract_type"] == valid {
-				contract := enums.ContractType(fieldMap["contract_type"])
-				employee.ContractType = &contract
-				found = true
-				break
-			}
-		}
-		if !found {
+		if isValidEnum(fieldMap["contract_type"], validContracts) {
+			contract := enums.ContractType(fieldMap["contract_type"])
+			employee.ContractType = &contract
+		} else {
 			errors = append(errors, BulkImportError{
 				Field:   "contract_type",
 				Message: fmt.Sprintf("Row %d: invalid contract type", rowNum),
@@ -446,16 +469,10 @@ func ParseEmployeeFromRecord(headers, record []string, rowNum int) (*domain.Empl
 
 	if fieldMap["tax_status"] != "" {
 		validTaxStatus := []string{"TK/0", "TK/1", "TK/2", "TK/3", "K/0", "K/1", "K/2", "K/3", "K/I/0", "K/I/1", "K/I/2", "K/I/3"}
-		found := false
-		for _, valid := range validTaxStatus {
-			if fieldMap["tax_status"] == valid {
-				tax := enums.TaxStatus(fieldMap["tax_status"])
-				employee.TaxStatus = &tax
-				found = true
-				break
-			}
-		}
-		if !found {
+		if isValidEnum(fieldMap["tax_status"], validTaxStatus) {
+			tax := enums.TaxStatus(fieldMap["tax_status"])
+			employee.TaxStatus = &tax
+		} else {
 			errors = append(errors, BulkImportError{
 				Field:   "tax_status",
 				Message: fmt.Sprintf("Row %d: invalid tax status", rowNum),
@@ -464,7 +481,10 @@ func ParseEmployeeFromRecord(headers, record []string, rowNum int) (*domain.Empl
 		}
 	}
 
-	// Parse bank information
+	return errors
+}
+
+func parseBankFields(employee *domain.Employee, fieldMap map[string]string) {
 	if fieldMap["bank_name"] != "" {
 		bankName := fieldMap["bank_name"]
 		employee.BankName = &bankName
@@ -477,10 +497,13 @@ func ParseEmployeeFromRecord(headers, record []string, rowNum int) (*domain.Empl
 		bankAccountHolderName := fieldMap["bank_account_holder_name"]
 		employee.BankAccountHolderName = &bankAccountHolderName
 	}
+}
 
-	if len(errors) > 0 {
-		return nil, errors
+func isValidEnum(value string, validValues []string) bool {
+	for _, valid := range validValues {
+		if value == valid {
+			return true
+		}
 	}
-
-	return employee, nil
+	return false
 }

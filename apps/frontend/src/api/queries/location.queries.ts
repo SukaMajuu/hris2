@@ -2,10 +2,18 @@ import { useQuery } from "@tanstack/react-query";
 import { queryKeys } from "../query-keys";
 import locationService from "@/services/location.service";
 
-export const useLocations = (params?: Record<string, string | number>) => {
+export const useLocations = (params?: Record<string, string | number | undefined>) => {
+	// Clean params to remove undefined values
+	const cleanParams = params ? Object.entries(params).reduce((acc, [key, value]) => {
+		if (value !== undefined && value !== null && value !== '') {
+			acc[key] = value;
+		}
+		return acc;
+	}, {} as Record<string, string | number>) : {};
+
 	return useQuery({
-		queryKey: [queryKeys.locations.list, params],
-		queryFn: () => locationService.getLocations(params || {}),
+		queryKey: [queryKeys.locations.list, cleanParams],
+		queryFn: () => locationService.getLocations(cleanParams),
 	});
 };
 

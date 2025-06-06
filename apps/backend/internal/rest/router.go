@@ -7,6 +7,7 @@ import (
 	checkclocksettingsusecase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/checkclock_settings"
 	document "github.com/SukaMajuu/hris/apps/backend/internal/usecase/document"
 	employee "github.com/SukaMajuu/hris/apps/backend/internal/usecase/employee"
+	"github.com/SukaMajuu/hris/apps/backend/internal/usecase/leave_request"
 	location "github.com/SukaMajuu/hris/apps/backend/internal/usecase/location"
 	"github.com/SukaMajuu/hris/apps/backend/internal/usecase/subscription"
 	work_Schedule "github.com/SukaMajuu/hris/apps/backend/internal/usecase/work_schedule"
@@ -24,6 +25,7 @@ type Router struct {
 	checkclockSettingsHandler *handler.CheckclockSettingsHandler
 	subscriptionHandler       *handler.SubscriptionHandler
 	documentHandler           *handler.DocumentHandler
+	leaveRequestHandler       *handler.LeaveRequestHandler
 }
 
 func NewRouter(
@@ -34,6 +36,7 @@ func NewRouter(
 	checkclockSettingsUseCase *checkclocksettingsusecase.CheckclockSettingsUseCase,
 	subscriptionUseCase *subscription.SubscriptionUseCase,
 	documentUseCase *document.DocumentUseCase,
+	leaveRequestUseCase *leave_request.LeaveRequestUseCase,
 ) *Router {
 	return &Router{
 		authHandler:               handler.NewAuthHandler(authUseCase),
@@ -44,6 +47,7 @@ func NewRouter(
 		checkclockSettingsHandler: handler.NewCheckclockSettingsHandler(checkclockSettingsUseCase),
 		subscriptionHandler:       handler.NewSubscriptionHandler(subscriptionUseCase),
 		documentHandler:           handler.NewDocumentHandler(documentUseCase),
+		leaveRequestHandler:       handler.NewLeaveRequestHandler(leaveRequestUseCase),
 	}
 }
 
@@ -89,9 +93,7 @@ func (r *Router) Setup() *gin.Engine {
 				employee.POST("", r.employeeHandler.CreateEmployee)
 				employee.POST("/bulk-import", r.employeeHandler.BulkImportEmployees)
 				employee.PATCH("/:id", r.employeeHandler.UpdateEmployee)
-				employee.PATCH("/:id/status", r.employeeHandler.ResignEmployee)
-
-				// Employee document routes nested under employee routes
+				employee.PATCH("/:id/status", r.employeeHandler.ResignEmployee)				// Employee document routes nested under employee routes
 				employee.POST("/:id/documents", r.documentHandler.UploadDocumentForEmployee)
 				employee.GET("/:id/documents", r.documentHandler.GetDocumentsByEmployee)
 			}
@@ -129,6 +131,20 @@ func (r *Router) Setup() *gin.Engine {
 				documents.POST("/upload", r.authMiddleware.Authenticate(), r.documentHandler.UploadDocument)
 				documents.GET("", r.authMiddleware.Authenticate(), r.documentHandler.GetDocuments)
 				documents.DELETE("/:id", r.authMiddleware.Authenticate(), r.documentHandler.DeleteDocument)
+			}
+
+			leaveRequests := api.Group("/leave-requests")
+			{
+				// Employee routes (can access their own leave requests)
+				leaveRequests.POST("", r.leaveRequestHandler.CreateLeaveRequest)
+				leaveRequests.GET("/my", r.leaveRequestHandler.GetMyLeaveRequests)
+				leaveRequests.GET("/:id", r.leaveRequestHandler.GetLeaveRequestByID)
+				leaveRequests.PUT("/:id", r.leaveRequestHandler.UpdateLeaveRequest)
+				leaveRequests.DELETE("/:id", r.leaveRequestHandler.DeleteLeaveRequest)
+
+				// Admin routes (can access all leave requests and update status)
+				leaveRequests.GET("", r.leaveRequestHandler.ListLeaveRequests) // Admin only - list all
+				leaveRequests.PATCH("/:id/status", r.leaveRequestHandler.UpdateLeaveRequestStatus) // Admin only
 			}
 
 			subscription := api.Group("/subscription")

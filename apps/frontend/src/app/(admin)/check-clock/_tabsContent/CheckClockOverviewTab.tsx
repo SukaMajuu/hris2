@@ -757,11 +757,10 @@ export default function CheckClockOverviewTab() {
 												accept="image/*,application/pdf"
 												className="text-sm font-normal text-gray-700 border-gray-300 hover:border-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
 												{...register("evidence")}
-											/>
-											<p className="text-xs text-muted-foreground">
-												Upload bukti tambahan (foto,
-												PDF, dsb) untuk attendance
-												selain check-in dan check-out.
+											/>											<p className="text-xs text-muted-foreground">
+												Upload additional evidence (photo,
+												PDF, etc.) for attendance
+												other than check-in and check-out.
 											</p>
 										</CardContent>
 									</Card>

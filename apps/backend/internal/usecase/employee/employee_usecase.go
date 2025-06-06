@@ -20,7 +20,11 @@ import (
 	"gorm.io/gorm"
 )
 
-const bucketNamePhoto = "photo"
+const (
+	defaultPassword = "password"
+	unknownValue    = "unknown"
+	bucketNamePhoto = "photo"
+)
 
 const (
 	mimeTypeJPEG = "image/jpeg"
@@ -149,7 +153,7 @@ func (uc *EmployeeUseCase) Create(ctx context.Context, employee *domain.Employee
 	employee.ManagerID = &creatorEmployeeID
 
 	if employee.User.Password == "" {
-		employee.User.Password = "password"
+		employee.User.Password = defaultPassword
 	}
 
 	err := uc.authRepo.RegisterEmployeeUser(ctx, &employee.User, employee)
@@ -375,7 +379,7 @@ func (uc *EmployeeUseCase) BulkImport(ctx context.Context, employees []*domain.E
 
 		// Set default password if not provided
 		if employee.User.Password == "" {
-			employee.User.Password = "password"
+			employee.User.Password = defaultPassword
 		}
 
 		// Create employee and user account
@@ -408,7 +412,7 @@ func (uc *EmployeeUseCase) BulkImportWithTransaction(ctx context.Context, employ
 
 		// Set default password if not provided
 		if employee.User.Password == "" {
-			employee.User.Password = "password"
+			employee.User.Password = defaultPassword
 		}
 
 		// Validate required fields
@@ -539,7 +543,6 @@ func (uc *EmployeeUseCase) BulkImportWithTransaction(ctx context.Context, employ
 	log.Printf("EmployeeUseCase: All employees passed validation. Starting transaction import...")
 
 	var successfulIDs []uint
-	var errors []EmployeeImportError
 
 	for i, employee := range employees {
 		log.Printf("EmployeeUseCase: Processing employee %d/%d: %s", i+1, len(employees), employee.FirstName)
@@ -549,7 +552,6 @@ func (uc *EmployeeUseCase) BulkImportWithTransaction(ctx context.Context, employ
 		if err != nil {
 			log.Printf("EmployeeUseCase: Error creating employee %s: %v", employee.FirstName, err)
 			importError := uc.convertToImportError(err, employee, i+2)
-			errors = append(errors, importError)
 
 			// If any employee fails, we abort the entire operation
 			log.Printf("EmployeeUseCase: BulkImportWithTransaction failed on employee %d. Aborting entire import.", i+1)
@@ -601,7 +603,7 @@ func (uc *EmployeeUseCase) convertToImportError(err error, employee *domain.Empl
 	}
 
 	if strings.Contains(errorMsg, "uni_employees_nik") || strings.Contains(errorMsg, "duplicate key") && strings.Contains(errorMsg, "nik") {
-		nikValue := "unknown"
+		nikValue := unknownValue
 		if employee.NIK != nil {
 			nikValue = *employee.NIK
 		}
@@ -615,7 +617,7 @@ func (uc *EmployeeUseCase) convertToImportError(err error, employee *domain.Empl
 	}
 
 	if strings.Contains(errorMsg, "uni_employees_employee_code") || strings.Contains(errorMsg, "duplicate key") && strings.Contains(errorMsg, "employee_code") {
-		codeValue := "unknown"
+		codeValue := unknownValue
 		if employee.EmployeeCode != nil {
 			codeValue = *employee.EmployeeCode
 		}
@@ -902,8 +904,8 @@ func (uc *EmployeeUseCase) deleteFileWithRetry(fileName string, maxRetries int) 
 
 		if strings.Contains(errorMsg, "body must be object") {
 			log.Printf("EmployeeUseCase: 'body must be object' error detected on attempt %d. This indicates storage policy issues:", attempt)
-			log.Printf("  1. Missing DELETE policy for service_role on bucket '%s'", bucketNamePhoto)
-			log.Printf("  2. Missing SELECT policy for service_role on bucket '%s'", bucketNamePhoto)
+			log.Printf("  1. Missing DELETE policy for service role on bucket '%s'", bucketNamePhoto)
+			log.Printf("  2. Missing SELECT policy for service role on bucket '%s'", bucketNamePhoto)
 			log.Printf("  3. Policies may be configured for authenticated users instead of service_role")
 			log.Printf("  4. Potential policy caching or race condition issue")
 

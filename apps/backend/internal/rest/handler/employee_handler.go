@@ -624,7 +624,11 @@ func (h *EmployeeHandler) parseImportFile(file *multipart.FileHeader) ([]*domain
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to open file: %w", err)
 	}
-	defer src.Close()
+	defer func() {
+		if closeErr := src.Close(); closeErr != nil {
+			log.Printf("Warning: failed to close file: %v", closeErr)
+		}
+	}()
 
 	var employees []*domain.Employee
 	var parseErrors []employeeDTO.BulkImportError
@@ -695,11 +699,15 @@ func (h *EmployeeHandler) parseExcelFile(src io.Reader) ([]*domain.Employee, []e
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to open Excel file: %w", err)
 	}
-	defer f.Close()
+	defer func() {
+		if closeErr := f.Close(); closeErr != nil {
+			log.Printf("Warning: failed to close Excel file: %v", closeErr)
+		}
+	}()
 
 	sheetName := f.GetSheetName(0)
 	if sheetName == "" {
-		return nil, nil, fmt.Errorf("Excel file contains no sheets")
+		return nil, nil, fmt.Errorf("excel file contains no sheets")
 	}
 
 	rows, err := f.GetRows(sheetName)
@@ -708,7 +716,7 @@ func (h *EmployeeHandler) parseExcelFile(src io.Reader) ([]*domain.Employee, []e
 	}
 
 	if len(rows) < 2 {
-		return nil, nil, fmt.Errorf("Excel file must contain header and at least one data row")
+		return nil, nil, fmt.Errorf("excel file must contain header and at least one data row")
 	}
 
 	headers := rows[0]

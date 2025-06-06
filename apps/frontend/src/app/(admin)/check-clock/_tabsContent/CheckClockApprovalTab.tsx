@@ -246,7 +246,11 @@ export default function CheckClockApprovalTab() {
             <PaginationComponent table={table} />
           </footer>
         </CardContent>
-      </Card>      {/* Approval Modal */}      <ApprovalConfirmationModal
+      </Card>
+      
+      {/* Approval Modal */}
+      
+      <ApprovalConfirmationModal
         isOpen={isModalOpen}
         onOpenChange={setIsModalOpen}
         selectedItem={selectedItem}

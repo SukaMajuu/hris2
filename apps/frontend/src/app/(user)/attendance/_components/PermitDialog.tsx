@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { UseFormReturn } from 'react-hook-form';
+import { UseFormReturn, Controller } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -47,9 +47,55 @@ export function PermitDialog({
   onSubmit,
   currentAttendanceType,
 }: PermitDialogProps) {
-  const { register, handleSubmit, watch } = formMethods;
+  const { register, handleSubmit, watch, setValue, control, formState: { errors } } = formMethods;
   const { toast } = useToast();
-  const createLeaveRequestMutation = useCreateLeaveRequestMutation();
+    const createLeaveRequestMutation = useCreateLeaveRequestMutation();
+
+  // File validation constants
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
+  const ALLOWED_FILE_TYPES = [
+    'image/jpeg',
+    'image/jpg', 
+    'image/png',
+    'image/gif',
+    'image/bmp',
+    'image/webp',
+    'application/pdf'
+  ];  const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.pdf'];
+
+  // File validation function
+  const validateFileUpload = (files: FileList | null): string | null => {
+    if (!files || files.length === 0) {
+      return null; // No file selected, validation passes (file is optional)
+    }
+
+    const file = files[0];
+    
+    // Additional safety check for file existence
+    if (!file) {
+      return null; // No file selected, validation passes (file is optional)
+    }
+    
+    // Check file size
+    if (file.size > MAX_FILE_SIZE) {
+      return 'File size must be less than 10MB';
+    }
+
+    // Check file extension
+    const fileName = file.name.toLowerCase();
+    const hasValidExtension = ALLOWED_EXTENSIONS.some(ext => fileName.endsWith(ext));
+    
+    if (!hasValidExtension) {
+      return 'Only image files (JPG, JPEG, PNG, GIF, BMP, WEBP) and PDF files are allowed';
+    }
+
+    // Check MIME type
+    if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+      return 'Invalid file type. Only image files and PDF files are allowed';
+    }
+
+    return null; // Validation passed
+  };
 
   const permitRelatedLeaveTypes = [
     'sick leave',
@@ -75,30 +121,62 @@ export function PermitDialog({
       default:
         return LeaveType.SICK_LEAVE;
     }
-  };
-  const handleLeaveRequestSubmit = async (data: DialogFormData) => {
+  };  const handleLeaveRequestSubmit = async (data: DialogFormData) => {
     try {
+      console.log('Form data received:', data);
+      console.log('Evidence data:', data.evidence);
+      
+      // Validate file before submitting
+      const fileValidationError = validateFileUpload(data.evidence);
+      if (fileValidationError) {
+        toast({
+          title: 'File Validation Error',
+          description: fileValidationError,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Get the actual file from the evidence
+      const attachmentFile = data.evidence && data.evidence.length > 0 ? data.evidence[0] : undefined;
+      console.log('Attachment file:', attachmentFile);
+
       const leaveRequestData = {
         leave_type: mapAttendanceTypeToLeaveType(data.attendanceType),
         start_date: data.startDate,
         end_date: data.permitEndDate,
-        employee_note: data.reason, // Changed from 'reason' to 'employee_note' to match backend
-        attachment: data.evidence?.[0] || undefined,
+        employee_note: data.reason,
+        attachment: attachmentFile,
       };
+
+      console.log('Submitting leave request data:', leaveRequestData);
 
       await createLeaveRequestMutation.mutateAsync(leaveRequestData);
 
       toast({
-        title: 'Success',
-        description: 'Leave request submitted successfully!',
+        title: 'Berhasil!',
+        description: 'Permohonan izin/cuti berhasil diajukan. Menunggu persetujuan atasan.',
+        variant: 'default',
       });
 
+      // Reset form and close dialog
+      formMethods.reset();
       onOpenChange(false);
     } catch (error) {
       console.error('Error creating leave request:', error);
+      
+      // Handle specific error messages from backend
+      let errorMessage = 'Gagal mengajukan permohonan izin/cuti. Silakan coba lagi.';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'object' && error !== null && 'message' in error) {
+        errorMessage = (error as any).message;
+      }
+      
       toast({
-        title: 'Error',
-        description: 'Failed to submit leave request. Please try again.',
+        title: 'Gagal Mengajukan Permohonan',
+        description: errorMessage,
         variant: 'destructive',
       });
     }
@@ -119,10 +197,25 @@ export function PermitDialog({
           <DialogDescription className='text-sm text-slate-600 dark:text-slate-400'>
             Please fill in the details for your permit or leave request.
           </DialogDescription>
-        </DialogHeader>
-
-        <form
-          onSubmit={handleSubmit(isLeaveRequest ? handleLeaveRequestSubmit : onSubmit)}
+        </DialogHeader>        <form
+          onSubmit={handleSubmit(isLeaveRequest ? handleLeaveRequestSubmit : (data) => {
+            try {
+              onSubmit(data);
+              toast({
+                title: 'Berhasil!',
+                description: 'Data attendance berhasil disimpan.',
+                variant: 'default',
+              });
+              onOpenChange(false);
+            } catch (error) {
+              console.error('Error submitting form:', error);
+              toast({
+                title: 'Gagal Menyimpan',
+                description: 'Terjadi kesalahan saat menyimpan data. Silakan coba lagi.',
+                variant: 'destructive',
+              });
+            }
+          })}
           className='space-y-6'
         >
           <div className='max-h-[calc(100vh-220px)] space-y-6 overflow-y-auto px-6 py-4'>
@@ -201,8 +294,7 @@ export function PermitDialog({
                   </div>
                 </>
               )}
-            </div>{' '}
-            {/* Section 2: Upload Evidence (Only for Leave Request) */}
+            </div>{' '}            {/* Section 2: Upload Evidence (Only for Leave Request) */}
             {isLeaveRequest && (
               <div className='rounded-lg bg-white p-6 shadow-md dark:bg-slate-800'>
                 <Label
@@ -210,17 +302,73 @@ export function PermitDialog({
                   className='mb-2 block text-base font-semibold text-slate-800 dark:text-slate-200'
                 >
                   Upload Support Evidence
-                </Label>
-                <Input
-                  id='evidence'
-                  type='file'
-                  accept='image/*,application/pdf'
-                  className='focus:ring-primary focus:border-primary file:bg-primary hover:file:bg-primary/90 mt-1 w-full max-w-xs border-slate-300 bg-slate-50 file:mr-4 file:rounded-md file:border-0 file:px-4 file:text-sm file:font-semibold file:text-white dark:border-slate-600 dark:bg-slate-800'
-                  {...register('evidence')}
-                />
-                <p className='mt-2 text-xs text-slate-500 dark:text-slate-400'>
-                  Upload relevant documents (image or PDF) for your leave request.
-                </p>
+                </Label>                <Controller
+                  name="evidence"
+                  control={control}
+                  rules={{
+                    validate: (files) => {
+                      const error = validateFileUpload(files);
+                      return error || true;
+                    }
+                  }}
+                  render={({ field: { onChange, value, ...field } }) => (
+                    <Input
+                      {...field}
+                      id='evidence'
+                      type='file'
+                      accept='.jpg,.jpeg,.png,.gif,.bmp,.webp,.pdf,image/*,application/pdf'
+                      className='focus:ring-primary focus:border-primary file:bg-primary hover:file:bg-primary/90 mt-1 w-full max-w-xs border-slate-300 bg-slate-50 file:mr-4 file:rounded-md file:border-0 file:px-4 file:text-sm file:font-semibold file:text-white dark:border-slate-600 dark:bg-slate-800'
+                      onChange={(e) => {
+                        const files = e.target.files;
+                        console.log('File input changed:', files);
+                        
+                        const validationError = validateFileUpload(files);
+                        
+                        if (validationError) {
+                          toast({
+                            title: 'File Validation Error',
+                            description: validationError,
+                            variant: 'destructive',
+                          });
+                          // Clear the file input
+                          e.target.value = '';
+                          onChange(null);
+                          return;
+                        }
+                        
+                        // If validation passes, update the form value
+                        onChange(files);
+                        console.log('File updated in form:', files);
+                      }}
+                    />
+                  )}
+                />{/* Display selected file */}
+                {watch('evidence') && watch('evidence')?.length && watch('evidence')!.length > 0 && (
+                  <div className='mt-2 p-2 bg-slate-100 dark:bg-slate-700 rounded-md border border-slate-200 dark:border-slate-600'>
+                    <p className='text-sm text-slate-700 dark:text-slate-300'>
+                      <strong>Selected file:</strong> {watch('evidence')?.[0]?.name || 'Unknown file'}
+                    </p>
+                    <p className='text-xs text-slate-500 dark:text-slate-400'>
+                      Size: {((watch('evidence')?.[0]?.size || 0) / 1024 / 1024).toFixed(2)} MB
+                    </p>
+                  </div>
+                )}
+                {errors.evidence && (
+                  <p className='mt-1 text-sm text-red-600 dark:text-red-400'>
+                    {errors.evidence.message}
+                  </p>
+                )}
+                <div className='mt-2 space-y-1'>
+                  <p className='text-xs text-slate-500 dark:text-slate-400'>
+                    <strong>Accepted file types:</strong> Images (JPG, JPEG, PNG, GIF, BMP, WEBP) and PDF files
+                  </p>
+                  <p className='text-xs text-slate-500 dark:text-slate-400'>
+                    <strong>Maximum file size:</strong> 10MB
+                  </p>
+                  <p className='text-xs text-slate-500 dark:text-slate-400'>
+                    Upload relevant documents to support your leave request.
+                  </p>
+                </div>
               </div>
             )}
           </div>

@@ -57,7 +57,8 @@ export default function CheckClockApprovalTab() {
   const [pagination, setPagination] = React.useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10,
-  });  const handleSheetViewDetails = useCallback(
+  });
+  const handleSheetViewDetails = useCallback(
     (id: number) => {
       const item = approvalData.find((d) => d.id === id);
       if (item?.leaveRequest) {
@@ -69,7 +70,7 @@ export default function CheckClockApprovalTab() {
           status: item.status,
           permitStart: lr.start_date,
           permitEnd: lr.end_date,
-          attachmentUrl: lr.attachment || lr.attachment_url || undefined,
+          attachmentUrl: lr.attachment || undefined,
         });
         setOpenSheet(true);
       }

@@ -6,17 +6,29 @@ import (
 	"log"
 	"math"
 	"mime/multipart"
+	"net/http"
 	"path/filepath"
 	"strings"
 	"time"
-
 	"github.com/SukaMajuu/hris/apps/backend/domain"
 	dtoleave "github.com/SukaMajuu/hris/apps/backend/domain/dto/leave_request"
 	"github.com/SukaMajuu/hris/apps/backend/domain/interfaces"
+	storage "github.com/supabase-community/storage-go"
 	"github.com/supabase-community/supabase-go"
 )
 
 const bucketNameAttachments = "leavereq"
+
+// MIME type constants for leave request attachments
+const (
+	mimeTypeJPEG  = "image/jpeg"
+	mimeTypePNG   = "image/png"
+	mimeTypeGIF   = "image/gif"
+	mimeTypeBMP   = "image/bmp"
+	mimeTypeWEBP  = "image/webp"
+	mimeTypePDF   = "application/pdf"
+	mimeTypeOctet = "application/octet-stream"
+)
 
 type LeaveRequestUseCase struct {
 	leaveRequestRepo interfaces.LeaveRequestRepository
@@ -36,7 +48,7 @@ func NewLeaveRequestUseCase(
 	}
 }
 
-func toLeaveRequestResponseDTO(lr *domain.LeaveRequest) *dtoleave.LeaveRequestResponseDTO {
+func (uc *LeaveRequestUseCase) toLeaveRequestResponseDTO(lr *domain.LeaveRequest) *dtoleave.LeaveRequestResponseDTO {
 	employeeName := lr.Employee.FirstName
 	if lr.Employee.LastName != nil {
 		employeeName += " " + *lr.Employee.LastName
@@ -45,6 +57,12 @@ func toLeaveRequestResponseDTO(lr *domain.LeaveRequest) *dtoleave.LeaveRequestRe
 	positionName := "Unknown Position"
 	if lr.Employee.PositionName != "" {
 		positionName = lr.Employee.PositionName
+	}	// Generate proper Supabase URL for attachment if it exists
+	var attachmentURL *string
+	if lr.Attachment != nil && *lr.Attachment != "" {
+		bucketName := bucketNameAttachments
+		publicURL := uc.supabaseClient.Storage.GetPublicUrl(bucketName, *lr.Attachment)
+		attachmentURL = &publicURL.SignedURL
 	}
 
 	return &dtoleave.LeaveRequestResponseDTO{
@@ -55,7 +73,7 @@ func toLeaveRequestResponseDTO(lr *domain.LeaveRequest) *dtoleave.LeaveRequestRe
 		LeaveType:    string(lr.LeaveType),
 		StartDate:    lr.StartDate.Format("2006-01-02"),
 		EndDate:      lr.EndDate.Format("2006-01-02"),
-		Attachment:   lr.Attachment,
+		Attachment:   attachmentURL,
 		EmployeeNote: lr.EmployeeNote,
 		AdminNote:    lr.AdminNote,
 		Status:       string(lr.Status),
@@ -79,9 +97,12 @@ func (uc *LeaveRequestUseCase) Create(ctx context.Context, leaveRequest *domain.
 	// Validate dates
 	if leaveRequest.StartDate.After(leaveRequest.EndDate) {
 		return nil, fmt.Errorf("start date cannot be after end date")
-	}
-	// Handle file upload if provided
-	if file != nil && file.Size > 0 && file.Filename != "" && uc.supabaseClient != nil {
+	}	// Handle file upload if provided
+	if file != nil && file.Size > 0 && file.Filename != "" && uc.supabaseClient != nil {		// Validate file type
+		if err := uc.validateAttachmentFile(file); err != nil {
+			return nil, err
+		}
+
 		fileName := uc.generateFileName(employee, file.Filename)
 		
 		// Open the file
@@ -91,8 +112,11 @@ func (uc *LeaveRequestUseCase) Create(ctx context.Context, leaveRequest *domain.
 		}
 		defer src.Close()
 
-		// Upload to Supabase Storage
-		_, err = uc.supabaseClient.Storage.UploadFile(bucketNameAttachments, fileName, src)
+		// Upload to Supabase Storage with proper content type
+		_, err = uc.supabaseClient.Storage.UploadFile(bucketNameAttachments, fileName, src, storage.FileOptions{
+			ContentType: &[]string{uc.getContentTypeFromExtension(file.Filename)}[0],
+			Upsert:      &[]bool{true}[0],
+		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to upload attachment: %w", err)
 		}
@@ -119,9 +143,8 @@ func (uc *LeaveRequestUseCase) Create(ctx context.Context, leaveRequest *domain.
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve created leave request: %w", err)
 	}
-
 	log.Printf("LeaveRequestUseCase: Successfully created leave request with ID %d", leaveRequest.ID)
-	return toLeaveRequestResponseDTO(createdLeaveRequest), nil
+	return uc.toLeaveRequestResponseDTO(createdLeaveRequest), nil
 }
 
 func (uc *LeaveRequestUseCase) GetByID(ctx context.Context, id uint) (*dtoleave.LeaveRequestResponseDTO, error) {
@@ -132,7 +155,7 @@ func (uc *LeaveRequestUseCase) GetByID(ctx context.Context, id uint) (*dtoleave.
 		return nil, fmt.Errorf("failed to get leave request by ID %d: %w", id, err)
 	}
 
-	return toLeaveRequestResponseDTO(leaveRequest), nil
+	return uc.toLeaveRequestResponseDTO(leaveRequest), nil
 }
 
 func (uc *LeaveRequestUseCase) GetByEmployeeID(ctx context.Context, employeeID uint, paginationParams domain.PaginationParams) (*dtoleave.LeaveRequestListResponseData, error) {
@@ -142,10 +165,9 @@ func (uc *LeaveRequestUseCase) GetByEmployeeID(ctx context.Context, employeeID u
 	if err != nil {
 		return nil, fmt.Errorf("failed to get leave requests for employee ID %d: %w", employeeID, err)
 	}
-
 	responseItems := make([]*dtoleave.LeaveRequestResponseDTO, len(leaveRequests))
 	for i, lr := range leaveRequests {
-		responseItems[i] = toLeaveRequestResponseDTO(lr)
+		responseItems[i] = uc.toLeaveRequestResponseDTO(lr)
 	}
 
 	totalPages := 0
@@ -174,11 +196,10 @@ func (uc *LeaveRequestUseCase) List(ctx context.Context, filters map[string]inte
 	if err != nil {
 		return nil, fmt.Errorf("failed to list leave requests: %w", err)
 	}
-
 	// Convert to response DTOs
 	leaveRequestDTOs := make([]*dtoleave.LeaveRequestResponseDTO, len(leaveRequests))
 	for i, lr := range leaveRequests {
-		leaveRequestDTOs[i] = toLeaveRequestResponseDTO(lr)
+		leaveRequestDTOs[i] = uc.toLeaveRequestResponseDTO(lr)
 	}
 
 	// Calculate pagination
@@ -249,11 +270,10 @@ func (uc *LeaveRequestUseCase) GetByEmployeeUserID(ctx context.Context, userID u
 		filteredRequests = filtered
 		filteredTotal = int64(len(filtered)) // Adjust total for filtered results
 	}
-
 	// Convert to response DTOs
 	leaveRequestDTOs := make([]*dtoleave.LeaveRequestResponseDTO, len(filteredRequests))
 	for i, lr := range filteredRequests {
-		leaveRequestDTOs[i] = toLeaveRequestResponseDTO(lr)
+		leaveRequestDTOs[i] = uc.toLeaveRequestResponseDTO(lr)
 	}
 
 	// Calculate pagination info
@@ -320,6 +340,10 @@ func (uc *LeaveRequestUseCase) Update(ctx context.Context, id uint, updates *dom
 	}	// Handle file upload if provided
 	var oldAttachment *string
 	if file != nil && file.Size > 0 && file.Filename != "" && uc.supabaseClient != nil {
+		// Validate file type
+		if err := uc.validateAttachmentFile(file); err != nil {
+			return nil, err
+		}
 		employee, _ := uc.employeeRepo.GetByID(ctx, existingLeaveRequest.EmployeeID)
 		fileName := uc.generateFileName(employee, file.Filename)
 		
@@ -330,8 +354,11 @@ func (uc *LeaveRequestUseCase) Update(ctx context.Context, id uint, updates *dom
 		}
 		defer src.Close()
 
-		// Upload to Supabase Storage
-		_, err = uc.supabaseClient.Storage.UploadFile(bucketNameAttachments, fileName, src)
+		// Upload to Supabase Storage with proper content type
+		_, err = uc.supabaseClient.Storage.UploadFile(bucketNameAttachments, fileName, src, storage.FileOptions{
+			ContentType: &[]string{uc.getContentTypeFromExtension(file.Filename)}[0],
+			Upsert:      &[]bool{true}[0],
+		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to upload attachment: %w", err)
 		}
@@ -361,9 +388,8 @@ func (uc *LeaveRequestUseCase) Update(ctx context.Context, id uint, updates *dom
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve updated leave request: %w", err)
 	}
-
 	log.Printf("LeaveRequestUseCase: Successfully updated leave request with ID %d", id)
-	return toLeaveRequestResponseDTO(updatedLeaveRequest), nil
+	return uc.toLeaveRequestResponseDTO(updatedLeaveRequest), nil
 }
 
 func (uc *LeaveRequestUseCase) UpdateStatus(ctx context.Context, id uint, status domain.LeaveStatus, adminNote *string) (*dtoleave.LeaveRequestResponseDTO, error) {
@@ -385,9 +411,8 @@ func (uc *LeaveRequestUseCase) UpdateStatus(ctx context.Context, id uint, status
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve updated leave request: %w", err)
 	}
-
 	log.Printf("LeaveRequestUseCase: Successfully updated leave request status to %s for ID %d", string(status), id)
-	return toLeaveRequestResponseDTO(updatedLeaveRequest), nil
+	return uc.toLeaveRequestResponseDTO(updatedLeaveRequest), nil
 }
 
 func (uc *LeaveRequestUseCase) Delete(ctx context.Context, id uint) error {
@@ -446,5 +471,87 @@ func (uc *LeaveRequestUseCase) generateFileName(employee *domain.Employee, origi
 	cleanName := strings.ReplaceAll(originalFilename, " ", "_")
 	cleanName = strings.ReplaceAll(cleanName, extension, "")
 	
-	return fmt.Sprintf("leave_requests/%s_%s_%s%s", employeeCode, timestamp, cleanName, extension)
+	return fmt.Sprintf("%s_%s_%s%s", employeeCode, timestamp, cleanName, extension)
+}
+
+func (uc *LeaveRequestUseCase) validateAttachmentFile(file *multipart.FileHeader) error {
+	// Check file size (max 10MB)
+	const maxSize = 10 * 1024 * 1024 // 10MB
+	if file.Size > maxSize {
+		return fmt.Errorf("file size too large: maximum 10MB allowed")
+	}
+	
+	// Get file extension
+	extension := strings.ToLower(filepath.Ext(file.Filename))
+	
+	// Define allowed extensions
+	allowedExtensions := map[string]bool{
+		".jpg":  true,
+		".jpeg": true,
+		".png":  true,
+		".gif":  true,
+		".bmp":  true,
+		".webp": true,
+		".pdf":  true,
+	}
+	
+	if !allowedExtensions[extension] {
+		return fmt.Errorf("invalid file type: only images (JPG, JPEG, PNG, GIF, BMP, WEBP) and PDF files are allowed")
+	}
+	
+	// Optional: Validate MIME type for additional security
+	src, err := file.Open()
+	if err != nil {
+		return fmt.Errorf("failed to open file for validation: %w", err)
+	}
+	defer src.Close()
+	
+	// Read first 512 bytes to detect MIME type
+	buffer := make([]byte, 512)
+	_, err = src.Read(buffer)
+	if err != nil {
+		return fmt.Errorf("failed to read file for MIME type detection: %w", err)
+	}
+	
+	// Reset file pointer for later use
+	src.Seek(0, 0)
+	
+	// Check MIME type
+	mimeType := http.DetectContentType(buffer)
+	allowedMimeTypes := map[string]bool{
+		"image/jpeg":      true,
+		"image/jpg":       true,
+		"image/png":       true,
+		"image/gif":       true,
+		"image/bmp":       true,
+		"image/webp":      true,
+		"application/pdf": true,
+	}
+	
+	if !allowedMimeTypes[mimeType] {
+		return fmt.Errorf("invalid file content: detected MIME type %s is not allowed", mimeType)
+	}
+	
+	return nil
+}
+
+// getContentTypeFromExtension returns the appropriate MIME type based on file extension
+func (uc *LeaveRequestUseCase) getContentTypeFromExtension(filename string) string {
+	ext := strings.ToLower(filepath.Ext(filename))
+	switch ext {
+	case ".jpg", ".jpeg":
+		return mimeTypeJPEG
+	case ".png":
+		return mimeTypePNG
+	case ".gif":
+		return mimeTypeGIF
+	case ".bmp":
+		return mimeTypeBMP
+	case ".webp":
+		return mimeTypeWEBP
+	case ".pdf":
+		return mimeTypePDF
+	default:
+		return mimeTypeOctet
+	}
 }

@@ -48,7 +48,7 @@ func Migrate(db *gorm.DB) error {
 
 		-- attendance_status (new)
 		DROP TYPE IF EXISTS attendance_status CASCADE;
-		CREATE TYPE attendance_status AS ENUM ('on_time', 'late', 'early_eave', 'absent', 'leave');
+		CREATE TYPE attendance_status AS ENUM ('on_time', 'late', 'early_leave', 'absent', 'leave');
 
 		-- leave_status (new)
 		DROP TYPE IF EXISTS leave_status CASCADE;

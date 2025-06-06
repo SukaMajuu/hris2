@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"github.com/SukaMajuu/hris/apps/backend/internal/repository/attendance"
 	"github.com/SukaMajuu/hris/apps/backend/internal/repository/auth"
 	"github.com/SukaMajuu/hris/apps/backend/internal/repository/checkclock_settings"
 	"github.com/SukaMajuu/hris/apps/backend/internal/repository/document"
@@ -11,6 +12,7 @@ import (
 	"github.com/SukaMajuu/hris/apps/backend/internal/repository/work_schedule"
 	"github.com/SukaMajuu/hris/apps/backend/internal/repository/xendit"
 	"github.com/SukaMajuu/hris/apps/backend/internal/rest"	
+	attendanceUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/attendance"
 	authUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/auth"
 	checkclockSettingsUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/checkclock_settings"
 	documentUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/document"
@@ -43,12 +45,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to initialize Supabase client: %v", err)
 	}
-
 	authRepo, err := auth.NewSupabaseRepository(db, cfg.Supabase.URL, cfg.Supabase.Key)
 	if err != nil {
 		log.Fatalf("Failed to initialize Supabase auth repository: %v", err)
 	}
 	employeeRepo := employee.NewPostgresRepository(db)
+	attendanceRepo := attendance.NewAttendanceRepository(db)
 	locationRepo := location.NewLocationRepository(db)
 	workScheduleRepo := work_schedule.NewWorkScheduleRepository(db)
 	checkclockSettingsRepo := checkclock_settings.NewCheckclockSettingsRepository(db)
@@ -65,11 +67,16 @@ func main() {
 		jwtService,
 		cfg,
 	)
-
 	employeeUseCase := employeeUseCase.NewEmployeeUseCase(
 		employeeRepo,
 		authRepo,
 		supabaseClient,
+	)
+
+	attendanceUseCase := attendanceUseCase.NewAttendanceUseCase(
+		attendanceRepo,
+		employeeRepo,
+		workScheduleRepo,
 	)
 
 	locationUseCase := locationUseCase.NewLocationUseCase(locationRepo)
@@ -103,7 +110,7 @@ func main() {
 		supabaseClient,
 	)
 
-	router := rest.NewRouter(authUseCase, employeeUseCase, locationUseCase, workScheduleUseCase, checkclockSettingsUseCase, subscriptionUseCase, documentUseCase, leaveRequestUseCase)
+	router := rest.NewRouter(authUseCase, employeeUseCase, locationUseCase, workScheduleUseCase, checkclockSettingsUseCase, subscriptionUseCase, documentUseCase, leaveRequestUseCase, attendanceUseCase)
 
 	ginRouter := router.Setup()
 

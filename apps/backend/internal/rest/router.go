@@ -3,6 +3,7 @@ package rest
 import (
 	"github.com/SukaMajuu/hris/apps/backend/internal/rest/handler"
 	"github.com/SukaMajuu/hris/apps/backend/internal/rest/middleware"
+	attendance "github.com/SukaMajuu/hris/apps/backend/internal/usecase/attendance"
 	auth "github.com/SukaMajuu/hris/apps/backend/internal/usecase/auth"
 	checkclocksettingsusecase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/checkclock_settings"
 	document "github.com/SukaMajuu/hris/apps/backend/internal/usecase/document"
@@ -26,6 +27,7 @@ type Router struct {
 	subscriptionHandler       *handler.SubscriptionHandler
 	documentHandler           *handler.DocumentHandler
 	leaveRequestHandler       *handler.LeaveRequestHandler
+	attendanceHandler         *handler.AttendanceHandler
 }
 
 func NewRouter(
@@ -37,6 +39,7 @@ func NewRouter(
 	subscriptionUseCase *subscription.SubscriptionUseCase,
 	documentUseCase *document.DocumentUseCase,
 	leaveRequestUseCase *leave_request.LeaveRequestUseCase,
+	attendanceUseCase *attendance.AttendanceUseCase,
 ) *Router {
 	return &Router{
 		authHandler:               handler.NewAuthHandler(authUseCase),
@@ -48,6 +51,7 @@ func NewRouter(
 		subscriptionHandler:       handler.NewSubscriptionHandler(subscriptionUseCase),
 		documentHandler:           handler.NewDocumentHandler(documentUseCase),
 		leaveRequestHandler:       handler.NewLeaveRequestHandler(leaveRequestUseCase),
+		attendanceHandler:         handler.NewAttendanceHandler(attendanceUseCase),
 	}
 }
 
@@ -115,6 +119,18 @@ func (r *Router) Setup() *gin.Engine {
 				workScheduleRoutes.GET("/:id", r.workScheduleHandler.GetWorkSchedule)
 				workScheduleRoutes.PUT("/:id", r.workScheduleHandler.UpdateWorkSchedule)
 				workScheduleRoutes.DELETE("/:id", r.workScheduleHandler.DeleteWorkSchedule)
+			}
+
+			attendances := api.Group("/attendances")
+			{
+				attendances.POST("", r.attendanceHandler.CreateAttendance)
+				attendances.GET("", r.attendanceHandler.ListAttendances)
+				attendances.GET("/:id", r.attendanceHandler.GetAttendanceByID)
+				attendances.PUT("/:id", r.attendanceHandler.UpdateAttendance)
+				attendances.DELETE("/:id", r.attendanceHandler.DeleteAttendance)
+				attendances.POST("/check-in", r.attendanceHandler.CheckIn)
+				attendances.POST("/check-out", r.attendanceHandler.CheckOut)
+				attendances.GET("/employees/:employee_id", r.attendanceHandler.ListAttendancesByEmployee)
 			}
 
 			checkclockSettings := api.Group("/checkclock-settings")

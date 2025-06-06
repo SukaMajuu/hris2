@@ -238,7 +238,7 @@ func (uc *LeaveRequestUseCase) GetByEmployeeUserID(
 	userID uint,
 	filters map[string]interface{},
 	pagination domain.PaginationParams,
-) (*dtoleave.LeaveRequestListResponseData, error) {
+	) (*dtoleave.LeaveRequestListResponseData, error) {
 	log.Printf("LeaveRequestUseCase: GetByEmployeeUserID called for userID %d", userID)
 	// Get employee by user ID
 	employee, err := uc.employeeRepo.GetByUserID(ctx, userID)

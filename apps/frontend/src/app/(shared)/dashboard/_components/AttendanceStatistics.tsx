@@ -6,7 +6,7 @@ import { Pie } from 'react-chartjs-2';
 
 export function AttendanceStatistics() {
   const pieData = {
-    labels: ['Ontime', 'Late', 'Absent'],
+    labels: ['Ontime (142)', 'Late (34)', 'Absent (9)'],
     datasets: [
       {
         data: [142, 34, 9],
@@ -84,21 +84,20 @@ export function AttendanceStatistics() {
           </div>
         </div>
         <div className='flex flex-1 flex-col justify-center gap-4'>
-          <div className='mb-2 text-lg font-bold'>Statistics</div>
-          <div className='flex flex-col gap-2'>
+          <div className='mb-2 text-lg font-bold'>Statistics</div>          <div className='flex flex-col gap-2'>
             <div className='flex items-center gap-3'>
               <span className='inline-block h-3 w-3 rounded-full bg-[#34d399]'></span>
-              <span className='font-semibold'>Ontime</span>
+              <span className='font-semibold'>Ontime (142)</span>
               <span className='ml-auto font-bold'>142</span>
             </div>
             <div className='flex items-center gap-3'>
               <span className='inline-block h-3 w-3 rounded-full bg-[#f87171]'></span>
-              <span className='font-semibold'>Late</span>
+              <span className='font-semibold'>Late (34)</span>
               <span className='ml-auto font-bold'>34</span>
             </div>
             <div className='flex items-center gap-3'>
               <span className='inline-block h-3 w-3 rounded-full bg-[#fbbf24]'></span>
-              <span className='font-semibold'>Absent</span>
+              <span className='font-semibold'>Absent (9)</span>
               <span className='ml-auto font-bold'>9</span>
             </div>
           </div>

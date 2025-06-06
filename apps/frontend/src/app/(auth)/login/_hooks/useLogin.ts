@@ -8,6 +8,8 @@ import { loginSchema } from "@/schemas/auth.schema";
 import { getSupabaseGoogleToken } from "@/utils/google-auth";
 import { AxiosError } from "axios";
 import { useLoginMutation } from "@/api/mutations/auth.mutation";
+import { useUserSubscription } from "@/api/queries/subscription.queries";
+import { ROLES } from "@/const/role";
 
 export const useLogin = () => {
 	const [isLoading, setIsLoading] = useState(false);
@@ -23,13 +25,27 @@ export const useLogin = () => {
 	});
 
 	const loginMutation = useLoginMutation();
+	const { data: userSubscription } = useUserSubscription();
 
 	const login = async (data: LoginFormData) => {
 		setIsLoading(true);
 		try {
 			const response = await loginMutation.mutateAsync(data);
 			setUser(response.user);
-			toast.success("Login successful! Welcome back.");
+			
+			// Check subscription status and show appropriate notification
+			const isAdmin = response.user?.role === ROLES.admin;
+			const hasActiveSubscription = Boolean(
+				userSubscription?.subscription_plan &&
+					(userSubscription?.status === "active" ||
+						userSubscription?.status === "trial")
+			);
+			
+			if (isAdmin && !hasActiveSubscription && userSubscription?.status === "expired") {
+				toast.success("Login successful, but your access is currently restricted due to expired subscription.");
+			} else {
+				toast.success("Login successful! Welcome back.");
+			}
 		} catch (error) {
 			console.error("Login error in login function:", error);
 			let errorMessage =

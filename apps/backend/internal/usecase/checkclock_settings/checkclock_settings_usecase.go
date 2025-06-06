@@ -113,7 +113,7 @@ func (uc *CheckclockSettingsUseCase) GetAll(ctx context.Context, paginationParam
 func (uc *CheckclockSettingsUseCase) GetAllWithFilters(
 	ctx context.Context, 
 	paginationParams domain.PaginationParams, 
-	filters map[string]interface{}
+	filters map[string]interface{},
 	) (*dtocheckclocksettings.CheckclockSettingsListResponseData, error) {
 	offset := (paginationParams.Page - 1) * paginationParams.PageSize
 	domainSettings, totalItems, err := uc.repo.GetAllWithFilters(ctx, offset, paginationParams.PageSize, filters)

@@ -87,6 +87,7 @@ func (r *Router) Setup() *gin.Engine {
 				employee.GET("/statistics", r.employeeHandler.GetEmployeeStatistics)
 				employee.GET("/:id", r.employeeHandler.GetEmployeeByID)
 				employee.POST("", r.employeeHandler.CreateEmployee)
+				employee.POST("/bulk-import", r.employeeHandler.BulkImportEmployees)
 				employee.PATCH("/:id", r.employeeHandler.UpdateEmployee)
 				employee.PATCH("/:id/status", r.employeeHandler.ResignEmployee)
 

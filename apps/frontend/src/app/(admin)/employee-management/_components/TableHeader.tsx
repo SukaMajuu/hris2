@@ -19,7 +19,9 @@ import {
 import Link from 'next/link';
 import { exportToCSV } from '@/utils/csvExport';
 import { exportToExcel } from '@/utils/excelExport';
+import { ImportDialog } from './ImportDialog';
 import type { Employee } from '@/types/employee';
+import { useState } from 'react';
 
 interface TableHeaderProps {
   nameSearch: string;
@@ -30,6 +32,7 @@ interface TableHeaderProps {
   setGenderFilter: (value: string | undefined) => void;
   statusFilter?: string;
   setStatusFilter: (value: string | undefined) => void;
+  onEmployeesChange?: () => void;
 }
 
 export function TableHeader({
@@ -41,7 +44,9 @@ export function TableHeader({
   setGenderFilter,
   statusFilter,
   setStatusFilter,
+  onEmployeesChange,
 }: TableHeaderProps) {
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const prepareExportData = () => {
     return allEmployees.map((emp) => ({
       first_name: emp.first_name || '',
@@ -144,14 +149,12 @@ export function TableHeader({
     exportToExcel(excelData, `employees-${timestamp}.xlsx`, columns);
   };
 
-  const handleImportCSV = () => {
-    // TODO: Implement CSV import functionality
-    console.log('Import CSV clicked');
+  const handleImport = () => {
+    setIsImportDialogOpen(true);
   };
 
-  const handleImportExcel = () => {
-    // TODO: Implement Excel import functionality
-    console.log('Import Excel clicked');
+  const handleImportSuccess = () => {
+    onEmployeesChange?.();
   };
 
   const clearFilters = () => {
@@ -208,13 +211,13 @@ export function TableHeader({
             </DropdownMenuTrigger>
             <DropdownMenuContent align='end'>
               <DropdownMenuItem
-                onClick={handleImportCSV}
+                onClick={handleImport}
                 className='cursor-pointer hover:bg-[#5A89B3] hover:text-white focus:bg-[#5A89B3] focus:text-white'
               >
                 Import from CSV
               </DropdownMenuItem>
               <DropdownMenuItem
-                onClick={handleImportExcel}
+                onClick={handleImport}
                 className='cursor-pointer hover:bg-[#5A89B3] hover:text-white focus:bg-[#5A89B3] focus:text-white'
               >
                 Import from Excel
@@ -350,6 +353,12 @@ export function TableHeader({
           </PopoverContent>
         </Popover>
       </div>
+
+      <ImportDialog
+        open={isImportDialogOpen}
+        onOpenChange={setIsImportDialogOpen}
+        onImportComplete={handleImportSuccess}
+      />
     </header>
   );
 }

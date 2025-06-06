@@ -81,6 +81,54 @@ type UploadEmployeePhotoRequestDTO struct {
 	File *multipart.FileHeader `form:"file" binding:"required"`
 }
 
+type BulkImportEmployeesRequestDTO struct {
+	File *multipart.FileHeader `form:"file" binding:"required"`
+}
+
+type BulkImportEmployeeData struct {
+	Email                 string  `json:"email" binding:"required,email"`
+	FirstName             string  `json:"first_name" binding:"required"`
+	LastName              *string `json:"last_name,omitempty"`
+	PositionName          string  `json:"position_name" binding:"required"`
+	EmployeeCode          *string `json:"employee_code,omitempty"`
+	Branch                *string `json:"branch,omitempty"`
+	Gender                *string `json:"gender,omitempty"`
+	Phone                 *string `json:"phone,omitempty"`
+	NIK                   *string `json:"nik,omitempty"`
+	PlaceOfBirth          *string `json:"place_of_birth,omitempty"`
+	DateOfBirth           *string `json:"date_of_birth,omitempty"`
+	LastEducation         *string `json:"last_education,omitempty"`
+	Grade                 *string `json:"grade,omitempty"`
+	ContractType          *string `json:"contract_type,omitempty"`
+	HireDate              *string `json:"hire_date,omitempty"`
+	TaxStatus             *string `json:"tax_status,omitempty"`
+	BankName              *string `json:"bank_name,omitempty"`
+	BankAccountNumber     *string `json:"bank_account_number,omitempty"`
+	BankAccountHolderName *string `json:"bank_account_holder_name,omitempty"`
+}
+
+type BulkImportResult struct {
+	SuccessCount    int                      `json:"success_count"`
+	ErrorCount      int                      `json:"error_count"`
+	SuccessfulRows  []BulkImportEmployeeData `json:"successful_rows"`
+	FailedRows      []BulkImportFailedRow    `json:"failed_rows"`
+	DuplicateEmails []string                 `json:"duplicate_emails,omitempty"`
+	DuplicateNIKs   []string                 `json:"duplicate_niks,omitempty"`
+	DuplicateCodes  []string                 `json:"duplicate_codes,omitempty"`
+}
+
+type BulkImportFailedRow struct {
+	Row    int                    `json:"row"`
+	Data   BulkImportEmployeeData `json:"data"`
+	Errors []BulkImportError      `json:"errors"`
+}
+
+type BulkImportError struct {
+	Field   string `json:"field"`
+	Message string `json:"message"`
+	Value   string `json:"value,omitempty"`
+}
+
 func MapCreateDTOToDomain(reqDTO *CreateEmployeeRequestDTO) (*domain.Employee, error) {
 	userDomain := domain.User{
 		Email:    reqDTO.Email,

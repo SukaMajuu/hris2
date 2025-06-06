@@ -255,14 +255,16 @@ func (uc *EmployeeUseCase) GetEmployeeByUserID(ctx context.Context, userID uint)
 }
 
 func (uc *EmployeeUseCase) Update(ctx context.Context, employee *domain.Employee) (*domain.Employee, error) {
-	log.Printf("EmployeeUseCase: Update called for employee ID %d: %+v", employee.ID, employee)
+	log.Printf("EmployeeUseCase: Update called for employee ID %d", employee.ID)
 
 	existingEmployee, err := uc.employeeRepo.GetByID(ctx, employee.ID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve existing employee for update: %w", err)
+		log.Printf("EmployeeUseCase: Error getting existing employee ID %d: %v", employee.ID, err)
+		return nil, fmt.Errorf("failed to get employee for update: %w", err)
 	}
 	if existingEmployee == nil {
-		return nil, fmt.Errorf("employee with ID %d not found for update", employee.ID)
+		log.Printf("EmployeeUseCase: Employee ID %d not found for update", employee.ID)
+		return nil, domain.ErrEmployeeNotFound
 	}
 
 	if employee.FirstName != "" {
@@ -357,6 +359,346 @@ func (uc *EmployeeUseCase) Update(ctx context.Context, employee *domain.Employee
 	}
 	log.Printf("EmployeeUseCase: Successfully updated employee with ID %d", existingEmployee.ID)
 	return existingEmployee, nil
+}
+
+func (uc *EmployeeUseCase) BulkImport(ctx context.Context, employees []*domain.Employee, creatorEmployeeID uint) ([]uint, []EmployeeImportError) {
+	log.Printf("EmployeeUseCase: BulkImport called for %d employees by creator %d", len(employees), creatorEmployeeID)
+
+	var successfulIDs []uint
+	var errors []EmployeeImportError
+
+	for i, employee := range employees {
+		log.Printf("EmployeeUseCase: Processing employee %d/%d: %s", i+1, len(employees), employee.FirstName)
+
+		// Set manager ID
+		employee.ManagerID = &creatorEmployeeID
+
+		// Set default password if not provided
+		if employee.User.Password == "" {
+			employee.User.Password = "password"
+		}
+
+		// Create employee and user account
+		err := uc.authRepo.RegisterEmployeeUser(ctx, &employee.User, employee)
+		if err != nil {
+			log.Printf("EmployeeUseCase: Error creating employee %s: %v", employee.FirstName, err)
+			importError := uc.convertToImportError(err, employee, i+2) // +2 because row 1 is header, data starts from row 2
+			errors = append(errors, importError)
+			continue
+		}
+
+		successfulIDs = append(successfulIDs, employee.ID)
+		log.Printf("EmployeeUseCase: Successfully created employee %s with ID %d", employee.FirstName, employee.ID)
+	}
+
+	log.Printf("EmployeeUseCase: BulkImport completed. Success: %d, Errors: %d", len(successfulIDs), len(errors))
+	return successfulIDs, errors
+}
+
+// BulkImportWithTransaction implements all-or-nothing approach where if any employee fails, none are imported
+func (uc *EmployeeUseCase) BulkImportWithTransaction(ctx context.Context, employees []*domain.Employee, creatorEmployeeID uint) ([]uint, []EmployeeImportError) {
+	log.Printf("EmployeeUseCase: BulkImportWithTransaction called for %d employees by creator %d", len(employees), creatorEmployeeID)
+
+	// Step 1: Pre-validate all employees without creating anything
+	var validationErrors []EmployeeImportError
+
+	for i, employee := range employees {
+		// Set manager ID
+		employee.ManagerID = &creatorEmployeeID
+
+		// Set default password if not provided
+		if employee.User.Password == "" {
+			employee.User.Password = "password"
+		}
+
+		// Validate required fields
+		if employee.User.Email == "" {
+			validationErrors = append(validationErrors, EmployeeImportError{
+				Row:      i + 2,
+				Field:    "email",
+				Message:  "Email is required",
+				Value:    "",
+				Employee: employee,
+			})
+		}
+		if employee.FirstName == "" {
+			validationErrors = append(validationErrors, EmployeeImportError{
+				Row:      i + 2,
+				Field:    "first_name",
+				Message:  "First name is required",
+				Value:    "",
+				Employee: employee,
+			})
+		}
+		if employee.PositionName == "" {
+			validationErrors = append(validationErrors, EmployeeImportError{
+				Row:      i + 2,
+				Field:    "position_name",
+				Message:  "Position name is required",
+				Value:    "",
+				Employee: employee,
+			})
+		}
+
+		// Check for duplicate emails in the batch
+		for j, otherEmployee := range employees {
+			if i != j && employee.User.Email == otherEmployee.User.Email {
+				validationErrors = append(validationErrors, EmployeeImportError{
+					Row:      i + 2,
+					Field:    "email",
+					Message:  fmt.Sprintf("Duplicate email '%s' found in row %d", employee.User.Email, j+2),
+					Value:    employee.User.Email,
+					Employee: employee,
+				})
+				break
+			}
+		}
+
+		// Check for duplicate NIKs in the batch
+		if employee.NIK != nil {
+			for j, otherEmployee := range employees {
+				if i != j && otherEmployee.NIK != nil && *employee.NIK == *otherEmployee.NIK {
+					validationErrors = append(validationErrors, EmployeeImportError{
+						Row:      i + 2,
+						Field:    "nik",
+						Message:  fmt.Sprintf("Duplicate NIK '%s' found in row %d", *employee.NIK, j+2),
+						Value:    *employee.NIK,
+						Employee: employee,
+					})
+					break
+				}
+			}
+		}
+
+		// Check for duplicate employee codes in the batch
+		if employee.EmployeeCode != nil {
+			for j, otherEmployee := range employees {
+				if i != j && otherEmployee.EmployeeCode != nil && *employee.EmployeeCode == *otherEmployee.EmployeeCode {
+					validationErrors = append(validationErrors, EmployeeImportError{
+						Row:      i + 2,
+						Field:    "employee_code",
+						Message:  fmt.Sprintf("Duplicate employee code '%s' found in row %d", *employee.EmployeeCode, j+2),
+						Value:    *employee.EmployeeCode,
+						Employee: employee,
+					})
+					break
+				}
+			}
+		}
+
+		// Check for existing email in database
+		if employee.User.Email != "" {
+			existingUser, err := uc.authRepo.GetUserByEmail(ctx, employee.User.Email)
+			if err == nil && existingUser != nil {
+				validationErrors = append(validationErrors, EmployeeImportError{
+					Row:      i + 2,
+					Field:    "email",
+					Message:  fmt.Sprintf("Email '%s' is already used by another employee", employee.User.Email),
+					Value:    employee.User.Email,
+					Employee: employee,
+				})
+			}
+		}
+
+		// Check for existing NIK in database
+		if employee.NIK != nil && *employee.NIK != "" {
+			existingEmployee, err := uc.employeeRepo.GetByNIK(ctx, *employee.NIK)
+			if err == nil && existingEmployee != nil {
+				validationErrors = append(validationErrors, EmployeeImportError{
+					Row:      i + 2,
+					Field:    "nik",
+					Message:  fmt.Sprintf("NIK '%s' is already registered to another employee", *employee.NIK),
+					Value:    *employee.NIK,
+					Employee: employee,
+				})
+			}
+		}
+
+		// Check for existing employee code in database
+		if employee.EmployeeCode != nil && *employee.EmployeeCode != "" {
+			existingEmployee, err := uc.employeeRepo.GetByEmployeeCode(ctx, *employee.EmployeeCode)
+			if err == nil && existingEmployee != nil {
+				validationErrors = append(validationErrors, EmployeeImportError{
+					Row:      i + 2,
+					Field:    "employee_code",
+					Message:  fmt.Sprintf("Employee code '%s' is already used by another employee", *employee.EmployeeCode),
+					Value:    *employee.EmployeeCode,
+					Employee: employee,
+				})
+			}
+		}
+	}
+
+	// If there are validation errors, return them without importing anything
+	if len(validationErrors) > 0 {
+		log.Printf("EmployeeUseCase: BulkImportWithTransaction failed validation. Found %d errors", len(validationErrors))
+		return nil, validationErrors
+	}
+
+	// Step 2: Try to import all employees in a transaction
+	log.Printf("EmployeeUseCase: All employees passed validation. Starting transaction import...")
+
+	var successfulIDs []uint
+	var errors []EmployeeImportError
+
+	for i, employee := range employees {
+		log.Printf("EmployeeUseCase: Processing employee %d/%d: %s", i+1, len(employees), employee.FirstName)
+
+		// Create employee and user account
+		err := uc.authRepo.RegisterEmployeeUser(ctx, &employee.User, employee)
+		if err != nil {
+			log.Printf("EmployeeUseCase: Error creating employee %s: %v", employee.FirstName, err)
+			importError := uc.convertToImportError(err, employee, i+2)
+			errors = append(errors, importError)
+
+			// If any employee fails, we abort the entire operation
+			log.Printf("EmployeeUseCase: BulkImportWithTransaction failed on employee %d. Aborting entire import.", i+1)
+			return nil, []EmployeeImportError{importError}
+		}
+
+		successfulIDs = append(successfulIDs, employee.ID)
+		log.Printf("EmployeeUseCase: Successfully created employee %s with ID %d", employee.FirstName, employee.ID)
+	}
+
+	log.Printf("EmployeeUseCase: BulkImportWithTransaction completed successfully. All %d employees imported", len(successfulIDs))
+	return successfulIDs, nil
+}
+
+type EmployeeImportError struct {
+	Row      int
+	Field    string
+	Message  string
+	Value    string
+	Employee *domain.Employee
+}
+
+func (uc *EmployeeUseCase) convertToImportError(err error, employee *domain.Employee, rowNum int) EmployeeImportError {
+	errorMsg := err.Error()
+	employeeName := employee.FirstName
+	if employee.LastName != nil {
+		employeeName += " " + *employee.LastName
+	}
+
+	// Check for common database constraint violations
+	if strings.Contains(errorMsg, "uni_users_email") || strings.Contains(errorMsg, "duplicate key") && strings.Contains(errorMsg, "email") {
+		return EmployeeImportError{
+			Row:      rowNum,
+			Field:    "email",
+			Message:  fmt.Sprintf("Email '%s' is already used by another employee", employee.User.Email),
+			Value:    employee.User.Email,
+			Employee: employee,
+		}
+	}
+
+	if strings.Contains(errorMsg, "uni_users_phone") || strings.Contains(errorMsg, "duplicate key") && strings.Contains(errorMsg, "phone") {
+		return EmployeeImportError{
+			Row:      rowNum,
+			Field:    "phone",
+			Message:  fmt.Sprintf("Phone number '%s' is already used by another employee", employee.User.Phone),
+			Value:    employee.User.Phone,
+			Employee: employee,
+		}
+	}
+
+	if strings.Contains(errorMsg, "uni_employees_nik") || strings.Contains(errorMsg, "duplicate key") && strings.Contains(errorMsg, "nik") {
+		nikValue := "unknown"
+		if employee.NIK != nil {
+			nikValue = *employee.NIK
+		}
+		return EmployeeImportError{
+			Row:      rowNum,
+			Field:    "nik",
+			Message:  fmt.Sprintf("NIK '%s' is already registered for another employee", nikValue),
+			Value:    nikValue,
+			Employee: employee,
+		}
+	}
+
+	if strings.Contains(errorMsg, "uni_employees_employee_code") || strings.Contains(errorMsg, "duplicate key") && strings.Contains(errorMsg, "employee_code") {
+		codeValue := "unknown"
+		if employee.EmployeeCode != nil {
+			codeValue = *employee.EmployeeCode
+		}
+		return EmployeeImportError{
+			Row:      rowNum,
+			Field:    "employee_code",
+			Message:  fmt.Sprintf("Employee code '%s' is already used", codeValue),
+			Value:    codeValue,
+			Employee: employee,
+		}
+	}
+
+	// Check for validation errors
+	if strings.Contains(errorMsg, "invalid email format") {
+		return EmployeeImportError{
+			Row:      rowNum,
+			Field:    "email",
+			Message:  fmt.Sprintf("Invalid email format '%s'", employee.User.Email),
+			Value:    employee.User.Email,
+			Employee: employee,
+		}
+	}
+
+	if strings.Contains(errorMsg, "phone number") && strings.Contains(errorMsg, "format") {
+		return EmployeeImportError{
+			Row:      rowNum,
+			Field:    "phone",
+			Message:  fmt.Sprintf("Invalid phone format '%s'. Use international format like +628123456789", employee.User.Phone),
+			Value:    employee.User.Phone,
+			Employee: employee,
+		}
+	}
+
+	// Check for required field errors
+	if strings.Contains(errorMsg, "email") && strings.Contains(errorMsg, "required") {
+		return EmployeeImportError{
+			Row:      rowNum,
+			Field:    "email",
+			Message:  "Email is required",
+			Value:    employee.User.Email,
+			Employee: employee,
+		}
+	}
+
+	if strings.Contains(errorMsg, "first_name") && strings.Contains(errorMsg, "required") {
+		return EmployeeImportError{
+			Row:      rowNum,
+			Field:    "first_name",
+			Message:  "First name is required",
+			Value:    employee.FirstName,
+			Employee: employee,
+		}
+	}
+
+	if strings.Contains(errorMsg, "position_name") && strings.Contains(errorMsg, "required") {
+		return EmployeeImportError{
+			Row:      rowNum,
+			Field:    "position_name",
+			Message:  "Position name is required",
+			Value:    employee.PositionName,
+			Employee: employee,
+		}
+	}
+
+	// Database connection errors
+	if strings.Contains(errorMsg, "connection") || strings.Contains(errorMsg, "timeout") {
+		return EmployeeImportError{
+			Row:      rowNum,
+			Field:    "general",
+			Message:  "Failed to connect to database. Please try again in a few moments",
+			Value:    "",
+			Employee: employee,
+		}
+	}
+
+	// Generic fallback with more helpful message
+	return EmployeeImportError{
+		Row:      rowNum,
+		Field:    "general",
+		Message:  fmt.Sprintf("Failed to create account for employee '%s'. Please check the data entered", employeeName),
+		Value:    "",
+		Employee: employee,
+	}
 }
 
 func (uc *EmployeeUseCase) Resign(ctx context.Context, id uint) error {

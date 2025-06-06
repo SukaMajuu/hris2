@@ -1,6 +1,7 @@
 import { ApiService, PaginatedResponse } from './api.service';
 import { API_ROUTES } from '@/config/api.routes';
 import type { Employee, EmployeeFilters } from '@/types/employee';
+import type { EmployeeImportData } from '@/utils/csvImport';
 
 export interface EmployeeApiResponse {
   status: number;
@@ -90,6 +91,34 @@ export interface UpdateEmployeeRequest {
   bank_account_number?: string;
   bank_account_holder_name?: string;
   photo_file?: File;
+}
+
+export interface BulkImportResult {
+  success_count: number;
+  error_count: number;
+  successful_rows: EmployeeImportData[];
+  failed_rows: BulkImportFailedRow[];
+  duplicate_emails?: string[];
+  duplicate_niks?: string[];
+  duplicate_codes?: string[];
+}
+
+export interface BulkImportFailedRow {
+  row: number;
+  data: EmployeeImportData;
+  errors: BulkImportError[];
+}
+
+export interface BulkImportError {
+  field: string;
+  message: string;
+  value?: string;
+}
+
+export interface BulkImportResponse {
+  status: number;
+  message: string;
+  data: BulkImportResult;
 }
 
 export class EmployeeService {
@@ -195,6 +224,31 @@ export class EmployeeService {
       return response.data.data;
     } catch (error) {
       console.error('Error creating employee:', error);
+      throw error;
+    }
+  }
+
+  async bulkImportEmployees(file: File): Promise<BulkImportResult> {
+    try {
+      console.log('Bulk importing employees from file:', file.name);
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await this.api.post<BulkImportResponse>(
+        '/api/employees/bulk-import',
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        },
+      );
+
+      console.log('Bulk import completed:', response.data);
+      return response.data.data;
+    } catch (error) {
+      console.error('Error during bulk import:', error);
       throw error;
     }
   }

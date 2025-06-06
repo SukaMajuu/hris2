@@ -37,6 +37,7 @@ interface PermitDialogProps {
   formMethods: UseFormReturn<DialogFormData>;
   onSubmit: (data: DialogFormData) => void;
   currentAttendanceType: string;
+  onRefetch?: () => Promise<void>;
 }
 
 export function PermitDialog({
@@ -46,12 +47,45 @@ export function PermitDialog({
   formMethods,
   onSubmit,
   currentAttendanceType,
-}: PermitDialogProps) {
-  const { register, handleSubmit, watch, setValue, control, formState: { errors } } = formMethods;
+  onRefetch,
+}: PermitDialogProps) {const { register, handleSubmit, watch, setValue, control, formState: { errors }, setError, clearErrors } = formMethods;
   const { toast } = useToast();
-    const createLeaveRequestMutation = useCreateLeaveRequestMutation();
+  const createLeaveRequestMutation = useCreateLeaveRequestMutation();
 
-  // File validation constants
+  // Watch start date and end date for validation
+  const watchedStartDate = watch('startDate');
+  const watchedEndDate = watch('permitEndDate');
+
+  // Date validation function
+  const validateDateRange = (startDate: string, endDate: string): string | null => {
+    if (!startDate || !endDate) {
+      return null; // Let required validation handle empty dates
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    if (end < start) {
+      return 'End date cannot be earlier than start date';
+    }
+
+    return null;
+  };
+
+  // Validate dates whenever they change
+  React.useEffect(() => {
+    if (watchedStartDate && watchedEndDate) {
+      const dateError = validateDateRange(watchedStartDate, watchedEndDate);
+      if (dateError) {
+        setError('permitEndDate', {
+          type: 'manual',
+          message: dateError,
+        });
+      } else {
+        clearErrors('permitEndDate');
+      }
+    }
+  }, [watchedStartDate, watchedEndDate, setError, clearErrors]);
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
   const ALLOWED_FILE_TYPES = [
     'image/jpeg',
@@ -126,6 +160,17 @@ export function PermitDialog({
       console.log('Form data received:', data);
       console.log('Evidence data:', data.evidence);
       
+      // Validate date range before submission
+      const dateError = validateDateRange(data.startDate, data.permitEndDate);
+      if (dateError) {
+        toast({
+          title: 'Validation Error',
+          description: dateError,
+          variant: 'destructive',
+        });
+        return;
+      }
+      
       // Validate file before submitting
       const fileValidationError = validateFileUpload(data.evidence);
       if (fileValidationError) {
@@ -151,9 +196,7 @@ export function PermitDialog({
 
       console.log('Submitting leave request data:', leaveRequestData);
 
-      await createLeaveRequestMutation.mutateAsync(leaveRequestData);
-
-      toast({
+      await createLeaveRequestMutation.mutateAsync(leaveRequestData);      toast({
         title: 'Berhasil!',
         description: 'Permohonan izin/cuti berhasil diajukan. Menunggu persetujuan atasan.',
         variant: 'default',
@@ -162,6 +205,11 @@ export function PermitDialog({
       // Reset form and close dialog
       formMethods.reset();
       onOpenChange(false);
+      
+      // Refetch data if refetch function is provided
+      if (onRefetch) {
+        await onRefetch();
+      }
     } catch (error) {
       console.error('Error creating leave request:', error);
       
@@ -170,8 +218,18 @@ export function PermitDialog({
       
       if (error instanceof Error) {
         errorMessage = error.message;
-      } else if (typeof error === 'object' && error !== null && 'message' in error) {
-        errorMessage = (error as any).message;
+      } else if (typeof error === 'object' && error !== null) {
+        // Handle axios error structure
+        if ('response' in error && error.response && typeof error.response === 'object') {
+          const response = error.response as any;
+          if (response.data?.message) {
+            errorMessage = response.data.message;
+          } else if (response.data?.error) {
+            errorMessage = response.data.error;
+          }
+        } else if ('message' in error) {
+          errorMessage = (error as any).message;
+        }
       }
       
       toast({
@@ -241,8 +299,7 @@ export function PermitDialog({
                   <option value='annual leave'>Annual Leave</option>
                   <option value='marriage leave'>Marriage Leave</option>
                 </select>
-              </div>{' '}
-              {isLeaveRequest && (
+              </div>{' '}              {isLeaveRequest && (
                 <>
                   <div className='mt-4 space-y-2'>
                     <Label
@@ -256,9 +313,14 @@ export function PermitDialog({
                       type='date'
                       className='border-slate-300 bg-white text-slate-900 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-50'
                       {...register('startDate', {
-                        required: true,
+                        required: 'Start date is required',
                       })}
                     />
+                    {errors.startDate && (
+                      <p className='text-sm text-red-600 dark:text-red-400'>
+                        {errors.startDate.message}
+                      </p>
+                    )}
                   </div>
                   <div className='mt-4 space-y-2'>
                     <Label
@@ -272,9 +334,20 @@ export function PermitDialog({
                       type='date'
                       className='border-slate-300 bg-white text-slate-900 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-50'
                       {...register('permitEndDate', {
-                        required: true,
+                        required: 'End date is required',
+                        validate: (value) => {
+                          if (watchedStartDate && value) {
+                            return validateDateRange(watchedStartDate, value) || true;
+                          }
+                          return true;
+                        }
                       })}
                     />
+                    {errors.permitEndDate && (
+                      <p className='text-sm text-red-600 dark:text-red-400'>
+                        {errors.permitEndDate.message}
+                      </p>
+                    )}
                   </div>
                   <div className='mt-4 space-y-2'>
                     <Label
@@ -288,9 +361,18 @@ export function PermitDialog({
                       placeholder='Please provide the reason for your leave request...'
                       className='border-slate-300 bg-white text-slate-900 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-50'
                       {...register('reason', {
-                        required: true,
+                        required: 'Reason is required',
+                        minLength: {
+                          value: 10,
+                          message: 'Reason must be at least 10 characters long'
+                        }
                       })}
                     />
+                    {errors.reason && (
+                      <p className='text-sm text-red-600 dark:text-red-400'>
+                        {errors.reason.message}
+                      </p>
+                    )}
                   </div>
                 </>
               )}

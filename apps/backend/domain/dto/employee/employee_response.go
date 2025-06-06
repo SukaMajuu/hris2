@@ -1,6 +1,10 @@
 package employee
 
-import "github.com/SukaMajuu/hris/apps/backend/domain"
+import (
+	"time"
+
+	"github.com/SukaMajuu/hris/apps/backend/domain"
+)
 
 type EmployeeResponseDTO struct {
 	ID                    uint    `json:"id"`
@@ -46,4 +50,94 @@ type EmployeeStatisticsResponseDTO struct {
 type EmployeeListResponseData struct {
 	Items      []*EmployeeResponseDTO `json:"items"`
 	Pagination domain.Pagination      `json:"pagination"`
+}
+
+// FromDomain converts a domain Employee to EmployeeResponseDTO
+func (dto *EmployeeResponseDTO) FromDomain(employee *domain.Employee) *EmployeeResponseDTO {
+	if employee == nil {
+		return nil
+	}
+
+	var genderDTO *string
+	if employee.Gender != nil {
+		genderStr := string(*employee.Gender)
+		genderDTO = &genderStr
+	}
+
+	var phoneDTO *string
+	if employee.User.Phone != "" {
+		phoneDTO = &employee.User.Phone
+	}
+
+	var emailDTO *string
+	if employee.User.Email != "" {
+		emailDTO = &employee.User.Email
+	}
+
+	responseDTO := &EmployeeResponseDTO{
+		ID:                    employee.ID,
+		Email:                 emailDTO,
+		Phone:                 phoneDTO,
+		FirstName:             employee.FirstName,
+		LastName:              employee.LastName,
+		EmployeeCode:          employee.EmployeeCode,
+		PositionName:          employee.PositionName,
+		Branch:                employee.Branch,
+		Gender:                genderDTO,
+		NIK:                   employee.NIK,
+		PlaceOfBirth:          employee.PlaceOfBirth,
+		Grade:                 employee.Grade,
+		EmploymentStatus:      employee.EmploymentStatus,
+		BankName:              employee.BankName,
+		BankAccountNumber:     employee.BankAccountNumber,
+		BankAccountHolderName: employee.BankAccountHolderName,
+		ProfilePhotoURL:       employee.ProfilePhotoURL,
+		CreatedAt:             employee.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:             employee.UpdatedAt.Format(time.RFC3339),
+	}
+
+	if employee.LastEducation != nil {
+		lastEducationStr := string(*employee.LastEducation)
+		responseDTO.LastEducation = &lastEducationStr
+	}
+	if employee.ContractType != nil {
+		contractTypeStr := string(*employee.ContractType)
+		responseDTO.ContractType = &contractTypeStr
+	}
+	if employee.TaxStatus != nil {
+		taxStatusStr := string(*employee.TaxStatus)
+		responseDTO.TaxStatus = &taxStatusStr
+	}
+	if employee.DateOfBirth != nil {
+		dateOfBirthStr := employee.DateOfBirth.Format("2006-01-02")
+		responseDTO.DateOfBirth = &dateOfBirthStr
+	}
+	if employee.HireDate != nil {
+		hireDateStr := employee.HireDate.Format("2006-01-02")
+		responseDTO.HireDate = &hireDateStr
+	}
+	if employee.ResignationDate != nil {
+		resignationDateStr := employee.ResignationDate.Format("2006-01-02")
+		responseDTO.ResignationDate = &resignationDateStr
+	}
+
+	return responseDTO
+}
+
+// ToEmployeeResponseDTO is a convenience function to convert domain Employee to response DTO
+func ToEmployeeResponseDTO(employee *domain.Employee) *EmployeeResponseDTO {
+	return (&EmployeeResponseDTO{}).FromDomain(employee)
+}
+
+// ToEmployeeResponseDTOList converts a slice of domain Employees to response DTOs
+func ToEmployeeResponseDTOList(employees []*domain.Employee) []*EmployeeResponseDTO {
+	if employees == nil {
+		return nil
+	}
+
+	dtos := make([]*EmployeeResponseDTO, len(employees))
+	for i, emp := range employees {
+		dtos[i] = ToEmployeeResponseDTO(emp)
+	}
+	return dtos
 }

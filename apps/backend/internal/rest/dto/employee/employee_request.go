@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"mime/multipart"
+	"strings"
 	"time"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
@@ -202,4 +203,284 @@ func parseDatesForCreate(reqDTO *CreateEmployeeRequestDTO, employeeDomain *domai
 	}
 
 	return nil
+}
+
+// MapUpdateDTOToDomain converts UpdateEmployeeRequestDTO to domain Employee for updates
+func MapUpdateDTOToDomain(employeeID uint, reqDTO *UpdateEmployeeRequestDTO) (*domain.Employee, error) {
+	employeeUpdatePayload := &domain.Employee{
+		ID: employeeID,
+	}
+
+	if reqDTO.Email != nil || reqDTO.Phone != nil {
+		employeeUpdatePayload.User = domain.User{}
+		if reqDTO.Email != nil {
+			employeeUpdatePayload.User.Email = *reqDTO.Email
+		}
+		if reqDTO.Phone != nil {
+			employeeUpdatePayload.User.Phone = *reqDTO.Phone
+		}
+	}
+
+	if reqDTO.FirstName != nil {
+		employeeUpdatePayload.FirstName = *reqDTO.FirstName
+	}
+	if reqDTO.LastName != nil {
+		employeeUpdatePayload.LastName = reqDTO.LastName
+	}
+	if reqDTO.PositionName != nil {
+		employeeUpdatePayload.PositionName = *reqDTO.PositionName
+	}
+	if reqDTO.EmploymentStatus != nil {
+		employeeUpdatePayload.EmploymentStatus = *reqDTO.EmploymentStatus
+	}
+	if reqDTO.EmployeeCode != nil {
+		employeeUpdatePayload.EmployeeCode = reqDTO.EmployeeCode
+	}
+	if reqDTO.Branch != nil {
+		employeeUpdatePayload.Branch = reqDTO.Branch
+	}
+	if reqDTO.Gender != nil {
+		employeeUpdatePayload.Gender = reqDTO.Gender
+	}
+	if reqDTO.NIK != nil {
+		employeeUpdatePayload.NIK = reqDTO.NIK
+	}
+	if reqDTO.PlaceOfBirth != nil {
+		employeeUpdatePayload.PlaceOfBirth = reqDTO.PlaceOfBirth
+	}
+	if reqDTO.DateOfBirth != nil && *reqDTO.DateOfBirth != "" {
+		parsedDate, err := time.Parse("2006-01-02", *reqDTO.DateOfBirth)
+		if err != nil {
+			return nil, fmt.Errorf("invalid DateOfBirth format. Please use YYYY-MM-DD. Value: %s", *reqDTO.DateOfBirth)
+		}
+		employeeUpdatePayload.DateOfBirth = &parsedDate
+	}
+	if reqDTO.LastEducation != nil {
+		employeeUpdatePayload.LastEducation = reqDTO.LastEducation
+	}
+	if reqDTO.Grade != nil {
+		employeeUpdatePayload.Grade = reqDTO.Grade
+	}
+	if reqDTO.ContractType != nil {
+		employeeUpdatePayload.ContractType = reqDTO.ContractType
+	}
+	if reqDTO.ResignationDate != nil && *reqDTO.ResignationDate != "" {
+		parsedDate, err := time.Parse("2006-01-02", *reqDTO.ResignationDate)
+		if err != nil {
+			return nil, fmt.Errorf("invalid ResignationDate format. Please use YYYY-MM-DD. Value: %s", *reqDTO.ResignationDate)
+		}
+		employeeUpdatePayload.ResignationDate = &parsedDate
+	}
+	if reqDTO.HireDate != nil && *reqDTO.HireDate != "" {
+		parsedDate, err := time.Parse("2006-01-02", *reqDTO.HireDate)
+		if err != nil {
+			return nil, fmt.Errorf("invalid HireDate format. Please use YYYY-MM-DD. Value: %s", *reqDTO.HireDate)
+		}
+		employeeUpdatePayload.HireDate = &parsedDate
+	}
+	if reqDTO.BankName != nil {
+		employeeUpdatePayload.BankName = reqDTO.BankName
+	}
+	if reqDTO.BankAccountNumber != nil {
+		employeeUpdatePayload.BankAccountNumber = reqDTO.BankAccountNumber
+	}
+	if reqDTO.BankAccountHolderName != nil {
+		employeeUpdatePayload.BankAccountHolderName = reqDTO.BankAccountHolderName
+	}
+	if reqDTO.TaxStatus != nil {
+		employeeUpdatePayload.TaxStatus = reqDTO.TaxStatus
+	}
+	if reqDTO.ProfilePhotoURL != nil {
+		employeeUpdatePayload.ProfilePhotoURL = reqDTO.ProfilePhotoURL
+	}
+	return employeeUpdatePayload, nil
+}
+
+// ParseEmployeeFromRecord converts a parsed record from CSV/Excel to domain Employee
+func ParseEmployeeFromRecord(headers, record []string, rowNum int) (*domain.Employee, []BulkImportError) {
+	var errors []BulkImportError
+
+	fieldMap := make(map[string]string)
+	for i, header := range headers {
+		normalizedHeader := strings.ToLower(strings.TrimSpace(header))
+		normalizedHeader = strings.ReplaceAll(normalizedHeader, " ", "_")
+		if i < len(record) {
+			fieldMap[normalizedHeader] = strings.TrimSpace(record[i])
+		}
+	}
+
+	// Validate required fields
+	requiredFields := []string{"email", "first_name", "position_name"}
+	for _, field := range requiredFields {
+		if fieldMap[field] == "" {
+			errors = append(errors, BulkImportError{
+				Field:   field,
+				Message: fmt.Sprintf("Row %d: %s is required", rowNum, field),
+				Value:   fieldMap[field],
+			})
+		}
+	}
+
+	if len(errors) > 0 {
+		return nil, errors
+	}
+
+	user := domain.User{
+		Email:    fieldMap["email"],
+		Password: "password",
+	}
+
+	if fieldMap["phone"] != "" {
+		user.Phone = fieldMap["phone"]
+	}
+
+	employee := &domain.Employee{
+		User:         user,
+		FirstName:    fieldMap["first_name"],
+		PositionName: fieldMap["position_name"],
+	}
+
+	// Parse optional fields
+	if fieldMap["last_name"] != "" {
+		lastName := fieldMap["last_name"]
+		employee.LastName = &lastName
+	}
+	if fieldMap["employee_code"] != "" {
+		employeeCode := fieldMap["employee_code"]
+		employee.EmployeeCode = &employeeCode
+	}
+	if fieldMap["branch"] != "" {
+		branch := fieldMap["branch"]
+		employee.Branch = &branch
+	}
+	if fieldMap["gender"] != "" {
+		if fieldMap["gender"] == "Male" || fieldMap["gender"] == "Female" {
+			gender := enums.Gender(fieldMap["gender"])
+			employee.Gender = &gender
+		} else {
+			errors = append(errors, BulkImportError{
+				Field:   "gender",
+				Message: fmt.Sprintf("Row %d: gender must be 'Male' or 'Female'", rowNum),
+				Value:   fieldMap["gender"],
+			})
+		}
+	}
+	if fieldMap["nik"] != "" {
+		nik := fieldMap["nik"]
+		employee.NIK = &nik
+	}
+	if fieldMap["place_of_birth"] != "" {
+		placeOfBirth := fieldMap["place_of_birth"]
+		employee.PlaceOfBirth = &placeOfBirth
+	}
+	if fieldMap["grade"] != "" {
+		grade := fieldMap["grade"]
+		employee.Grade = &grade
+	}
+
+	// Parse dates
+	if fieldMap["date_of_birth"] != "" {
+		if date, err := time.Parse("2006-01-02", fieldMap["date_of_birth"]); err == nil {
+			employee.DateOfBirth = &date
+		} else {
+			errors = append(errors, BulkImportError{
+				Field:   "date_of_birth",
+				Message: fmt.Sprintf("Row %d: date_of_birth must be in YYYY-MM-DD format", rowNum),
+				Value:   fieldMap["date_of_birth"],
+			})
+		}
+	}
+
+	if fieldMap["hire_date"] != "" {
+		if date, err := time.Parse("2006-01-02", fieldMap["hire_date"]); err == nil {
+			employee.HireDate = &date
+		} else {
+			errors = append(errors, BulkImportError{
+				Field:   "hire_date",
+				Message: fmt.Sprintf("Row %d: hire_date must be in YYYY-MM-DD format", rowNum),
+				Value:   fieldMap["hire_date"],
+			})
+		}
+	}
+
+	// Parse enums
+	if fieldMap["last_education"] != "" {
+		validEducation := []string{"SD", "SMP", "SMA/SMK", "D1", "D2", "D3", "S1/D4", "S2", "S3", "Other"}
+		found := false
+		for _, valid := range validEducation {
+			if fieldMap["last_education"] == valid {
+				education := enums.EducationLevel(fieldMap["last_education"])
+				employee.LastEducation = &education
+				found = true
+				break
+			}
+		}
+		if !found {
+			errors = append(errors, BulkImportError{
+				Field:   "last_education",
+				Message: fmt.Sprintf("Row %d: invalid education level", rowNum),
+				Value:   fieldMap["last_education"],
+			})
+		}
+	}
+
+	if fieldMap["contract_type"] != "" {
+		validContracts := []string{"permanent", "contract", "freelance"}
+		found := false
+		for _, valid := range validContracts {
+			if fieldMap["contract_type"] == valid {
+				contract := enums.ContractType(fieldMap["contract_type"])
+				employee.ContractType = &contract
+				found = true
+				break
+			}
+		}
+		if !found {
+			errors = append(errors, BulkImportError{
+				Field:   "contract_type",
+				Message: fmt.Sprintf("Row %d: invalid contract type", rowNum),
+				Value:   fieldMap["contract_type"],
+			})
+		}
+	}
+
+	if fieldMap["tax_status"] != "" {
+		validTaxStatus := []string{"TK/0", "TK/1", "TK/2", "TK/3", "K/0", "K/1", "K/2", "K/3", "K/I/0", "K/I/1", "K/I/2", "K/I/3"}
+		found := false
+		for _, valid := range validTaxStatus {
+			if fieldMap["tax_status"] == valid {
+				tax := enums.TaxStatus(fieldMap["tax_status"])
+				employee.TaxStatus = &tax
+				found = true
+				break
+			}
+		}
+		if !found {
+			errors = append(errors, BulkImportError{
+				Field:   "tax_status",
+				Message: fmt.Sprintf("Row %d: invalid tax status", rowNum),
+				Value:   fieldMap["tax_status"],
+			})
+		}
+	}
+
+	// Parse bank information
+	if fieldMap["bank_name"] != "" {
+		bankName := fieldMap["bank_name"]
+		employee.BankName = &bankName
+	}
+	if fieldMap["bank_account_number"] != "" {
+		bankAccountNumber := fieldMap["bank_account_number"]
+		employee.BankAccountNumber = &bankAccountNumber
+	}
+	if fieldMap["bank_account_holder_name"] != "" {
+		bankAccountHolderName := fieldMap["bank_account_holder_name"]
+		employee.BankAccountHolderName = &bankAccountHolderName
+	}
+
+	if len(errors) > 0 {
+		return nil, errors
+	}
+
+	return employee, nil
 }

@@ -23,6 +23,7 @@ interface ApprovalItem {
   id: number;
   name: string;
   type: string;
+  admin_note: string | null;
   approved: boolean | null;
   status: string;
 }
@@ -50,9 +51,9 @@ export default function CheckClockApprovalTab() {
     error,
     refetch,
   } = useCheckClockApproval();
-
   const [openSheet, setOpenSheet] = useState(false);
   const [selectedDetail, setSelectedDetail] = useState<ApprovalDetail | null>(null);
+  const [adminNote, setAdminNote] = useState('');
   const [nameFilter, setNameFilter] = React.useState('');
   const [pagination, setPagination] = React.useState<PaginationState>({
     pageIndex: 0,
@@ -68,7 +69,7 @@ export default function CheckClockApprovalTab() {
           name: item.name,
           position: item.type || '-',
           status: item.status,
-          permitStart: lr.start_date,
+          permitStart: lr.start_date,          
           permitEnd: lr.end_date,
           attachmentUrl: lr.attachment || undefined,
         });
@@ -77,6 +78,14 @@ export default function CheckClockApprovalTab() {
     },
     [approvalData],
   );
+
+  const handleApproveWithNote = (adminNote: string) => {
+    handleApprove(adminNote);
+  };
+
+  const handleRejectWithNote = (adminNote: string) => {
+    handleReject(adminNote);
+  };
 
   const columns = React.useMemo<ColumnDef<ApprovalItem>[]>(
     () => [
@@ -237,14 +246,14 @@ export default function CheckClockApprovalTab() {
             <PaginationComponent table={table} />
           </footer>
         </CardContent>
-      </Card>
-      {/* Approval Modal */}
-      <ApprovalConfirmationModal
+      </Card>      {/* Approval Modal */}      <ApprovalConfirmationModal
         isOpen={isModalOpen}
         onOpenChange={setIsModalOpen}
         selectedItem={selectedItem}
-        onApprove={handleApprove}
-        onReject={handleReject}
+        adminNote={adminNote}
+        onAdminNoteChange={setAdminNote}
+        onApprove={handleApproveWithNote}
+        onReject={handleRejectWithNote}
       />
       {/* Sheet for Details */}
       <Sheet open={openSheet} onOpenChange={setOpenSheet}>

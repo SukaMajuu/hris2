@@ -8,6 +8,7 @@ interface ApprovalItem {
   id: number;
   name: string;
   type: string;
+  admin_note: string | null;
   approved: boolean | null;
   status: string;
   leaveRequest?: LeaveRequest;
@@ -49,11 +50,11 @@ export function useCheckClockApproval() {
         employeeName = leaveRequest.employee_name;
         positionName = leaveRequest.position_name || 'Unknown Position';
       }
-      
-      return {
+        return {
         id: leaveRequest.id,
         name: employeeName,
         type: positionName,
+        admin_note: leaveRequest.admin_note || null,
         approved: null, // Always null for waiting approval items
         status: leaveRequest.leave_type.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
         leaveRequest: leaveRequest,
@@ -63,15 +64,14 @@ export function useCheckClockApproval() {
     setSelectedItem(item);
     setIsModalOpen(true);
   };
-
-  const handleApprove = async () => {
+  const handleApprove = async (adminNote?: string) => {
     if (selectedItem?.leaveRequest) {
       try {
         await updateStatusMutation.mutateAsync({
           id: selectedItem.leaveRequest.id,
           data: {
             status: LeaveRequestStatus.APPROVED,
-            admin_note: 'Approved by admin',
+            admin_note: adminNote || 'Approved by admin',
           },
         });
         // Refetch data to update the list
@@ -83,14 +83,14 @@ export function useCheckClockApproval() {
     setIsModalOpen(false);
   };
 
-  const handleReject = async () => {
+  const handleReject = async (adminNote?: string) => {
     if (selectedItem?.leaveRequest) {
       try {
         await updateStatusMutation.mutateAsync({
           id: selectedItem.leaveRequest.id,
           data: {
             status: LeaveRequestStatus.REJECTED,
-            admin_note: 'Rejected by admin',
+            admin_note: adminNote || 'Rejected by admin',
           },
         });
         // Refetch data to update the list

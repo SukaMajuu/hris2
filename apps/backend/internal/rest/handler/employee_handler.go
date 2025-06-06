@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"bytes"
 	"encoding/csv"
 	"errors"
 	"fmt"
@@ -599,7 +600,7 @@ func (h *EmployeeHandler) parseExcelFile(src io.Reader) ([]*domain.Employee, []e
 		return nil, nil, fmt.Errorf("failed to read Excel file: %w", err)
 	}
 
-	f, err := excelize.OpenReader(strings.NewReader(string(content)))
+	f, err := excelize.OpenReader(bytes.NewReader(content))
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to open Excel file: %w", err)
 	}

@@ -38,9 +38,9 @@ export function EmployeeInformationStep({
 
   // Trigger validation when employeeId changes
   useEffect(() => {
-    if (formData.employeeId && formData.employeeId.trim()) {
+    if (formData.employeeId) {
       validateField('employee_code', formData.employeeId);
-    } else if (!formData.employeeId) {
+    } else {
       clearValidation('employee_code');
     }
   }, [formData.employeeId, validateField, clearValidation]);

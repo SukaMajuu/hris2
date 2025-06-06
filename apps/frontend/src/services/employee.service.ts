@@ -178,7 +178,7 @@ export class EmployeeService {
   }
 
   async validateUniqueField(
-    field: 'email' | 'nik' | 'employee_code',
+    field: 'email' | 'nik' | 'employee_code' | 'phone',
     value: string,
   ): Promise<{
     field: string;
@@ -198,7 +198,7 @@ export class EmployeeService {
           exists: boolean;
           message?: string;
         }>
-      >(`${API_ROUTES.v1.api.employees.list}/validate-unique?${params.toString()}`);
+      >(`${API_ROUTES.v1.api.employees.validateUnique}?${params.toString()}`);
 
       return response.data.data;
     } catch (error) {

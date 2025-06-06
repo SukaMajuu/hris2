@@ -177,18 +177,28 @@ func (uc *EmployeeUseCase) GetByEmployeeCode(ctx context.Context, employeeCode s
 }
 
 func (uc *EmployeeUseCase) GetUserByEmail(ctx context.Context, email string) (*domain.User, error) {
-	log.Printf("EmployeeUseCase: GetUserByEmail called for email: %s", email)
+	log.Printf("EmployeeUseCase: GetUserByEmail called with email: %s", email)
+
 	user, err := uc.authRepo.GetUserByEmail(ctx, email)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			log.Printf("EmployeeUseCase: No user found with email %s", email)
-			return nil, domain.ErrUserNotFound
-		}
-		log.Printf("EmployeeUseCase: Error getting user by email %s from repository: %v", email, err)
-		return nil, fmt.Errorf("failed to get user by email %s: %w", email, err)
+		log.Printf("EmployeeUseCase: User not found with email %s: %v", email, err)
+		return nil, err
 	}
 
-	log.Printf("EmployeeUseCase: Successfully retrieved user with ID %d for email %s", user.ID, email)
+	log.Printf("EmployeeUseCase: Successfully found user with email %s, UserID: %d", email, user.ID)
+	return user, nil
+}
+
+func (uc *EmployeeUseCase) GetUserByPhone(ctx context.Context, phone string) (*domain.User, error) {
+	log.Printf("EmployeeUseCase: GetUserByPhone called with phone: %s", phone)
+
+	user, err := uc.authRepo.GetUserByPhone(ctx, phone)
+	if err != nil {
+		log.Printf("EmployeeUseCase: User not found with phone %s: %v", phone, err)
+		return nil, err
+	}
+
+	log.Printf("EmployeeUseCase: Successfully found user with phone %s, UserID: %d", phone, user.ID)
 	return user, nil
 }
 
@@ -441,6 +451,21 @@ func (uc *EmployeeUseCase) checkBatchDuplicates(employee *domain.Employee, emplo
 		}
 	}
 
+	if employee.User.Phone != "" {
+		for j, otherEmployee := range employees {
+			if currentIndex != j && employee.User.Phone == otherEmployee.User.Phone {
+				errors = append(errors, EmployeeImportError{
+					Row:      rowNum,
+					Field:    "phone",
+					Message:  fmt.Sprintf("Duplicate phone number '%s' found in row %d", employee.User.Phone, j+2),
+					Value:    employee.User.Phone,
+					Employee: employee,
+				})
+				break
+			}
+		}
+	}
+
 	if employee.NIK != nil {
 		for j, otherEmployee := range employees {
 			if currentIndex != j && otherEmployee.NIK != nil && *employee.NIK == *otherEmployee.NIK {
@@ -485,6 +510,19 @@ func (uc *EmployeeUseCase) checkExistingRecords(ctx context.Context, employee *d
 				Field:    "email",
 				Message:  fmt.Sprintf("Email '%s' is already used by another employee", employee.User.Email),
 				Value:    employee.User.Email,
+				Employee: employee,
+			})
+		}
+	}
+
+	if employee.User.Phone != "" {
+		existingUser, err := uc.authRepo.GetUserByPhone(ctx, employee.User.Phone)
+		if err == nil && existingUser != nil {
+			errors = append(errors, EmployeeImportError{
+				Row:      rowNum,
+				Field:    "phone",
+				Message:  fmt.Sprintf("Phone number '%s' is already used by another employee", employee.User.Phone),
+				Value:    employee.User.Phone,
 				Employee: employee,
 			})
 		}

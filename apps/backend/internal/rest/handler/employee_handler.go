@@ -442,8 +442,8 @@ func (h *EmployeeHandler) ValidateUniqueField(c *gin.Context) {
 		return
 	}
 
-	if fieldType != "email" && fieldType != "nik" && fieldType != "employee_code" {
-		response.BadRequest(c, "Field must be one of: email, nik, employee_code", nil)
+	if fieldType != "email" && fieldType != "nik" && fieldType != "employee_code" && fieldType != "phone" {
+		response.BadRequest(c, "Field must be one of: email, nik, employee_code, phone", nil)
 		return
 	}
 
@@ -459,6 +459,9 @@ func (h *EmployeeHandler) ValidateUniqueField(c *gin.Context) {
 		exists = err == nil
 	case "employee_code":
 		_, err = h.employeeUseCase.GetByEmployeeCode(c.Request.Context(), value)
+		exists = err == nil
+	case "phone":
+		_, err = h.employeeUseCase.GetUserByPhone(c.Request.Context(), value)
 		exists = err == nil
 	}
 

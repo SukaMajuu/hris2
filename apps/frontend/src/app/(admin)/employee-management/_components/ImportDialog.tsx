@@ -329,8 +329,8 @@ export function ImportDialog({ open, onOpenChange, onImportComplete }: ImportDia
                       <h4 className='mb-2 font-medium text-red-800'>
                         Validation Errors ({importPreview.errors.length}):
                       </h4>
-                      <div className='max-h-40 space-y-1 overflow-y-auto text-sm text-red-700'>
-                        {importPreview.errors.slice(0, 10).map((error, index) => {
+                      <div className='max-h-64 space-y-1 overflow-y-auto text-sm text-red-700'>
+                        {importPreview.errors.slice(0, 1000).map((error, index) => {
                           let errorText = '';
 
                           // Format specific error messages for better readability
@@ -362,9 +362,9 @@ export function ImportDialog({ open, onOpenChange, onImportComplete }: ImportDia
 
                           return <p key={index}>{errorText}</p>;
                         })}
-                        {importPreview.errors.length > 10 && (
+                        {importPreview.errors.length > 1000 && (
                           <p className='font-medium'>
-                            ... and {importPreview.errors.length - 10} more errors
+                            ... and {importPreview.errors.length - 1000} more errors
                           </p>
                         )}
                       </div>
@@ -422,8 +422,8 @@ export function ImportDialog({ open, onOpenChange, onImportComplete }: ImportDia
                     <h4 className='mb-2 font-medium text-red-800'>
                       Import Error Details ({importResult.failed_rows.length}):
                     </h4>
-                    <div className='max-h-48 space-y-2 overflow-y-auto text-sm text-red-700'>
-                      {importResult.failed_rows.slice(0, 10).map((failedRow, index) => (
+                    <div className='max-h-64 space-y-2 overflow-y-auto text-sm text-red-700'>
+                      {importResult.failed_rows.slice(0, 1000).map((failedRow, index) => (
                         <div key={index} className='border-b border-red-200 pb-2 last:border-b-0'>
                           <p className='font-semibold text-red-900'>Row {failedRow.row}:</p>
                           {failedRow.errors.map((error, errorIndex) => {
@@ -466,9 +466,9 @@ export function ImportDialog({ open, onOpenChange, onImportComplete }: ImportDia
                           })}
                         </div>
                       ))}
-                      {importResult.failed_rows.length > 10 && (
+                      {importResult.failed_rows.length > 1000 && (
                         <p className='font-medium text-red-800'>
-                          ... and {importResult.failed_rows.length - 10} more failed rows
+                          ... and {importResult.failed_rows.length - 1000} more failed rows
                         </p>
                       )}
                     </div>

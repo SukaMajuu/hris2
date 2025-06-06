@@ -198,32 +198,14 @@ export function TableHeader({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant='outline'
-                className='cursor-pointer gap-2 hover:bg-[#5A89B3] hover:text-white'
-              >
-                <Upload className='h-4 w-4' />
-                Import
-                <ChevronDown className='h-4 w-4' />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align='end'>
-              <DropdownMenuItem
-                onClick={handleImport}
-                className='cursor-pointer hover:bg-[#5A89B3] hover:text-white focus:bg-[#5A89B3] focus:text-white'
-              >
-                Import from CSV
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={handleImport}
-                className='cursor-pointer hover:bg-[#5A89B3] hover:text-white focus:bg-[#5A89B3] focus:text-white'
-              >
-                Import from Excel
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <Button
+            variant='outline'
+            onClick={handleImport}
+            className='cursor-pointer gap-2 hover:bg-[#5A89B3] hover:text-white'
+          >
+            <Upload className='h-4 w-4' />
+            Import
+          </Button>
           <Link href='/employee-management/add'>
             <Button className='cursor-pointer gap-2 bg-[#6B9AC4] hover:bg-[#5A89B3]'>
               <Plus className='h-4 w-4' />

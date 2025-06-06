@@ -324,20 +324,17 @@ func (uc *EmployeeUseCase) preValidateEmployees(ctx context.Context, employees [
 	var validationErrors []EmployeeImportError
 
 	for i, employee := range employees {
-		// Set default password if not provided
+
 		if employee.User.Password == "" {
 			employee.User.Password = defaultPassword
 		}
 
-		// Validate required fields
 		rowErrors := uc.validateRequiredFields(employee, i+2)
 		validationErrors = append(validationErrors, rowErrors...)
 
-		// Check for duplicates in batch
 		duplicateErrors := uc.checkBatchDuplicates(employee, employees, i)
 		validationErrors = append(validationErrors, duplicateErrors...)
 
-		// Check existing records in database
 		dbErrors := uc.checkExistingRecords(ctx, employee, i+2)
 		validationErrors = append(validationErrors, dbErrors...)
 	}
@@ -383,7 +380,6 @@ func (uc *EmployeeUseCase) checkBatchDuplicates(employee *domain.Employee, emplo
 	var errors []EmployeeImportError
 	rowNum := currentIndex + 2
 
-	// Check for duplicate emails in the batch
 	for j, otherEmployee := range employees {
 		if currentIndex != j && employee.User.Email == otherEmployee.User.Email {
 			errors = append(errors, EmployeeImportError{
@@ -397,7 +393,6 @@ func (uc *EmployeeUseCase) checkBatchDuplicates(employee *domain.Employee, emplo
 		}
 	}
 
-	// Check for duplicate NIKs in the batch
 	if employee.NIK != nil {
 		for j, otherEmployee := range employees {
 			if currentIndex != j && otherEmployee.NIK != nil && *employee.NIK == *otherEmployee.NIK {
@@ -413,7 +408,6 @@ func (uc *EmployeeUseCase) checkBatchDuplicates(employee *domain.Employee, emplo
 		}
 	}
 
-	// Check for duplicate employee codes in the batch
 	if employee.EmployeeCode != nil {
 		for j, otherEmployee := range employees {
 			if currentIndex != j && otherEmployee.EmployeeCode != nil && *employee.EmployeeCode == *otherEmployee.EmployeeCode {
@@ -435,7 +429,6 @@ func (uc *EmployeeUseCase) checkBatchDuplicates(employee *domain.Employee, emplo
 func (uc *EmployeeUseCase) checkExistingRecords(ctx context.Context, employee *domain.Employee, rowNum int) []EmployeeImportError {
 	var errors []EmployeeImportError
 
-	// Check for existing email in database
 	if employee.User.Email != "" {
 		existingUser, err := uc.authRepo.GetUserByEmail(ctx, employee.User.Email)
 		if err == nil && existingUser != nil {
@@ -449,7 +442,6 @@ func (uc *EmployeeUseCase) checkExistingRecords(ctx context.Context, employee *d
 		}
 	}
 
-	// Check for existing NIK in database
 	if employee.NIK != nil && *employee.NIK != "" {
 		existingEmployee, err := uc.employeeRepo.GetByNIK(ctx, *employee.NIK)
 		if err == nil && existingEmployee != nil {
@@ -463,7 +455,6 @@ func (uc *EmployeeUseCase) checkExistingRecords(ctx context.Context, employee *d
 		}
 	}
 
-	// Check for existing employee code in database
 	if employee.EmployeeCode != nil && *employee.EmployeeCode != "" {
 		existingEmployee, err := uc.employeeRepo.GetByEmployeeCode(ctx, *employee.EmployeeCode)
 		if err == nil && existingEmployee != nil {
@@ -495,7 +486,6 @@ func (uc *EmployeeUseCase) convertToImportError(err error, employee *domain.Empl
 		employeeName += " " + *employee.LastName
 	}
 
-	// Check for common database constraint violations
 	if strings.Contains(errorMsg, "uni_users_email") || strings.Contains(errorMsg, "duplicate key") && strings.Contains(errorMsg, "email") {
 		return EmployeeImportError{
 			Row:      rowNum,
@@ -544,7 +534,6 @@ func (uc *EmployeeUseCase) convertToImportError(err error, employee *domain.Empl
 		}
 	}
 
-	// Check for validation errors
 	if strings.Contains(errorMsg, "invalid email format") {
 		return EmployeeImportError{
 			Row:      rowNum,
@@ -565,7 +554,6 @@ func (uc *EmployeeUseCase) convertToImportError(err error, employee *domain.Empl
 		}
 	}
 
-	// Check for required field errors
 	if strings.Contains(errorMsg, "email") && strings.Contains(errorMsg, "required") {
 		return EmployeeImportError{
 			Row:      rowNum,
@@ -596,7 +584,6 @@ func (uc *EmployeeUseCase) convertToImportError(err error, employee *domain.Empl
 		}
 	}
 
-	// Database connection errors
 	if strings.Contains(errorMsg, "connection") || strings.Contains(errorMsg, "timeout") {
 		return EmployeeImportError{
 			Row:      rowNum,
@@ -607,7 +594,6 @@ func (uc *EmployeeUseCase) convertToImportError(err error, employee *domain.Empl
 		}
 	}
 
-	// Generic fallback with more helpful message
 	return EmployeeImportError{
 		Row:      rowNum,
 		Field:    "general",

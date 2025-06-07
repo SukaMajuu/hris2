@@ -9,8 +9,14 @@ import {
   SelectContent,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Pencil, KeyRound } from 'lucide-react';
+import { Pencil, KeyRound, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import React from 'react';
+
+interface ValidationState {
+  isValidating: boolean;
+  isValid: boolean | null;
+  message: string;
+}
 
 interface EmployeeInformationProps {
   nik: string;
@@ -32,6 +38,7 @@ interface EmployeeInformationProps {
   editPersonal: boolean;
   setEditPersonal: (value: boolean) => void;
   handleSavePersonal: () => void;
+  handleCancelPersonalEdit: () => void;
   bankName: string;
   setBankName: (value: string) => void;
   bankAccountHolder: string;
@@ -46,6 +53,14 @@ interface EmployeeInformationProps {
   setFirstName: (value: string) => void;
   lastName: string;
   setLastName: (value: string) => void;
+  // Validation props
+  validationStates: {
+    email: ValidationState;
+    nik: ValidationState;
+    employee_code: ValidationState;
+    phone: ValidationState;
+  };
+  hasValidationErrors: () => boolean;
 }
 
 const EmployeeInformation: React.FC<EmployeeInformationProps> = ({
@@ -68,6 +83,7 @@ const EmployeeInformation: React.FC<EmployeeInformationProps> = ({
   editPersonal,
   setEditPersonal,
   handleSavePersonal,
+  handleCancelPersonalEdit,
   bankName,
   setBankName,
   bankAccountHolder,
@@ -82,6 +98,8 @@ const EmployeeInformation: React.FC<EmployeeInformationProps> = ({
   setFirstName,
   lastName,
   setLastName,
+  validationStates,
+  hasValidationErrors,
 }) => {
   return (
     <div className='grid grid-cols-1 gap-6 xl:grid-cols-2'>
@@ -93,7 +111,7 @@ const EmployeeInformation: React.FC<EmployeeInformationProps> = ({
           <Button
             variant='ghost'
             size='sm'
-            onClick={() => setEditPersonal(!editPersonal)}
+            onClick={() => (editPersonal ? handleCancelPersonalEdit() : setEditPersonal(true))}
             className='cursor-pointer rounded-md px-4 py-2 text-blue-600 transition-colors duration-150 hover:bg-slate-100 hover:text-blue-700 dark:text-blue-400 dark:hover:bg-slate-700/50 dark:hover:text-blue-300'
           >
             <Pencil className='mr-2 h-4 w-4' />
@@ -141,13 +159,46 @@ const EmployeeInformation: React.FC<EmployeeInformationProps> = ({
               >
                 NIK
               </Label>
-              <Input
-                id='nik'
-                value={nik}
-                onChange={(e) => setNik(e.target.value)}
-                disabled={!editPersonal}
-                className='mt-1 border-slate-300 bg-slate-50 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-70 dark:border-slate-600 dark:bg-slate-800'
-              />
+              <div className='relative'>
+                <Input
+                  id='nik'
+                  value={nik}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // Only allow numbers and maximum 16 digits
+                    if (/^\d*$/.test(value) && value.length <= 16) {
+                      setNik(value);
+                    }
+                  }}
+                  disabled={!editPersonal}
+                  placeholder='Enter 16-digit NIK'
+                  maxLength={16}
+                  className={`mt-1 border-slate-300 bg-slate-50 pr-10 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-70 dark:border-slate-600 dark:bg-slate-800 ${
+                    editPersonal && validationStates.nik.isValid === false
+                      ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                      : editPersonal && validationStates.nik.isValid === true
+                        ? 'border-green-500 focus:border-green-500 focus:ring-green-500'
+                        : ''
+                  }`}
+                />
+                {editPersonal && (
+                  <div className='absolute inset-y-0 right-0 flex items-center pr-3'>
+                    {validationStates.nik.isValidating ? (
+                      <Loader2 className='h-4 w-4 animate-spin text-blue-500' />
+                    ) : validationStates.nik.isValid === true ? (
+                      <CheckCircle className='h-4 w-4 text-green-500' />
+                    ) : validationStates.nik.isValid === false ? (
+                      <XCircle className='h-4 w-4 text-red-500' />
+                    ) : null}
+                  </div>
+                )}
+              </div>
+              {editPersonal && validationStates.nik.message && (
+                <p className='mt-1 text-xs text-red-500'>{validationStates.nik.message}</p>
+              )}
+              {editPersonal && !validationStates.nik.message && nik.length > 0 && (
+                <p className='mt-1 text-xs text-slate-500'>{nik.length}/16 digits</p>
+              )}
             </div>
             <div>
               <Label
@@ -181,14 +232,36 @@ const EmployeeInformation: React.FC<EmployeeInformationProps> = ({
             >
               Email
             </Label>
-            <Input
-              id='email'
-              type='email'
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={!editPersonal}
-              className='mt-1 border-slate-300 bg-slate-50 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-70 dark:border-slate-600 dark:bg-slate-800'
-            />
+            <div className='relative'>
+              <Input
+                id='email'
+                type='email'
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={!editPersonal}
+                className={`mt-1 border-slate-300 bg-slate-50 pr-10 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-70 dark:border-slate-600 dark:bg-slate-800 ${
+                  editPersonal && validationStates.email.isValid === false
+                    ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                    : editPersonal && validationStates.email.isValid === true
+                      ? 'border-green-500 focus:border-green-500 focus:ring-green-500'
+                      : ''
+                }`}
+              />
+              {editPersonal && (
+                <div className='absolute inset-y-0 right-0 flex items-center pr-3'>
+                  {validationStates.email.isValidating ? (
+                    <Loader2 className='h-4 w-4 animate-spin text-blue-500' />
+                  ) : validationStates.email.isValid === true ? (
+                    <CheckCircle className='h-4 w-4 text-green-500' />
+                  ) : validationStates.email.isValid === false ? (
+                    <XCircle className='h-4 w-4 text-red-500' />
+                  ) : null}
+                </div>
+              )}
+            </div>
+            {editPersonal && validationStates.email.message && (
+              <p className='mt-1 text-xs text-red-500'>{validationStates.email.message}</p>
+            )}
           </div>
           <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
             <div>
@@ -223,22 +296,56 @@ const EmployeeInformation: React.FC<EmployeeInformationProps> = ({
               />
             </div>
           </div>
-          <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
-            <div>
-              <Label
-                htmlFor='phone'
-                className='text-sm font-medium text-slate-600 dark:text-slate-400'
-              >
-                Phone Number
-              </Label>
+          <div>
+            <Label
+              htmlFor='phone'
+              className='text-sm font-medium text-slate-600 dark:text-slate-400'
+            >
+              Phone Number
+            </Label>
+            <div className='relative'>
               <Input
                 id='phone'
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  // Only allow numbers and + symbol, + only at the beginning
+                  if (/^(\+?\d*)$/.test(value)) {
+                    setPhone(value);
+                  }
+                }}
                 disabled={!editPersonal}
-                className='mt-1 border-slate-300 bg-slate-50 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-70 dark:border-slate-600 dark:bg-slate-800'
+                placeholder='e.g., +628123456789'
+                className={`mt-1 border-slate-300 bg-slate-50 pr-10 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-70 dark:border-slate-600 dark:bg-slate-800 ${
+                  editPersonal && validationStates.phone.isValid === false
+                    ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                    : editPersonal && validationStates.phone.isValid === true
+                      ? 'border-green-500 focus:border-green-500 focus:ring-green-500'
+                      : ''
+                }`}
               />
+              {editPersonal && (
+                <div className='absolute inset-y-0 right-0 flex items-center pr-3'>
+                  {validationStates.phone.isValidating ? (
+                    <Loader2 className='h-4 w-4 animate-spin text-blue-500' />
+                  ) : validationStates.phone.isValid === true ? (
+                    <CheckCircle className='h-4 w-4 text-green-500' />
+                  ) : validationStates.phone.isValid === false ? (
+                    <XCircle className='h-4 w-4 text-red-500' />
+                  ) : null}
+                </div>
+              )}
             </div>
+            {editPersonal && validationStates.phone.message && (
+              <p className='mt-1 text-xs text-red-500'>{validationStates.phone.message}</p>
+            )}
+            {editPersonal && !validationStates.phone.message && (
+              <p className='mt-1 text-xs text-slate-500'>
+                Phone number must start with country code (e.g., +62) and be at least 10 digits
+              </p>
+            )}
+          </div>
+          <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
             <div>
               <Label
                 htmlFor='taxStatus'
@@ -310,10 +417,20 @@ const EmployeeInformation: React.FC<EmployeeInformationProps> = ({
             <div className='text-right'>
               <Button
                 onClick={handleSavePersonal}
-                className='cursor-pointer bg-blue-600 text-white hover:bg-blue-700'
+                disabled={hasValidationErrors()}
+                className={`cursor-pointer ${
+                  hasValidationErrors()
+                    ? 'cursor-not-allowed bg-slate-400 text-slate-600'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                }`}
               >
                 Save Changes
               </Button>
+              {hasValidationErrors() && (
+                <p className='mt-2 text-xs text-red-500'>
+                  Please fix validation errors before saving
+                </p>
+              )}
             </div>
           )}
         </CardContent>

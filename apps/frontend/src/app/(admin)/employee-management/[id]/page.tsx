@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Pencil, ArrowLeft } from 'lucide-react';
+import { Pencil, ArrowLeft, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import DocumentManagement from './_tabContents/documentManagement';
 import EmployeeInformation from './_tabContents/employeeInformation';
 import { useDetailEmployee } from './_hooks/useDetailEmployee';
@@ -75,6 +75,8 @@ export default function Page() {
     editBank,
     setEditBank,
     currentDocuments,
+    validationStates,
+    hasValidationErrors,
     handleProfileImageChange,
     handleAddNewDocument,
     handleDeleteDocument,
@@ -84,6 +86,7 @@ export default function Page() {
     handleSaveBank,
     handleResetPassword,
     handleCancelEdit,
+    handleCancelPersonalEdit,
   } = useDetailEmployee(id);
 
   const [activeTab, setActiveTab] = useState<'personal' | 'document'>('personal');
@@ -179,12 +182,34 @@ export default function Page() {
                     Employee Code
                   </Label>
                   {editJob ? (
-                    <Input
-                      id='employeeCodeTop'
-                      value={employeeCode}
-                      onChange={(e) => setEmployeeCode(e.target.value)}
-                      className='mt-1 h-8 border-slate-300 bg-slate-50 text-sm focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800'
-                    />
+                    <div className='relative'>
+                      <Input
+                        id='employeeCodeTop'
+                        value={employeeCode}
+                        onChange={(e) => setEmployeeCode(e.target.value)}
+                        className={`mt-1 h-8 border-slate-300 bg-slate-50 pr-8 text-sm focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 ${
+                          validationStates.employee_code.isValid === false
+                            ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                            : validationStates.employee_code.isValid === true
+                              ? 'border-green-500 focus:border-green-500 focus:ring-green-500'
+                              : ''
+                        }`}
+                      />
+                      <div className='absolute inset-y-0 right-0 flex items-center pr-2'>
+                        {validationStates.employee_code.isValidating ? (
+                          <Loader2 className='h-3 w-3 animate-spin text-blue-500' />
+                        ) : validationStates.employee_code.isValid === true ? (
+                          <CheckCircle className='h-3 w-3 text-green-500' />
+                        ) : validationStates.employee_code.isValid === false ? (
+                          <XCircle className='h-3 w-3 text-red-500' />
+                        ) : null}
+                      </div>
+                      {validationStates.employee_code.message && (
+                        <p className='mt-1 text-xs text-red-500'>
+                          {validationStates.employee_code.message}
+                        </p>
+                      )}
+                    </div>
                   ) : (
                     <p className='text-slate-700 dark:text-slate-300'>{employeeCode}</p>
                   )}
@@ -291,10 +316,20 @@ export default function Page() {
                 <div className='mt-4 text-right'>
                   <Button
                     onClick={handleSaveJob}
-                    className='cursor-pointer bg-blue-600 text-white hover:bg-blue-700'
+                    disabled={validationStates.employee_code.isValid === false}
+                    className={`cursor-pointer ${
+                      validationStates.employee_code.isValid === false
+                        ? 'cursor-not-allowed bg-slate-400 text-slate-600'
+                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                    }`}
                   >
                     Save Changes
                   </Button>
+                  {validationStates.employee_code.isValid === false && (
+                    <p className='mt-2 text-xs text-red-500'>
+                      Please fix employee code validation error before saving
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -347,6 +382,7 @@ export default function Page() {
             editPersonal={editPersonal}
             setEditPersonal={setEditPersonal}
             handleSavePersonal={handleSavePersonal}
+            handleCancelPersonalEdit={handleCancelPersonalEdit}
             bankName={bankName}
             setBankName={setBankName}
             bankAccountHolder={bankAccountHolder}
@@ -357,6 +393,8 @@ export default function Page() {
             setEditBank={setEditBank}
             handleSaveBank={handleSaveBank}
             handleResetPassword={handleResetPassword}
+            validationStates={validationStates}
+            hasValidationErrors={hasValidationErrors}
           />
         </TabsContent>
 

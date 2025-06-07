@@ -273,7 +273,12 @@ export default function ProfilePage() {
                     id='phone'
                     type='tel'
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (/^(\+?\d*)$/.test(value)) {
+                        setPhone(value);
+                      }
+                    }}
                     readOnly={!editPersonal}
                     placeholder='e.g., +628123456789'
                     inputMode='tel'

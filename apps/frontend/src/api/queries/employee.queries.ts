@@ -15,7 +15,7 @@ export const useEmployeeStatsQuery = () => {
   return useQuery({
     queryKey: queryKeys.employees.stats,
     queryFn: () => employeeService.getEmployeeStats(),
-    staleTime: 60 * 1000,
+    staleTime: 30 * 1000,
   });
 };
 
@@ -24,6 +24,14 @@ export const useEmployeeDetailQuery = (id: number, enabled: boolean = true) => {
     queryKey: queryKeys.employees.detail(id),
     queryFn: () => employeeService.getEmployeeDetail(id),
     enabled: enabled && !!id,
+    staleTime: 30 * 1000,
+  });
+};
+
+export const useCurrentUserProfileQuery = () => {
+  return useQuery({
+    queryKey: queryKeys.employees.currentProfile,
+    queryFn: () => employeeService.getCurrentUserProfile(),
     staleTime: 30 * 1000,
   });
 };

@@ -657,3 +657,105 @@ func (h *EmployeeHandler) parseExcelFile(src io.Reader) ([]*domain.Employee, []e
 
 	return employees, parseErrors, nil
 }
+
+func (h *EmployeeHandler) GetCurrentUserProfile(c *gin.Context) {
+	userIDCtx, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User ID not found in context", fmt.Errorf("missing userID in context"))
+		return
+	}
+	userID, ok := userIDCtx.(uint)
+	if !ok {
+		response.InternalServerError(c, fmt.Errorf("invalid user ID type in context"))
+		return
+	}
+
+	employee, err := h.employeeUseCase.GetEmployeeByUserID(c.Request.Context(), userID)
+	if err != nil {
+		log.Printf("EmployeeHandler: Error getting current user profile for UserID %d: %v", userID, err)
+		response.InternalServerError(c, fmt.Errorf("failed to get current user profile: %w", err))
+		return
+	}
+
+	respDTO := domainEmployeeDTO.ToEmployeeResponseDTO(employee)
+	response.Success(c, http.StatusOK, "Current user profile retrieved successfully", respDTO)
+}
+
+func (h *EmployeeHandler) UpdateCurrentUserProfile(c *gin.Context) {
+	userIDCtx, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User ID not found in context", fmt.Errorf("missing userID in context"))
+		return
+	}
+	userID, ok := userIDCtx.(uint)
+	if !ok {
+		response.InternalServerError(c, fmt.Errorf("invalid user ID type in context"))
+		return
+	}
+
+	// Get current employee to get the employee ID
+	currentEmployee, err := h.employeeUseCase.GetEmployeeByUserID(c.Request.Context(), userID)
+	if err != nil {
+		log.Printf("EmployeeHandler: Error getting current employee for UserID %d: %v", userID, err)
+		response.InternalServerError(c, fmt.Errorf("failed to get current employee information: %w", err))
+		return
+	}
+
+	var reqDTO employeeDTO.UpdateEmployeeRequestDTO
+	if err := c.ShouldBind(&reqDTO); err != nil {
+		log.Printf("EmployeeHandler: Error binding update current user profile request: %v", err)
+		response.BadRequest(c, "Invalid request format", err)
+		return
+	}
+
+	// Handle photo upload if provided
+	photoFile, photoErr := c.FormFile("photo_file")
+	if photoErr == nil {
+		log.Printf("EmployeeHandler: Photo file detected for current user: %s", photoFile.Filename)
+
+		// Validate photo file type
+		mimeType := photoFile.Header.Get("Content-Type")
+		log.Printf("EmployeeHandler: Photo file MIME type detected: %s", mimeType)
+
+		if !isAllowedPhotoMimeType(mimeType) {
+			log.Printf("EmployeeHandler: Photo MIME type not allowed: %s", mimeType)
+			response.BadRequest(c, "Invalid photo file type. Only JPEG, PNG, GIF, and WebP are allowed", nil)
+			return
+		}
+
+		reqDTO.PhotoFile = photoFile
+	}
+
+	// Convert DTO to domain object
+	updatePayload, err := employeeDTO.MapUpdateDTOToDomain(currentEmployee.ID, &reqDTO)
+	if err != nil {
+		log.Printf("EmployeeHandler: Error converting update current user profile DTO to domain: %v", err)
+		response.BadRequest(c, "Invalid request data", err)
+		return
+	}
+
+	// Update the employee
+	updatedEmployee, err := h.employeeUseCase.Update(c.Request.Context(), updatePayload)
+	if err != nil {
+		log.Printf("EmployeeHandler: Error updating current user profile for EmployeeID %d: %v", currentEmployee.ID, err)
+		response.InternalServerError(c, fmt.Errorf("failed to update current user profile: %w", err))
+		return
+	}
+
+	// Handle photo upload if provided
+	if reqDTO.PhotoFile != nil {
+		log.Printf("EmployeeHandler: Uploading photo for current user ID: %d", currentEmployee.ID)
+
+		updatedEmployeeWithPhoto, err := h.employeeUseCase.UploadProfilePhoto(c.Request.Context(), currentEmployee.ID, reqDTO.PhotoFile)
+		if err != nil {
+			log.Printf("EmployeeHandler: Error uploading photo for current user: %v", err)
+			log.Printf("EmployeeHandler: Profile updated successfully but photo upload failed")
+		} else {
+			updatedEmployee = updatedEmployeeWithPhoto
+			log.Printf("EmployeeHandler: Photo uploaded successfully for current user")
+		}
+	}
+
+	respDTO := domainEmployeeDTO.ToEmployeeResponseDTO(updatedEmployee)
+	response.Success(c, http.StatusOK, "Current user profile updated successfully", respDTO)
+}

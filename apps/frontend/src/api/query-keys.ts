@@ -27,6 +27,7 @@ export const queryKeys = {
     detail: (id: number) => ['employees', 'detail', id] as const,
     stats: ['employees', 'stats'] as const,
     resign: ['employees', 'resign'] as const,
+    currentProfile: ['employees', 'currentProfile'] as const,
   },
   locations: {
     list: ['locations', 'list'] as const,

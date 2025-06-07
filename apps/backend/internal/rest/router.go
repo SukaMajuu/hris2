@@ -94,6 +94,8 @@ func (r *Router) Setup() *gin.Engine {
 				employee.GET("", r.employeeHandler.ListEmployees)
 				employee.GET("/statistics", r.employeeHandler.GetEmployeeStatistics)
 				employee.GET("/validate-unique", r.employeeHandler.ValidateUniqueField)
+				employee.GET("/me", r.employeeHandler.GetCurrentUserProfile)
+				employee.PATCH("/me", r.employeeHandler.UpdateCurrentUserProfile)
 				employee.GET("/:id", r.employeeHandler.GetEmployeeByID)
 				employee.POST("", r.employeeHandler.CreateEmployee)
 				employee.POST("/bulk-import", r.employeeHandler.BulkImportEmployees)

@@ -32,7 +32,7 @@ const VALID_TAX_STATUS = [
 ];
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PHONE_REGEX = /^\+[1-9]\d{1,14}$/;
+const PHONE_REGEX = /^\+[1-9]\d{8,14}$/;
 const NIK_REGEX = /^\d{16}$/;
 const BANK_ACCOUNT_REGEX = /^\d+$/;
 
@@ -121,10 +121,21 @@ function validateRow(row: Record<string, any>, rowIndex: number): ImportValidati
 
   // Validate phone format
   if (row.phone && !PHONE_REGEX.test(row.phone.toString().trim())) {
+    const phoneValue = row.phone.toString().trim();
+    let errorMessage = 'Phone number format is invalid';
+
+    if (!phoneValue.startsWith('+')) {
+      errorMessage = 'Phone number must start with country code (e.g., +62)';
+    } else if (phoneValue.length < 10) {
+      errorMessage = 'Phone number must be at least 10 digits total';
+    } else {
+      errorMessage = 'Phone number format is invalid (e.g., +628123456789)';
+    }
+
     errors.push({
       row: rowIndex,
       field: 'phone',
-      message: 'Phone number must start with country code (e.g., +62812345678)',
+      message: errorMessage,
       value: row.phone,
     });
   }

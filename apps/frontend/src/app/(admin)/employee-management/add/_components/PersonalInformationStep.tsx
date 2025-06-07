@@ -372,6 +372,16 @@ export function PersonalInformationStep({
               type='date'
               value={formData.dateOfBirth}
               onChange={onInputChange}
+              max={
+                new Date(new Date().setFullYear(new Date().getFullYear() - 16))
+                  .toISOString()
+                  .split('T')[0]
+              }
+              min={
+                new Date(new Date().setFullYear(new Date().getFullYear() - 100))
+                  .toISOString()
+                  .split('T')[0]
+              }
               className={`focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 placeholder:text-slate-400 dark:border-slate-600 dark:placeholder:text-slate-500 ${
                 formData.dateOfBirth
                   ? 'bg-slate-50 text-black dark:bg-slate-800 dark:text-slate-200'
@@ -381,11 +391,11 @@ export function PersonalInformationStep({
             {errors.dateOfBirth && (
               <p className='mt-1 text-sm text-red-500'>{errors.dateOfBirth.message}</p>
             )}
-            {!errors.dateOfBirth && (
+            {/* {!errors.dateOfBirth && (
               <p className='mt-1 text-xs text-slate-500 dark:text-slate-400'>
-                Employee age must be between 16 and 70 years
+                Employee age must be valid
               </p>
-            )}
+            )} */}
           </div>
           <div>
             <label

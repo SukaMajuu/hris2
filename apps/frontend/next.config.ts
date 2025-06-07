@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
       'images.pexels.com',
       'tvnnyjcbaomhjksrgjpl.supabase.co',
       'oqasmdvvcohgvhzgjazt.supabase.co',
+      'owrfbjnyznrvyyzjudvm.supabase.co',
     ],
   },
   async redirects() {

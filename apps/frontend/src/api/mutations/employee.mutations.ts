@@ -15,15 +15,15 @@ export const useResignEmployeeMutation = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       queryClient.invalidateQueries({
-				predicate: (query) => {
-					return (
-						Array.isArray(query.queryKey) &&
-						Array.isArray(query.queryKey[0]) &&
-						query.queryKey[0][0] === "checkclockSettings" &&
-						query.queryKey[0][1] === "list"
-					);
-				},
-			});
+        predicate: (query) => {
+          return (
+            Array.isArray(query.queryKey) &&
+            Array.isArray(query.queryKey[0]) &&
+            query.queryKey[0][0] === 'checkclockSettings' &&
+            query.queryKey[0][1] === 'list'
+          );
+        },
+      });
     },
   });
 };
@@ -34,9 +34,8 @@ export const useCreateEmployee = () => {
   return useMutation({
     mutationFn: (data: CreateEmployeeRequest) => employeeService.createEmployee(data),
     onSuccess: () => {
-      // Invalidate employee lists to refetch data
-      queryClient.invalidateQueries({ queryKey: ['employees'] });
-      queryClient.invalidateQueries({ queryKey: ['employee-stats'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.employees.list(1, 10) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.employees.stats });
     },
   });
 };
@@ -47,12 +46,45 @@ export const useUpdateEmployee = () => {
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: UpdateEmployeeRequest }) =>
       employeeService.updateEmployee(id, data),
-    onSuccess: (updatedEmployee) => {
-      // Invalidate employee lists to refetch data
-      queryClient.invalidateQueries({ queryKey: ['employees'] });
-      queryClient.invalidateQueries({ queryKey: ['employee-stats'] });
-      // Invalidate the specific employee detail
-      queryClient.invalidateQueries({ queryKey: ['employee', updatedEmployee.id] });
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.employees.detail(id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.employees.list(1, 10) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.employees.stats });
+    },
+  });
+};
+
+export const useResignEmployee = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => employeeService.resignEmployee(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.employees.list(1, 10) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.employees.stats });
+    },
+  });
+};
+
+export const useBulkImportEmployees = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (file: File) => employeeService.bulkImportEmployees(file),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.employees.list(1, 10) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.employees.stats });
+    },
+  });
+};
+
+export const useUpdateCurrentUserProfile = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: UpdateEmployeeRequest) => employeeService.updateCurrentUserProfile(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.employees.currentProfile });
     },
   });
 };

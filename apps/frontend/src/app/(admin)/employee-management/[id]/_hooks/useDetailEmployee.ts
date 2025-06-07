@@ -8,6 +8,28 @@ import {
 } from '@/api/mutations/document.mutations';
 import { toast } from 'sonner';
 import type { Document } from '@/services/document.service';
+import { EmployeeService } from '@/services/employee.service';
+
+function debounce<T extends (...args: any[]) => any>(func: T, delay: number): T {
+  let timeoutId: NodeJS.Timeout;
+  return ((...args: any[]) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => func(...args), delay);
+  }) as T;
+}
+
+interface ValidationState {
+  isValidating: boolean;
+  isValid: boolean | null;
+  message: string;
+}
+
+// Validation regex patterns
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_REGEX = /^\+[1-9]\d{8,14}$/;
+const NIK_REGEX = /^\d{16}$/;
+
+const employeeService = new EmployeeService();
 
 export interface ClientDocument {
   name: string;
@@ -62,6 +84,249 @@ export function useDetailEmployee(employeeId: number) {
   const [bankAccountHolder, setBankAccountHolder] = useState('');
   const [bankAccountNumber, setBankAccountNumber] = useState('');
   const [editBank, setEditBank] = useState(false);
+
+  // Validation states
+  const [validationStates, setValidationStates] = useState({
+    email: { isValidating: false, isValid: null, message: '' },
+    nik: { isValidating: false, isValid: null, message: '' },
+    employee_code: { isValidating: false, isValid: null, message: '' },
+    phone: { isValidating: false, isValid: null, message: '' },
+  });
+
+  // Validation functions
+  const validateFieldDebounced = useCallback(
+    debounce(async (field: 'email' | 'nik' | 'employee_code' | 'phone', value: string) => {
+      if (!value || value.trim() === '') {
+        setValidationStates((prev) => ({
+          ...prev,
+          [field]: { isValidating: false, isValid: null, message: '' },
+        }));
+        return;
+      }
+
+      // Format validation first
+      let formatError = '';
+      switch (field) {
+        case 'email':
+          if (!EMAIL_REGEX.test(value)) {
+            formatError = 'Please enter a valid email address';
+          }
+          break;
+        case 'nik':
+          if (!NIK_REGEX.test(value)) {
+            formatError = 'NIK must be exactly 16 digits';
+          }
+          break;
+        case 'phone':
+          if (!PHONE_REGEX.test(value)) {
+            if (!value.startsWith('+')) {
+              formatError = 'Phone number must start with country code (e.g., +62)';
+            } else if (value.length < 10) {
+              formatError = 'Phone number must be at least 10 digits total';
+            } else {
+              formatError = 'Phone number format is invalid (e.g., +628123456789)';
+            }
+          }
+          break;
+        case 'employee_code':
+          // Employee code doesn't have specific format requirements
+          break;
+      }
+
+      if (formatError) {
+        setValidationStates((prev) => ({
+          ...prev,
+          [field]: {
+            isValidating: false,
+            isValid: false,
+            message: formatError,
+          },
+        }));
+        return;
+      }
+
+      // If format is valid, start uniqueness check
+      setValidationStates((prev) => ({
+        ...prev,
+        [field]: {
+          isValidating: true,
+          isValid: null,
+          message: '',
+        },
+      }));
+
+      try {
+        // Skip uniqueness check if value is same as current employee's value
+        const currentValue = employee?.[field === 'employee_code' ? 'employee_code' : field];
+        if (currentValue === value) {
+          setValidationStates((prev) => ({
+            ...prev,
+            [field]: {
+              isValidating: false,
+              isValid: true,
+              message: '',
+            },
+          }));
+          return;
+        }
+
+        const result = await employeeService.validateUniqueField(field, value);
+        setValidationStates((prev) => ({
+          ...prev,
+          [field]: {
+            isValidating: false,
+            isValid: !result.exists,
+            message: result.exists ? result.message || `${field} already exists` : '',
+          },
+        }));
+      } catch (error) {
+        setValidationStates((prev) => ({
+          ...prev,
+          [field]: {
+            isValidating: false,
+            isValid: null,
+            message: 'Error validating field',
+          },
+        }));
+      }
+    }, 500),
+    [employee],
+  );
+
+  const validateFieldImmediate = useCallback(
+    (field: 'email' | 'nik' | 'employee_code' | 'phone', value: string) => {
+      if (!value || value.trim() === '') {
+        setValidationStates((prev) => ({
+          ...prev,
+          [field]: { isValidating: false, isValid: null, message: '' },
+        }));
+        return;
+      }
+
+      // Format validation
+      let formatError = '';
+      switch (field) {
+        case 'email':
+          if (!EMAIL_REGEX.test(value)) {
+            formatError = 'Please enter a valid email address';
+          }
+          break;
+        case 'nik':
+          if (!NIK_REGEX.test(value)) {
+            formatError = 'NIK must be exactly 16 digits';
+          }
+          break;
+        case 'phone':
+          if (!PHONE_REGEX.test(value)) {
+            if (!value.startsWith('+')) {
+              formatError = 'Phone number must start with country code (e.g., +62)';
+            } else if (value.length < 10) {
+              formatError = 'Phone number must be at least 10 digits total';
+            } else {
+              formatError = 'Phone number format is invalid (e.g., +628123456789)';
+            }
+          }
+          break;
+        case 'employee_code':
+          // Employee code doesn't have specific format requirements
+          break;
+      }
+
+      if (formatError) {
+        setValidationStates((prev) => ({
+          ...prev,
+          [field]: {
+            isValidating: false,
+            isValid: false,
+            message: formatError,
+          },
+        }));
+        return;
+      }
+
+      // If format is valid, trigger debounced validation for uniqueness
+      validateFieldDebounced(field, value);
+    },
+    [validateFieldDebounced],
+  );
+
+  const validateDateOfBirth = useCallback((value: string): boolean => {
+    if (!value) return true; // Allow empty value
+
+    const selectedDate = new Date(value);
+    const today = new Date();
+    const minDate = new Date();
+    minDate.setFullYear(today.getFullYear() - 100);
+    const minWorkAge = new Date();
+    minWorkAge.setFullYear(today.getFullYear() - 16);
+
+    if (selectedDate > today) {
+      toast.error('Date of birth cannot be in the future');
+      return false;
+    }
+    if (selectedDate < minDate) {
+      toast.error('Date of birth cannot be more than 100 years ago');
+      return false;
+    }
+    if (selectedDate > minWorkAge) {
+      toast.error('Employee must be at least 16 years old');
+      return false;
+    }
+
+    return true;
+  }, []);
+
+  const validateField = useCallback(
+    (field: 'email' | 'nik' | 'employee_code' | 'phone', value: string) => {
+      validateFieldImmediate(field, value);
+      validateFieldDebounced(field, value);
+    },
+    [validateFieldDebounced, validateFieldImmediate],
+  );
+
+  const clearValidation = useCallback((field: 'email' | 'nik' | 'employee_code' | 'phone') => {
+    setValidationStates((prev) => ({
+      ...prev,
+      [field]: { isValidating: false, isValid: null, message: '' },
+    }));
+  }, []);
+
+  const hasValidationErrors = useCallback(() => {
+    return Object.values(validationStates).some((state) => state.isValid === false);
+  }, [validationStates]);
+
+  // Validation wrapper functions
+  const setEmailWithValidation = useCallback(
+    (value: string) => {
+      setEmail(value);
+      validateField('email', value);
+    },
+    [validateField],
+  );
+
+  const setNikWithValidation = useCallback(
+    (value: string) => {
+      setNik(value);
+      validateField('nik', value);
+    },
+    [validateField],
+  );
+
+  const setEmployeeCodeWithValidation = useCallback(
+    (value: string) => {
+      setEmployeeCode(value);
+      validateField('employee_code', value);
+    },
+    [validateField],
+  );
+
+  const setPhoneWithValidation = useCallback(
+    (value: string) => {
+      setPhone(value);
+      validateField('phone', value);
+    },
+    [validateField],
+  );
 
   // Remove local document state and use API data
   const currentDocuments: ClientDocument[] = (documents || []).map((doc: Document) => ({
@@ -184,8 +449,46 @@ export function useDetailEmployee(employeeId: number) {
       setProfileImage(employee?.profile_photo_url || null);
       setProfileFile(null);
     }
+
+    // Reset form values to original employee data
+    if (employee) {
+      setEmployeeCode(employee.employee_code || '');
+      setNik(employee.nik || '');
+      setEmail(employee.email || '');
+      setPhone(employee.phone || '');
+    }
+
+    // Clear all validations
+    clearValidation('email');
+    clearValidation('nik');
+    clearValidation('employee_code');
+    clearValidation('phone');
+
     setEditJob(false);
-  }, [profileFile, employee?.profile_photo_url, setProfileImage, setProfileFile]);
+  }, [profileFile, employee, clearValidation]);
+
+  const handleCancelPersonalEdit = useCallback(() => {
+    // Reset personal form values to original employee data
+    if (employee) {
+      setFirstName(employee.first_name || '');
+      setLastName(employee.last_name || '');
+      setNik(employee.nik || '');
+      setEmail(employee.email || '');
+      setGender(employee.gender || '');
+      setPlaceOfBirth(employee.place_of_birth || '');
+      setDateOfBirth(employee.date_of_birth || '');
+      setPhone(employee.phone || '');
+      setLastEducation(employee.last_education || '');
+      setTaxStatus(employee.tax_status || '');
+    }
+
+    // Clear all validations
+    clearValidation('email');
+    clearValidation('nik');
+    clearValidation('phone');
+
+    setEditPersonal(false);
+  }, [employee, clearValidation]);
 
   const handleSaveJob = useCallback(async () => {
     if (!employee) return;
@@ -321,7 +624,7 @@ export function useDetailEmployee(employeeId: number) {
     lastName,
     setLastName,
     employeeCode,
-    setEmployeeCode,
+    setEmployeeCode: setEmployeeCodeWithValidation,
     branch,
     setBranch,
     position,
@@ -336,9 +639,9 @@ export function useDetailEmployee(employeeId: number) {
     setEditJob,
 
     nik,
-    setNik,
+    setNik: setNikWithValidation,
     email,
-    setEmail,
+    setEmail: setEmailWithValidation,
     gender,
     setGender,
     placeOfBirth,
@@ -346,7 +649,7 @@ export function useDetailEmployee(employeeId: number) {
     dateOfBirth,
     setDateOfBirth,
     phone,
-    setPhone,
+    setPhone: setPhoneWithValidation,
     address,
     setAddress,
     lastEducation,
@@ -367,6 +670,13 @@ export function useDetailEmployee(employeeId: number) {
 
     currentDocuments,
 
+    // Validation states and functions
+    validationStates,
+    validateField,
+    clearValidation,
+    hasValidationErrors,
+    validateDateOfBirth,
+
     handleProfileImageChange,
     handleAddNewDocument,
     handleDeleteDocument,
@@ -376,5 +686,6 @@ export function useDetailEmployee(employeeId: number) {
     handleSaveBank,
     handleResetPassword,
     handleCancelEdit,
+    handleCancelPersonalEdit,
   };
 }

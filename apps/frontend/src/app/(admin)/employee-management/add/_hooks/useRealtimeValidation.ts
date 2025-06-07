@@ -32,7 +32,7 @@ const employeeService = new EmployeeService();
 
 // Validation regex patterns from Zod schema
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PHONE_REGEX = /^\+[1-9]\d{1,14}$/;
+const PHONE_REGEX = /^\+[1-9]\d{8,14}$/;
 const NIK_REGEX = /^\d{16}$/;
 
 export const useRealtimeValidation = (): UseRealtimeValidationReturn => {
@@ -70,8 +70,8 @@ export const useRealtimeValidation = (): UseRealtimeValidationReturn => {
           if (!PHONE_REGEX.test(value)) {
             if (!value.startsWith('+')) {
               formatError = 'Phone number must start with country code (e.g., +62)';
-            } else if (value.length < 8) {
-              formatError = 'Phone number is too short (minimum 8 digits after country code)';
+            } else if (value.length < 10) {
+              formatError = 'Phone number must be at least 10 digits total';
             } else {
               formatError = 'Phone number format is invalid (e.g., +628123456789)';
             }
@@ -163,8 +163,8 @@ export const useRealtimeValidation = (): UseRealtimeValidationReturn => {
           if (!PHONE_REGEX.test(value)) {
             if (!value.startsWith('+')) {
               formatError = 'Phone number must start with country code (e.g., +62)';
-            } else if (value.length < 8) {
-              formatError = 'Phone number is too short (minimum 8 digits after country code)';
+            } else if (value.length < 10) {
+              formatError = 'Phone number must be at least 10 digits total';
             } else {
               formatError = 'Phone number format is invalid (e.g., +628123456789)';
             }

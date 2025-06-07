@@ -8,6 +8,17 @@ import {
 } from '@/api/mutations/document.mutations';
 import { toast } from 'sonner';
 import type { Document } from '@/services/document.service';
+import { EmployeeService } from '@/services/employee.service';
+
+const PHONE_REGEX = /^\+[1-9]\d{8,14}$/;
+
+function debounce<T extends (...args: any[]) => any>(func: T, delay: number): T {
+  let timeoutId: NodeJS.Timeout;
+  return ((...args: any[]) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => func(...args), delay);
+  }) as T;
+}
 
 export interface ClientDocument {
   name: string;
@@ -16,6 +27,15 @@ export interface ClientDocument {
   uploadedAt?: string;
   id?: number;
 }
+
+// Phone validation state interface
+interface PhoneValidationState {
+  isValidating: boolean;
+  isValid: boolean | null;
+  message: string;
+}
+
+const employeeService = new EmployeeService();
 
 export function useProfile() {
   const { data: employee, isLoading, error, isError } = useCurrentUserProfileQuery();
@@ -42,6 +62,13 @@ export function useProfile() {
   const [lastEducation, setLastEducation] = useState('');
   const [editPersonal, setEditPersonal] = useState(false);
 
+  // Phone validation state
+  const [phoneValidation, setPhoneValidation] = useState<PhoneValidationState>({
+    isValidating: false,
+    isValid: null,
+    message: '',
+  });
+
   // Bank information states
   const [bankName, setBankName] = useState('');
   const [bankAccountHolder, setBankAccountHolder] = useState('');
@@ -62,7 +89,135 @@ export function useProfile() {
     id: doc.id,
   }));
 
-  // Initialize form data when employee data is loaded
+  const validatePhoneDebounced = useCallback(
+    debounce(async (phoneNumber: string) => {
+      if (!phoneNumber || phoneNumber.trim() === '') {
+        setPhoneValidation((prev) => ({
+          ...prev,
+          isValidating: false,
+          isValid: null,
+          message: '',
+        }));
+        return;
+      }
+
+      // Check basic format first
+      if (!phoneNumber.startsWith('+')) {
+        setPhoneValidation({
+          isValidating: false,
+          isValid: false,
+          message: 'Phone number must start with country code (e.g., +62)',
+        });
+        return;
+      }
+
+      // Check minimum length (at least 10 digits total)
+      if (phoneNumber.length < 10) {
+        setPhoneValidation({
+          isValidating: false,
+          isValid: false,
+          message: 'Phone number must be at least 10 digits total',
+        });
+        return;
+      }
+
+      // Check regex pattern
+      if (!PHONE_REGEX.test(phoneNumber)) {
+        setPhoneValidation({
+          isValidating: false,
+          isValid: false,
+          message: 'Phone number format is invalid (e.g., +628123456789)',
+        });
+        return;
+      }
+
+      setPhoneValidation((prev) => ({
+        ...prev,
+        isValidating: true,
+        isValid: null,
+        message: '',
+      }));
+
+      try {
+        if (employee?.phone === phoneNumber) {
+          setPhoneValidation({
+            isValidating: false,
+            isValid: true,
+            message: '',
+          });
+          return;
+        }
+
+        const result = await employeeService.validateUniqueField('phone', phoneNumber);
+        setPhoneValidation({
+          isValidating: false,
+          isValid: !result.exists,
+          message: result.exists ? result.message || 'Phone number already exists' : '',
+        });
+      } catch (error) {
+        setPhoneValidation({
+          isValidating: false,
+          isValid: null,
+          message: 'Error validating phone number',
+        });
+      }
+    }, 500),
+    [employee?.phone],
+  );
+
+  const validatePhoneImmediate = useCallback((phoneNumber: string) => {
+    if (!phoneNumber || phoneNumber.trim() === '') {
+      setPhoneValidation({ isValidating: false, isValid: null, message: '' });
+      return;
+    }
+
+    // Check basic format first
+    if (!phoneNumber.startsWith('+')) {
+      setPhoneValidation({
+        isValidating: false,
+        isValid: false,
+        message: 'Phone number must start with country code (e.g., +62)',
+      });
+      return;
+    }
+
+    // Check minimum length (at least 10 digits total)
+    if (phoneNumber.length < 10) {
+      setPhoneValidation({
+        isValidating: false,
+        isValid: false,
+        message: 'Phone number must be at least 10 digits total',
+      });
+      return;
+    }
+
+    // Check regex pattern
+    if (!PHONE_REGEX.test(phoneNumber)) {
+      setPhoneValidation({
+        isValidating: false,
+        isValid: false,
+        message: 'Phone number format is invalid (e.g., +628123456789)',
+      });
+      return;
+    }
+
+    // If all checks pass, set to null (will be validated for uniqueness by debounced function)
+    setPhoneValidation({
+      isValidating: false,
+      isValid: null,
+      message: '',
+    });
+  }, []);
+
+  const setPhoneWithValidation = useCallback(
+    (value: string) => {
+      setPhone(value);
+      validatePhoneImmediate(value);
+      validatePhoneDebounced(value);
+    },
+    [validatePhoneImmediate, validatePhoneDebounced],
+  );
+
   useEffect(() => {
     if (employee) {
       setFirstName(employee.first_name || '');
@@ -79,8 +234,12 @@ export function useProfile() {
       setBankAccountHolder(employee.bank_account_holder_name || '');
       setBankAccountNumber(employee.bank_account_number || '');
       setProfileImage(employee.profile_photo_url || null);
+
+      if (employee.phone) {
+        validatePhoneImmediate(employee.phone);
+      }
     }
-  }, [employee]);
+  }, [employee, validatePhoneImmediate]);
 
   const handleProfileImageChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -93,7 +252,6 @@ export function useProfile() {
         };
         reader.readAsDataURL(file);
 
-        // Auto-save the profile photo
         setTimeout(async () => {
           if (employee) {
             try {
@@ -106,7 +264,6 @@ export function useProfile() {
             } catch (error) {
               console.error('Error updating profile photo:', error);
               toast.error('Failed to update profile photo. Please try again.');
-              // Reset to original image on error
               setProfileImage(employee.profile_photo_url || null);
               setProfileFile(null);
             }
@@ -127,7 +284,6 @@ export function useProfile() {
             file,
           });
           toast.success('Document uploaded successfully!');
-          // Clear the input
           e.target.value = '';
         } catch (error) {
           console.error('Error uploading document:', error);
@@ -176,18 +332,15 @@ export function useProfile() {
   }, []);
 
   const handleCancelEdit = useCallback(() => {
-    // Reset form data to original values
     if (employee) {
       setFirstName(employee.first_name || '');
       setLastName(employee.last_name || '');
-      // email and nik are readonly, so we don't reset them
       setGender(employee.gender || '');
       setPlaceOfBirth(employee.place_of_birth || '');
       setDateOfBirth(employee.date_of_birth || '');
       setPhone(employee.phone || '');
       setLastEducation(employee.last_education || '');
 
-      // Reset profile image only if there was a pending change
       if (profileFile) {
         setProfileImage(employee.profile_photo_url || null);
         setProfileFile(null);
@@ -210,7 +363,6 @@ export function useProfile() {
         last_education: lastEducation,
       };
 
-      // Add profile photo if changed
       if (profileFile) {
         updateData.photo_file = profileFile;
       }
@@ -256,42 +408,52 @@ export function useProfile() {
   }, [employee, bankName, bankAccountHolder, bankAccountNumber, updateProfileMutation]);
 
   const handleChangePassword = useCallback(() => {
-    // Basic validation: Check if new password and confirm password match
     if (newPassword !== confirmPassword) {
       toast.error('New password and confirm password do not match.');
       return;
     }
 
-    // Basic validation: Check if new password is provided
     if (!newPassword) {
       toast.error('New password cannot be empty.');
       return;
     }
 
-    // TODO: Implement password change API call
     console.log('Changing password with:', {
       currentPassword,
       newPassword,
     });
 
-    // Clear the fields after submission
     setCurrentPassword('');
     setNewPassword('');
     setConfirmPassword('');
     toast.success('Password change submitted (simulated).');
   }, [currentPassword, newPassword, confirmPassword]);
 
+  const isPersonalFormValid = useCallback(() => {
+    if (phoneValidation.isValidating) {
+      return false;
+    }
+
+    if (phoneValidation.isValid === false) {
+      return false;
+    }
+
+    if (!firstName.trim()) {
+      return false;
+    }
+
+    return true;
+  }, [phoneValidation.isValidating, phoneValidation.isValid, firstName]);
+
   return {
     // Data
     employee,
     isLoading,
-    error,
-    isError,
+    error: isError ? error : null,
     currentDocuments,
 
     // Profile image
     profileImage,
-    profileFile,
 
     // Personal information
     firstName,
@@ -310,7 +472,7 @@ export function useProfile() {
     dateOfBirth,
     setDateOfBirth,
     phone,
-    setPhone,
+    setPhone: setPhoneWithValidation,
     lastEducation,
     setLastEducation,
     editPersonal,
@@ -334,6 +496,9 @@ export function useProfile() {
     confirmPassword,
     setConfirmPassword,
 
+    // Phone validation
+    phoneValidation,
+
     // Handlers
     handleProfileImageChange,
     handleAddNewDocument,
@@ -343,5 +508,7 @@ export function useProfile() {
     handleSavePersonal,
     handleSaveBank,
     handleChangePassword,
+
+    isPersonalFormValid,
   };
 }

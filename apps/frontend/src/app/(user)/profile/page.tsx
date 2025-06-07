@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Pencil } from 'lucide-react';
+import { Pencil, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import UserDocumentList from './_components/userDocumentList';
 import { useProfile } from './_hooks/useProfile';
 
@@ -68,6 +68,9 @@ export default function ProfilePage() {
     confirmPassword,
     setConfirmPassword,
 
+    // Phone validation
+    phoneValidation,
+
     // Handlers
     handleProfileImageChange,
     handleDownloadDocument,
@@ -75,6 +78,9 @@ export default function ProfilePage() {
     handleSavePersonal,
     handleSaveBank,
     handleChangePassword,
+
+    // Form validation
+    isPersonalFormValid,
   } = useProfile();
 
   if (isLoading) {
@@ -262,17 +268,49 @@ export default function ProfilePage() {
                 <Label htmlFor='phone' className='text-slate-600 dark:text-slate-400'>
                   Phone
                 </Label>
-                <Input
-                  id='phone'
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  readOnly={!editPersonal}
-                  className={`mt-1 ${
-                    editPersonal
-                      ? 'border-slate-300 bg-white text-slate-900 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100'
-                      : 'border-slate-200 bg-slate-100 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400'
-                  }`}
-                />
+                <div className='relative'>
+                  <Input
+                    id='phone'
+                    type='tel'
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    readOnly={!editPersonal}
+                    placeholder='e.g., +628123456789'
+                    inputMode='tel'
+                    className={`mt-1 ${
+                      editPersonal
+                        ? `border-slate-300 bg-white pr-10 text-slate-900 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 ${
+                            phoneValidation.isValid === false
+                              ? 'border-red-500 focus:border-red-500'
+                              : phoneValidation.isValid === true
+                                ? 'border-green-500 focus:border-green-500'
+                                : ''
+                          }`
+                        : 'border-slate-200 bg-slate-100 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400'
+                    }`}
+                  />
+                  {editPersonal && (
+                    <div className='absolute top-1/2 right-3 -translate-y-1/2'>
+                      {phoneValidation.isValidating && (
+                        <Loader2 className='h-4 w-4 animate-spin text-blue-500' />
+                      )}
+                      {!phoneValidation.isValidating && phoneValidation.isValid === true && (
+                        <CheckCircle className='h-4 w-4 text-green-500' />
+                      )}
+                      {!phoneValidation.isValidating && phoneValidation.isValid === false && (
+                        <XCircle className='h-4 w-4 text-red-500' />
+                      )}
+                    </div>
+                  )}
+                </div>
+                {editPersonal && phoneValidation.message && (
+                  <p className='mt-1 text-sm text-red-500'>{phoneValidation.message}</p>
+                )}
+                {editPersonal && !phoneValidation.message && (
+                  <p className='mt-1 text-xs text-slate-500 dark:text-slate-400'>
+                    Phone number must start with country code (e.g., +62) and be at least 10 digits
+                  </p>
+                )}
               </div>
               <div>
                 <Label htmlFor='nik' className='text-slate-600 dark:text-slate-400'>
@@ -377,10 +415,26 @@ export default function ProfilePage() {
               <div className='text-right'>
                 <Button
                   onClick={handleSavePersonal}
-                  className='cursor-pointer bg-blue-600 text-white hover:bg-blue-700'
+                  disabled={!isPersonalFormValid()}
+                  className={`cursor-pointer text-white ${
+                    isPersonalFormValid()
+                      ? 'bg-blue-600 hover:bg-blue-700'
+                      : 'cursor-not-allowed bg-gray-400 hover:bg-gray-400'
+                  }`}
                 >
                   Save Personal Info
                 </Button>
+                {!isPersonalFormValid() && (
+                  <p className='mt-2 text-xs text-slate-500 dark:text-slate-400'>
+                    {phoneValidation.isValidating
+                      ? 'Validating phone number...'
+                      : phoneValidation.isValid === false
+                        ? 'Please fix phone number error'
+                        : !firstName.trim()
+                          ? 'First name is required'
+                          : 'Please complete all required fields'}
+                  </p>
+                )}
               </div>
             )}
           </CardContent>

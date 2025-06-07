@@ -165,48 +165,73 @@ export function useProfile() {
     [employee?.phone],
   );
 
-  const validatePhoneImmediate = useCallback((phoneNumber: string) => {
-    if (!phoneNumber || phoneNumber.trim() === '') {
-      setPhoneValidation({ isValidating: false, isValid: null, message: '' });
-      return;
+  const validatePhoneImmediate = useCallback(
+    (phoneNumber: string) => {
+      if (!phoneNumber || phoneNumber.trim() === '') {
+        setPhoneValidation({ isValidating: false, isValid: null, message: '' });
+        return;
+      }
+
+      // Check basic format first
+      if (!phoneNumber.startsWith('+')) {
+        setPhoneValidation({
+          isValidating: false,
+          isValid: false,
+          message: 'Phone number must start with country code (e.g., +62)',
+        });
+        return;
+      }
+
+      // Check minimum length (at least 10 digits total)
+      if (phoneNumber.length < 10) {
+        setPhoneValidation({
+          isValidating: false,
+          isValid: false,
+          message: 'Phone number must be at least 10 digits total',
+        });
+        return;
+      }
+
+      // Check regex pattern
+      if (!PHONE_REGEX.test(phoneNumber)) {
+        setPhoneValidation({
+          isValidating: false,
+          isValid: false,
+          message: 'Phone number format is invalid (e.g., +628123456789)',
+        });
+        return;
+      }
+
+      // If format is valid, trigger debounced validation for uniqueness
+      validatePhoneDebounced(phoneNumber);
+    },
+    [validatePhoneDebounced],
+  );
+
+  const validateDateOfBirth = useCallback((value: string): boolean => {
+    if (!value) return true; // Allow empty value
+
+    const selectedDate = new Date(value);
+    const today = new Date();
+    const minDate = new Date();
+    minDate.setFullYear(today.getFullYear() - 100);
+    const minWorkAge = new Date();
+    minWorkAge.setFullYear(today.getFullYear() - 16);
+
+    if (selectedDate > today) {
+      toast.error('Date of birth cannot be in the future');
+      return false;
+    }
+    if (selectedDate < minDate) {
+      toast.error('Date of birth cannot be more than 100 years ago');
+      return false;
+    }
+    if (selectedDate > minWorkAge) {
+      toast.error('Employee must be at least 16 years old');
+      return false;
     }
 
-    // Check basic format first
-    if (!phoneNumber.startsWith('+')) {
-      setPhoneValidation({
-        isValidating: false,
-        isValid: false,
-        message: 'Phone number must start with country code (e.g., +62)',
-      });
-      return;
-    }
-
-    // Check minimum length (at least 10 digits total)
-    if (phoneNumber.length < 10) {
-      setPhoneValidation({
-        isValidating: false,
-        isValid: false,
-        message: 'Phone number must be at least 10 digits total',
-      });
-      return;
-    }
-
-    // Check regex pattern
-    if (!PHONE_REGEX.test(phoneNumber)) {
-      setPhoneValidation({
-        isValidating: false,
-        isValid: false,
-        message: 'Phone number format is invalid (e.g., +628123456789)',
-      });
-      return;
-    }
-
-    // If all checks pass, set to null (will be validated for uniqueness by debounced function)
-    setPhoneValidation({
-      isValidating: false,
-      isValid: null,
-      message: '',
-    });
+    return true;
   }, []);
 
   const setPhoneWithValidation = useCallback(
@@ -510,5 +535,6 @@ export function useProfile() {
     handleChangePassword,
 
     isPersonalFormValid,
+    validateDateOfBirth,
   };
 }

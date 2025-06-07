@@ -61,6 +61,7 @@ interface EmployeeInformationProps {
     phone: ValidationState;
   };
   hasValidationErrors: () => boolean;
+  validateDateOfBirth: (date: string) => boolean;
 }
 
 const EmployeeInformation: React.FC<EmployeeInformationProps> = ({
@@ -100,6 +101,7 @@ const EmployeeInformation: React.FC<EmployeeInformationProps> = ({
   setLastName,
   validationStates,
   hasValidationErrors,
+  validateDateOfBirth,
 }) => {
   return (
     <div className='grid grid-cols-1 gap-6 xl:grid-cols-2'>
@@ -290,10 +292,33 @@ const EmployeeInformation: React.FC<EmployeeInformationProps> = ({
                 id='dateOfBirth'
                 type='date'
                 value={dateOfBirth}
-                onChange={(e) => setDateOfBirth(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value && editPersonal) {
+                    if (!validateDateOfBirth(value)) {
+                      return;
+                    }
+                  }
+                  setDateOfBirth(value);
+                }}
                 disabled={!editPersonal}
+                max={
+                  new Date(new Date().setFullYear(new Date().getFullYear() - 16))
+                    .toISOString()
+                    .split('T')[0]
+                }
+                min={
+                  new Date(new Date().setFullYear(new Date().getFullYear() - 100))
+                    .toISOString()
+                    .split('T')[0]
+                }
                 className='mt-1 border-slate-300 bg-slate-50 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-70 dark:border-slate-600 dark:bg-slate-800'
               />
+              {/* {editPersonal && (
+                <p className='mt-1 text-xs text-slate-500'>
+                  Employee must be valid
+                </p>
+              )} */}
             </div>
           </div>
           <div>

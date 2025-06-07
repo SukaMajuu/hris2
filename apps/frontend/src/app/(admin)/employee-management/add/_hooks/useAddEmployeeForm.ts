@@ -152,7 +152,33 @@ export function useAddEmployeeForm() {
         // Only allow numbers for bank account number
         processedValue = value.replace(/\D/g, '');
       } else if (name === 'dateOfBirth') {
-        // For date inputs, ensure the value is in correct format
+        // Validate date of birth
+        if (value) {
+          const selectedDate = new Date(value);
+          const today = new Date();
+          const minDate = new Date();
+          minDate.setFullYear(today.getFullYear() - 100); // 100 years ago
+
+          // Check if date is in the future
+          if (selectedDate > today) {
+            toast.error('Date of birth cannot be in the future');
+            return; // Don't update the value
+          }
+
+          // Check if date is too old (more than 100 years ago)
+          if (selectedDate < minDate) {
+            toast.error('Date of birth cannot be more than 100 years ago');
+            return; // Don't update the value
+          }
+
+          // Check if date is today or very recent (less than 16 years ago for work eligibility)
+          const minWorkAge = new Date();
+          minWorkAge.setFullYear(today.getFullYear() - 16);
+          if (selectedDate > minWorkAge) {
+            toast.error('Employee must be at least 16 years old');
+            return; // Don't update the value
+          }
+        }
         processedValue = value;
       }
 

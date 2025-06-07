@@ -81,6 +81,7 @@ export default function ProfilePage() {
 
     // Form validation
     isPersonalFormValid,
+    validateDateOfBirth,
   } = useProfile();
 
   if (isLoading) {
@@ -375,14 +376,41 @@ export default function ProfilePage() {
                   id='dateOfBirth'
                   type='date'
                   value={dateOfBirth}
-                  onChange={(e) => setDateOfBirth(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value && editPersonal) {
+                      if (!validateDateOfBirth(value)) {
+                        return;
+                      }
+                    }
+                    setDateOfBirth(value);
+                  }}
                   readOnly={!editPersonal}
+                  max={
+                    editPersonal
+                      ? new Date(new Date().setFullYear(new Date().getFullYear() - 16))
+                          .toISOString()
+                          .split('T')[0]
+                      : undefined
+                  }
+                  min={
+                    editPersonal
+                      ? new Date(new Date().setFullYear(new Date().getFullYear() - 100))
+                          .toISOString()
+                          .split('T')[0]
+                      : undefined
+                  }
                   className={`mt-1 ${
                     editPersonal
                       ? 'border-slate-300 bg-white text-slate-900 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100'
                       : 'border-slate-200 bg-slate-100 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400'
                   }`}
                 />
+                {/* {editPersonal && (
+                  <p className='mt-1 text-xs text-slate-500 dark:text-slate-400'>
+                    Employee must be valid
+                  </p>
+                )} */}
               </div>
               <div className='md:col-span-2'>
                 <Label htmlFor='lastEducation' className='text-slate-600 dark:text-slate-400'>

@@ -203,22 +203,16 @@ export function useDetailEmployee(employeeId: number) {
         return;
       }
 
-      // Immediate format validation
+      // Format validation
       let formatError = '';
-      let isFormatValid = false;
-
       switch (field) {
         case 'email':
-          isFormatValid = EMAIL_REGEX.test(value);
-          if (!isFormatValid) {
+          if (!EMAIL_REGEX.test(value)) {
             formatError = 'Please enter a valid email address';
           }
           break;
         case 'nik':
-          isFormatValid = NIK_REGEX.test(value);
-          if (!isFormatValid && value.length < 16) {
-            formatError = `NIK must be exactly 16 digits (${value.length}/16)`;
-          } else if (!isFormatValid) {
+          if (!NIK_REGEX.test(value)) {
             formatError = 'NIK must be exactly 16 digits';
           }
           break;
@@ -234,11 +228,11 @@ export function useDetailEmployee(employeeId: number) {
           }
           break;
         case 'employee_code':
-          isFormatValid = value.trim().length > 0;
+          // Employee code doesn't have specific format requirements
           break;
       }
 
-      if (!isFormatValid) {
+      if (formatError) {
         setValidationStates((prev) => ({
           ...prev,
           [field]: {
@@ -247,19 +241,40 @@ export function useDetailEmployee(employeeId: number) {
             message: formatError,
           },
         }));
-      } else {
-        setValidationStates((prev) => ({
-          ...prev,
-          [field]: {
-            isValidating: false,
-            isValid: null,
-            message: '',
-          },
-        }));
+        return;
       }
+
+      // If format is valid, trigger debounced validation for uniqueness
+      validateFieldDebounced(field, value);
     },
-    [],
+    [validateFieldDebounced],
   );
+
+  const validateDateOfBirth = useCallback((value: string): boolean => {
+    if (!value) return true; // Allow empty value
+
+    const selectedDate = new Date(value);
+    const today = new Date();
+    const minDate = new Date();
+    minDate.setFullYear(today.getFullYear() - 100);
+    const minWorkAge = new Date();
+    minWorkAge.setFullYear(today.getFullYear() - 16);
+
+    if (selectedDate > today) {
+      toast.error('Date of birth cannot be in the future');
+      return false;
+    }
+    if (selectedDate < minDate) {
+      toast.error('Date of birth cannot be more than 100 years ago');
+      return false;
+    }
+    if (selectedDate > minWorkAge) {
+      toast.error('Employee must be at least 16 years old');
+      return false;
+    }
+
+    return true;
+  }, []);
 
   const validateField = useCallback(
     (field: 'email' | 'nik' | 'employee_code' | 'phone', value: string) => {
@@ -660,6 +675,7 @@ export function useDetailEmployee(employeeId: number) {
     validateField,
     clearValidation,
     hasValidationErrors,
+    validateDateOfBirth,
 
     handleProfileImageChange,
     handleAddNewDocument,

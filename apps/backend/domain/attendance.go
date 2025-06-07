@@ -23,10 +23,10 @@ type Attendance struct {
 	Date           time.Time        `gorm:"type:date;not null"`
 	ClockIn        *time.Time       `gorm:"type:timestamp"`
 	ClockOut       *time.Time       `gorm:"type:timestamp"`
-	CheckInLat     *float64         `gorm:"type:float"`
-	CheckInLong    *float64         `gorm:"type:float"`
-	CheckOutLat    *float64         `gorm:"type:float"`
-	CheckOutLong   *float64         `gorm:"type:float"`
+	ClockInLat     *float64         `gorm:"type:float"`
+	ClockInLong    *float64         `gorm:"type:float"`
+	ClockOutLat    *float64         `gorm:"type:float"`
+	ClockOutLong   *float64         `gorm:"type:float"`
 	WorkHours      *float64         `gorm:"type:float"`
 	Status         AttendanceStatus `gorm:"type:attendance_status;not null;default:on_time"`
 

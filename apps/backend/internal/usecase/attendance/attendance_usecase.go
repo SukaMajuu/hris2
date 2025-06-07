@@ -167,8 +167,8 @@ func (uc *AttendanceUseCase) CheckIn(ctx context.Context, reqDTO *dtoAttendance.
 		WorkScheduleID: reqDTO.WorkScheduleID,
 		Date:           attendanceDate,
 		ClockIn:        &clockInTime,
-		CheckInLat:     &reqDTO.CheckInLat,
-		CheckInLong:    &reqDTO.CheckInLong,
+		ClockInLat:     &reqDTO.ClockInLat,
+		ClockInLong:    &reqDTO.ClockInLong,
 	} // Validate attendance day against work schedule and determine status
 	if len(workSchedule.Details) == 0 {
 		return nil, fmt.Errorf("work schedule %d has no details configured", reqDTO.WorkScheduleID)
@@ -287,8 +287,8 @@ func (uc *AttendanceUseCase) CheckOut(ctx context.Context, reqDTO *dtoAttendance
 
 	// Set clock out time and location
 	attendance.ClockOut = &clockOutTime
-	attendance.CheckOutLat = &reqDTO.CheckOutLat
-	attendance.CheckOutLong = &reqDTO.CheckOutLong
+	attendance.ClockOutLat = &reqDTO.ClockOutLat
+	attendance.ClockOutLong = &reqDTO.ClockOutLong
 	// Calculate work hours and update status based on work schedule
 	if attendance.ClockIn != nil {
 		duration := attendance.ClockOut.Sub(*attendance.ClockIn).Hours()
@@ -471,19 +471,19 @@ func (uc *AttendanceUseCase) Update(ctx context.Context, id uint, reqDTO *dtoAtt
 		}
 	}
 
-	if reqDTO.CheckInLat != nil {
-		attendance.CheckInLat = reqDTO.CheckInLat
+	if reqDTO.ClockInLat != nil {
+		attendance.ClockInLat = reqDTO.ClockInLat
 	}
-	if reqDTO.CheckInLong != nil {
-		attendance.CheckInLong = reqDTO.CheckInLong
-	}
-
-	if reqDTO.CheckOutLat != nil {
-		attendance.CheckOutLat = reqDTO.CheckOutLat
+	if reqDTO.ClockInLong != nil {
+		attendance.ClockInLong = reqDTO.ClockInLong
 	}
 
-	if reqDTO.CheckOutLong != nil {
-		attendance.CheckOutLong = reqDTO.CheckOutLong
+	if reqDTO.ClockOutLat != nil {
+		attendance.ClockOutLat = reqDTO.ClockOutLat
+	}
+
+	if reqDTO.ClockOutLong != nil {
+		attendance.ClockOutLong = reqDTO.ClockOutLong
 	}
 
 	if reqDTO.Status != nil {

@@ -623,10 +623,10 @@ func generateAttendanceByStatus(attendance domain.Attendance, date time.Time, st
 		attendance.ClockIn = &clockIn
 		attendance.ClockOut = &clockOut
 		attendance.WorkHours = &workHours
-		attendance.CheckInLat = &lat
-		attendance.CheckInLong = &long
-		attendance.CheckOutLat = &lat
-		attendance.CheckOutLong = &long
+		attendance.ClockInLat = &lat
+		attendance.ClockInLong = &long
+		attendance.ClockOutLat = &lat
+		attendance.ClockOutLong = &long
 
 	case domain.Late:
 		// Late arrival: 8:30 AM - 9:30 AM
@@ -639,10 +639,10 @@ func generateAttendanceByStatus(attendance domain.Attendance, date time.Time, st
 		attendance.ClockIn = &clockIn
 		attendance.ClockOut = &clockOut
 		attendance.WorkHours = &workHours
-		attendance.CheckInLat = &lat
-		attendance.CheckInLong = &long
-		attendance.CheckOutLat = &lat
-		attendance.CheckOutLong = &long
+		attendance.ClockInLat = &lat
+		attendance.ClockInLong = &long
+		attendance.ClockOutLat = &lat
+		attendance.ClockOutLong = &long
 
 	case domain.EarlyLeave:
 		// Early leave: Clock out between 3:00 PM - 4:30 PM
@@ -655,10 +655,10 @@ func generateAttendanceByStatus(attendance domain.Attendance, date time.Time, st
 		attendance.ClockIn = &clockIn
 		attendance.ClockOut = &clockOut
 		attendance.WorkHours = &workHours
-		attendance.CheckInLat = &lat
-		attendance.CheckInLong = &long
-		attendance.CheckOutLat = &lat
-		attendance.CheckOutLong = &long
+		attendance.ClockInLat = &lat
+		attendance.ClockInLong = &long
+		attendance.ClockOutLat = &lat
+		attendance.ClockOutLong = &long
 
 	case domain.Absent:
 		// No clock in/out data for absent

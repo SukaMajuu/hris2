@@ -17,10 +17,10 @@ type AttendanceResponseDTO struct {
 	Date           string                                   `json:"date"`
 	ClockIn        *string                                  `json:"clock_in"`
 	ClockOut       *string                                  `json:"clock_out"`
-	CheckInLat     *float64                                 `json:"check_in_lat"`
-	CheckInLong    *float64                                 `json:"check_in_long"`
-	CheckOutLat    *float64                                 `json:"check_out_lat"`
-	CheckOutLong   *float64                                 `json:"check_out_long"`
+	ClockInLat     *float64                                 `json:"clock_in_lat"`
+	ClockInLong    *float64                                 `json:"clock_in_long"`
+	ClockOutLat    *float64                                 `json:"clock_out_lat"`
+	ClockOutLong   *float64                                 `json:"clock_out_long"`
 	WorkHours      *float64                                 `json:"work_hours"`
 	Status         string                                   `json:"status"`
 	CreatedAt      time.Time                                `json:"created_at"`
@@ -48,10 +48,10 @@ func NewAttendanceResponseDTO(attendance *domain.Attendance) *AttendanceResponse
 		EmployeeID:     attendance.EmployeeID,
 		WorkScheduleID: attendance.WorkScheduleID,
 		Date:           attendance.Date.Format("2006-01-02"),
-		CheckInLat:     attendance.CheckInLat,
-		CheckInLong:    attendance.CheckInLong,
-		CheckOutLat:    attendance.CheckOutLat,
-		CheckOutLong:   attendance.CheckOutLong,
+		ClockInLat:     attendance.ClockInLat,
+		ClockInLong:    attendance.ClockInLong,
+		ClockOutLat:    attendance.ClockOutLat,
+		ClockOutLong:   attendance.ClockOutLong,
 		WorkHours:      attendance.WorkHours,
 		Status:         string(attendance.Status),
 		CreatedAt:      attendance.CreatedAt,
@@ -141,10 +141,10 @@ func NewAttendanceResponseDTOWithoutRelations(attendance *domain.Attendance) *At
 		EmployeeID:     attendance.EmployeeID,
 		WorkScheduleID: attendance.WorkScheduleID,
 		Date:           attendance.Date.Format("2006-01-02"),
-		CheckInLat:     attendance.CheckInLat,
-		CheckInLong:    attendance.CheckInLong,
-		CheckOutLat:    attendance.CheckOutLat,
-		CheckOutLong:   attendance.CheckOutLong,
+		ClockInLat:     attendance.ClockInLat,
+		ClockInLong:    attendance.ClockInLong,
+		ClockOutLat:    attendance.ClockOutLat,
+		ClockOutLong:   attendance.ClockOutLong,
 		WorkHours:      attendance.WorkHours,
 		Status:         string(attendance.Status),
 		CreatedAt:      attendance.CreatedAt,

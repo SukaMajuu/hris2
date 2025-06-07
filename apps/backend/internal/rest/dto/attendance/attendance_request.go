@@ -21,10 +21,10 @@ type CreateAttendanceRequestDTO struct {
 	Date           string   `json:"date" binding:"required"`
 	ClockIn        *string  `json:"clock_in" binding:"omitempty"`
 	ClockOut       *string  `json:"clock_out" binding:"omitempty"`
-	CheckInLat     *float64 `json:"check_in_lat" binding:"omitempty"`
-	CheckInLong    *float64 `json:"check_in_long" binding:"omitempty"`
-	CheckOutLat    *float64 `json:"check_out_lat" binding:"omitempty"`
-	CheckOutLong   *float64 `json:"check_out_long" binding:"omitempty"`
+	ClockInLat     *float64 `json:"clock_in_lat" binding:"omitempty"`
+	ClockInLong    *float64 `json:"clock_in_long" binding:"omitempty"`
+	ClockOutLat    *float64 `json:"clock_out_lat" binding:"omitempty"`
+	ClockOutLong   *float64 `json:"clock_out_long" binding:"omitempty"`
 	Status         *string  `json:"status" binding:"omitempty,oneof=on_time late early_leave absent leave"`
 }
 
@@ -33,10 +33,10 @@ type UpdateAttendanceRequestDTO struct {
 	Date           *string  `json:"date" binding:"omitempty"`
 	ClockIn        *string  `json:"clock_in" binding:"omitempty"`
 	ClockOut       *string  `json:"clock_out" binding:"omitempty"`
-	CheckInLat     *float64 `json:"check_in_lat" binding:"omitempty"`
-	CheckInLong    *float64 `json:"check_in_long" binding:"omitempty"`
-	CheckOutLat    *float64 `json:"check_out_lat" binding:"omitempty"`
-	CheckOutLong   *float64 `json:"check_out_long" binding:"omitempty"`
+	ClockInLat     *float64 `json:"clock_in_lat" binding:"omitempty"`
+	ClockInLong    *float64 `json:"clock_in_long" binding:"omitempty"`
+	ClockOutLat    *float64 `json:"clock_out_lat" binding:"omitempty"`
+	ClockOutLong   *float64 `json:"clock_out_long" binding:"omitempty"`
 	WorkHours      *float64 `json:"work_hours" binding:"omitempty"`
 	Status         *string  `json:"status" binding:"omitempty,oneof=on_time late early_leave absent leave"`
 }
@@ -46,26 +46,26 @@ type CheckInRequestDTO struct {
 	WorkScheduleID uint    `json:"work_schedule_id" binding:"required"`
 	Date           string  `json:"date" binding:"omitempty"`
 	ClockIn        string  `json:"clock_in" binding:"omitempty"`
-	CheckInLat     float64 `json:"check_in_lat" binding:"required"`
-	CheckInLong    float64 `json:"check_in_long" binding:"required"`
+	ClockInLat     float64 `json:"clock_in_lat" binding:"required"`
+	ClockInLong    float64 `json:"clock_in_long" binding:"required"`
 }
 
 type CheckOutRequestDTO struct {
 	EmployeeID   uint    `json:"employee_id" binding:"required"`
 	Date         string  `json:"date" binding:"omitempty"`
 	ClockOut     string  `json:"clock_out" binding:"omitempty"`
-	CheckOutLat  float64 `json:"check_out_lat" binding:"required"`
-	CheckOutLong float64 `json:"check_out_long" binding:"required"`
+	ClockOutLat  float64 `json:"clock_out_lat" binding:"required"`
+	ClockOutLong float64 `json:"clock_out_long" binding:"required"`
 }
 
 func (dto *CreateAttendanceRequestDTO) ToDomainAttendance() *domain.Attendance {
 	attendance := &domain.Attendance{
 		EmployeeID:     dto.EmployeeID,
 		WorkScheduleID: dto.WorkScheduleID,
-		CheckInLat:     dto.CheckInLat,
-		CheckInLong:    dto.CheckInLong,
-		CheckOutLat:    dto.CheckOutLat,
-		CheckOutLong:   dto.CheckOutLong,
+		ClockInLat:     dto.ClockInLat,
+		ClockInLong:    dto.ClockInLong,
+		ClockOutLat:    dto.ClockOutLat,
+		ClockOutLong:   dto.ClockOutLong,
 	}
 
 	// Parse date

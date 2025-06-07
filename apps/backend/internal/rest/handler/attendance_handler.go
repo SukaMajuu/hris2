@@ -39,15 +39,15 @@ func (h *AttendanceHandler) CreateAttendance(c *gin.Context) {
 	response.Success(c, http.StatusCreated, "Attendance created successfully", attendance)
 }
 
-func (h *AttendanceHandler) CheckIn(c *gin.Context) {
-	var reqDTO attendanceDTO.CheckInRequestDTO
+func (h *AttendanceHandler) ClockIn(c *gin.Context) {
+	var reqDTO attendanceDTO.ClockInRequestDTO
 
 	if err := c.ShouldBindJSON(&reqDTO); err != nil {
 		response.BadRequest(c, "Invalid request format", err)
 		return
 	}
 
-	attendance, err := h.attendanceUseCase.CheckIn(c.Request.Context(), &reqDTO)
+	attendance, err := h.attendanceUseCase.ClockIn(c.Request.Context(), &reqDTO)
 	if err != nil {
 		response.InternalServerError(c, fmt.Errorf("failed to check in: %w", err))
 		return
@@ -56,15 +56,15 @@ func (h *AttendanceHandler) CheckIn(c *gin.Context) {
 	response.Success(c, http.StatusCreated, "Check-in successful", attendance)
 }
 
-func (h *AttendanceHandler) CheckOut(c *gin.Context) {
-	var reqDTO attendanceDTO.CheckOutRequestDTO
+func (h *AttendanceHandler) ClockOut(c *gin.Context) {
+	var reqDTO attendanceDTO.ClockOutRequestDTO
 
 	if err := c.ShouldBindJSON(&reqDTO); err != nil {
 		response.BadRequest(c, "Invalid request format", err)
 		return
 	}
 
-	attendance, err := h.attendanceUseCase.CheckOut(c.Request.Context(), &reqDTO)
+	attendance, err := h.attendanceUseCase.ClockOut(c.Request.Context(), &reqDTO)
 	if err != nil {
 		response.InternalServerError(c, fmt.Errorf("failed to check out: %w", err))
 		return

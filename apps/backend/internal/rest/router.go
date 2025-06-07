@@ -130,8 +130,8 @@ func (r *Router) Setup() *gin.Engine {
 				attendances.GET("/:id", r.attendanceHandler.GetAttendanceByID)
 				attendances.PUT("/:id", r.attendanceHandler.UpdateAttendance)
 				attendances.DELETE("/:id", r.attendanceHandler.DeleteAttendance)
-				attendances.POST("/check-in", r.attendanceHandler.CheckIn)
-				attendances.POST("/check-out", r.attendanceHandler.CheckOut)
+				attendances.POST("/clock-in", r.attendanceHandler.ClockIn)
+				attendances.POST("/clock-out", r.attendanceHandler.ClockOut)
 				attendances.GET("/employees/:employee_id", r.attendanceHandler.ListAttendancesByEmployee)
 			}
 

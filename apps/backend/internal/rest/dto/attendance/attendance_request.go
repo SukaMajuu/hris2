@@ -41,7 +41,7 @@ type UpdateAttendanceRequestDTO struct {
 	Status         *string  `json:"status" binding:"omitempty,oneof=on_time late early_leave absent leave"`
 }
 
-type CheckInRequestDTO struct {
+type ClockInRequestDTO struct {
 	EmployeeID     uint    `json:"employee_id" binding:"required"`
 	WorkScheduleID uint    `json:"work_schedule_id" binding:"required"`
 	Date           string  `json:"date" binding:"omitempty"`
@@ -50,7 +50,7 @@ type CheckInRequestDTO struct {
 	ClockInLong    float64 `json:"clock_in_long" binding:"required"`
 }
 
-type CheckOutRequestDTO struct {
+type ClockOutRequestDTO struct {
 	EmployeeID   uint    `json:"employee_id" binding:"required"`
 	Date         string  `json:"date" binding:"omitempty"`
 	ClockOut     string  `json:"clock_out" binding:"omitempty"`

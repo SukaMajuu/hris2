@@ -89,7 +89,7 @@ func (uc *AttendanceUseCase) Create(ctx context.Context, reqDTO *dtoAttendance.C
 	return responseAttendance.ToAttendanceResponseDTO(createdAttendance), nil
 }
 
-func (uc *AttendanceUseCase) CheckIn(ctx context.Context, reqDTO *dtoAttendance.CheckInRequestDTO) (*responseAttendance.AttendanceResponseDTO, error) {
+func (uc *AttendanceUseCase) ClockIn(ctx context.Context, reqDTO *dtoAttendance.ClockInRequestDTO) (*responseAttendance.AttendanceResponseDTO, error) {
 	// Validate employee exists
 	_, err := uc.employeeRepo.GetByID(ctx, reqDTO.EmployeeID)
 	if err != nil {
@@ -169,7 +169,7 @@ func (uc *AttendanceUseCase) CheckIn(ctx context.Context, reqDTO *dtoAttendance.
 		ClockIn:        &clockInTime,
 		ClockInLat:     &reqDTO.ClockInLat,
 		ClockInLong:    &reqDTO.ClockInLong,
-	} // Validate attendance day against work schedule and determine status
+	}
 	if len(workSchedule.Details) == 0 {
 		return nil, fmt.Errorf("work schedule %d has no details configured", reqDTO.WorkScheduleID)
 	}
@@ -212,7 +212,7 @@ func (uc *AttendanceUseCase) CheckIn(ctx context.Context, reqDTO *dtoAttendance.
 	return responseAttendance.ToAttendanceResponseDTO(createdAttendance), nil
 }
 
-func (uc *AttendanceUseCase) CheckOut(ctx context.Context, reqDTO *dtoAttendance.CheckOutRequestDTO) (*responseAttendance.AttendanceResponseDTO, error) {
+func (uc *AttendanceUseCase) ClockOut(ctx context.Context, reqDTO *dtoAttendance.ClockOutRequestDTO) (*responseAttendance.AttendanceResponseDTO, error) {
 	// Validate employee exists
 	_, err := uc.employeeRepo.GetByID(ctx, reqDTO.EmployeeID)
 	if err != nil {

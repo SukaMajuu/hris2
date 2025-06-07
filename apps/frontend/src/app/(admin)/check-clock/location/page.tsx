@@ -65,7 +65,7 @@ export default function LocationPage() {
 					const pageSize = serverPagination.pageSize;
 					return (currentPage - 1) * pageSize + row.index + 1;
 				},
-				meta: { className: "max-w-[80px]" },
+				meta: { className: "max-w-[80px] w-[80px]" },
 			},
 			{
 				header: "Location Name",
@@ -153,7 +153,9 @@ export default function LocationPage() {
 	return (
 		<div>
 			<Card className="mb-6 border border-gray-100 dark:border-gray-800">
-				<CardContent>					<header className="flex flex-col justify-between items-start gap-4 mb-6">
+				<CardContent>
+					{" "}
+					<header className="flex flex-col justify-between items-start gap-4 mb-6">
 						<div className="flex flex-row flex-wrap gap-4 justify-between items-center w-full">
 							<h2 className="text-xl font-semibold">Location</h2>
 							<div className="flex gap-2 flex-wrap">
@@ -166,7 +168,9 @@ export default function LocationPage() {
 								</Button>
 							</div>
 						</div>
-						<div className="flex flex-wrap gap-2 w-full md:w-[400px]">							<div className="relative flex-[1]">
+						<div className="flex flex-wrap gap-2 w-full md:w-[400px]">
+							{" "}
+							<div className="relative flex-[1]">
 								<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
 								<Input
 									value={filters.name || ""}
@@ -181,10 +185,12 @@ export default function LocationPage() {
 								/>
 							</div>
 							<Button
-								variant={isFilterVisible ? "default" : "outline"}
+								variant={
+									isFilterVisible ? "default" : "outline"
+								}
 								className={`gap-2 ${
-									isFilterVisible 
-										? "bg-[#6B9AC4] hover:bg-[#5A89B3]" 
+									isFilterVisible
+										? "bg-[#6B9AC4] hover:bg-[#5A89B3]"
 										: "hover:bg-[#5A89B3] hover:text-white"
 								}`}
 								onClick={handleToggleFilterVisibility}
@@ -193,7 +199,8 @@ export default function LocationPage() {
 								Filter
 							</Button>
 						</div>
-					</header>					{/* Filter Component */}
+					</header>{" "}
+					{/* Filter Component */}
 					{isFilterVisible && (
 						<div className="mb-6">
 							<LocationFilter
@@ -204,7 +211,6 @@ export default function LocationPage() {
 							/>
 						</div>
 					)}
-
 					{isLoading ? (
 						<div className="flex justify-center items-center py-8">
 							<div className="text-gray-500">
@@ -220,7 +226,6 @@ export default function LocationPage() {
 					) : (
 						<DataTable table={table} />
 					)}
-
 					<footer className="flex flex-col md:flex-row items-center justify-between mt-4 gap-4">
 						<PageSizeComponent table={table} />
 						<PaginationComponent table={table} />

@@ -2,6 +2,7 @@ package employee
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
@@ -23,7 +24,7 @@ func (r *PostgresRepository) Create(ctx context.Context, employee *domain.Employ
 
 func (r *PostgresRepository) GetByID(ctx context.Context, id uint) (*domain.Employee, error) {
 	var employee domain.Employee
-	err := r.db.WithContext(ctx).Preload("User").First(&employee, id).Error
+	err := r.db.WithContext(ctx).Preload("User").Preload("WorkSchedule").First(&employee, id).Error
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +33,7 @@ func (r *PostgresRepository) GetByID(ctx context.Context, id uint) (*domain.Empl
 
 func (r *PostgresRepository) GetByUserID(ctx context.Context, userID uint) (*domain.Employee, error) {
 	var employee domain.Employee
-	err := r.db.WithContext(ctx).Where("user_id = ?", userID).Preload("User").First(&employee).Error
+	err := r.db.WithContext(ctx).Where("user_id = ?", userID).Preload("User").Preload("WorkSchedule").First(&employee).Error
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +59,47 @@ func (r *PostgresRepository) GetByNIK(ctx context.Context, nik string) (*domain.
 }
 
 func (r *PostgresRepository) Update(ctx context.Context, employee *domain.Employee) error {
-	return r.db.WithContext(ctx).Save(employee).Error
+	// Create a map of values to update to bypass GORM's change tracking
+	updateMap := map[string]interface{}{
+		"user_id":                  employee.UserID,
+		"first_name":               employee.FirstName,
+		"last_name":                employee.LastName,
+		"employee_code":            employee.EmployeeCode,
+		"branch":                   employee.Branch,
+		"gender":                   employee.Gender,
+		"nik":                      employee.NIK,
+		"place_of_birth":           employee.PlaceOfBirth,
+		"date_of_birth":            employee.DateOfBirth,
+		"last_education":           employee.LastEducation,
+		"grade":                    employee.Grade,
+		"contract_type":            employee.ContractType,
+		"position_name":            employee.PositionName,
+		"employment_status":        employee.EmploymentStatus,
+		"resignation_date":         employee.ResignationDate,
+		"hire_date":                employee.HireDate,
+		"bank_name":                employee.BankName,
+		"bank_account_number":      employee.BankAccountNumber,
+		"bank_account_holder_name": employee.BankAccountHolderName,
+		"tax_status":               employee.TaxStatus,
+		"profile_photo_url":        employee.ProfilePhotoURL,
+		"work_schedule_id":         employee.WorkScheduleID,
+		"annual_leave_allowance":   employee.AnnualLeaveAllowance,
+		"manager_id":               employee.ManagerID,
+		"updated_at":               time.Now(),
+	}
+
+	// Log the WorkScheduleID value being updated
+	log.Printf("PostgresRepository: Updating employee ID %d with WorkScheduleID: %v", employee.ID, employee.WorkScheduleID)
+
+	result := r.db.WithContext(ctx).Model(&domain.Employee{}).Where("id = ?", employee.ID).Updates(updateMap)
+	if result.Error != nil {
+		return result.Error
+	}
+
+	// Log the number of affected rows for debugging
+	log.Printf("PostgresRepository: Update affected %d rows for employee ID %d", result.RowsAffected, employee.ID)
+
+	return nil
 }
 
 func (r *PostgresRepository) Delete(ctx context.Context, id uint) error {
@@ -99,7 +140,7 @@ func (r *PostgresRepository) List(ctx context.Context, filters map[string]interf
 	}
 
 	offset := (pagination.Page - 1) * pagination.PageSize
-	if err := query.Offset(offset).Limit(pagination.PageSize).Order("employees.id ASC").Preload("User").Find(&employees).Error; err != nil {
+	if err := query.Offset(offset).Limit(pagination.PageSize).Order("employees.id ASC").Preload("User").Preload("WorkSchedule").Find(&employees).Error; err != nil {
 		return nil, 0, err
 	}
 

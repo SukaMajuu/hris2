@@ -163,12 +163,11 @@ func (uc *AttendanceUseCase) ClockIn(ctx context.Context, reqDTO *dtoAttendance.
 	// TODO: Validate location coordinates if provided (requires Location validation logic)
 
 	attendance := &domain.Attendance{
-		EmployeeID:     reqDTO.EmployeeID,
-		WorkScheduleID: reqDTO.WorkScheduleID,
-		Date:           attendanceDate,
-		ClockIn:        &clockInTime,
-		ClockInLat:     &reqDTO.ClockInLat,
-		ClockInLong:    &reqDTO.ClockInLong,
+		EmployeeID:  reqDTO.EmployeeID,
+		Date:        attendanceDate,
+		ClockIn:     &clockInTime,
+		ClockInLat:  &reqDTO.ClockInLat,
+		ClockInLong: &reqDTO.ClockInLong,
 	}
 	if len(workSchedule.Details) == 0 {
 		return nil, fmt.Errorf("work schedule %d has no details configured", reqDTO.WorkScheduleID)
@@ -295,7 +294,7 @@ func (uc *AttendanceUseCase) ClockOut(ctx context.Context, reqDTO *dtoAttendance
 		attendance.WorkHours = &duration
 
 		// Check for early leave based on work schedule
-		workSchedule, wsErr := uc.workScheduleRepo.GetByIDWithDetails(ctx, attendance.WorkScheduleID)
+		workSchedule, wsErr := uc.workScheduleRepo.GetByIDWithDetails(ctx, *attendance.Employee.WorkScheduleID)
 		if wsErr != nil {
 			return nil, fmt.Errorf("failed to get work schedule for early leave check: %w", wsErr)
 		}
@@ -317,7 +316,7 @@ func (uc *AttendanceUseCase) ClockOut(ctx context.Context, reqDTO *dtoAttendance
 
 				// Set early_leave if checkout is before minimum checkout time AND current status allows it
 				if clockOutTime.Before(minCheckoutTime) {
-					if attendance.Status != domain.Absent && attendance.Status != domain.Leave {
+					if attendance.Status != domain.Absent {
 						attendance.Status = domain.EarlyLeave
 					}
 				}
@@ -431,7 +430,7 @@ func (uc *AttendanceUseCase) Update(ctx context.Context, id uint, reqDTO *dtoAtt
 			}
 			return nil, fmt.Errorf("failed to validate work schedule: %w", err)
 		}
-		attendance.WorkScheduleID = *reqDTO.WorkScheduleID
+		attendance.Employee.WorkScheduleID = reqDTO.WorkScheduleID
 	}
 
 	if reqDTO.Date != nil {

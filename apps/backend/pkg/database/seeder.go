@@ -486,22 +486,16 @@ func seedDemoEmployees(db *gorm.DB) error {
 		}
 
 		demo.Employee.UserID = demo.User.ID
+		demo.Employee.WorkScheduleID = &standardSchedule.ID
 		if err := db.Create(&demo.Employee).Error; err != nil {
 			_ = db.Delete(&demo.User)
 			return fmt.Errorf("failed to seed demo employee for %s: %w", demo.User.Email, err)
 		}
 
-		// Create checkclock settings for each demo employee
-		checkclockSetting := domain.CheckclockSettings{
-			EmployeeID:     demo.Employee.ID,
-			WorkScheduleID: standardSchedule.ID,
-		}
-		if err := db.Create(&checkclockSetting).Error; err != nil {
-			log.Printf("Warning: failed to create checkclock setting for %s: %v", demo.User.Email, err)
-		}
+		log.Printf("Successfully created demo employee: %s", demo.User.Email)
 	}
 
-	log.Println("Successfully seeded Demo Employees and Checkclock Settings.")
+	log.Println("Successfully seeded Demo Employees.")
 	return nil
 }
 
@@ -513,54 +507,34 @@ func seedAttendances(db *gorm.DB) error {
 		return nil
 	}
 
-	// Get all demo employees
+	// Get all demo employees with their work schedules
 	var employees []domain.Employee
-	db.Where("first_name IN ?", []string{"John", "Jane", "Mike"}).Find(&employees)
+	db.Preload("WorkSchedule").Where("first_name IN ?", []string{"John", "Jane", "Mike"}).Find(&employees)
 
 	if len(employees) == 0 {
 		log.Println("No demo employees found. Skipping attendance seeding.")
 		return nil
 	}
 
-	// Get work schedules for each employee from checkclock settings
-	var checkclockSettings []domain.CheckclockSettings
-	employeeIDs := make([]uint, len(employees))
-	for i, emp := range employees {
-		employeeIDs[i] = emp.ID
-	}
-	db.Where("employee_id IN ?", employeeIDs).Find(&checkclockSettings)
-
-	if len(checkclockSettings) == 0 {
-		log.Println("No checkclock settings found. Skipping attendance seeding.")
-		return nil
-	}
-
 	now := time.Now()
 	var attendances []domain.Attendance
 
-	// Define all attendance statuses to showcase
+	// Define all attendance statuses to showcase (without Leave)
 	allStatuses := []domain.AttendanceStatus{
 		domain.OnTime,
 		domain.OnTime, // More on-time records
 		domain.Late,
 		domain.EarlyLeave,
 		domain.Absent,
-		domain.Leave,
 		domain.OnTime, // More on-time records
 		domain.Late,
+		domain.OnTime,
 	}
 
 	for _, employee := range employees {
-		// Find the work schedule for this employee
-		var workScheduleID uint
-		for _, setting := range checkclockSettings {
-			if setting.EmployeeID == employee.ID {
-				workScheduleID = setting.WorkScheduleID
-				break
-			}
-		}
-
-		if workScheduleID == 0 {
+		// Skip if employee doesn't have a work schedule
+		if employee.WorkSchedule == nil {
+			log.Printf("Employee %s doesn't have a work schedule, skipping attendance seeding", employee.FirstName)
 			continue
 		}
 
@@ -579,7 +553,6 @@ func seedAttendances(db *gorm.DB) error {
 
 			var attendance domain.Attendance
 			attendance.EmployeeID = employee.ID
-			attendance.WorkScheduleID = workScheduleID
 			attendance.Date = date
 
 			// Assign status based on predefined pattern
@@ -662,10 +635,6 @@ func generateAttendanceByStatus(attendance domain.Attendance, date time.Time, st
 
 	case domain.Absent:
 		// No clock in/out data for absent
-		break
-
-	case domain.Leave:
-		// No clock in/out data for leave
 		break
 	}
 

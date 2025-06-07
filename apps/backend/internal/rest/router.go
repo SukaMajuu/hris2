@@ -5,7 +5,6 @@ import (
 	"github.com/SukaMajuu/hris/apps/backend/internal/rest/middleware"
 	attendance "github.com/SukaMajuu/hris/apps/backend/internal/usecase/attendance"
 	auth "github.com/SukaMajuu/hris/apps/backend/internal/usecase/auth"
-	checkclocksettingsusecase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/checkclock_settings"
 	document "github.com/SukaMajuu/hris/apps/backend/internal/usecase/document"
 	employee "github.com/SukaMajuu/hris/apps/backend/internal/usecase/employee"
 	"github.com/SukaMajuu/hris/apps/backend/internal/usecase/leave_request"
@@ -18,16 +17,15 @@ import (
 )
 
 type Router struct {
-	authHandler               *handler.AuthHandler
-	locationHandler           *handler.LocationHandler
-	authMiddleware            *middleware.AuthMiddleware
-	employeeHandler           *handler.EmployeeHandler
-	workScheduleHandler       *handler.WorkScheduleHandler
-	checkclockSettingsHandler *handler.CheckclockSettingsHandler
-	subscriptionHandler       *handler.SubscriptionHandler
-	documentHandler           *handler.DocumentHandler
-	leaveRequestHandler       *handler.LeaveRequestHandler
-	attendanceHandler         *handler.AttendanceHandler
+	authHandler         *handler.AuthHandler
+	locationHandler     *handler.LocationHandler
+	authMiddleware      *middleware.AuthMiddleware
+	employeeHandler     *handler.EmployeeHandler
+	workScheduleHandler *handler.WorkScheduleHandler
+	subscriptionHandler *handler.SubscriptionHandler
+	documentHandler     *handler.DocumentHandler
+	leaveRequestHandler *handler.LeaveRequestHandler
+	attendanceHandler   *handler.AttendanceHandler
 }
 
 func NewRouter(
@@ -35,23 +33,21 @@ func NewRouter(
 	employeeUseCase *employee.EmployeeUseCase,
 	locationUseCase *location.LocationUseCase,
 	workScheduleUseCase *work_Schedule.WorkScheduleUseCase,
-	checkclockSettingsUseCase *checkclocksettingsusecase.CheckclockSettingsUseCase,
 	subscriptionUseCase *subscription.SubscriptionUseCase,
 	documentUseCase *document.DocumentUseCase,
 	leaveRequestUseCase *leave_request.LeaveRequestUseCase,
 	attendanceUseCase *attendance.AttendanceUseCase,
 ) *Router {
 	return &Router{
-		authHandler:               handler.NewAuthHandler(authUseCase),
-		authMiddleware:            middleware.NewAuthMiddleware(authUseCase, employeeUseCase),
-		employeeHandler:           handler.NewEmployeeHandler(employeeUseCase),
-		locationHandler:           handler.NewLocationHandler(locationUseCase),
-		workScheduleHandler:       handler.NewWorkScheduleHandler(workScheduleUseCase),
-		checkclockSettingsHandler: handler.NewCheckclockSettingsHandler(checkclockSettingsUseCase),
-		subscriptionHandler:       handler.NewSubscriptionHandler(subscriptionUseCase),
-		documentHandler:           handler.NewDocumentHandler(documentUseCase),
-		leaveRequestHandler:       handler.NewLeaveRequestHandler(leaveRequestUseCase),
-		attendanceHandler:         handler.NewAttendanceHandler(attendanceUseCase),
+		authHandler:         handler.NewAuthHandler(authUseCase),
+		authMiddleware:      middleware.NewAuthMiddleware(authUseCase, employeeUseCase),
+		employeeHandler:     handler.NewEmployeeHandler(employeeUseCase),
+		locationHandler:     handler.NewLocationHandler(locationUseCase),
+		workScheduleHandler: handler.NewWorkScheduleHandler(workScheduleUseCase),
+		subscriptionHandler: handler.NewSubscriptionHandler(subscriptionUseCase),
+		documentHandler:     handler.NewDocumentHandler(documentUseCase),
+		leaveRequestHandler: handler.NewLeaveRequestHandler(leaveRequestUseCase),
+		attendanceHandler:   handler.NewAttendanceHandler(attendanceUseCase),
 	}
 }
 
@@ -133,16 +129,6 @@ func (r *Router) Setup() *gin.Engine {
 				attendances.POST("/clock-in", r.attendanceHandler.ClockIn)
 				attendances.POST("/clock-out", r.attendanceHandler.ClockOut)
 				attendances.GET("/employees/:employee_id", r.attendanceHandler.ListAttendancesByEmployee)
-			}
-
-			checkclockSettings := api.Group("/checkclock-settings")
-			{
-				checkclockSettings.POST("", r.checkclockSettingsHandler.CreateCheckclockSettings)
-				checkclockSettings.GET("/", r.checkclockSettingsHandler.GetAllCheckclockSettings)
-				checkclockSettings.GET("/:id", r.checkclockSettingsHandler.GetCheckclockSettingsByID)
-				checkclockSettings.GET("/employee/:employee_id", r.checkclockSettingsHandler.GetCheckclockSettingsByEmployeeID)
-				checkclockSettings.PUT("/:id", r.checkclockSettingsHandler.UpdateCheckclockSettings)
-				checkclockSettings.DELETE("/:id", r.checkclockSettingsHandler.DeleteCheckclockSettings)
 			}
 
 			documents := api.Group("/documents")

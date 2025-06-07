@@ -46,7 +46,7 @@ func NewAttendanceResponseDTO(attendance *domain.Attendance) *AttendanceResponse
 	dto := &AttendanceResponseDTO{
 		ID:             attendance.ID,
 		EmployeeID:     attendance.EmployeeID,
-		WorkScheduleID: attendance.WorkScheduleID,
+		WorkScheduleID: *attendance.Employee.WorkScheduleID,
 		Date:           attendance.Date.Format("2006-01-02"),
 		ClockInLat:     attendance.ClockInLat,
 		ClockInLong:    attendance.ClockInLong,
@@ -81,11 +81,11 @@ func NewAttendanceResponseDTO(attendance *domain.Attendance) *AttendanceResponse
 		}
 	}
 	// Add work schedule info if loaded
-	if attendance.WorkSchedule.ID != 0 {
+	if attendance.Employee.WorkScheduleID != nil {
 		dto.WorkSchedule = &workscheduledto.WorkScheduleResponseDTO{
-			ID:       attendance.WorkSchedule.ID,
-			Name:     attendance.WorkSchedule.Name,
-			WorkType: string(attendance.WorkSchedule.WorkType),
+			ID:       *attendance.Employee.WorkScheduleID,
+			Name:     attendance.Employee.WorkSchedule.Name,
+			WorkType: string(attendance.Employee.WorkSchedule.WorkType),
 		}
 	}
 
@@ -139,7 +139,7 @@ func NewAttendanceResponseDTOWithoutRelations(attendance *domain.Attendance) *At
 	dto := &AttendanceResponseDTO{
 		ID:             attendance.ID,
 		EmployeeID:     attendance.EmployeeID,
-		WorkScheduleID: attendance.WorkScheduleID,
+		WorkScheduleID: *attendance.Employee.WorkScheduleID,
 		Date:           attendance.Date.Format("2006-01-02"),
 		ClockInLat:     attendance.ClockInLat,
 		ClockInLong:    attendance.ClockInLong,
@@ -181,8 +181,6 @@ func NewAttendanceSummaryResponseDTO(attendances []*domain.Attendance) *Attendan
 			summary.LateDays++
 		case domain.Absent:
 			summary.AbsentDays++
-		case domain.Leave:
-			summary.LeaveDays++
 		case domain.EarlyLeave:
 			summary.PresentDays++ // Count early leave as present but different status
 		}
@@ -221,7 +219,6 @@ func IsValidAttendanceStatus(status string) bool {
 		string(domain.Late),
 		string(domain.EarlyLeave),
 		string(domain.Absent),
-		string(domain.Leave),
 	}
 
 	for _, validStatus := range validStatuses {
@@ -253,8 +250,6 @@ func GetStatusDisplayName(status domain.AttendanceStatus) string {
 		return "Early Leave"
 	case domain.Absent:
 		return "Absent"
-	case domain.Leave:
-		return "Leave"
 	default:
 		return "Unknown"
 	}
@@ -281,8 +276,6 @@ func GetAttendanceStatistics(attendances []*domain.Attendance) map[string]interf
 			workingDays++
 		case domain.Absent:
 			absentCount++
-		case domain.Leave:
-			leaveCount++
 		}
 
 		if attendance.WorkHours != nil {

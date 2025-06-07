@@ -90,7 +90,6 @@ func Migrate(db *gorm.DB) error {
 		&models.Location{},
 		&models.WorkSchedule{},
 		&models.WorkScheduleDetail{},
-		&models.CheckclockSettings{},
 		&models.Attendance{},
 		&models.LeaveRequest{},
 		&models.SubscriptionFeature{},

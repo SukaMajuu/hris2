@@ -60,12 +60,12 @@ type ClockOutRequestDTO struct {
 
 func (dto *CreateAttendanceRequestDTO) ToDomainAttendance() *domain.Attendance {
 	attendance := &domain.Attendance{
-		EmployeeID:     dto.EmployeeID,
-		WorkScheduleID: dto.WorkScheduleID,
-		ClockInLat:     dto.ClockInLat,
-		ClockInLong:    dto.ClockInLong,
-		ClockOutLat:    dto.ClockOutLat,
-		ClockOutLong:   dto.ClockOutLong,
+		EmployeeID:   dto.EmployeeID,
+		Employee:     domain.Employee{WorkScheduleID: &dto.WorkScheduleID},
+		ClockInLat:   dto.ClockInLat,
+		ClockInLong:  dto.ClockInLong,
+		ClockOutLat:  dto.ClockOutLat,
+		ClockOutLong: dto.ClockOutLong,
 	}
 
 	// Parse date

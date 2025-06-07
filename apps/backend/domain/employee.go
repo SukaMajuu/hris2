@@ -15,6 +15,10 @@ type Employee struct {
 	PositionName     string `gorm:"type:varchar(255)"`
 	EmploymentStatus bool   `gorm:"type:boolean;default:true;not null"`
 
+	// Work Schedule Relationship
+	WorkScheduleID *uint         `gorm:"type:uint"`
+	WorkSchedule   *WorkSchedule `gorm:"foreignKey:WorkScheduleID"`
+
 	// Annual Leave Fields
 	AnnualLeaveAllowance uint `gorm:"type:uint;default:12;not null"`
 

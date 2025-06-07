@@ -24,7 +24,7 @@ func (r *PostgresRepository) Create(ctx context.Context, employee *domain.Employ
 
 func (r *PostgresRepository) GetByID(ctx context.Context, id uint) (*domain.Employee, error) {
 	var employee domain.Employee
-	err := r.db.WithContext(ctx).Preload("User").Preload("WorkSchedule").Preload("WorkSchedule.Details").First(&employee, id).Error
+	err := r.db.WithContext(ctx).Preload("User").Preload("WorkSchedule").Preload("WorkSchedule.Details").Preload("WorkSchedule.Details.Location").First(&employee, id).Error
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +33,7 @@ func (r *PostgresRepository) GetByID(ctx context.Context, id uint) (*domain.Empl
 
 func (r *PostgresRepository) GetByUserID(ctx context.Context, userID uint) (*domain.Employee, error) {
 	var employee domain.Employee
-	err := r.db.WithContext(ctx).Where("user_id = ?", userID).Preload("User").Preload("WorkSchedule").Preload("WorkSchedule.Details").First(&employee).Error
+	err := r.db.WithContext(ctx).Where("user_id = ?", userID).Preload("User").Preload("WorkSchedule").Preload("WorkSchedule.Details").Preload("WorkSchedule.Details.Location").First(&employee).Error
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +42,7 @@ func (r *PostgresRepository) GetByUserID(ctx context.Context, userID uint) (*dom
 
 func (r *PostgresRepository) GetByEmployeeCode(ctx context.Context, employeeCode string) (*domain.Employee, error) {
 	var employee domain.Employee
-	err := r.db.WithContext(ctx).Where("employee_code = ?", employeeCode).First(&employee).Error
+	err := r.db.WithContext(ctx).Where("employee_code = ?", employeeCode).Preload("WorkSchedule.Details.Location").First(&employee).Error
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +51,7 @@ func (r *PostgresRepository) GetByEmployeeCode(ctx context.Context, employeeCode
 
 func (r *PostgresRepository) GetByNIK(ctx context.Context, nik string) (*domain.Employee, error) {
 	var employee domain.Employee
-	err := r.db.WithContext(ctx).Where("nik = ?", nik).First(&employee).Error
+	err := r.db.WithContext(ctx).Where("nik = ?", nik).Preload("WorkSchedule.Details.Location").First(&employee).Error
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +140,7 @@ func (r *PostgresRepository) List(ctx context.Context, filters map[string]interf
 	}
 
 	offset := (pagination.Page - 1) * pagination.PageSize
-	if err := query.Offset(offset).Limit(pagination.PageSize).Order("employees.id ASC").Preload("User").Preload("WorkSchedule").Preload("WorkSchedule.Details").Find(&employees).Error; err != nil {
+	if err := query.Offset(offset).Limit(pagination.PageSize).Order("employees.id ASC").Preload("User").Preload("WorkSchedule").Preload("WorkSchedule.Details").Preload("WorkSchedule.Details.Location").Find(&employees).Error; err != nil {
 		return nil, 0, err
 	}
 

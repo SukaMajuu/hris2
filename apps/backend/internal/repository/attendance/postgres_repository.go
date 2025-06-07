@@ -33,7 +33,6 @@ func (r *AttendanceRepository) GetByID(ctx context.Context, id uint) (*domain.At
 	var attendance domain.Attendance
 	if err := r.db.WithContext(ctx).
 		Preload("Employee").
-		Preload("WorkSchedule").
 		First(&attendance, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("attendance with ID %d not found: %w", id, err)
@@ -54,6 +53,7 @@ func (r *AttendanceRepository) GetByEmployeeAndDate(ctx context.Context, employe
 
 	// Use DATE() function to compare only the date part, not the full timestamp
 	if err := r.db.WithContext(ctx).
+		Preload("Employee").
 		Where("employee_id = ? AND DATE(date) = DATE(?)", employeeID, parsedDate).
 		First(&attendance).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -78,7 +78,7 @@ func (r *AttendanceRepository) ListByEmployee(ctx context.Context, employeeID ui
 
 	// Get paginated records
 	offset := (paginationParams.Page - 1) * paginationParams.PageSize
-	if err := query.Preload("Employee").Preload("WorkSchedule").Offset(offset).Limit(paginationParams.PageSize).Order("date desc, clock_in desc").Find(&attendances).Error; err != nil {
+	if err := query.Preload("Employee").Offset(offset).Limit(paginationParams.PageSize).Order("date desc, clock_in desc").Find(&attendances).Error; err != nil {
 		return nil, 0, fmt.Errorf("failed to list attendances by employee: %w", err)
 	}
 
@@ -99,7 +99,7 @@ func (r *AttendanceRepository) ListAll(ctx context.Context, paginationParams dom
 
 	// Get paginated records
 	offset := (paginationParams.Page - 1) * paginationParams.PageSize
-	if err := query.Preload("Employee").Preload("WorkSchedule").Offset(offset).Limit(paginationParams.PageSize).Order("date desc, clock_in desc").Find(&attendances).Error; err != nil {
+	if err := query.Preload("Employee").Offset(offset).Limit(paginationParams.PageSize).Order("date desc, clock_in desc").Find(&attendances).Error; err != nil {
 		return nil, 0, fmt.Errorf("failed to list all attendances: %w", err)
 	}
 
@@ -139,7 +139,6 @@ func (r *AttendanceRepository) GetByEmployeeAndDateRange(ctx context.Context, em
 	if err := r.db.WithContext(ctx).
 		Where("employee_id = ? AND DATE(date) BETWEEN DATE(?) AND DATE(?)", employeeID, startParsed, endParsed).
 		Preload("Employee").
-		Preload("WorkSchedule").
 		Order("date ASC").
 		Find(&attendances).Error; err != nil {
 		return nil, fmt.Errorf("failed to get attendance records by date range: %w", err)
@@ -165,7 +164,6 @@ func (r *AttendanceRepository) GetByDateRange(ctx context.Context, startDate, en
 	if err := r.db.WithContext(ctx).
 		Where("DATE(date) BETWEEN DATE(?) AND DATE(?)", startParsed, endParsed).
 		Preload("Employee").
-		Preload("WorkSchedule").
 		Order("date ASC, employee_id ASC").
 		Find(&attendances).Error; err != nil {
 		return nil, fmt.Errorf("failed to get attendance records by date range: %w", err)
@@ -196,7 +194,6 @@ func (r *AttendanceRepository) GetTodayAttendanceByEmployee(ctx context.Context,
 	if err := r.db.WithContext(ctx).
 		Where("employee_id = ? AND DATE(date) = DATE(?)", employeeID, today).
 		Preload("Employee").
-		Preload("WorkSchedule").
 		First(&attendance).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, gorm.ErrRecordNotFound

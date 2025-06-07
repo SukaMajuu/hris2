@@ -2,19 +2,18 @@ package main
 
 import (
 	"log"
+
 	"github.com/SukaMajuu/hris/apps/backend/internal/repository/attendance"
 	"github.com/SukaMajuu/hris/apps/backend/internal/repository/auth"
-	"github.com/SukaMajuu/hris/apps/backend/internal/repository/checkclock_settings"
 	"github.com/SukaMajuu/hris/apps/backend/internal/repository/document"
 	"github.com/SukaMajuu/hris/apps/backend/internal/repository/employee"
 	"github.com/SukaMajuu/hris/apps/backend/internal/repository/leave_request"
 	"github.com/SukaMajuu/hris/apps/backend/internal/repository/location"
 	"github.com/SukaMajuu/hris/apps/backend/internal/repository/work_schedule"
 	"github.com/SukaMajuu/hris/apps/backend/internal/repository/xendit"
-	"github.com/SukaMajuu/hris/apps/backend/internal/rest"	
+	"github.com/SukaMajuu/hris/apps/backend/internal/rest"
 	attendanceUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/attendance"
 	authUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/auth"
-	checkclockSettingsUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/checkclock_settings"
 	documentUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/document"
 	employeeUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/employee"
 	leaveRequestUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/leave_request"
@@ -53,7 +52,6 @@ func main() {
 	attendanceRepo := attendance.NewAttendanceRepository(db)
 	locationRepo := location.NewLocationRepository(db)
 	workScheduleRepo := work_schedule.NewWorkScheduleRepository(db)
-	checkclockSettingsRepo := checkclock_settings.NewCheckclockSettingsRepository(db)
 	leaveRequestRepo := leave_request.NewPostgresRepository(db)
 	xenditRepo := xendit.NewXenditRepository(db)
 	xenditClient := xenditService.NewXenditClient(&cfg.Xendit)
@@ -86,12 +84,6 @@ func main() {
 		locationRepo,
 	)
 
-	checkclockSettingsUseCase := checkclockSettingsUseCase.NewCheckclockSettingsUseCase(
-		checkclockSettingsRepo,
-		employeeRepo,
-		workScheduleRepo,
-	)
-
 	subscriptionUseCase := subscriptionUseCase.NewSubscriptionUseCase(
 		xenditRepo,
 		xenditClient,
@@ -110,7 +102,7 @@ func main() {
 		supabaseClient,
 	)
 
-	router := rest.NewRouter(authUseCase, employeeUseCase, locationUseCase, workScheduleUseCase, checkclockSettingsUseCase, subscriptionUseCase, documentUseCase, leaveRequestUseCase, attendanceUseCase)
+	router := rest.NewRouter(authUseCase, employeeUseCase, locationUseCase, workScheduleUseCase, subscriptionUseCase, documentUseCase, leaveRequestUseCase, attendanceUseCase)
 
 	ginRouter := router.Setup()
 

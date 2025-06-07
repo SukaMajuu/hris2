@@ -47,9 +47,32 @@ export const useUpdateEmployee = () => {
     mutationFn: ({ id, data }: { id: number; data: UpdateEmployeeRequest }) =>
       employeeService.updateEmployee(id, data),
     onSuccess: (_, { id }) => {
+      // Invalidate specific employee detail
       queryClient.invalidateQueries({ queryKey: queryKeys.employees.detail(id) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.employees.list(1, 10) });
+
+      // Invalidate all employee list queries (regardless of pagination/filters)
+      queryClient.invalidateQueries({
+        predicate: (query) => {
+          return Array.isArray(query.queryKey) &&
+                 query.queryKey[0] === 'employees' &&
+                 query.queryKey[1] === 'list';
+        }
+      });
+
+      // Invalidate employee stats
       queryClient.invalidateQueries({ queryKey: queryKeys.employees.stats });
+
+      // Invalidate current user profile in case it's the current user being updated
+      queryClient.invalidateQueries({ queryKey: queryKeys.employees.currentProfile });
+
+      // Invalidate check clock related queries since work schedule assignment affects them
+      queryClient.invalidateQueries({
+        predicate: (query) => {
+          return Array.isArray(query.queryKey) &&
+                 query.queryKey[0] === 'employees' &&
+                 (query.queryKey[1] === 'checkClock' || query.queryKey[1] === 'assign');
+        }
+      });
     },
   });
 };

@@ -21,26 +21,26 @@ func TestAttendanceUseCase_Create(t *testing.T) {
 	date := now.Format("2006-01-02")
 
 	lastName := "Doe"
-	mockEmployee := &domain.Employee{
-		ID:        1,
-		FirstName: "John",
-		LastName:  &lastName,
-	}
 
 	mockWorkSchedule := &domain.WorkSchedule{
 		ID:   1,
 		Name: "Standard Schedule",
 	}
 
-	mockAttendance := &domain.Attendance{
+	mockEmployee := &domain.Employee{
 		ID:             1,
-		EmployeeID:     1,
-		WorkScheduleID: 1,
-		Date:           now,
-		ClockIn:        &now,
-		Status:         domain.OnTime,
-		Employee:       *mockEmployee,
-		WorkSchedule:   *mockWorkSchedule,
+		FirstName:      "John",
+		LastName:       &lastName,
+		WorkScheduleID: &mockWorkSchedule.ID,
+	}
+
+	mockAttendance := &domain.Attendance{
+		ID:         1,
+		EmployeeID: 1,
+		Date:       now,
+		ClockIn:    &now,
+		Status:     domain.OnTime,
+		Employee:   *mockEmployee,
 	}
 
 	tests := []struct {
@@ -53,10 +53,10 @@ func TestAttendanceUseCase_Create(t *testing.T) {
 		{
 			name: "successful create attendance",
 			reqDTO: &attendance.CreateAttendanceRequestDTO{
-				EmployeeID:     1,
-				WorkScheduleID: 1,
-				Date:           date,
-				ClockIn:        &clockInTime,
+				EmployeeID: 1,
+
+				Date:    date,
+				ClockIn: &clockInTime,
 			},
 			mockSetup: func(attendanceRepo *mocks.AttendanceRepository, employeeRepo *mocks.EmployeeRepository, workScheduleRepo *mocks.WorkScheduleRepository) {
 				employeeRepo.On("GetByID", ctx, uint(1)).Return(mockEmployee, nil)
@@ -150,26 +150,26 @@ func TestAttendanceUseCase_GetByID(t *testing.T) {
 	now := time.Now()
 
 	lastName := "Doe"
-	mockEmployee := &domain.Employee{
-		ID:        1,
-		FirstName: "John",
-		LastName:  &lastName,
-	}
 
 	mockWorkSchedule := &domain.WorkSchedule{
 		ID:   1,
 		Name: "Standard Schedule",
 	}
 
-	mockAttendance := &domain.Attendance{
+	mockEmployee := &domain.Employee{
 		ID:             1,
-		EmployeeID:     1,
-		WorkScheduleID: 1,
-		Date:           now,
-		ClockIn:        &now,
-		Status:         domain.OnTime,
-		Employee:       *mockEmployee,
-		WorkSchedule:   *mockWorkSchedule,
+		FirstName:      "John",
+		LastName:       &lastName,
+		WorkScheduleID: &mockWorkSchedule.ID,
+	}
+
+	mockAttendance := &domain.Attendance{
+		ID:         1,
+		EmployeeID: 1,
+		Date:       now,
+		ClockIn:    &now,
+		Status:     domain.OnTime,
+		Employee:   *mockEmployee,
 	}
 
 	tests := []struct {
@@ -229,27 +229,27 @@ func TestAttendanceUseCase_List(t *testing.T) {
 	now := time.Now()
 
 	lastName := "Doe"
-	mockEmployee := &domain.Employee{
-		ID:        1,
-		FirstName: "John",
-		LastName:  &lastName,
-	}
 
 	mockWorkSchedule := &domain.WorkSchedule{
 		ID:   1,
 		Name: "Standard Schedule",
 	}
 
+	mockEmployee := &domain.Employee{
+		ID:             1,
+		FirstName:      "John",
+		LastName:       &lastName,
+		WorkScheduleID: &mockWorkSchedule.ID,
+	}
+
 	mockAttendances := []*domain.Attendance{
 		{
-			ID:             1,
-			EmployeeID:     1,
-			WorkScheduleID: 1,
-			Date:           now,
-			ClockIn:        &now,
-			Status:         domain.OnTime,
-			Employee:       *mockEmployee,
-			WorkSchedule:   *mockWorkSchedule,
+			ID:         1,
+			EmployeeID: 1,
+			Date:       now,
+			ClockIn:    &now,
+			Status:     domain.OnTime,
+			Employee:   *mockEmployee,
 		},
 	}
 
@@ -316,27 +316,27 @@ func TestAttendanceUseCase_ListByEmployee(t *testing.T) {
 	now := time.Now()
 
 	lastName := "Doe"
-	mockEmployee := &domain.Employee{
-		ID:        1,
-		FirstName: "John",
-		LastName:  &lastName,
-	}
 
 	mockWorkSchedule := &domain.WorkSchedule{
 		ID:   1,
 		Name: "Standard Schedule",
 	}
 
+	mockEmployee := &domain.Employee{
+		ID:             1,
+		FirstName:      "John",
+		LastName:       &lastName,
+		WorkScheduleID: &mockWorkSchedule.ID,
+	}
+
 	mockAttendances := []*domain.Attendance{
 		{
-			ID:             1,
-			EmployeeID:     1,
-			WorkScheduleID: 1,
-			Date:           now,
-			ClockIn:        &now,
-			Status:         domain.OnTime,
-			Employee:       *mockEmployee,
-			WorkSchedule:   *mockWorkSchedule,
+			ID:         1,
+			EmployeeID: 1,
+			Date:       now,
+			ClockIn:    &now,
+			Status:     domain.OnTime,
+			Employee:   *mockEmployee,
 		},
 	}
 

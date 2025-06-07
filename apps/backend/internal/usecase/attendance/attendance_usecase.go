@@ -89,7 +89,7 @@ func (uc *AttendanceUseCase) Create(ctx context.Context, reqDTO *dtoAttendance.C
 	return responseAttendance.ToAttendanceResponseDTO(createdAttendance), nil
 }
 
-func (uc *AttendanceUseCase) CheckIn(ctx context.Context, reqDTO *dtoAttendance.CheckInRequestDTO) (*responseAttendance.AttendanceResponseDTO, error) {
+func (uc *AttendanceUseCase) ClockIn(ctx context.Context, reqDTO *dtoAttendance.ClockInRequestDTO) (*responseAttendance.AttendanceResponseDTO, error) {
 	// Validate employee exists
 	_, err := uc.employeeRepo.GetByID(ctx, reqDTO.EmployeeID)
 	if err != nil {
@@ -163,13 +163,12 @@ func (uc *AttendanceUseCase) CheckIn(ctx context.Context, reqDTO *dtoAttendance.
 	// TODO: Validate location coordinates if provided (requires Location validation logic)
 
 	attendance := &domain.Attendance{
-		EmployeeID:     reqDTO.EmployeeID,
-		WorkScheduleID: reqDTO.WorkScheduleID,
-		Date:           attendanceDate,
-		ClockIn:        &clockInTime,
-		CheckInLat:     &reqDTO.CheckInLat,
-		CheckInLong:    &reqDTO.CheckInLong,
-	} // Validate attendance day against work schedule and determine status
+		EmployeeID:  reqDTO.EmployeeID,
+		Date:        attendanceDate,
+		ClockIn:     &clockInTime,
+		ClockInLat:  &reqDTO.ClockInLat,
+		ClockInLong: &reqDTO.ClockInLong,
+	}
 	if len(workSchedule.Details) == 0 {
 		return nil, fmt.Errorf("work schedule %d has no details configured", reqDTO.WorkScheduleID)
 	}
@@ -212,7 +211,7 @@ func (uc *AttendanceUseCase) CheckIn(ctx context.Context, reqDTO *dtoAttendance.
 	return responseAttendance.ToAttendanceResponseDTO(createdAttendance), nil
 }
 
-func (uc *AttendanceUseCase) CheckOut(ctx context.Context, reqDTO *dtoAttendance.CheckOutRequestDTO) (*responseAttendance.AttendanceResponseDTO, error) {
+func (uc *AttendanceUseCase) ClockOut(ctx context.Context, reqDTO *dtoAttendance.ClockOutRequestDTO) (*responseAttendance.AttendanceResponseDTO, error) {
 	// Validate employee exists
 	_, err := uc.employeeRepo.GetByID(ctx, reqDTO.EmployeeID)
 	if err != nil {
@@ -287,41 +286,49 @@ func (uc *AttendanceUseCase) CheckOut(ctx context.Context, reqDTO *dtoAttendance
 
 	// Set clock out time and location
 	attendance.ClockOut = &clockOutTime
-	attendance.CheckOutLat = &reqDTO.CheckOutLat
-	attendance.CheckOutLong = &reqDTO.CheckOutLong
+	attendance.ClockOutLat = &reqDTO.ClockOutLat
+	attendance.ClockOutLong = &reqDTO.ClockOutLong
 	// Calculate work hours and update status based on work schedule
 	if attendance.ClockIn != nil {
 		duration := attendance.ClockOut.Sub(*attendance.ClockIn).Hours()
 		attendance.WorkHours = &duration
 
-		// Check for early leave based on work schedule
-		workSchedule, wsErr := uc.workScheduleRepo.GetByIDWithDetails(ctx, attendance.WorkScheduleID)
-		if wsErr != nil {
-			return nil, fmt.Errorf("failed to get work schedule for early leave check: %w", wsErr)
+		// Get the employee to find their work schedule ID
+		employee, empErr := uc.employeeRepo.GetByID(ctx, attendance.EmployeeID)
+		if empErr != nil {
+			return nil, fmt.Errorf("failed to get employee for work schedule check: %w", empErr)
 		}
 
-		if len(workSchedule.Details) > 0 {
-			// Find relevant work schedule detail based on checkout day
-			currentDay := getCurrentDayName(clockOutTime)
-			relevantDetail := findRelevantWorkScheduleDetail(workSchedule.Details, currentDay)
-
-			if relevantDetail == nil {
-				return nil, fmt.Errorf("no work schedule configured for %s during checkout. Please contact HR", currentDay)
+		// Check for early leave based on work schedule if employee has one assigned
+		if employee.WorkScheduleID != nil {
+			workSchedule, wsErr := uc.workScheduleRepo.GetByIDWithDetails(ctx, *employee.WorkScheduleID)
+			if wsErr != nil {
+				return nil, fmt.Errorf("failed to get work schedule for early leave check: %w", wsErr)
 			}
 
-			// Check for early leave if checkout time is configured
-			if relevantDetail.CheckoutStart != nil {
-				// Convert CheckoutStart time to today's date with same time
-				minCheckoutTime := time.Date(clockOutTime.Year(), clockOutTime.Month(), clockOutTime.Day(),
-					relevantDetail.CheckoutStart.Hour(), relevantDetail.CheckoutStart.Minute(), relevantDetail.CheckoutStart.Second(), 0, clockOutTime.Location())
+			if len(workSchedule.Details) > 0 {
+				// Find relevant work schedule detail based on checkout day
+				currentDay := getCurrentDayName(clockOutTime)
+				relevantDetail := findRelevantWorkScheduleDetail(workSchedule.Details, currentDay)
 
-				// Set early_leave if checkout is before minimum checkout time AND current status allows it
-				if clockOutTime.Before(minCheckoutTime) {
-					if attendance.Status != domain.Absent && attendance.Status != domain.Leave {
-						attendance.Status = domain.EarlyLeave
-					}
+				if relevantDetail == nil {
+					return nil, fmt.Errorf("no work schedule configured for %s during checkout. Please contact HR", currentDay)
 				}
-				// If checkout is after minimum time, preserve the original status from check-in (OnTime/Late)
+
+				// Check for early leave if checkout time is configured
+				if relevantDetail.CheckoutStart != nil {
+					// Convert CheckoutStart time to today's date with same time
+					minCheckoutTime := time.Date(clockOutTime.Year(), clockOutTime.Month(), clockOutTime.Day(),
+						relevantDetail.CheckoutStart.Hour(), relevantDetail.CheckoutStart.Minute(), relevantDetail.CheckoutStart.Second(), 0, clockOutTime.Location())
+
+					// Set early_leave if checkout is before minimum checkout time AND current status allows it
+					if clockOutTime.Before(minCheckoutTime) {
+						if attendance.Status != domain.Absent {
+							attendance.Status = domain.EarlyLeave
+						}
+					}
+					// If checkout is after minimum time, preserve the original status from check-in (OnTime/Late)
+				}
 			}
 		}
 	} else {
@@ -431,7 +438,7 @@ func (uc *AttendanceUseCase) Update(ctx context.Context, id uint, reqDTO *dtoAtt
 			}
 			return nil, fmt.Errorf("failed to validate work schedule: %w", err)
 		}
-		attendance.WorkScheduleID = *reqDTO.WorkScheduleID
+		attendance.Employee.WorkScheduleID = reqDTO.WorkScheduleID
 	}
 
 	if reqDTO.Date != nil {
@@ -471,19 +478,19 @@ func (uc *AttendanceUseCase) Update(ctx context.Context, id uint, reqDTO *dtoAtt
 		}
 	}
 
-	if reqDTO.CheckInLat != nil {
-		attendance.CheckInLat = reqDTO.CheckInLat
+	if reqDTO.ClockInLat != nil {
+		attendance.ClockInLat = reqDTO.ClockInLat
 	}
-	if reqDTO.CheckInLong != nil {
-		attendance.CheckInLong = reqDTO.CheckInLong
-	}
-
-	if reqDTO.CheckOutLat != nil {
-		attendance.CheckOutLat = reqDTO.CheckOutLat
+	if reqDTO.ClockInLong != nil {
+		attendance.ClockInLong = reqDTO.ClockInLong
 	}
 
-	if reqDTO.CheckOutLong != nil {
-		attendance.CheckOutLong = reqDTO.CheckOutLong
+	if reqDTO.ClockOutLat != nil {
+		attendance.ClockOutLat = reqDTO.ClockOutLat
+	}
+
+	if reqDTO.ClockOutLong != nil {
+		attendance.ClockOutLong = reqDTO.ClockOutLong
 	}
 
 	if reqDTO.Status != nil {

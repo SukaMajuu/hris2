@@ -1,7 +1,6 @@
 export const WORK_TYPES = {
 	WFO: "WFO",
 	WFA: "WFA",
-	WFH: "WFH",
 	Hybrid: "Hybrid",
 } as const;
 

@@ -1,8 +1,9 @@
 package domain
 
 import (
-	"github.com/SukaMajuu/hris/apps/backend/domain/enums"
 	"time"
+
+	"github.com/SukaMajuu/hris/apps/backend/domain/enums"
 )
 
 type LeaveStatus string
@@ -23,7 +24,11 @@ type LeaveRequest struct {
 	Attachment   *string         `gorm:"type:varchar(255)"`
 	EmployeeNote *string         `gorm:"type:varchar(255)"`
 	AdminNote    *string         `gorm:"type:varchar(255)"`
+	Duration     uint            `gorm:"type:uint;not null"`
 	Status       LeaveStatus     `gorm:"type:leave_status;not null;default:'Waiting Approval'"`
+
+	DateRequested time.Time  `gorm:"type:timestamp;not null"`
+	DateApproved  *time.Time `gorm:"type:timestamp"`
 
 	CreatedAt time.Time `gorm:"autoCreateTime"`
 	UpdatedAt time.Time `gorm:"autoUpdateTime"`

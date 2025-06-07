@@ -96,7 +96,7 @@ export default function WorkSchedulePage() {
 					const pageSize = serverPagination.pageSize;
 					return (currentPage - 1) * pageSize + row.index + 1;
 				},
-				meta: { className: "max-w-[80px]" },
+				meta: { className: "max-w-[80px] w-[80px]" },
 				enableSorting: false,
 				enableColumnFilter: false,
 			},

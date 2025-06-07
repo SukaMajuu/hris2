@@ -1,4 +1,4 @@
-import { CheckClockData } from "../_hooks/useAttendance";
+import { Attendance } from "@/types/attendance";
 
 interface FilterOptions {
 	date?: string;
@@ -6,23 +6,28 @@ interface FilterOptions {
 }
 
 export function filterAttendanceData(
-	data: CheckClockData[],
+	data: Attendance[],
 	filters: FilterOptions
-): CheckClockData[] {
+): Attendance[] {
 	return data.filter((item) => {
 		// Date filter
 		if (filters.date) {
-			const itemDate = new Date(item.date).toISOString().split('T')[0];
-			const filterDate = new Date(filters.date).toISOString().split('T')[0];
+			const itemDate = new Date(item.date).toISOString().split("T")[0];
+			const filterDate = new Date(filters.date)
+				.toISOString()
+				.split("T")[0];
 			if (itemDate !== filterDate) {
 				return false;
 			}
 		}
 
-	// Attendance Status filter
+		// Attendance Status filter
 		if (filters.attendanceStatus) {
 			// Map "Present" filter value to "On Time" in the data
-			const statusToMatch = filters.attendanceStatus === "Present" ? "On Time" : filters.attendanceStatus;
+			const statusToMatch =
+				filters.attendanceStatus === "Present"
+					? "On Time"
+					: filters.attendanceStatus;
 			if (item.status !== statusToMatch) {
 				return false;
 			}
@@ -34,18 +39,20 @@ export function filterAttendanceData(
 
 export function getFilterSummary(filters: FilterOptions): string {
 	const activeFilters: string[] = [];
-	
+
 	if (filters.date) {
-		activeFilters.push(`Date: ${new Date(filters.date).toLocaleDateString()}`);
+		activeFilters.push(
+			`Date: ${new Date(filters.date).toLocaleDateString()}`
+		);
 	}
-	
+
 	if (filters.attendanceStatus) {
 		activeFilters.push(`Status: ${filters.attendanceStatus}`);
 	}
-	
+
 	if (activeFilters.length === 0) {
 		return "No filters applied";
 	}
-	
+
 	return `Filtered by: ${activeFilters.join(", ")}`;
 }

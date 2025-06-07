@@ -293,34 +293,42 @@ func (uc *AttendanceUseCase) ClockOut(ctx context.Context, reqDTO *dtoAttendance
 		duration := attendance.ClockOut.Sub(*attendance.ClockIn).Hours()
 		attendance.WorkHours = &duration
 
-		// Check for early leave based on work schedule
-		workSchedule, wsErr := uc.workScheduleRepo.GetByIDWithDetails(ctx, *attendance.Employee.WorkScheduleID)
-		if wsErr != nil {
-			return nil, fmt.Errorf("failed to get work schedule for early leave check: %w", wsErr)
+		// Get the employee to find their work schedule ID
+		employee, empErr := uc.employeeRepo.GetByID(ctx, attendance.EmployeeID)
+		if empErr != nil {
+			return nil, fmt.Errorf("failed to get employee for work schedule check: %w", empErr)
 		}
 
-		if len(workSchedule.Details) > 0 {
-			// Find relevant work schedule detail based on checkout day
-			currentDay := getCurrentDayName(clockOutTime)
-			relevantDetail := findRelevantWorkScheduleDetail(workSchedule.Details, currentDay)
-
-			if relevantDetail == nil {
-				return nil, fmt.Errorf("no work schedule configured for %s during checkout. Please contact HR", currentDay)
+		// Check for early leave based on work schedule if employee has one assigned
+		if employee.WorkScheduleID != nil {
+			workSchedule, wsErr := uc.workScheduleRepo.GetByIDWithDetails(ctx, *employee.WorkScheduleID)
+			if wsErr != nil {
+				return nil, fmt.Errorf("failed to get work schedule for early leave check: %w", wsErr)
 			}
 
-			// Check for early leave if checkout time is configured
-			if relevantDetail.CheckoutStart != nil {
-				// Convert CheckoutStart time to today's date with same time
-				minCheckoutTime := time.Date(clockOutTime.Year(), clockOutTime.Month(), clockOutTime.Day(),
-					relevantDetail.CheckoutStart.Hour(), relevantDetail.CheckoutStart.Minute(), relevantDetail.CheckoutStart.Second(), 0, clockOutTime.Location())
+			if len(workSchedule.Details) > 0 {
+				// Find relevant work schedule detail based on checkout day
+				currentDay := getCurrentDayName(clockOutTime)
+				relevantDetail := findRelevantWorkScheduleDetail(workSchedule.Details, currentDay)
 
-				// Set early_leave if checkout is before minimum checkout time AND current status allows it
-				if clockOutTime.Before(minCheckoutTime) {
-					if attendance.Status != domain.Absent {
-						attendance.Status = domain.EarlyLeave
-					}
+				if relevantDetail == nil {
+					return nil, fmt.Errorf("no work schedule configured for %s during checkout. Please contact HR", currentDay)
 				}
-				// If checkout is after minimum time, preserve the original status from check-in (OnTime/Late)
+
+				// Check for early leave if checkout time is configured
+				if relevantDetail.CheckoutStart != nil {
+					// Convert CheckoutStart time to today's date with same time
+					minCheckoutTime := time.Date(clockOutTime.Year(), clockOutTime.Month(), clockOutTime.Day(),
+						relevantDetail.CheckoutStart.Hour(), relevantDetail.CheckoutStart.Minute(), relevantDetail.CheckoutStart.Second(), 0, clockOutTime.Location())
+
+					// Set early_leave if checkout is before minimum checkout time AND current status allows it
+					if clockOutTime.Before(minCheckoutTime) {
+						if attendance.Status != domain.Absent {
+							attendance.Status = domain.EarlyLeave
+						}
+					}
+					// If checkout is after minimum time, preserve the original status from check-in (OnTime/Late)
+				}
 			}
 		}
 	} else {

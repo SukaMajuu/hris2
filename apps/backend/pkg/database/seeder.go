@@ -348,7 +348,7 @@ func seedWorkSchedules(db *gorm.DB) error {
 
 	// Helper function to create time pointers
 	timePtr := func(hour, minute int) *time.Time {
-		t := time.Date(0, 1, 1, hour, minute, 0, 0, time.UTC)
+		t := time.Date(0, 1, 1, hour, minute, 0, 0, time.Local)
 		return &t
 	}
 

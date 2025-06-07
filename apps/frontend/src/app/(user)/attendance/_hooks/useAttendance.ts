@@ -2,25 +2,16 @@ import { useState } from "react";
 import { useAttendancesByEmployee } from "@/api/queries/attendance.queries";
 import { useClockIn, useClockOut } from "@/api/mutations/attendance.mutation";
 import { useCurrentUserProfileQuery } from "@/api/queries/employee.queries";
-import { useCheckclockSettingsByEmployeeId } from "@/api/queries/checkclock-settings.queries";
 
 export function useCheckClock() {
 	const [page, setPage] = useState(1);
 	const [pageSize, setPageSize] = useState(10);
 
-	// Get current user profile to get employee ID
+	// Get current user profile to get employee ID and work schedule
 	const {
 		data: currentEmployee,
 		isLoading: isLoadingProfile,
 	} = useCurrentUserProfileQuery();
-
-	// Get current employee's work schedule settings
-	const {
-		data: workScheduleSettings,
-		isLoading: isLoadingWorkSchedule,
-	} = useCheckclockSettingsByEmployeeId(
-		currentEmployee?.id?.toString() || ""
-	);
 
 	// API calls - fetch attendances for current employee only
 	const {
@@ -52,11 +43,12 @@ export function useCheckClock() {
 		checkClockData,
 		attendances,
 		currentEmployee,
-		workScheduleSettings: workScheduleSettings?.data,
+		// Get work schedule directly from employee data
+		workSchedule: currentEmployee?.work_schedule,
+		workScheduleId: currentEmployee?.work_schedule_id,
 
 		// Loading states
-		isLoading:
-			isLoadingAttendances || isLoadingProfile || isLoadingWorkSchedule,
+		isLoading: isLoadingAttendances || isLoadingProfile,
 		hasError: attendancesError,
 
 		// Mutations

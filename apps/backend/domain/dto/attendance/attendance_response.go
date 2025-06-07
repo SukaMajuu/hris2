@@ -43,10 +43,15 @@ type AttendanceSummaryResponseDTO struct {
 }
 
 func NewAttendanceResponseDTO(attendance *domain.Attendance) *AttendanceResponseDTO {
+	var workScheduleID uint
+	if attendance.Employee.WorkScheduleID != nil {
+		workScheduleID = *attendance.Employee.WorkScheduleID
+	}
+
 	dto := &AttendanceResponseDTO{
 		ID:             attendance.ID,
 		EmployeeID:     attendance.EmployeeID,
-		WorkScheduleID: *attendance.Employee.WorkScheduleID,
+		WorkScheduleID: workScheduleID,
 		Date:           attendance.Date.Format("2006-01-02"),
 		ClockInLat:     attendance.ClockInLat,
 		ClockInLong:    attendance.ClockInLong,
@@ -81,7 +86,7 @@ func NewAttendanceResponseDTO(attendance *domain.Attendance) *AttendanceResponse
 		}
 	}
 	// Add work schedule info if loaded
-	if attendance.Employee.WorkScheduleID != nil {
+	if attendance.Employee.WorkScheduleID != nil && attendance.Employee.WorkSchedule != nil {
 		dto.WorkSchedule = &workscheduledto.WorkScheduleResponseDTO{
 			ID:       *attendance.Employee.WorkScheduleID,
 			Name:     attendance.Employee.WorkSchedule.Name,
@@ -136,10 +141,15 @@ func ToAttendanceListResponseData(attendances []*domain.Attendance, totalItems i
 
 // NewAttendanceResponseDTOWithoutRelations creates DTO without loading related entities
 func NewAttendanceResponseDTOWithoutRelations(attendance *domain.Attendance) *AttendanceResponseDTO {
+	var workScheduleID uint
+	if attendance.Employee.WorkScheduleID != nil {
+		workScheduleID = *attendance.Employee.WorkScheduleID
+	}
+
 	dto := &AttendanceResponseDTO{
 		ID:             attendance.ID,
 		EmployeeID:     attendance.EmployeeID,
-		WorkScheduleID: *attendance.Employee.WorkScheduleID,
+		WorkScheduleID: workScheduleID,
 		Date:           attendance.Date.Format("2006-01-02"),
 		ClockInLat:     attendance.ClockInLat,
 		ClockInLong:    attendance.ClockInLong,

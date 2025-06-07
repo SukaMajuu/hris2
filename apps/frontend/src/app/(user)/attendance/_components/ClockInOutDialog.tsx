@@ -2,6 +2,7 @@
 
 import React from "react";
 import { UseFormReturn } from "react-hook-form";
+import { MapPin, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -13,10 +14,10 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Crosshair } from "lucide-react";
-import dynamic from "next/dynamic";
 import { AttendanceFormData } from "@/types/attendance";
-import { CheckclockSettingsResponse } from "@/types/checkclock-settings.types";
+import { WorkSchedule } from "@/types/work-schedule.types";
+import dynamic from "next/dynamic";
+import { Crosshair } from "lucide-react";
 
 const MapComponent = dynamic(
 	() =>
@@ -40,7 +41,7 @@ interface ClockInOutDialogProps {
 	actionType: "clock-in" | "clock-out";
 	formMethods: UseFormReturn<AttendanceFormData>;
 	onSubmit: (data: AttendanceFormData) => void;
-	workScheduleSettings?: CheckclockSettingsResponse;
+	workSchedule?: WorkSchedule;
 }
 
 export function ClockInOutDialog({
@@ -50,7 +51,7 @@ export function ClockInOutDialog({
 	actionType,
 	formMethods,
 	onSubmit,
-	workScheduleSettings,
+	workSchedule,
 }: ClockInOutDialogProps) {
 	const { handleSubmit, watch, setValue } = formMethods;
 	const formData = watch();
@@ -58,7 +59,6 @@ export function ClockInOutDialog({
 	// Add ref to track if location has been fetched for this dialog session
 	const locationFetchedRef = React.useRef(false);
 
-	const workSchedule = workScheduleSettings?.work_schedule;
 	const isWFA = workSchedule?.work_type === "WFA";
 
 	const today = new Date().toLocaleDateString("en-US", { weekday: "long" });

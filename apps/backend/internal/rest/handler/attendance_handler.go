@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
 	attendanceDTO "github.com/SukaMajuu/hris/apps/backend/internal/rest/dto/attendance"
@@ -49,6 +50,40 @@ func (h *AttendanceHandler) ClockIn(c *gin.Context) {
 
 	attendance, err := h.attendanceUseCase.ClockIn(c.Request.Context(), &reqDTO)
 	if err != nil {
+		// Check for specific error types and return appropriate status codes
+		errMsg := err.Error()
+
+		// Employee not found
+		if strings.Contains(errMsg, "employee with ID") && strings.Contains(errMsg, "not found") {
+			response.NotFound(c, "Employee not found", err)
+			return
+		}
+
+		// Work schedule not found
+		if strings.Contains(errMsg, "work schedule with ID") && strings.Contains(errMsg, "not found") {
+			response.NotFound(c, "Work schedule not found", err)
+			return
+		}
+
+		// Already checked in (conflict)
+		if strings.Contains(errMsg, "has already checked in") {
+			response.Conflict(c, "Employee has already checked in today", err)
+			return
+		}
+
+		// Invalid date/time format
+		if strings.Contains(errMsg, "invalid") && (strings.Contains(errMsg, "format") || strings.Contains(errMsg, "date") || strings.Contains(errMsg, "time")) {
+			response.BadRequest(c, "Invalid date or time format", err)
+			return
+		}
+
+		// Work schedule configuration issues
+		if strings.Contains(errMsg, "no work schedule configured") || strings.Contains(errMsg, "has no details configured") {
+			response.BadRequest(c, "Work schedule not properly configured. Please contact HR", err)
+			return
+		}
+
+		// Default to internal server error for other cases
 		response.InternalServerError(c, fmt.Errorf("failed to check in: %w", err))
 		return
 	}
@@ -66,6 +101,46 @@ func (h *AttendanceHandler) ClockOut(c *gin.Context) {
 
 	attendance, err := h.attendanceUseCase.ClockOut(c.Request.Context(), &reqDTO)
 	if err != nil {
+		// Check for specific error types and return appropriate status codes
+		errMsg := err.Error()
+
+		// Employee not found
+		if strings.Contains(errMsg, "employee with ID") && strings.Contains(errMsg, "not found") {
+			response.NotFound(c, "Employee not found", err)
+			return
+		}
+
+		// No attendance record found (need to check in first)
+		if strings.Contains(errMsg, "no attendance record found") {
+			response.BadRequest(c, "No check-in record found. Please check-in first", err)
+			return
+		}
+
+		// Not checked in yet
+		if strings.Contains(errMsg, "has not checked in") {
+			response.BadRequest(c, "Employee has not checked in today. Please check-in first", err)
+			return
+		}
+
+		// Already checked out (conflict)
+		if strings.Contains(errMsg, "has already checked out") {
+			response.Conflict(c, "Employee has already checked out today", err)
+			return
+		}
+
+		// Invalid date/time format
+		if strings.Contains(errMsg, "invalid") && (strings.Contains(errMsg, "format") || strings.Contains(errMsg, "date") || strings.Contains(errMsg, "time")) {
+			response.BadRequest(c, "Invalid date or time format", err)
+			return
+		}
+
+		// Work schedule configuration issues
+		if strings.Contains(errMsg, "no work schedule configured") {
+			response.BadRequest(c, "Work schedule not properly configured. Please contact HR", err)
+			return
+		}
+
+		// Default to internal server error for other cases
 		response.InternalServerError(c, fmt.Errorf("failed to check out: %w", err))
 		return
 	}

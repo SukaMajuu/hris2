@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
+	dtolocation "github.com/SukaMajuu/hris/apps/backend/domain/dto/location"
 	"github.com/SukaMajuu/hris/apps/backend/domain/dto/work_schedule"
 )
 
@@ -127,10 +128,57 @@ func (dto *EmployeeResponseDTO) FromDomain(employee *domain.Employee) *EmployeeR
 		responseDTO.WorkScheduleID = employee.WorkScheduleID
 	}
 	if employee.WorkSchedule != nil {
+		// Map work schedule details
+		var details []work_schedule.WorkScheduleDetailResponseDTO
+		for _, detail := range employee.WorkSchedule.Details {
+			// Convert WorkDays from []domain.Days to []string
+			workDays := make([]string, len(detail.WorkDays))
+			for i, day := range detail.WorkDays {
+				workDays[i] = string(day)
+			}
+
+			// Helper function to format *time.Time to *string "HH:MM:SS"
+			formatTimePtr := func(t *time.Time) *string {
+				if t == nil {
+					return nil
+				}
+				s := t.Format("15:04:05")
+				return &s
+			}
+
+			detailDTO := work_schedule.WorkScheduleDetailResponseDTO{
+				ID:             detail.ID,
+				WorkTypeDetail: string(detail.WorktypeDetail),
+				WorkDays:       workDays,
+				CheckInStart:   formatTimePtr(detail.CheckinStart),
+				CheckInEnd:     formatTimePtr(detail.CheckinEnd),
+				BreakStart:     formatTimePtr(detail.BreakStart),
+				BreakEnd:       formatTimePtr(detail.BreakEnd),
+				CheckOutStart:  formatTimePtr(detail.CheckoutStart),
+				CheckOutEnd:    formatTimePtr(detail.CheckoutEnd),
+				LocationID:     detail.LocationID,
+			}
+
+			// Add location if it exists
+			if detail.Location != nil {
+				detailDTO.Location = &dtolocation.LocationResponseDTO{
+					ID:            detail.Location.ID,
+					Name:          detail.Location.Name,
+					AddressDetail: detail.Location.AddressDetail,
+					Latitude:      detail.Location.Latitude,
+					Longitude:     detail.Location.Longitude,
+					Radius:        float64(detail.Location.RadiusM),
+				}
+			}
+
+			details = append(details, detailDTO)
+		}
+
 		responseDTO.WorkSchedule = &work_schedule.WorkScheduleResponseDTO{
 			ID:       employee.WorkSchedule.ID,
 			Name:     employee.WorkSchedule.Name,
 			WorkType: string(employee.WorkSchedule.WorkType),
+			Details:  details,
 		}
 	}
 	return responseDTO

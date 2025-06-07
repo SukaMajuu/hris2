@@ -49,6 +49,8 @@ const getStatusStyle = (status: string) => {
 			return "bg-green-600";
 		case "early_leave":
 			return "bg-yellow-600";
+		case "absent":
+			return "bg-gray-600";
 		default:
 			return "bg-gray-600";
 	}
@@ -67,7 +69,8 @@ export default function AttendanceOverviewTab() {
 		isClockingIn,
 		isClockingOut,
 		currentEmployee,
-		workScheduleSettings,
+		workSchedule,
+		workScheduleId,
 	} = useCheckClock();
 
 	const [openSheet, setOpenSheet] = useState(false);
@@ -195,20 +198,18 @@ export default function AttendanceOverviewTab() {
 		let title = "Record Attendance";
 
 		const now = new Date();
-		const currentTime = now.toISOString();
 		const currentDate = now.toISOString().split("T")[0];
 
-		// Get work schedule ID from settings or use default
-		const workScheduleId = workScheduleSettings?.work_schedule_id || 1;
+		// Get work schedule ID from employee or use default if not assigned
+		const employeeWorkScheduleId = workScheduleId || 1;
 
 		if (action === "clock-in") {
 			title = "Record Clock-In";
 			setValue("attendance_type", "clock-in");
 			setValue("clock_in_request", {
 				employee_id: currentEmployee.id,
-				work_schedule_id: workScheduleId,
+				work_schedule_id: employeeWorkScheduleId,
 				date: currentDate,
-				clock_in: currentTime,
 				clock_in_lat: 0,
 				clock_in_long: 0,
 			});
@@ -218,7 +219,6 @@ export default function AttendanceOverviewTab() {
 			setValue("clock_out_request", {
 				employee_id: currentEmployee.id,
 				date: currentDate,
-				clock_out: currentTime,
 				clock_out_lat: 0,
 				clock_out_long: 0,
 			});
@@ -233,9 +233,8 @@ export default function AttendanceOverviewTab() {
 					if (action === "clock-in") {
 						setValue("clock_in_request", {
 							employee_id: currentEmployee.id,
-							work_schedule_id: workScheduleId,
+							work_schedule_id: employeeWorkScheduleId,
 							date: currentDate,
-							clock_in: currentTime,
 							clock_in_lat: position.coords.latitude,
 							clock_in_long: position.coords.longitude,
 						});
@@ -243,7 +242,6 @@ export default function AttendanceOverviewTab() {
 						setValue("clock_out_request", {
 							employee_id: currentEmployee.id,
 							date: currentDate,
-							clock_out: currentTime,
 							clock_out_lat: position.coords.latitude,
 							clock_out_long: position.coords.longitude,
 						});
@@ -535,7 +533,7 @@ export default function AttendanceOverviewTab() {
 				actionType={dialogActionType}
 				formMethods={form}
 				onSubmit={onSubmit}
-				workScheduleSettings={workScheduleSettings}
+				workSchedule={workSchedule}
 			/>
 		</>
 	);

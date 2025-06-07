@@ -32,7 +32,7 @@ func (r *PostgresRepository) GetByID(ctx context.Context, id uint) (*domain.Empl
 
 func (r *PostgresRepository) GetByUserID(ctx context.Context, userID uint) (*domain.Employee, error) {
 	var employee domain.Employee
-	err := r.db.WithContext(ctx).Where("user_id = ?", userID).First(&employee).Error
+	err := r.db.WithContext(ctx).Where("user_id = ?", userID).Preload("User").First(&employee).Error
 	if err != nil {
 		return nil, err
 	}

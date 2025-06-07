@@ -273,7 +273,7 @@ export default function Page() {
                   </Label>
                   {editJob ? (
                     <Select value={contractType} onValueChange={(value) => setContractType(value)}>
-                      <SelectTrigger className='mt-1 h-8 w-full border-slate-300 bg-slate-50 text-sm focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800'>
+                      <SelectTrigger className='mt-1 h-8 w-full cursor-pointer border-slate-300 bg-slate-50 text-sm focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800'>
                         <SelectValue placeholder={contractType || 'Select contract type'} />
                       </SelectTrigger>
                       <SelectContent>

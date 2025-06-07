@@ -77,6 +77,7 @@ export default function Page() {
     currentDocuments,
     validationStates,
     hasValidationErrors,
+    validateDateOfBirth,
     handleProfileImageChange,
     handleAddNewDocument,
     handleDeleteDocument,
@@ -395,6 +396,7 @@ export default function Page() {
             handleResetPassword={handleResetPassword}
             validationStates={validationStates}
             hasValidationErrors={hasValidationErrors}
+            validateDateOfBirth={validateDateOfBirth}
           />
         </TabsContent>
 

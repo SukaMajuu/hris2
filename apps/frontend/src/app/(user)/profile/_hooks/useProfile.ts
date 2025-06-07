@@ -48,6 +48,7 @@ export function useProfile() {
   // Profile image states
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [profileFile, setProfileFile] = useState<File | null>(null);
+  const [isUploadingProfileImage, setIsUploadingProfileImage] = useState(false);
 
   // Personal information states
   const [firstName, setFirstName] = useState('');
@@ -267,36 +268,39 @@ export function useProfile() {
   }, [employee, validatePhoneImmediate]);
 
   const handleProfileImageChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0] || null;
-      if (file) {
-        setProfileFile(file);
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-          setProfileImage(ev.target?.result as string);
-        };
-        reader.readAsDataURL(file);
+      if (!file || !employee || isUploadingProfileImage) {
+        return;
+      }
 
-        setTimeout(async () => {
-          if (employee) {
-            try {
-              const updateData = {
-                photo_file: file,
-              };
-              await updateProfileMutation.mutateAsync(updateData);
-              toast.success('Profile photo updated successfully!');
-              setProfileFile(null);
-            } catch (error) {
-              console.error('Error updating profile photo:', error);
-              toast.error('Failed to update profile photo. Please try again.');
-              setProfileImage(employee.profile_photo_url || null);
-              setProfileFile(null);
-            }
-          }
-        }, 100);
+      setIsUploadingProfileImage(true);
+      setProfileFile(file);
+
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        setProfileImage(ev.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+
+      try {
+        const updateData = {
+          photo_file: file,
+        };
+        await updateProfileMutation.mutateAsync(updateData);
+        toast.success('Profile photo updated successfully!');
+        setProfileFile(null);
+      } catch (error) {
+        console.error('Error updating profile photo:', error);
+        toast.error('Failed to update profile photo. Please try again.');
+        setProfileImage(employee.profile_photo_url || null);
+        setProfileFile(null);
+      } finally {
+        setIsUploadingProfileImage(false);
+        e.target.value = '';
       }
     },
-    [employee, updateProfileMutation],
+    [employee, updateProfileMutation, isUploadingProfileImage],
   );
 
   const handleAddNewDocument = useCallback(
@@ -479,6 +483,7 @@ export function useProfile() {
 
     // Profile image
     profileImage,
+    isUploadingProfileImage,
 
     // Personal information
     firstName,

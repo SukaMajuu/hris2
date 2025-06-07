@@ -1,13 +1,12 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
-import { CheckClockData, useCheckClock } from "../_hooks/useAttendance";
+import { useCheckClock } from "../_hooks/useAttendance";
 import { useForm } from "react-hook-form";
 import { DataTable } from "@/components/dataTable";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Filter, Search, LogIn, LogOut, Eye } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Filter, LogIn, LogOut, Eye } from "lucide-react";
 import { PageSizeComponent } from "@/components/pageSize";
 import { PaginationComponent } from "@/components/pagination";
 import {
@@ -25,39 +24,60 @@ import {
 	PaginationState,
 	ColumnFiltersState,
 } from "@tanstack/react-table";
-import { CheckInOutDialog } from "../_components/CheckInOutDialog";
+import { ClockInOutDialog } from "../_components/ClockInOutDialog";
 import { AttendanceFilter } from "../_components/AttendanceFilter";
 import {
 	filterAttendanceData,
 	getFilterSummary,
 } from "../_utils/attendanceFilters";
+import { Attendance, AttendanceFormData } from "@/types/attendance";
+import { Badge } from "@/components/ui/badge";
 
-interface DialogFormData {
-	attendanceType: string;
-	checkIn: string;
-	checkOut: string;
-	latitude: string;
-	longitude: string;
-	permitEndDate: string;
-	startDate: string;
-	reason: string;
-	evidence: FileList | null;
-}
+// Status mapping for user-friendly display
+const statusMapping = {
+	late: "Late",
+	on_time: "On Time",
+	early_leave: "Early Leave",
+} as const;
+
+// Status color mapping
+const getStatusStyle = (status: string) => {
+	switch (status) {
+		case "late":
+			return "bg-red-600";
+		case "on_time":
+			return "bg-green-600";
+		case "early_leave":
+			return "bg-yellow-600";
+		default:
+			return "bg-gray-600";
+	}
+};
+
+// Function to get display status
+const getDisplayStatus = (status: string): string => {
+	return statusMapping[status as keyof typeof statusMapping] || status;
+};
 
 export default function AttendanceOverviewTab() {
-	const { checkClockData } = useCheckClock();
+	const {
+		checkClockData,
+		clockIn,
+		clockOut,
+		isClockingIn,
+		isClockingOut,
+		currentEmployee,
+		workScheduleSettings,
+	} = useCheckClock();
 
 	const [openSheet, setOpenSheet] = useState(false);
-	const [selectedData, setSelectedData] = useState<CheckClockData | null>(
-		null
-	);
+	const [selectedData, setSelectedData] = useState<Attendance | null>(null);
 	const [openDialog, setOpenDialog] = useState(false);
 	const [dialogActionType, setDialogActionType] = useState<
-		"check-in" | "check-out"
-	>("check-in");
+		"clock-in" | "clock-out"
+	>("clock-in");
 	const [dialogTitle, setDialogTitle] = useState("Add Attendance Data");
 	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-	const [nameFilter, setNameFilter] = useState("");
 
 	// Filter component state
 	const [filters, setFilters] = useState({
@@ -83,17 +103,20 @@ export default function AttendanceOverviewTab() {
 		[pageIndex, pageSize]
 	);
 
-	const form = useForm<DialogFormData>({
+	const form = useForm<AttendanceFormData>({
 		defaultValues: {
-			attendanceType: "check-in",
-			checkIn: "",
-			checkOut: "",
-			latitude: "",
-			longitude: "",
-			permitEndDate: "",
-			startDate: "",
-			reason: "",
-			evidence: null,
+			attendance_type: "clock-in",
+			clock_in_request: {
+				employee_id: 0,
+				work_schedule_id: 0,
+				clock_in_lat: 0,
+				clock_in_long: 0,
+			},
+			clock_out_request: {
+				employee_id: 0,
+				clock_out_lat: 0,
+				clock_out_long: 0,
+			},
 		},
 	});
 
@@ -103,7 +126,7 @@ export default function AttendanceOverviewTab() {
 	const handleViewDetails = useCallback(
 		(id: number) => {
 			const data = filteredData.find(
-				(item: CheckClockData) => item.id === id
+				(item: Attendance) => item.id === id
 			);
 			if (data) {
 				setSelectedData(data);
@@ -113,10 +136,33 @@ export default function AttendanceOverviewTab() {
 		[filteredData]
 	);
 
-	const onSubmit = (data: DialogFormData) => {
-		console.log("Form submitted for:", dialogActionType, data);
-		setOpenDialog(false);
-		reset();
+	const onSubmit = (data: AttendanceFormData) => {
+		if (data.attendance_type === "clock-in" && data.clock_in_request) {
+			clockIn(data.clock_in_request, {
+				onSuccess: () => {
+					console.log("Clock-in successful");
+					setOpenDialog(false);
+					reset();
+				},
+				onError: (error) => {
+					console.error("Clock-in failed:", error);
+				},
+			});
+		} else if (
+			data.attendance_type === "clock-out" &&
+			data.clock_out_request
+		) {
+			clockOut(data.clock_out_request, {
+				onSuccess: () => {
+					console.log("Clock-out successful");
+					setOpenDialog(false);
+					reset();
+				},
+				onError: (error) => {
+					console.error("Clock-out failed:", error);
+				},
+			});
+		}
 	};
 
 	// Filter handler functions
@@ -128,9 +174,7 @@ export default function AttendanceOverviewTab() {
 			date: newFilters.date || "",
 			attendanceStatus: newFilters.attendanceStatus || "",
 		});
-		// Reset pagination to first page when filters change
 		setPagination((prev) => ({ ...prev, pageIndex: 0 }));
-		console.log("Applying filters:", newFilters);
 	};
 
 	const handleResetFilters = () => {
@@ -138,34 +182,72 @@ export default function AttendanceOverviewTab() {
 			date: "",
 			attendanceStatus: "",
 		});
-		// Reset pagination when filters are cleared
 		setPagination((prev) => ({ ...prev, pageIndex: 0 }));
-		console.log("Resetting filters");
 	};
 
-	const openDialogHandler = (action: "check-in" | "check-out") => {
+	const openDialogHandler = (action: "clock-in" | "clock-out") => {
+		if (!currentEmployee) {
+			return;
+		}
+
 		reset();
 		setDialogActionType(action);
 		let title = "Record Attendance";
-		let defaultAttendanceType = "check-in";
 
-		if (action === "check-in") {
-			title = "Record Check-In";
-			defaultAttendanceType = "check-in";
-		} else if (action === "check-out") {
-			title = "Record Check-Out";
-			defaultAttendanceType = "check-out";
+		const now = new Date();
+		const currentTime = now.toISOString();
+		const currentDate = now.toISOString().split("T")[0];
+
+		// Get work schedule ID from settings or use default
+		const workScheduleId = workScheduleSettings?.work_schedule_id || 1;
+
+		if (action === "clock-in") {
+			title = "Record Clock-In";
+			setValue("attendance_type", "clock-in");
+			setValue("clock_in_request", {
+				employee_id: currentEmployee.id,
+				work_schedule_id: workScheduleId,
+				date: currentDate,
+				clock_in: currentTime,
+				clock_in_lat: 0,
+				clock_in_long: 0,
+			});
+		} else if (action === "clock-out") {
+			title = "Record Clock-Out";
+			setValue("attendance_type", "clock-out");
+			setValue("clock_out_request", {
+				employee_id: currentEmployee.id,
+				date: currentDate,
+				clock_out: currentTime,
+				clock_out_lat: 0,
+				clock_out_long: 0,
+			});
 		}
 
 		setDialogTitle(title);
-		setValue("attendanceType", defaultAttendanceType);
 
-		// Pre-fetch location for check-in/check-out
+		// Get current location after setting initial values
 		if (navigator.geolocation) {
 			navigator.geolocation.getCurrentPosition(
 				(position) => {
-					setValue("latitude", position.coords.latitude.toString());
-					setValue("longitude", position.coords.longitude.toString());
+					if (action === "clock-in") {
+						setValue("clock_in_request", {
+							employee_id: currentEmployee.id,
+							work_schedule_id: workScheduleId,
+							date: currentDate,
+							clock_in: currentTime,
+							clock_in_lat: position.coords.latitude,
+							clock_in_long: position.coords.longitude,
+						});
+					} else {
+						setValue("clock_out_request", {
+							employee_id: currentEmployee.id,
+							date: currentDate,
+							clock_out: currentTime,
+							clock_out_lat: position.coords.latitude,
+							clock_out_long: position.coords.longitude,
+						});
+					}
 				},
 				(error) => {
 					console.error("Error getting location:", error);
@@ -176,7 +258,7 @@ export default function AttendanceOverviewTab() {
 		setOpenDialog(true);
 	};
 
-	const columns: ColumnDef<CheckClockData>[] = useMemo(
+	const columns: ColumnDef<Attendance>[] = useMemo(
 		() => [
 			{
 				header: "No.",
@@ -192,37 +274,61 @@ export default function AttendanceOverviewTab() {
 			{
 				header: "Date",
 				accessorKey: "date",
+				cell: ({ row }) => {
+					const date = new Date(row.original.date);
+					return date.toLocaleDateString("en-US", {
+						year: "numeric",
+						month: "long",
+						day: "2-digit",
+					});
+				},
 			},
 			{
 				header: "Check-In",
-				accessorKey: "checkIn",
+				accessorKey: "clock_in",
+				cell: ({ row }) => {
+					return row.original.clock_in || "-";
+				},
 			},
 			{
 				header: "Check-Out",
-				accessorKey: "checkOut",
+				accessorKey: "clock_out",
+				cell: ({ row }) => {
+					return row.original.clock_out || "-";
+				},
 			},
 			{
 				header: "Location",
-				accessorKey: "location",
+				cell: ({ row }) => {
+					const { clock_in_lat, clock_in_long } = row.original;
+					return clock_in_lat && clock_in_long
+						? `${clock_in_lat}, ${clock_in_long}`
+						: "-";
+				},
 			},
 			{
 				header: "Work Hours",
-				accessorKey: "workHours",
+				accessorKey: "work_hours",
+				cell: ({ row }) => {
+					return row.original.work_hours
+						? `${row.original.work_hours}h`
+						: "-";
+				},
 			},
 			{
 				header: "Status",
 				accessorKey: "status",
 				cell: ({ row }) => {
 					const item = row.original;
-					let bg = "bg-green-600";
-					if (item.status === "Late") bg = "bg-red-600";
-					else if (item.status === "Leave") bg = "bg-yellow-800";
+					const bgColor = getStatusStyle(item.status);
+					const displayStatus = getDisplayStatus(item.status);
+
 					return (
-						<span
-							className={`px-3 py-1 rounded-md text-sm font-medium ${bg} text-white`}
+						<Badge
+							className={`rounded-md text-sm font-medium ${bgColor} text-white`}
 						>
-							{item.status}
-						</span>
+							{displayStatus}
+						</Badge>
 					);
 				},
 			},
@@ -277,21 +383,27 @@ export default function AttendanceOverviewTab() {
 									variant="outline"
 									className="gap-2 border-green-500 bg-green-500 text-white hover:bg-green-600"
 									onClick={() =>
-										openDialogHandler("check-in")
+										openDialogHandler("clock-in")
 									}
+									disabled={isClockingIn || !currentEmployee}
 								>
 									<LogIn className="h-4 w-4" />
-									Check In
+									{isClockingIn
+										? "Clocking In..."
+										: "Clock In"}
 								</Button>
 								<Button
 									variant="outline"
 									className="gap-2 border-red-500 bg-red-500 text-white hover:bg-red-600"
 									onClick={() =>
-										openDialogHandler("check-out")
+										openDialogHandler("clock-out")
 									}
+									disabled={isClockingOut || !currentEmployee}
 								>
 									<LogOut className="h-4 w-4" />
-									Check Out
+									{isClockingOut
+										? "Clocking Out..."
+										: "Clock Out"}
 								</Button>
 							</div>
 						</div>
@@ -346,7 +458,13 @@ export default function AttendanceOverviewTab() {
 						<div className="mx-2 space-y-6 text-sm sm:mx-4">
 							<div className="mb-6 rounded-lg bg-white p-6 shadow-md">
 								<h3 className="mb-1 text-lg font-bold text-slate-700">
-									{selectedData.date}
+									{new Date(
+										selectedData.date
+									).toLocaleDateString("en-US", {
+										year: "numeric",
+										month: "long",
+										day: "2-digit",
+									})}
 								</h3>
 								<p className="text-sm text-slate-500">
 									Attendance Record
@@ -362,7 +480,7 @@ export default function AttendanceOverviewTab() {
 											Check-In
 										</p>
 										<p className="text-slate-700">
-											{selectedData.checkIn}
+											{selectedData.clock_in || "-"}
 										</p>
 									</div>
 									<div>
@@ -370,7 +488,7 @@ export default function AttendanceOverviewTab() {
 											Check-Out
 										</p>
 										<p className="text-slate-700">
-											{selectedData.checkOut}
+											{selectedData.clock_out || "-"}
 										</p>
 									</div>
 									<div>
@@ -378,7 +496,9 @@ export default function AttendanceOverviewTab() {
 											Work Hours
 										</p>
 										<p className="text-slate-700">
-											{selectedData.workHours}
+											{selectedData.work_hours
+												? `${selectedData.work_hours}h`
+												: "-"}
 										</p>
 									</div>
 									<div>
@@ -394,7 +514,10 @@ export default function AttendanceOverviewTab() {
 											Location
 										</p>
 										<p className="text-slate-700">
-											{selectedData.location}
+											{selectedData.clock_in_lat &&
+											selectedData.clock_in_long
+												? `${selectedData.clock_in_lat}, ${selectedData.clock_in_long}`
+												: "-"}
 										</p>
 									</div>
 								</div>
@@ -405,13 +528,14 @@ export default function AttendanceOverviewTab() {
 			</Sheet>
 
 			{/* Dialogs */}
-			<CheckInOutDialog
+			<ClockInOutDialog
 				open={openDialog}
 				onOpenChange={setOpenDialog}
 				dialogTitle={dialogTitle}
 				actionType={dialogActionType}
 				formMethods={form}
 				onSubmit={onSubmit}
+				workScheduleSettings={workScheduleSettings}
 			/>
 		</>
 	);

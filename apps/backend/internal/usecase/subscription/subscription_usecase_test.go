@@ -30,35 +30,19 @@ func TestSubscriptionUseCase_GetSubscriptionPlans(t *testing.T) {
 		CreatedAt:   time.Now(),
 	}
 
-	mockSeatPlan := domain.SeatPlan{
-		ID:                 1,
-		SubscriptionPlanID: 1,
-		SizeTierID:         "small",
-		MinEmployees:       1,
-		MaxEmployees:       10,
-		PricePerMonth:      decimal.NewFromInt(500000),
-		PricePerYear:       decimal.NewFromInt(5000000),
-		IsActive:           true,
-		CreatedAt:          time.Now(),
-	}
-
 	repoError := errors.New("repository database error")
 
 	tests := []struct {
-		name               string
-		mockPlans          []domain.SubscriptionPlan
-		mockSeatPlans      []domain.SeatPlan
-		mockPlansError     error
-		mockSeatPlansError error
-		expectedResponse   []subscriptionDto.SubscriptionPlanResponse
-		expectedErrorMsg   string
+		name             string
+		mockPlans        []domain.SubscriptionPlan
+		mockPlansError   error
+		expectedResponse []subscriptionDto.SubscriptionPlanResponse
+		expectedErrorMsg string
 	}{
 		{
-			name:               "successful retrieval",
-			mockPlans:          []domain.SubscriptionPlan{mockPlan},
-			mockSeatPlans:      []domain.SeatPlan{mockSeatPlan},
-			mockPlansError:     nil,
-			mockSeatPlansError: nil,
+			name:           "successful retrieval",
+			mockPlans:      []domain.SubscriptionPlan{mockPlan},
+			mockPlansError: nil,
 			expectedResponse: []subscriptionDto.SubscriptionPlanResponse{
 				{
 					ID:          1,
@@ -73,22 +57,11 @@ func TestSubscriptionUseCase_GetSubscriptionPlans(t *testing.T) {
 			expectedErrorMsg: "",
 		},
 		{
-			name:               "repository returns error for plans",
-			mockPlans:          nil,
-			mockSeatPlans:      nil,
-			mockPlansError:     repoError,
-			mockSeatPlansError: nil,
-			expectedResponse:   nil,
-			expectedErrorMsg:   fmt.Errorf("failed to get subscription plans: %w", repoError).Error(),
-		},
-		{
-			name:               "repository returns error for seat plans",
-			mockPlans:          []domain.SubscriptionPlan{mockPlan},
-			mockSeatPlans:      nil,
-			mockPlansError:     nil,
-			mockSeatPlansError: repoError,
-			expectedResponse:   nil,
-			expectedErrorMsg:   fmt.Errorf("failed to get seat plans for plan %d: %w", mockPlan.ID, repoError).Error(),
+			name:             "repository returns error for plans",
+			mockPlans:        nil,
+			mockPlansError:   repoError,
+			expectedResponse: nil,
+			expectedErrorMsg: fmt.Errorf("failed to get subscription plans: %w", repoError).Error(),
 		},
 	}
 
@@ -102,11 +75,6 @@ func TestSubscriptionUseCase_GetSubscriptionPlans(t *testing.T) {
 
 			mockXenditRepo.On("GetSubscriptionPlans", ctx).
 				Return(tt.mockPlans, tt.mockPlansError).Once()
-
-			if tt.mockPlansError == nil && len(tt.mockPlans) > 0 {
-				mockXenditRepo.On("GetSeatPlansBySubscriptionPlan", ctx, tt.mockPlans[0].ID).
-					Return(tt.mockSeatPlans, tt.mockSeatPlansError).Once()
-			}
 
 			actualResponse, actualErr := uc.GetSubscriptionPlans(ctx)
 

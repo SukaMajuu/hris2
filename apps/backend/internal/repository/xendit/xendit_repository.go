@@ -123,7 +123,6 @@ func (r *Repository) GetSubscriptionByAdminUserID(ctx context.Context, adminUser
 		Preload("SubscriptionPlan").
 		Preload("SubscriptionPlan.PlanFeatures").
 		Preload("SeatPlan").
-		Preload("SubscriptionPlan.PlanFeatures").
 		Preload("SubscriptionPlan.PlanFeatures.SubscriptionFeature").
 		Where("admin_user_id = ?", adminUserID).
 		First(&subscription).Error; err != nil {

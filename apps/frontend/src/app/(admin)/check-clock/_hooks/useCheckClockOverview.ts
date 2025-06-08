@@ -1,9 +1,41 @@
 import { useState, useMemo } from "react";
 import { useAttendances } from "@/api/queries/attendance.queries";
+import { useLeaveRequestsQuery } from "@/api/queries/leave-request.queries";
 import { useEmployeesQuery } from "@/api/queries/employee.queries";
 import { useCreateAttendance } from "@/api/mutations/attendance.mutation";
+import { useCreateLeaveRequestForEmployeeMutation } from "@/api/mutations/leave-request.mutations";
 import { Attendance } from "@/types/attendance";
+import { LeaveRequest } from "@/types/leave-request";
 import { Employee, EmployeeFilters } from "@/types/employee";
+
+// Combined interface for table display
+interface CombinedAttendanceData {
+	id: number;
+	employee_id: number;
+	employee?: {
+		id: number;
+		first_name: string;
+		last_name?: string;
+		employee_code?: string;
+		position_name?: string;
+	};
+	work_schedule_id?: number;
+	work_schedule?: any;
+	date: string;
+	clock_in: string | null;
+	clock_out: string | null;
+	clock_in_lat?: number | null;
+	clock_in_long?: number | null;
+	clock_out_lat?: number | null;
+	clock_out_long?: number | null;
+	work_hours: number | null;
+	status: string;
+	created_at: string;
+	updated_at: string;
+	type: "attendance" | "leave_request"; // To distinguish between types
+	leave_type?: string; // For leave requests
+	originalLeaveRequest?: LeaveRequest; // Store original leave request data
+}
 
 export function useCheckClockOverview() {
 	const [page, setPage] = useState(1);
@@ -16,6 +48,12 @@ export function useCheckClockOverview() {
 		error: attendanceError,
 	} = useAttendances();
 
+	const {
+		data: leaveRequestsData,
+		isLoading: isLoadingLeaveRequests,
+		error: leaveRequestError,
+	} = useLeaveRequestsQuery(1, 1000); // Get all leave requests
+
 	const employeeFilters: EmployeeFilters = {
 		employment_status: true,
 		name: "",
@@ -27,94 +65,99 @@ export function useCheckClockOverview() {
 	} = useEmployeesQuery(1, 100, employeeFilters);
 
 	const createAttendanceMutation = useCreateAttendance();
+	const createLeaveRequestMutation = useCreateLeaveRequestForEmployeeMutation();
 
 	const overviewData = useMemo(() => {
-		if (!attendances || !Array.isArray(attendances)) return [];
+		if (!attendances && !leaveRequestsData?.items) return [];
 
-		return attendances.map((attendance) => {
-			const employee = attendance.employee;
-			const employeeName = employee
-				? `${employee.first_name} ${employee.last_name || ""}`.trim()
-				: "Unknown Employee";
+		const combinedData: CombinedAttendanceData[] = [];
 
-			const formattedDate = attendance.date
-				? new Date(attendance.date).toLocaleDateString("en-US", {
-						year: "numeric",
-						month: "long",
-						day: "2-digit",
-				  })
-				: "";
+		// Process attendance records
+		if (attendances) {
+			attendances.forEach((attendance) => {
+				// Try to get employee from employees list first
+				let employee = employeesData?.data?.items?.find(
+					(emp) => emp.id === attendance.employee_id
+				);
 
-			const formatTime = (timeString: string | null) => {
-				if (!timeString) return "-";
-
-				if (timeString.match(/^\d{2}:\d{2}:\d{2}$/)) {
-					return timeString.substring(0, 5);
+				// If not found or incomplete, use employee data from attendance response
+				if (!employee || !employee.first_name) {
+					const attendanceEmployee = attendance.employee;
+					employee = {
+						id: attendance.employee_id,
+						first_name:
+							attendanceEmployee?.first_name ||
+							"Unknown Employee",
+						last_name: attendanceEmployee?.last_name || "",
+						employee_code: attendanceEmployee?.employee_code || "",
+						position_name: attendanceEmployee?.position_name || "",
+						employment_status:
+							attendanceEmployee?.employment_status || false,
+						created_at: attendanceEmployee?.created_at || "",
+						updated_at: attendanceEmployee?.updated_at || "",
+					};
 				}
 
-				try {
-					const time = new Date(timeString);
-					return time.toLocaleTimeString("en-US", {
-						hour: "2-digit",
-						minute: "2-digit",
-						hour12: false,
-					});
-				} catch {
-					return timeString.substring(0, 5);
-				}
-			};
+				combinedData.push({
+					...attendance,
+					type: "attendance",
+					employee: {
+						id: employee.id,
+						first_name: employee.first_name || "Unknown Employee",
+						last_name: employee.last_name,
+						employee_code: employee.employee_code,
+						position_name: employee.position_name,
+					},
+				});
+			});
+		}
 
-			const formatWorkHours = (hours: number | null) => {
-				if (!hours) return "-";
-				const wholeHours = Math.floor(hours);
-				const minutes = Math.round((hours - wholeHours) * 60);
-				return `${wholeHours}h ${minutes}m`;
-			};
+		// Process leave request records
+		if (leaveRequestsData?.items) {
+			leaveRequestsData.items.forEach((leaveRequest: LeaveRequest) => {
+				// Use employee data directly from leave request response
+				const employee = {
+					id: leaveRequest.employee_id,
+					first_name:
+						leaveRequest.employee_name || "Unknown Employee",
+					last_name: "",
+					employee_code: "",
+					position_name: leaveRequest.position_name || "",
+				};
 
-			const formatLocation = (lat: number | null, lng: number | null) => {
-				if (!lat || !lng) return "-";
-				return `${lat}, ${lng}`;
-			};
+				// Transform leave request to attendance-like structure
+				combinedData.push({
+					id: leaveRequest.id,
+					employee_id: leaveRequest.employee_id,
+					employee: employee,
+					date: leaveRequest.start_date,
+					clock_in: null, // No clock in for leave requests
+					clock_out: null, // No clock out for leave requests
+					work_hours: null, // No work hours for leave requests
+					status: leaveRequest.leave_type, // Use leave type as status
+					created_at: leaveRequest.created_at,
+					updated_at: leaveRequest.updated_at,
+					type: "leave_request",
+					leave_type: leaveRequest.leave_type,
+					originalLeaveRequest: leaveRequest,
+				});
+			});
+		}
 
-			const mapStatus = (status: string) => {
-				switch (status?.toLowerCase()) {
-					case "on_time":
-						return "on_time" as const;
-					case "late":
-						return "late" as const;
-					case "early_leave":
-						return "early_leave" as const;
-					case "absent":
-						return "absent" as const;
-					case "leave":
-						return "leave" as const;
-					default:
-						return "on_time" as const;
-				}
-			};
-
-			return {
-				id: attendance.id,
-				name: employeeName,
-				date: formattedDate,
-				clockIn: formatTime(attendance.clock_in),
-				clockOut: formatTime(attendance.clock_out),
-				workHours: formatWorkHours(attendance.work_hours),
-				status: mapStatus(attendance.status),
-				detailAddress: "N/A",
-				latitude: attendance.clock_in_lat?.toString() || "-",
-				longitude: attendance.clock_in_long?.toString() || "-",
-				employee_id: attendance.employee_id,
-				employee: employee,
-				attendance: attendance,
-			};
-		});
-	}, [attendances]);
+		// Sort by date descending (most recent first)
+		return combinedData.sort(
+			(a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+		);
+	}, [attendances, leaveRequestsData, employeesData]);
 
 	const filteredData = useMemo(() => {
 		if (!nameFilter) return overviewData;
 		return overviewData.filter((item) =>
-			item.name.toLowerCase().includes(nameFilter.toLowerCase())
+			item.employee
+				? `${item.employee.first_name} ${item.employee.last_name || ""}`
+						.toLowerCase()
+						.includes(nameFilter.toLowerCase())
+				: false
 		);
 	}, [overviewData, nameFilter]);
 
@@ -141,6 +184,15 @@ export function useCheckClockOverview() {
 		}
 	};
 
+	const createLeaveRequest = async (employeeId: number, data: any) => {
+		try {
+			await createLeaveRequestMutation.mutateAsync({ employeeId, data });
+		} catch (error) {
+			console.error("Failed to create leave request:", error);
+			throw error;
+		}
+	};
+
 	return {
 		page,
 		setPage,
@@ -152,9 +204,13 @@ export function useCheckClockOverview() {
 		employeeList,
 		nameFilter,
 		setNameFilter,
-		isLoading: isLoadingAttendances || isLoadingEmployees,
-		error: attendanceError,
+		isLoading:
+			isLoadingAttendances ||
+			isLoadingEmployees ||
+			isLoadingLeaveRequests,
+		error: attendanceError || leaveRequestError,
 		createAttendance,
 		isCreating: createAttendanceMutation.isPending,
+		createLeaveRequest,
 	};
 }

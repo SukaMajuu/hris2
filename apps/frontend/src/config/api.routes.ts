@@ -83,6 +83,7 @@ export const API_ROUTES = {
 				delete: (id: number) => `/api/leave-requests/${id}`,
 				my: "/api/leave-requests/my",
 				status: (id: number) => `/api/leave-requests/${id}/status`,
+				admin: "/api/leave-requests/admin",
 			},
 			attendances: {
 				base: "/api/attendances",

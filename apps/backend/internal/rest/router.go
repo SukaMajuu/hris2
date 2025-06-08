@@ -149,6 +149,7 @@ func (r *Router) Setup() *gin.Engine {
 
 				// Admin routes (can access all leave requests and update status)
 				leaveRequests.GET("", r.leaveRequestHandler.ListLeaveRequests)                     // Admin only - list all
+				leaveRequests.POST("/admin", r.leaveRequestHandler.CreateLeaveRequestForEmployee)  // Admin only - create for employee
 				leaveRequests.PATCH("/:id/status", r.leaveRequestHandler.UpdateLeaveRequestStatus) // Admin only
 			}
 

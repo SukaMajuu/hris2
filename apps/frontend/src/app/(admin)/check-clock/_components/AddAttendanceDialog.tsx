@@ -46,6 +46,8 @@ import {
 	ClockInAttendanceRequest,
 	ClockOutAttendanceRequest,
 } from "@/types/attendance";
+import { useCreateLeaveRequestForEmployeeMutation } from "@/api/mutations/leave-request.mutations";
+import { CreateLeaveRequestRequest, LeaveType } from "@/types/leave-request";
 
 const MapComponent = dynamic(
 	() =>
@@ -94,6 +96,7 @@ export function AddAttendanceDialog({
 	// Add the clock in/out mutations
 	const clockInMutation = useClockIn();
 	const clockOutMutation = useClockOut();
+	const createLeaveRequestMutation = useCreateLeaveRequestForEmployeeMutation();
 
 	const {
 		register,
@@ -372,33 +375,49 @@ export function AddAttendanceDialog({
 				}
 			} else if (isLeaveType) {
 				// Handle leave request submission
-				const dateError = validateDateRange(
-					data.start_date,
-					data.end_date
-				);
-				if (dateError) {
-					toast.error(dateError);
+				if (!data.start_date || !data.end_date) {
+					toast.error(
+						"Start date and end date are required for leave requests"
+					);
 					return;
 				}
 
-				const fileValidationError = validateFileUpload(data.attachment);
-				if (fileValidationError) {
-					toast.error(fileValidationError);
-					return;
+				// Map attendance type to LeaveType enum
+				let leaveType: LeaveType;
+				switch (data.attendanceType) {
+					case "sick leave":
+						leaveType = LeaveType.SICK_LEAVE;
+						break;
+					case "compassionate leave":
+						leaveType = LeaveType.COMPASSIONATE_LEAVE;
+						break;
+					case "maternity leave":
+						leaveType = LeaveType.MATERNITY_LEAVE;
+						break;
+					case "annual leave":
+						leaveType = LeaveType.ANNUAL_LEAVE;
+						break;
+					case "marriage leave":
+						leaveType = LeaveType.MARRIAGE_LEAVE;
+						break;
+					default:
+						toast.error("Invalid leave type selected");
+						return;
 				}
 
-				const leaveData: any = {
-					employee_id: parseInt(data.employee_id),
-					work_schedule_id: selectedEmployee.work_schedule_id || 1,
-					date: data.start_date,
-					status: "leave",
+				const leaveData: CreateLeaveRequestRequest = {
+					leave_type: leaveType,
 					start_date: data.start_date,
 					end_date: data.end_date,
-					employee_note: data.employee_note,
-					attachment: data.attachment,
+					employee_note: data.employee_note || undefined,
+					attachment: data.attachment || undefined,
 				};
 
-				await createAttendance(leaveData);
+				// Using admin-specific mutation to create leave request for employee
+				await createLeaveRequestMutation.mutateAsync({
+					employeeId: parseInt(data.employee_id),
+					data: leaveData,
+				});
 				toast.success("Leave request submitted successfully!");
 			}
 
@@ -949,12 +968,14 @@ export function AddAttendanceDialog({
 								!filteredEmployeeList.length ||
 								isCreating ||
 								clockInMutation.isPending ||
-								clockOutMutation.isPending
+								clockOutMutation.isPending ||
+								createLeaveRequestMutation.isPending
 							}
 						>
 							{isCreating ||
 							clockInMutation.isPending ||
-							clockOutMutation.isPending
+							clockOutMutation.isPending ||
+							createLeaveRequestMutation.isPending
 								? "Creating..."
 								: `Submit ${
 										attendanceType === "clock-in"

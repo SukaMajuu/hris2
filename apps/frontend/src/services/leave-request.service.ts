@@ -170,6 +170,31 @@ class LeaveRequestService extends ApiService {
 		);
 		return response.data.data;
 	}
+
+	// Create leave request (admin - for specific employee)
+	async createLeaveRequestForEmployee(
+		employeeId: number,
+		data: CreateLeaveRequestRequest
+	): Promise<LeaveRequest> {
+		const formData = new FormData();
+		formData.append("employee_id", employeeId.toString());
+		formData.append("leave_type", data.leave_type);
+		formData.append("start_date", data.start_date);
+		formData.append("end_date", data.end_date);
+
+		if (data.employee_note)
+			formData.append("employee_note", data.employee_note);
+
+		if (data.attachment) {
+			formData.append("attachment", data.attachment);
+		}
+
+		const response = await this.postFormData<ApiResponse<LeaveRequest>>(
+			API_ROUTES.v1.api.leaveRequests.admin,
+			formData
+		);
+		return response.data.data;
+	}
 }
 
 export const leaveRequestService = new LeaveRequestService();

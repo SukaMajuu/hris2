@@ -10,13 +10,22 @@ import (
 
 type LeaveRequestQueryDTO struct {
 	Page       int     `form:"page" binding:"omitempty,min=1"`
-	PageSize   int     `form:"page_size" binding:"omitempty,min=1,max=100"`
+	PageSize   int     `form:"page_size" binding:"omitempty,min=10"`
 	EmployeeID *uint   `form:"employee_id" binding:"omitempty"`
 	Status     *string `form:"status" binding:"omitempty,oneof='Waiting Approval' Approved Rejected"`
 	LeaveType  *string `form:"leave_type" binding:"omitempty"`
 }
 
 type CreateLeaveRequestDTO struct {
+	LeaveType      enums.LeaveType       `form:"leave_type" binding:"required"`
+	StartDate      string                `form:"start_date" binding:"required"`
+	EndDate        string                `form:"end_date" binding:"required"`
+	EmployeeNote   *string               `form:"employee_note,omitempty"`
+	AttachmentFile *multipart.FileHeader `form:"attachment,omitempty"`
+}
+
+type CreateLeaveRequestForEmployeeDTO struct {
+	EmployeeID     uint                  `form:"employee_id" binding:"required"`
 	LeaveType      enums.LeaveType       `form:"leave_type" binding:"required"`
 	StartDate      string                `form:"start_date" binding:"required"`
 	EndDate        string                `form:"end_date" binding:"required"`
@@ -87,4 +96,25 @@ func (dto *UpdateLeaveRequestDTO) ToDomain(employeeID uint) (*domain.LeaveReques
 	}
 
 	return updateData, nil
+}
+
+func (dto *CreateLeaveRequestForEmployeeDTO) ToDomain() (*domain.LeaveRequest, error) {
+	startDate, err := time.Parse("2006-01-02", dto.StartDate)
+	if err != nil {
+		return nil, err
+	}
+
+	endDate, err := time.Parse("2006-01-02", dto.EndDate)
+	if err != nil {
+		return nil, err
+	}
+
+	return &domain.LeaveRequest{
+		EmployeeID:   dto.EmployeeID,
+		LeaveType:    dto.LeaveType,
+		StartDate:    startDate,
+		EndDate:      endDate,
+		EmployeeNote: dto.EmployeeNote,
+		Status:       domain.LeaveStatusPending,
+	}, nil
 }

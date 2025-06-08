@@ -2,6 +2,14 @@
 
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Calendar } from 'lucide-react';
 import { Bar } from 'react-chartjs-2';
 import type { EmployeeStatsData } from '@/services/employee.service';
 
@@ -94,18 +102,27 @@ export function EmployeeStatsChart({
             <div className='text-sm font-medium text-gray-500'>Employee Statistics</div>
             <div className='text-xl font-bold'>Current Number of Employees</div>
           </div>
-          <select
-            className='w-[180px] rounded-md border px-3 py-2 text-sm'
-            value={selectedMonth}
-            onChange={(e) => onMonthChange(e.target.value)}
-            disabled={isLoading}
-          >
-            {monthYearOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          <div className='flex w-[200px] flex-col gap-2'>
+            <Select value={selectedMonth} onValueChange={onMonthChange} disabled={isLoading}>
+              <SelectTrigger className='h-11 w-full rounded-md border-slate-300 bg-white px-3 transition-colors duration-200 hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:border-slate-600 dark:bg-slate-800 dark:focus:ring-blue-800'>
+                <SelectValue placeholder='Select period' />
+              </SelectTrigger>
+              <SelectContent>
+                {monthYearOptions.map((option) => (
+                  <SelectItem
+                    key={option.value}
+                    value={option.value}
+                    className='cursor-pointer rounded-sm px-3 py-2 transition-colors duration-150 hover:bg-[#5A89B3] hover:text-white focus:bg-[#5A89B3] focus:text-white'
+                  >
+                    <div className='flex w-full items-center gap-3'>
+                      <Calendar className='h-4 w-4 flex-shrink-0 text-slate-500' />
+                      <span className='font-medium'>{option.label}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         <div className='flex h-64 items-center justify-center'>
           {isLoading ? (

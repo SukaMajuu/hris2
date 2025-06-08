@@ -23,27 +23,33 @@ interface MultiSelectProps {
   onChange: (value: string[]) => void;
   placeholder?: string;
   className?: string;
+  disabledOptions?: string[];
 }
 
 export const MultiSelect = React.forwardRef<HTMLButtonElement, MultiSelectProps>(
   (
-    { options, value = [], onChange, placeholder = "Select options", className },
+    { options, value = [], onChange, placeholder = "Select options", className, disabledOptions = [] },
     ref
   ) => {
-    const [open, setOpen] = React.useState(false);
+    const [open, setOpen] = React.useState(false); const toggleOption = (optionValue: string) => {
+      // Don't allow toggling disabled options
+      if (disabledOptions.includes(optionValue)) {
+        return;
+      }
 
-    const toggleOption = (optionValue: string) => {
       const newValue = value.includes(optionValue)
         ? value.filter((v) => v !== optionValue)
         : [...value, optionValue];
       onChange(newValue);
-    };
+    }; const handleSelectAll = () => {
+      // Only include non-disabled options when selecting all
+      const availableOptions = options.filter(option => !disabledOptions.includes(option.value));
+      const availableValues = availableOptions.map(option => option.value);
 
-    const handleSelectAll = () => {
-      if (value.length === options.length) {
+      if (value.length === availableValues.length) {
         onChange([]);
       } else {
-        onChange(options.map(option => option.value));
+        onChange(availableValues);
       }
     };
 
@@ -59,7 +65,7 @@ export const MultiSelect = React.forwardRef<HTMLButtonElement, MultiSelectProps>
             )}
           >
             <span className="truncate">
-              {value.length > 0 
+              {value.length > 0
                 ? value.map(val => options.find(o => o.value === val)?.label).join(", ")
                 : placeholder}
             </span>
@@ -68,47 +74,55 @@ export const MultiSelect = React.forwardRef<HTMLButtonElement, MultiSelectProps>
         </PopoverTrigger>
         <PopoverContent className="p-0 w-[200px]" align="start">
           <Command>
-            <CommandList>
-              <CommandGroup>
-                <CommandItem
-                  onSelect={handleSelectAll}
-                  className="cursor-pointer"
+            <CommandList>              <CommandGroup>
+              <CommandItem
+                onSelect={handleSelectAll}
+                className="cursor-pointer"
+              >
+                <div
+                  className={cn(
+                    "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                    value.length === options.filter(option => !disabledOptions.includes(option.value)).length
+                      ? "bg-primary text-primary-foreground"
+                      : "opacity-50 [&_svg]:invisible"
+                  )}
                 >
-                  <div
+                  <CheckIcon className="h-4 w-4" />
+                </div>
+                <span>Select All</span>
+              </CommandItem>
+              {options.map((option) => {
+                const isSelected = value.includes(option.value);
+                const isDisabled = disabledOptions.includes(option.value);
+                return (
+                  <CommandItem
+                    key={option.value}
+                    onSelect={() => toggleOption(option.value)}
                     className={cn(
-                      "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                      value.length === options.length
-                        ? "bg-primary text-primary-foreground"
-                        : "opacity-50 [&_svg]:invisible"
+                      "cursor-pointer",
+                      isDisabled && "opacity-50 cursor-not-allowed"
                     )}
+                    disabled={isDisabled}
                   >
-                    <CheckIcon className="h-4 w-4" />
-                  </div>
-                  <span>Select All</span>
-                </CommandItem>
-                {options.map((option) => {
-                  const isSelected = value.includes(option.value);
-                  return (
-                    <CommandItem
-                      key={option.value}
-                      onSelect={() => toggleOption(option.value)}
-                      className="cursor-pointer"
+                    <div
+                      className={cn(
+                        "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                        isSelected
+                          ? "bg-primary text-primary-foreground"
+                          : "opacity-50 [&_svg]:invisible",
+                        isDisabled && "border-gray-300 bg-gray-100"
+                      )}
                     >
-                      <div
-                        className={cn(
-                          "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                          isSelected
-                            ? "bg-primary text-primary-foreground"
-                            : "opacity-50 [&_svg]:invisible"
-                        )}
-                      >
-                        <CheckIcon className="h-4 w-4" />
-                      </div>
-                      <span>{option.label}</span>
-                    </CommandItem>
-                  );
-                })}
-              </CommandGroup>
+                      <CheckIcon className="h-4 w-4" />
+                    </div>
+                    <span className={cn(isDisabled && "text-gray-400")}>
+                      {option.label}
+                      {isDisabled && " (Already selected)"}
+                    </span>
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
             </CommandList>
           </Command>
         </PopoverContent>

@@ -17,10 +17,10 @@ type AttendanceResponseDTO struct {
 	Date           string                                   `json:"date"`
 	ClockIn        *string                                  `json:"clock_in"`
 	ClockOut       *string                                  `json:"clock_out"`
-	CheckInLat     *float64                                 `json:"check_in_lat"`
-	CheckInLong    *float64                                 `json:"check_in_long"`
-	CheckOutLat    *float64                                 `json:"check_out_lat"`
-	CheckOutLong   *float64                                 `json:"check_out_long"`
+	ClockInLat     *float64                                 `json:"clock_in_lat"`
+	ClockInLong    *float64                                 `json:"clock_in_long"`
+	ClockOutLat    *float64                                 `json:"clock_out_lat"`
+	ClockOutLong   *float64                                 `json:"clock_out_long"`
 	WorkHours      *float64                                 `json:"work_hours"`
 	Status         string                                   `json:"status"`
 	CreatedAt      time.Time                                `json:"created_at"`
@@ -43,15 +43,20 @@ type AttendanceSummaryResponseDTO struct {
 }
 
 func NewAttendanceResponseDTO(attendance *domain.Attendance) *AttendanceResponseDTO {
+	var workScheduleID uint
+	if attendance.Employee.WorkScheduleID != nil {
+		workScheduleID = *attendance.Employee.WorkScheduleID
+	}
+
 	dto := &AttendanceResponseDTO{
 		ID:             attendance.ID,
 		EmployeeID:     attendance.EmployeeID,
-		WorkScheduleID: attendance.WorkScheduleID,
+		WorkScheduleID: workScheduleID,
 		Date:           attendance.Date.Format("2006-01-02"),
-		CheckInLat:     attendance.CheckInLat,
-		CheckInLong:    attendance.CheckInLong,
-		CheckOutLat:    attendance.CheckOutLat,
-		CheckOutLong:   attendance.CheckOutLong,
+		ClockInLat:     attendance.ClockInLat,
+		ClockInLong:    attendance.ClockInLong,
+		ClockOutLat:    attendance.ClockOutLat,
+		ClockOutLong:   attendance.ClockOutLong,
 		WorkHours:      attendance.WorkHours,
 		Status:         string(attendance.Status),
 		CreatedAt:      attendance.CreatedAt,
@@ -81,11 +86,11 @@ func NewAttendanceResponseDTO(attendance *domain.Attendance) *AttendanceResponse
 		}
 	}
 	// Add work schedule info if loaded
-	if attendance.WorkSchedule.ID != 0 {
+	if attendance.Employee.WorkScheduleID != nil && attendance.Employee.WorkSchedule != nil {
 		dto.WorkSchedule = &workscheduledto.WorkScheduleResponseDTO{
-			ID:       attendance.WorkSchedule.ID,
-			Name:     attendance.WorkSchedule.Name,
-			WorkType: string(attendance.WorkSchedule.WorkType),
+			ID:       *attendance.Employee.WorkScheduleID,
+			Name:     attendance.Employee.WorkSchedule.Name,
+			WorkType: string(attendance.Employee.WorkSchedule.WorkType),
 		}
 	}
 
@@ -136,15 +141,20 @@ func ToAttendanceListResponseData(attendances []*domain.Attendance, totalItems i
 
 // NewAttendanceResponseDTOWithoutRelations creates DTO without loading related entities
 func NewAttendanceResponseDTOWithoutRelations(attendance *domain.Attendance) *AttendanceResponseDTO {
+	var workScheduleID uint
+	if attendance.Employee.WorkScheduleID != nil {
+		workScheduleID = *attendance.Employee.WorkScheduleID
+	}
+
 	dto := &AttendanceResponseDTO{
 		ID:             attendance.ID,
 		EmployeeID:     attendance.EmployeeID,
-		WorkScheduleID: attendance.WorkScheduleID,
+		WorkScheduleID: workScheduleID,
 		Date:           attendance.Date.Format("2006-01-02"),
-		CheckInLat:     attendance.CheckInLat,
-		CheckInLong:    attendance.CheckInLong,
-		CheckOutLat:    attendance.CheckOutLat,
-		CheckOutLong:   attendance.CheckOutLong,
+		ClockInLat:     attendance.ClockInLat,
+		ClockInLong:    attendance.ClockInLong,
+		ClockOutLat:    attendance.ClockOutLat,
+		ClockOutLong:   attendance.ClockOutLong,
 		WorkHours:      attendance.WorkHours,
 		Status:         string(attendance.Status),
 		CreatedAt:      attendance.CreatedAt,
@@ -181,8 +191,6 @@ func NewAttendanceSummaryResponseDTO(attendances []*domain.Attendance) *Attendan
 			summary.LateDays++
 		case domain.Absent:
 			summary.AbsentDays++
-		case domain.Leave:
-			summary.LeaveDays++
 		case domain.EarlyLeave:
 			summary.PresentDays++ // Count early leave as present but different status
 		}
@@ -221,7 +229,6 @@ func IsValidAttendanceStatus(status string) bool {
 		string(domain.Late),
 		string(domain.EarlyLeave),
 		string(domain.Absent),
-		string(domain.Leave),
 	}
 
 	for _, validStatus := range validStatuses {
@@ -253,8 +260,6 @@ func GetStatusDisplayName(status domain.AttendanceStatus) string {
 		return "Early Leave"
 	case domain.Absent:
 		return "Absent"
-	case domain.Leave:
-		return "Leave"
 	default:
 		return "Unknown"
 	}
@@ -281,8 +286,6 @@ func GetAttendanceStatistics(attendances []*domain.Attendance) map[string]interf
 			workingDays++
 		case domain.Absent:
 			absentCount++
-		case domain.Leave:
-			leaveCount++
 		}
 
 		if attendance.WorkHours != nil {

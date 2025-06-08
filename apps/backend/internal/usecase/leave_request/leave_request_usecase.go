@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
 	"github.com/SukaMajuu/hris/apps/backend/domain"
 	dtoleave "github.com/SukaMajuu/hris/apps/backend/domain/dto/leave_request"
 	"github.com/SukaMajuu/hris/apps/backend/domain/interfaces"
@@ -57,7 +58,7 @@ func (uc *LeaveRequestUseCase) toLeaveRequestResponseDTO(lr *domain.LeaveRequest
 	positionName := "Unknown Position"
 	if lr.Employee.PositionName != "" {
 		positionName = lr.Employee.PositionName
-	}	// Generate proper Supabase URL for attachment if it exists
+	} // Generate proper Supabase URL for attachment if it exists
 	var attachmentURL *string
 	if lr.Attachment != nil && *lr.Attachment != "" {
 		bucketName := bucketNameAttachments
@@ -97,14 +98,14 @@ func (uc *LeaveRequestUseCase) Create(ctx context.Context, leaveRequest *domain.
 	// Validate dates
 	if leaveRequest.StartDate.After(leaveRequest.EndDate) {
 		return nil, fmt.Errorf("start date cannot be after end date")
-	}	// Handle file upload if provided
-	if file != nil && file.Size > 0 && file.Filename != "" && uc.supabaseClient != nil {		// Validate file type
+	} // Handle file upload if provided
+	if file != nil && file.Size > 0 && file.Filename != "" && uc.supabaseClient != nil { // Validate file type
 		if err := uc.validateAttachmentFile(file); err != nil {
 			return nil, err
 		}
 
 		fileName := uc.generateFileName(employee, file.Filename)
-		
+
 		// Open the file
 		src, err := file.Open()
 		if err != nil {
@@ -148,6 +149,82 @@ func (uc *LeaveRequestUseCase) Create(ctx context.Context, leaveRequest *domain.
 		return nil, fmt.Errorf("failed to retrieve created leave request: %w", err)
 	}
 	log.Printf("LeaveRequestUseCase: Successfully created leave request with ID %d", leaveRequest.ID)
+	return uc.toLeaveRequestResponseDTO(createdLeaveRequest), nil
+}
+
+func (uc *LeaveRequestUseCase) CreateForEmployee(ctx context.Context, leaveRequest *domain.LeaveRequest, file *multipart.FileHeader) (*dtoleave.LeaveRequestResponseDTO, error) {
+	log.Printf("LeaveRequestUseCase: CreateForEmployee called for employee ID %d", leaveRequest.EmployeeID)
+
+	// Validate employee exists
+	employee, err := uc.employeeRepo.GetByID(ctx, leaveRequest.EmployeeID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to validate employee ID %d: %w", leaveRequest.EmployeeID, err)
+	}
+	if employee == nil {
+		return nil, fmt.Errorf("employee with ID %d not found", leaveRequest.EmployeeID)
+	}
+
+	// Validate dates
+	if leaveRequest.StartDate.After(leaveRequest.EndDate) {
+		return nil, fmt.Errorf("start date cannot be after end date")
+	}
+
+	// Handle file upload if provided
+	if file != nil && file.Size > 0 && file.Filename != "" && uc.supabaseClient != nil {
+		// Validate file type
+		if err := uc.validateAttachmentFile(file); err != nil {
+			return nil, err
+		}
+
+		fileName := uc.generateFileName(employee, file.Filename)
+
+		// Open the file
+		src, err := file.Open()
+		if err != nil {
+			return nil, fmt.Errorf("failed to open attachment file: %w", err)
+		}
+		defer func() {
+			if closeErr := src.Close(); closeErr != nil {
+				log.Printf("Warning: failed to close attachment file: %v", closeErr)
+			}
+		}()
+
+		// Upload to Supabase Storage with proper content type
+		_, err = uc.supabaseClient.Storage.UploadFile(bucketNameAttachments, fileName, src, storage.FileOptions{
+			ContentType: &[]string{uc.getContentTypeFromExtension(file.Filename)}[0],
+			Upsert:      &[]bool{true}[0],
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to upload attachment: %w", err)
+		}
+
+		// Set the attachment path
+		leaveRequest.Attachment = &fileName
+	}
+
+	// Set status to approved and add timestamps for admin-created requests
+	leaveRequest.Status = domain.LeaveStatusApproved
+	now := time.Now()
+	leaveRequest.CreatedAt = now
+	leaveRequest.UpdatedAt = now
+
+	// Create the leave request
+	err = uc.leaveRequestRepo.Create(ctx, leaveRequest)
+	if err != nil {
+		// Cleanup uploaded file if creation fails
+		if leaveRequest.Attachment != nil && uc.supabaseClient != nil {
+			_, _ = uc.supabaseClient.Storage.RemoveFile(bucketNameAttachments, []string{*leaveRequest.Attachment})
+		}
+		return nil, fmt.Errorf("failed to create leave request: %w", err)
+	}
+
+	// Get the created leave request with employee data
+	createdLeaveRequest, err := uc.leaveRequestRepo.GetByID(ctx, leaveRequest.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve created leave request: %w", err)
+	}
+
+	log.Printf("LeaveRequestUseCase: Successfully created leave request with ID %d for employee ID %d", leaveRequest.ID, leaveRequest.EmployeeID)
 	return uc.toLeaveRequestResponseDTO(createdLeaveRequest), nil
 }
 
@@ -238,7 +315,7 @@ func (uc *LeaveRequestUseCase) GetByEmployeeUserID(
 	userID uint,
 	filters map[string]interface{},
 	pagination domain.PaginationParams,
-	) (*dtoleave.LeaveRequestListResponseData, error) {
+) (*dtoleave.LeaveRequestListResponseData, error) {
 	log.Printf("LeaveRequestUseCase: GetByEmployeeUserID called for userID %d", userID)
 	// Get employee by user ID
 	employee, err := uc.employeeRepo.GetByUserID(ctx, userID)
@@ -349,14 +426,14 @@ func (uc *LeaveRequestUseCase) Update(ctx context.Context, id uint, updates *dom
 
 	// Handle file upload if provided
 	var oldAttachment *string
-	if file != nil && file.Size > 0 && file.Filename != "" && uc.supabaseClient != nil {		// Validate file type
+	if file != nil && file.Size > 0 && file.Filename != "" && uc.supabaseClient != nil { // Validate file type
 		if err := uc.validateAttachmentFile(file); err != nil {
 			return nil, err
 		}
 
 		employee, _ := uc.employeeRepo.GetByID(ctx, existingLeaveRequest.EmployeeID)
 		fileName := uc.generateFileName(employee, file.Filename)
-		
+
 		// Open the file
 		src, err := file.Open()
 		if err != nil {
@@ -475,16 +552,16 @@ func (uc *LeaveRequestUseCase) GetEmployeeByUserID(ctx context.Context, userID u
 func (uc *LeaveRequestUseCase) generateFileName(employee *domain.Employee, originalFilename string) string {
 	timestamp := time.Now().Format("20060102_150405")
 	extension := filepath.Ext(originalFilename)
-	
+
 	employeeCode := "EMP"
 	if employee.EmployeeCode != nil {
 		employeeCode = *employee.EmployeeCode
 	}
-	
+
 	// Clean filename: remove spaces and special characters except dots and underscores
 	cleanName := strings.ReplaceAll(originalFilename, " ", "_")
 	cleanName = strings.ReplaceAll(cleanName, extension, "")
-	
+
 	return fmt.Sprintf("%s_%s_%s%s", employeeCode, timestamp, cleanName, extension)
 }
 
@@ -494,10 +571,10 @@ func (uc *LeaveRequestUseCase) validateAttachmentFile(file *multipart.FileHeader
 	if file.Size > maxSize {
 		return fmt.Errorf("file size too large: maximum 10MB allowed")
 	}
-	
+
 	// Get file extension
 	extension := strings.ToLower(filepath.Ext(file.Filename))
-	
+
 	// Define allowed extensions
 	allowedExtensions := map[string]bool{
 		".jpg":  true,
@@ -508,33 +585,33 @@ func (uc *LeaveRequestUseCase) validateAttachmentFile(file *multipart.FileHeader
 		".webp": true,
 		".pdf":  true,
 	}
-	
+
 	if !allowedExtensions[extension] {
 		return fmt.Errorf("invalid file type: only images (JPG, JPEG, PNG, GIF, BMP, WEBP) and PDF files are allowed")
 	}
-	
+
 	// Optional: Validate MIME type for additional security
 	src, err := file.Open()
 	if err != nil {
 		return fmt.Errorf("failed to open file for validation: %w", err)
 	}
 	defer func() {
-			if closeErr := src.Close(); closeErr != nil {
-				log.Printf("Warning: failed to close attachment file: %v", closeErr)
-			}
-		}()
-		// Read first 512 bytes to detect MIME type
+		if closeErr := src.Close(); closeErr != nil {
+			log.Printf("Warning: failed to close attachment file: %v", closeErr)
+		}
+	}()
+	// Read first 512 bytes to detect MIME type
 	buffer := make([]byte, 512)
 	_, err = src.Read(buffer)
 	if err != nil {
 		return fmt.Errorf("failed to read file for MIME type detection: %w", err)
 	}
-	
+
 	// Reset file pointer for later use
 	if _, err := src.Seek(0, 0); err != nil {
 		return fmt.Errorf("failed to reset file pointer: %w", err)
 	}
-	
+
 	// Check MIME type
 	mimeType := http.DetectContentType(buffer)
 	allowedMimeTypes := map[string]bool{
@@ -546,11 +623,11 @@ func (uc *LeaveRequestUseCase) validateAttachmentFile(file *multipart.FileHeader
 		"image/webp":      true,
 		"application/pdf": true,
 	}
-	
+
 	if !allowedMimeTypes[mimeType] {
 		return fmt.Errorf("invalid file content: detected MIME type %s is not allowed", mimeType)
 	}
-	
+
 	return nil
 }
 

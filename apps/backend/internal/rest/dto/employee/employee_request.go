@@ -13,7 +13,7 @@ import (
 
 type ListEmployeesRequestQuery struct {
 	Page     int     `form:"page" binding:"omitempty,min=1"`
-	PageSize int     `form:"page_size" binding:"omitempty,min=1,max=100"`
+	PageSize int     `form:"page_size" binding:"omitempty,min=10"`
 	Status   *string `form:"status" binding:"omitempty,oneof=active inactive"`
 	Search   *string `form:"search" binding:"omitempty"`
 	Gender   *string `form:"gender" binding:"omitempty,oneof=Male Female"`
@@ -71,6 +71,7 @@ type UpdateEmployeeRequestDTO struct {
 	BankAccountNumber     *string               `form:"bank_account_number,omitempty"`
 	BankAccountHolderName *string               `form:"bank_account_holder_name,omitempty"`
 	TaxStatus             *enums.TaxStatus      `form:"tax_status,omitempty"`
+	WorkScheduleID        *uint                 `form:"work_schedule_id,omitempty"`
 	ProfilePhotoURL       *string               `form:"profile_photo_url,omitempty"`
 
 	PhotoFile *multipart.FileHeader `form:"photo_file,omitempty"`
@@ -284,6 +285,12 @@ func MapUpdateDTOToDomain(employeeID uint, reqDTO *UpdateEmployeeRequestDTO) (*d
 	}
 	if reqDTO.TaxStatus != nil {
 		employeeUpdatePayload.TaxStatus = reqDTO.TaxStatus
+	}
+	if reqDTO.WorkScheduleID != nil {
+		log.Printf("MapUpdateDTOToDomain: Setting WorkScheduleID to %d", *reqDTO.WorkScheduleID)
+		employeeUpdatePayload.WorkScheduleID = reqDTO.WorkScheduleID
+	} else {
+		log.Printf("MapUpdateDTOToDomain: WorkScheduleID is nil in request DTO")
 	}
 	if reqDTO.ProfilePhotoURL != nil {
 		employeeUpdatePayload.ProfilePhotoURL = reqDTO.ProfilePhotoURL

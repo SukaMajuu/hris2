@@ -63,6 +63,49 @@ func (h *LeaveRequestHandler) CreateLeaveRequest(c *gin.Context) {
 	response.Created(c, "Leave request created successfully", createdLeaveRequest)
 }
 
+// CreateLeaveRequestForEmployee creates a new leave request for a specific employee (admin only)
+func (h *LeaveRequestHandler) CreateLeaveRequestForEmployee(c *gin.Context) {
+	var req leaveRequestDTO.CreateLeaveRequestForEmployeeDTO
+	if err := c.ShouldBind(&req); err != nil {
+		response.BadRequest(c, "Invalid request format", err)
+		return
+	}
+
+	// Get admin user ID from context for logging purposes
+	userIDCtx, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User ID not found in context", errors.New("missing userID in context"))
+		return
+	}
+	adminUserID, ok := userIDCtx.(uint)
+	if !ok {
+		response.InternalServerError(c, errors.New("invalid user ID type in context"))
+		return
+	}
+
+	log.Printf("Admin user ID %d is creating leave request for employee ID %d", adminUserID, req.EmployeeID)
+
+	// Convert DTO to domain
+	domainLeaveRequest, err := req.ToDomain()
+	if err != nil {
+		response.BadRequest(c, "Invalid request data", err)
+		return
+	}
+
+	// Create leave request using admin-specific method
+	createdLeaveRequest, err := h.leaveRequestUseCase.CreateForEmployee(c.Request.Context(), domainLeaveRequest, req.AttachmentFile)
+	if err != nil {
+		if errors.Is(err, domain.ErrEmployeeNotFound) {
+			response.NotFound(c, "Employee not found", err)
+		} else {
+			response.InternalServerError(c, err)
+		}
+		return
+	}
+
+	response.Created(c, "Leave request created successfully for employee", createdLeaveRequest)
+}
+
 // GetLeaveRequestByID retrieves a leave request by ID
 func (h *LeaveRequestHandler) GetLeaveRequestByID(c *gin.Context) {
 	idStr := c.Param("id")

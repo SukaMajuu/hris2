@@ -220,6 +220,14 @@ func (h *EmployeeHandler) UpdateEmployee(c *gin.Context) {
 		return
 	}
 
+	var workScheduleIDValue string
+	if reqDTO.WorkScheduleID != nil {
+		workScheduleIDValue = fmt.Sprintf("%d", *reqDTO.WorkScheduleID)
+	} else {
+		workScheduleIDValue = "nil"
+	}
+	log.Printf("EmployeeHandler: UpdateEmployee received data for ID %d, WorkScheduleID: %s", id, workScheduleIDValue)
+
 	if reqDTO.PhotoFile != nil {
 		mimeType := reqDTO.PhotoFile.Header.Get("Content-Type")
 		log.Printf("EmployeeHandler: Photo file MIME type detected: %s", mimeType)

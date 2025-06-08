@@ -24,6 +24,7 @@ const (
 	defaultPassword = "password"
 	unknownValue    = "unknown"
 	bucketNamePhoto = "photo"
+	nilValue        = "nil"
 )
 
 const (
@@ -234,13 +235,39 @@ func (uc *EmployeeUseCase) Update(ctx context.Context, employee *domain.Employee
 		}
 	}
 
+	// Log the WorkScheduleID value right before repository update
+	var preUpdateWorkScheduleID string
+	if existingEmployee.WorkScheduleID != nil {
+		preUpdateWorkScheduleID = fmt.Sprintf("%d", *existingEmployee.WorkScheduleID)
+	} else {
+		preUpdateWorkScheduleID = nilValue
+	}
+	log.Printf("EmployeeUseCase: About to call repository Update with WorkScheduleID: %s", preUpdateWorkScheduleID)
+
 	err = uc.employeeRepo.Update(ctx, existingEmployee)
 	if err != nil {
 		log.Printf("EmployeeUseCase: Error updating employee ID %d in repository: %v", employee.ID, err)
 		return nil, fmt.Errorf("failed to update employee ID %d: %w", employee.ID, err)
 	}
-	log.Printf("EmployeeUseCase: Successfully updated employee with ID %d", existingEmployee.ID)
-	return existingEmployee, nil
+
+	// Refresh the employee with updated relationships
+	updatedEmployee, err := uc.employeeRepo.GetByID(ctx, existingEmployee.ID)
+	if err != nil {
+		log.Printf("EmployeeUseCase: Error refreshing employee ID %d after update: %v", existingEmployee.ID, err)
+		// Return the existing employee if refresh fails, but log the error
+		return existingEmployee, nil
+	}
+
+	var refreshedWorkScheduleID string
+	if updatedEmployee.WorkScheduleID != nil {
+		refreshedWorkScheduleID = fmt.Sprintf("%d", *updatedEmployee.WorkScheduleID)
+	} else {
+		refreshedWorkScheduleID = nilValue
+	}
+	log.Printf("EmployeeUseCase: After refresh, employee ID %d has WorkScheduleID: %s", updatedEmployee.ID, refreshedWorkScheduleID)
+
+	log.Printf("EmployeeUseCase: Successfully updated employee with ID %d", updatedEmployee.ID)
+	return updatedEmployee, nil
 }
 
 func (uc *EmployeeUseCase) updateEmployeeFields(existing *domain.Employee, update *domain.Employee) {
@@ -297,6 +324,22 @@ func (uc *EmployeeUseCase) updateEmployeeFields(existing *domain.Employee, updat
 	}
 	if update.ProfilePhotoURL != nil {
 		existing.ProfilePhotoURL = update.ProfilePhotoURL
+	}
+	if update.WorkScheduleID != nil {
+		var existingValue string
+		if existing.WorkScheduleID != nil {
+			existingValue = fmt.Sprintf("%d", *existing.WorkScheduleID)
+		} else {
+			existingValue = nilValue
+		}
+		log.Printf("EmployeeUseCase: Updating WorkScheduleID for employee %d from %s to %d", existing.ID, existingValue, *update.WorkScheduleID)
+
+		newWorkScheduleID := *update.WorkScheduleID
+		existing.WorkScheduleID = &newWorkScheduleID
+
+		log.Printf("EmployeeUseCase: WorkScheduleID updated to %d", *existing.WorkScheduleID)
+	} else {
+		log.Printf("EmployeeUseCase: WorkScheduleID update skipped - update.WorkScheduleID is nil")
 	}
 	if update.PositionName != "" {
 		existing.PositionName = update.PositionName

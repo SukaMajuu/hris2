@@ -24,6 +24,7 @@ const (
 	defaultPassword = "password"
 	unknownValue    = "unknown"
 	bucketNamePhoto = "photo"
+	nilValue        = "nil"
 )
 
 const (
@@ -239,7 +240,7 @@ func (uc *EmployeeUseCase) Update(ctx context.Context, employee *domain.Employee
 	if existingEmployee.WorkScheduleID != nil {
 		preUpdateWorkScheduleID = fmt.Sprintf("%d", *existingEmployee.WorkScheduleID)
 	} else {
-		preUpdateWorkScheduleID = "nil"
+		preUpdateWorkScheduleID = nilValue
 	}
 	log.Printf("EmployeeUseCase: About to call repository Update with WorkScheduleID: %s", preUpdateWorkScheduleID)
 
@@ -261,7 +262,7 @@ func (uc *EmployeeUseCase) Update(ctx context.Context, employee *domain.Employee
 	if updatedEmployee.WorkScheduleID != nil {
 		refreshedWorkScheduleID = fmt.Sprintf("%d", *updatedEmployee.WorkScheduleID)
 	} else {
-		refreshedWorkScheduleID = "nil"
+		refreshedWorkScheduleID = nilValue
 	}
 	log.Printf("EmployeeUseCase: After refresh, employee ID %d has WorkScheduleID: %s", updatedEmployee.ID, refreshedWorkScheduleID)
 
@@ -329,7 +330,7 @@ func (uc *EmployeeUseCase) updateEmployeeFields(existing *domain.Employee, updat
 		if existing.WorkScheduleID != nil {
 			existingValue = fmt.Sprintf("%d", *existing.WorkScheduleID)
 		} else {
-			existingValue = "nil"
+			existingValue = nilValue
 		}
 		log.Printf("EmployeeUseCase: Updating WorkScheduleID for employee %d from %s to %d", existing.ID, existingValue, *update.WorkScheduleID)
 

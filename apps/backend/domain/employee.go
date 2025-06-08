@@ -16,7 +16,7 @@ type Employee struct {
 	EmploymentStatus bool   `gorm:"type:boolean;default:true;not null"`
 
 	// Work Schedule Relationship
-	WorkScheduleID *uint         `gorm:"type:uint"`
+	WorkScheduleID *uint         `gorm:"type:index"`
 	WorkSchedule   *WorkSchedule `gorm:"foreignKey:WorkScheduleID"`
 
 	// Annual Leave Fields

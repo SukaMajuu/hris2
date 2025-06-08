@@ -53,10 +53,10 @@ func TestAttendanceUseCase_Create(t *testing.T) {
 		{
 			name: "successful create attendance",
 			reqDTO: &attendance.CreateAttendanceRequestDTO{
-				EmployeeID: 1,
-
-				Date:    date,
-				ClockIn: &clockInTime,
+				EmployeeID:     1,
+				WorkScheduleID: 1,
+				Date:           date,
+				ClockIn:        &clockInTime,
 			},
 			mockSetup: func(attendanceRepo *mocks.AttendanceRepository, employeeRepo *mocks.EmployeeRepository, workScheduleRepo *mocks.WorkScheduleRepository) {
 				employeeRepo.On("GetByID", ctx, uint(1)).Return(mockEmployee, nil)

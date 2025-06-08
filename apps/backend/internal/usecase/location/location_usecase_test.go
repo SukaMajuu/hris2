@@ -255,15 +255,44 @@ func TestLocationUseCase_Update(t *testing.T) {
 func TestLocationUseCase_Delete(t *testing.T) {
 	ctx := context.Background()
 	locationID := uint(1)
-	repoError := errors.New("delete error")
+	existsError := errors.New("exists check error")
+	deleteError := errors.New("delete error")
 
 	tests := []struct {
-		name          string
-		mockRepoError error
-		expectedError error
+		name             string
+		mockExistsResult bool
+		mockExistsError  error
+		mockDeleteError  error
+		expectedError    string
 	}{
-		{"successful deletion", nil, nil},
-		{"repository returns an error", repoError, repoError},
+		{
+			name:             "successful deletion",
+			mockExistsResult: true,
+			mockExistsError:  nil,
+			mockDeleteError:  nil,
+			expectedError:    "",
+		},
+		{
+			name:             "location not found",
+			mockExistsResult: false,
+			mockExistsError:  nil,
+			mockDeleteError:  nil,
+			expectedError:    "location with ID 1 not found or already deleted",
+		},
+		{
+			name:             "exists check error",
+			mockExistsResult: false,
+			mockExistsError:  existsError,
+			mockDeleteError:  nil,
+			expectedError:    "failed to check location existence",
+		},
+		{
+			name:             "delete error",
+			mockExistsResult: true,
+			mockExistsError:  nil,
+			mockDeleteError:  deleteError,
+			expectedError:    "failed to delete location",
+		},
 	}
 
 	for _, tt := range tests {
@@ -271,12 +300,17 @@ func TestLocationUseCase_Delete(t *testing.T) {
 			mockRepo := new(mocks.LocationRepository)
 			uc := NewLocationUseCase(mockRepo)
 
-			mockRepo.On("Delete", ctx, locationID).Return(tt.mockRepoError)
+			mockRepo.On("Exists", ctx, locationID).Return(tt.mockExistsResult, tt.mockExistsError)
+
+			if tt.mockExistsError == nil && tt.mockExistsResult {
+				mockRepo.On("Delete", ctx, locationID).Return(tt.mockDeleteError)
+			}
 
 			err := uc.Delete(ctx, locationID)
 
-			if tt.expectedError != nil {
-				assert.ErrorIs(t, err, tt.expectedError)
+			if tt.expectedError != "" {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tt.expectedError)
 			} else {
 				assert.NoError(t, err)
 			}

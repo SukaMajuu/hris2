@@ -95,9 +95,18 @@ func (uc *LocationUseCase) Update(ctx context.Context, id uint, locationUpdates 
 }
 
 func (uc *LocationUseCase) Delete(ctx context.Context, id uint) error {
-	err := uc.locationRepo.Delete(ctx, id)
+	// Check if location exists and is active before deleting
+	exists, err := uc.locationRepo.Exists(ctx, id)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to check location existence: %w", err)
+	}
+	if !exists {
+		return fmt.Errorf("location with ID %d not found or already deleted", id)
+	}
+
+	err = uc.locationRepo.Delete(ctx, id)
+	if err != nil {
+		return fmt.Errorf("failed to delete location: %w", err)
 	}
 	return nil
 }

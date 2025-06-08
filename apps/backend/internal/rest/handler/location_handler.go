@@ -2,6 +2,7 @@ package handler
 
 import (
 	"strconv" // Added for Atoi conversion
+	"strings"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
 	locationDTO "github.com/SukaMajuu/hris/apps/backend/internal/rest/dto/check-clock/location"
@@ -126,6 +127,11 @@ func (h *LocationHandler) DeleteLocation(c *gin.Context) {
 
 	err = h.locationUseCase.Delete(c.Request.Context(), uint(id))
 	if err != nil {
+		// Check if it's a not found error
+		if strings.Contains(err.Error(), "not found or already deleted") {
+			response.NotFound(c, err.Error(), nil)
+			return
+		}
 		response.InternalServerError(c, err)
 		return
 	}

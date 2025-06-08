@@ -58,6 +58,8 @@ func (r *Repository) GetPaymentTransaction(ctx context.Context, transactionID ui
 		Preload("Subscription").
 		Preload("Subscription.AdminUser").
 		Preload("Subscription.SubscriptionPlan").
+		Preload("Subscription.SubscriptionPlan.PlanFeatures").
+		Preload("Subscription.SubscriptionPlan.PlanFeatures.SubscriptionFeature").
 		Preload("Subscription.SeatPlan").
 		Where("id = ?", transactionID).
 		First(&transaction).Error; err != nil {
@@ -72,6 +74,8 @@ func (r *Repository) GetPaymentTransactionByXenditID(ctx context.Context, xendit
 		Preload("Subscription").
 		Preload("Subscription.AdminUser").
 		Preload("Subscription.SubscriptionPlan").
+		Preload("Subscription.SubscriptionPlan.PlanFeatures").
+		Preload("Subscription.SubscriptionPlan.PlanFeatures.SubscriptionFeature").
 		Preload("Subscription.SeatPlan").
 		Where("xendit_invoice_id = ?", xenditInvoiceID).
 		First(&transaction).Error; err != nil {
@@ -97,6 +101,8 @@ func (r *Repository) GetCustomerBillingInfo(ctx context.Context, subscriptionID 
 	if err := r.db.WithContext(ctx).
 		Preload("Subscription").
 		Preload("Subscription.AdminUser").
+		Preload("Subscription.SubscriptionPlan.PlanFeatures").
+		Preload("Subscription.SubscriptionPlan.PlanFeatures.SubscriptionFeature").
 		Where("subscription_id = ?", subscriptionID).
 		First(&billingInfo).Error; err != nil {
 		return nil, err
@@ -115,7 +121,10 @@ func (r *Repository) GetSubscriptionByAdminUserID(ctx context.Context, adminUser
 	if err := r.db.WithContext(ctx).
 		Preload("AdminUser").
 		Preload("SubscriptionPlan").
+		Preload("SubscriptionPlan.PlanFeatures").
 		Preload("SeatPlan").
+		Preload("SubscriptionPlan.PlanFeatures").
+		Preload("SubscriptionPlan.PlanFeatures.SubscriptionFeature").
 		Where("admin_user_id = ?", adminUserID).
 		First(&subscription).Error; err != nil {
 		return nil, err

@@ -42,20 +42,7 @@ func (uc *SubscriptionUseCase) GetSubscriptionPlans(ctx context.Context) ([]subs
 
 	var planResponses []subscriptionDto.SubscriptionPlanResponse
 	for _, plan := range plans {
-		// Load seat plans for each subscription plan
-		seatPlans, err := uc.xenditRepo.GetSeatPlansBySubscriptionPlan(ctx, plan.ID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get seat plans for plan %d: %w", plan.ID, err)
-		}
-
-		planResponse := subscriptionDto.ToSubscriptionPlanResponse(&plan)
-
-		// Add seat plans to response
-		for _, seatPlan := range seatPlans {
-			planResponse.SeatPlans = append(planResponse.SeatPlans, *subscriptionDto.ToSeatPlanResponse(&seatPlan))
-		}
-
-		planResponses = append(planResponses, *planResponse)
+		planResponses = append(planResponses, *subscriptionDto.ToSubscriptionPlanResponse(&plan))
 	}
 
 	return planResponses, nil

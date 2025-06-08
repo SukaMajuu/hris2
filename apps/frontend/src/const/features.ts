@@ -1,0 +1,39 @@
+// Feature codes that match the backend database
+export const FEATURE_CODES = {
+	ADMIN_DASHBOARD: "admin_dashboard",
+	EMPLOYEE_DASHBOARD: "employee_dashboard",
+	EMPLOYEE_MANAGEMENT: "employee_management",
+	DOCUMENT_EMPLOYEE_MANAGEMENT: "document_employee_management",
+	CHECK_CLOCK_SETTINGS: "check_clock_settings",
+	CHECK_CLOCK_SYSTEM: "check_clock_system",
+} as const;
+
+export type FeatureCode = typeof FEATURE_CODES[keyof typeof FEATURE_CODES];
+
+// Feature mappings by plan type
+export const PLAN_FEATURES = {
+	standard: [
+		FEATURE_CODES.ADMIN_DASHBOARD,
+		FEATURE_CODES.EMPLOYEE_DASHBOARD,
+		FEATURE_CODES.EMPLOYEE_MANAGEMENT,
+	],
+	premium: [
+		FEATURE_CODES.ADMIN_DASHBOARD,
+		FEATURE_CODES.EMPLOYEE_DASHBOARD,
+		FEATURE_CODES.EMPLOYEE_MANAGEMENT,
+		FEATURE_CODES.CHECK_CLOCK_SETTINGS,
+		FEATURE_CODES.CHECK_CLOCK_SYSTEM,
+		FEATURE_CODES.DOCUMENT_EMPLOYEE_MANAGEMENT,
+	],
+	ultra: [
+		FEATURE_CODES.ADMIN_DASHBOARD,
+		FEATURE_CODES.EMPLOYEE_DASHBOARD,
+		FEATURE_CODES.EMPLOYEE_MANAGEMENT,
+		FEATURE_CODES.CHECK_CLOCK_SETTINGS,
+		FEATURE_CODES.CHECK_CLOCK_SYSTEM,
+		FEATURE_CODES.DOCUMENT_EMPLOYEE_MANAGEMENT,
+		// Future features will be added here
+	],
+} as const;
+
+export type PlanType = keyof typeof PLAN_FEATURES;

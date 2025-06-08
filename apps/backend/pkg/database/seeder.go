@@ -272,12 +272,6 @@ func seedAdminUser(db *gorm.DB) error {
 		return fmt.Errorf("failed to seed admin subscription: %w", err)
 	}
 
-	// Update admin employee to link to the subscription
-	adminEmployee.SubscriptionID = &adminSubscription.ID
-	if err := db.Save(&adminEmployee).Error; err != nil {
-		log.Printf("Warning: failed to link admin employee to subscription: %v", err)
-	}
-
 	log.Println("Successfully seeded Admin user, employee, and premium subscription (51-100 seats).")
 	return nil
 }

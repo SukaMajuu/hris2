@@ -46,9 +46,6 @@ type Employee struct {
 	TaxStatus             *enums.TaxStatus      `gorm:"type:tax_status"`
 	ProfilePhotoURL       *string               `gorm:"type:varchar(255)"`
 
-	SubscriptionID *uint         `gorm:"type:uint"`
-	Subscription   *Subscription `gorm:"foreignKey:SubscriptionID"`
-
 	CreatedAt time.Time `gorm:"autoCreateTime"`
 	UpdatedAt time.Time `gorm:"autoUpdateTime"`
 }

@@ -14,7 +14,6 @@ type SubscriptionPlanResponse struct {
 	Type        enums.SubscriptionPlanType    `json:"type"`
 	Description string                        `json:"description"`
 	Features    []SubscriptionFeatureResponse `json:"features"`
-	SeatPlans   []SeatPlanResponse            `json:"seat_plans"`
 	IsActive    bool                          `json:"is_active"`
 	CreatedAt   time.Time                     `json:"created_at"`
 }
@@ -24,7 +23,6 @@ type SubscriptionFeatureResponse struct {
 	Name        string `json:"name"`
 	Code        string `json:"code"`
 	Description string `json:"description"`
-	IsCore      bool   `json:"is_core"`
 }
 
 type SeatPlanResponse struct {
@@ -120,15 +118,12 @@ func ToSubscriptionPlanResponse(plan *domain.SubscriptionPlan) *SubscriptionPlan
 		}
 	}
 
-	var seatPlans []SeatPlanResponse
-
 	return &SubscriptionPlanResponse{
 		ID:          plan.ID,
 		Name:        plan.Name,
 		Type:        plan.PlanType,
 		Description: plan.Description,
 		Features:    features,
-		SeatPlans:   seatPlans,
 		IsActive:    plan.IsActive,
 		CreatedAt:   plan.CreatedAt,
 	}
@@ -140,7 +135,6 @@ func ToSubscriptionFeatureResponse(feature *domain.SubscriptionFeature) Subscrip
 		Name:        feature.Name,
 		Code:        feature.Code,
 		Description: feature.Description,
-		IsCore:      false, // You can set logic here based on your business rules
 	}
 }
 

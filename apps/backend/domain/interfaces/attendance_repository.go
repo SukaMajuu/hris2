@@ -17,6 +17,7 @@ type AttendanceRepository interface {
 	// List operations
 	ListByEmployee(ctx context.Context, employeeID uint, paginationParams domain.PaginationParams) ([]*domain.Attendance, int64, error)
 	ListAll(ctx context.Context, paginationParams domain.PaginationParams) ([]*domain.Attendance, int64, error)
+	ListByManager(ctx context.Context, managerID uint, paginationParams domain.PaginationParams) ([]*domain.Attendance, int64, error)
 
 	// Update operations
 	Update(ctx context.Context, attendance *domain.Attendance) error

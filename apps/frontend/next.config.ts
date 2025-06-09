@@ -9,15 +9,6 @@ const nextConfig: NextConfig = {
       'owrfbjnyznrvyyzjudvm.supabase.co',
     ],
   },
-  async redirects() {
-    return [
-      {
-        source: '/',
-        destination: '/landing-page',
-        permanent: false,
-      },
-    ];
-  },
 };
 
 export default nextConfig;

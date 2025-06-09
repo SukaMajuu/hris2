@@ -8,7 +8,6 @@ import FullPageLoader from "@/components/ui/full-page-loader";
 // Pages that don't require authentication
 const PUBLIC_PAGES = [
 	"/",
-	"/landing-page",
 	"/login",
 	"/register",
 	"/forgot-password",

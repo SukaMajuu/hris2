@@ -58,7 +58,7 @@ func (uc *LeaveRequestUseCase) toLeaveRequestResponseDTO(lr *domain.LeaveRequest
 	positionName := "Unknown Position"
 	if lr.Employee.PositionName != "" {
 		positionName = lr.Employee.PositionName
-	} // Generate proper Supabase URL for attachment if it exists
+	} 
 	var attachmentURL *string
 	if lr.Attachment != nil && *lr.Attachment != "" {
 		bucketName := bucketNameAttachments
@@ -86,7 +86,6 @@ func (uc *LeaveRequestUseCase) toLeaveRequestResponseDTO(lr *domain.LeaveRequest
 func (uc *LeaveRequestUseCase) Create(ctx context.Context, leaveRequest *domain.LeaveRequest, file *multipart.FileHeader) (*dtoleave.LeaveRequestResponseDTO, error) {
 	log.Printf("LeaveRequestUseCase: Create called for employee ID %d", leaveRequest.EmployeeID)
 
-	// Validate employee exists
 	employee, err := uc.employeeRepo.GetByID(ctx, leaveRequest.EmployeeID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to validate employee ID %d: %w", leaveRequest.EmployeeID, err)
@@ -95,10 +94,9 @@ func (uc *LeaveRequestUseCase) Create(ctx context.Context, leaveRequest *domain.
 		return nil, fmt.Errorf("employee with ID %d not found", leaveRequest.EmployeeID)
 	}
 
-	// Validate dates
 	if leaveRequest.StartDate.After(leaveRequest.EndDate) {
 		return nil, fmt.Errorf("start date cannot be after end date")
-	} // Handle file upload if provided
+	} 
 	if file != nil && file.Size > 0 && file.Filename != "" && uc.supabaseClient != nil { // Validate file type
 		if err := uc.validateAttachmentFile(file); err != nil {
 			return nil, err
@@ -106,7 +104,6 @@ func (uc *LeaveRequestUseCase) Create(ctx context.Context, leaveRequest *domain.
 
 		fileName := uc.generateFileName(employee, file.Filename)
 
-		// Open the file
 		src, err := file.Open()
 		if err != nil {
 			return nil, fmt.Errorf("failed to open attachment file: %w", err)
@@ -116,8 +113,7 @@ func (uc *LeaveRequestUseCase) Create(ctx context.Context, leaveRequest *domain.
 				log.Printf("Warning: failed to close attachment file: %v", closeErr)
 			}
 		}()
-
-		// Upload to Supabase Storage with proper content type
+		
 		_, err = uc.supabaseClient.Storage.UploadFile(bucketNameAttachments, fileName, src, storage.FileOptions{
 			ContentType: &[]string{uc.getContentTypeFromExtension(file.Filename)}[0],
 			Upsert:      &[]bool{true}[0],
@@ -125,25 +121,20 @@ func (uc *LeaveRequestUseCase) Create(ctx context.Context, leaveRequest *domain.
 		if err != nil {
 			return nil, fmt.Errorf("failed to upload attachment: %w", err)
 		}
-
-		// Set the attachment path
+		
 		leaveRequest.Attachment = &fileName
 	}
 
-	// Set default status
 	leaveRequest.Status = domain.LeaveStatusPending
 
-	// Create the leave request
 	err = uc.leaveRequestRepo.Create(ctx, leaveRequest)
 	if err != nil {
-		// Cleanup uploaded file if creation fails
 		if leaveRequest.Attachment != nil && uc.supabaseClient != nil {
 			_, _ = uc.supabaseClient.Storage.RemoveFile(bucketNameAttachments, []string{*leaveRequest.Attachment})
 		}
 		return nil, fmt.Errorf("failed to create leave request: %w", err)
 	}
-
-	// Get the created leave request with employee data
+	
 	createdLeaveRequest, err := uc.leaveRequestRepo.GetByID(ctx, leaveRequest.ID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve created leave request: %w", err)
@@ -189,7 +180,7 @@ func (uc *LeaveRequestUseCase) CreateForEmployee(ctx context.Context, leaveReque
 			}
 		}()
 
-		// Upload to Supabase Storage with proper content type
+		// Upload to Supabase Storage 
 		_, err = uc.supabaseClient.Storage.UploadFile(bucketNameAttachments, fileName, src, storage.FileOptions{
 			ContentType: &[]string{uc.getContentTypeFromExtension(file.Filename)}[0],
 			Upsert:      &[]bool{true}[0],

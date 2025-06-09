@@ -99,6 +99,8 @@ export const API_ROUTES = {
         clockIn: '/api/attendances/clock-in',
         clockOut: '/api/attendances/clock-out',
         statistics: '/api/attendances/statistics',
+        monthlyStatistics: (year?: number, month?: number) =>
+          `/api/attendances/statistics/monthly${year && month ? `?year=${year}&month=${month}` : ''}`,
         today: '/api/attendances/today',
         byEmployee: (employeeId: number) => `/api/attendances/employees/${employeeId}`,
       },

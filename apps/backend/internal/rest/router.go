@@ -89,6 +89,7 @@ func (r *Router) Setup() *gin.Engine {
 			{
 				employee.GET("", r.employeeHandler.ListEmployees)
 				employee.GET("/statistics", r.employeeHandler.GetEmployeeStatistics)
+				employee.GET("/hire-date-range", r.employeeHandler.GetHireDateRange)
 				employee.GET("/validate-unique", r.employeeHandler.ValidateUniqueField)
 				employee.GET("/me", r.employeeHandler.GetCurrentUserProfile)
 				employee.PATCH("/me", r.employeeHandler.UpdateCurrentUserProfile)

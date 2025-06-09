@@ -100,11 +100,11 @@ export function EmployeeStatsChart({
         <div className='flex items-center justify-between'>
           <div>
             <div className='text-sm font-medium text-gray-500'>Employee Statistics</div>
-            <div className='text-xl font-bold'>Current Number of Employees</div>
+            <div className='text-xl font-bold'>Number of Employees</div>
           </div>
           <div className='flex w-[200px] flex-col gap-2'>
             <Select value={selectedMonth} onValueChange={onMonthChange} disabled={isLoading}>
-              <SelectTrigger className='h-11 w-full rounded-md border-slate-300 bg-white px-3 transition-colors duration-200 hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:border-slate-600 dark:bg-slate-800 dark:focus:ring-blue-800'>
+              <SelectTrigger className='h-11 w-full cursor-pointer rounded-md border-slate-300 bg-white px-3 transition-colors duration-200 hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:border-slate-600 dark:bg-slate-800 dark:focus:ring-blue-800'>
                 <SelectValue placeholder='Select period' />
               </SelectTrigger>
               <SelectContent>

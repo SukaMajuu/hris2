@@ -25,7 +25,8 @@ export const queryKeys = {
     list: (page: number, pageSize: number, filters?: EmployeeFilters) =>
       ['employees', 'list', page, pageSize, filters] as const,
     detail: (id: number) => ['employees', 'detail', id] as const,
-    stats: ['employees', 'stats'] as const,
+    stats: (month?: string) => ['employees', 'stats', month] as const,
+    hireDateRange: () => ['employees', 'hireDateRange'] as const,
     resign: ['employees', 'resign'] as const,
     currentProfile: ['employees', 'currentProfile'] as const,
   },

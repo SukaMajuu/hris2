@@ -2,6 +2,7 @@ package interfaces
 
 import (
 	"context"
+	"time"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
 )
@@ -21,4 +22,11 @@ type EmployeeRepository interface {
 		totalEmployeesTrend, newEmployeesTrend, activeEmployeesTrend float64,
 		err error,
 	)
+	GetStatisticsWithTrendsByManagerAndMonth(ctx context.Context, managerID uint, month string) (
+		totalEmployees, newEmployees, activeEmployees, resignedEmployees,
+		permanentEmployees, contractEmployees, freelanceEmployees int64,
+		totalEmployeesTrend, newEmployeesTrend, activeEmployeesTrend float64,
+		err error,
+	)
+	GetHireDateRange(ctx context.Context, managerID uint) (earliestHireDate, latestHireDate *time.Time, err error)
 }

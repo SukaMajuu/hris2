@@ -106,6 +106,39 @@ func (r *AttendanceRepository) ListAll(ctx context.Context, paginationParams dom
 	return attendances, total, nil
 }
 
+// ListByManager retrieves attendance records filtered by manager with pagination
+func (r *AttendanceRepository) ListByManager(ctx context.Context, managerID uint, paginationParams domain.PaginationParams) ([]*domain.Attendance, int64, error) {
+	var attendances []*domain.Attendance
+	var total int64
+
+	// Build base query
+	query := r.db.WithContext(ctx).
+		Table("attendances").
+		Joins("JOIN employees ON attendances.employee_id = employees.id").
+		Where("employees.manager_id = ?", managerID)
+
+	// Count total records
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, fmt.Errorf("failed to count attendances by manager: %w", err)
+	}
+
+	// Get paginated records with preload
+	offset := (paginationParams.Page - 1) * paginationParams.PageSize
+	if err := r.db.WithContext(ctx).
+		Model(&domain.Attendance{}).
+		Joins("JOIN employees ON attendances.employee_id = employees.id").
+		Where("employees.manager_id = ?", managerID).
+		Preload("Employee").
+		Offset(offset).
+		Limit(paginationParams.PageSize).
+		Order("attendances.date DESC, attendances.clock_in DESC").
+		Find(&attendances).Error; err != nil {
+		return nil, 0, fmt.Errorf("failed to list attendances by manager: %w", err)
+	}
+
+	return attendances, total, nil
+}
+
 // Update updates an existing attendance record
 func (r *AttendanceRepository) Update(ctx context.Context, attendance *domain.Attendance) error {
 	if err := r.db.WithContext(ctx).Save(attendance).Error; err != nil {

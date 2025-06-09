@@ -177,6 +177,25 @@ func (h *AttendanceHandler) ListAttendances(c *gin.Context) {
 		return
 	}
 
+	// Get current user ID from context
+	userIDCtx, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User ID not found in context", fmt.Errorf("missing userID in context"))
+		return
+	}
+	currentUserID, ok := userIDCtx.(uint)
+	if !ok {
+		response.InternalServerError(c, fmt.Errorf("invalid user ID type in context"))
+		return
+	}
+
+	// Get current employee to get manager ID
+	currentEmployee, err := h.employeeUseCase.GetEmployeeByUserID(c.Request.Context(), currentUserID)
+	if err != nil {
+		response.InternalServerError(c, fmt.Errorf("failed to get current employee information: %w", err))
+		return
+	}
+
 	paginationParams := domain.PaginationParams{
 		Page:     queryDTO.Page,
 		PageSize: queryDTO.PageSize,
@@ -189,7 +208,8 @@ func (h *AttendanceHandler) ListAttendances(c *gin.Context) {
 		paginationParams.PageSize = 10
 	}
 
-	attendances, err := h.attendanceUseCase.List(c.Request.Context(), paginationParams)
+	// Get attendances filtered by manager
+	attendances, err := h.attendanceUseCase.ListByManager(c.Request.Context(), currentEmployee.ID, paginationParams)
 	if err != nil {
 		response.InternalServerError(c, fmt.Errorf("failed to list attendances: %w", err))
 		return

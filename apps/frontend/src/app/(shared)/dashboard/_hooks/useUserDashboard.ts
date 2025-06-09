@@ -155,8 +155,18 @@ export function useUserDashboard({
   };  // Generate real work hours data based on attendance records
   const getWorkHoursData = () => {
     const labels = getChartLabels();
+      console.log('getWorkHoursData - selectedPeriod:', selectedPeriod);
+    console.log('getWorkHoursData - labels:', labels);
+    console.log('getWorkHoursData - attendanceData:', attendanceData);
+    console.log('getWorkHoursData - attendanceData length:', attendanceData?.length);
+    
+    // Log all attendance dates for debugging
+    if (attendanceData && attendanceData.length > 0) {
+      console.log('All attendance dates:', attendanceData.map(a => ({ date: a.date, work_hours: a.work_hours })));
+    }
     
     if (!attendanceData || attendanceData.length === 0) {
+      console.log('No attendance data available');
       // Return zeros if no attendance data
       return labels.map(() => 0);
     }
@@ -175,23 +185,35 @@ export function useUserDashboard({
             attendanceDate.getMonth() === selectedMonthIndex - 1
           );
         });
-      }
-    } else {
+      }    } else {
       // Filter for current week
       const today = new Date();
       const currentDay = today.getDay();
       const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
       const monday = new Date(today);
       monday.setDate(today.getDate() + mondayOffset);
+      // Reset time to start of day for accurate comparison
+      monday.setHours(0, 0, 0, 0);
       
       const sunday = new Date(monday);
       sunday.setDate(monday.getDate() + 6);
+      // Set time to end of day for accurate comparison
+      sunday.setHours(23, 59, 59, 999);
+      
+      console.log('Weekly filter - monday:', monday, 'sunday:', sunday);
+      console.log('Today:', today, 'Current day:', currentDay);
       
       filteredAttendance = attendanceData.filter((attendance) => {
         const attendanceDate = new Date(attendance.date);
-        return attendanceDate >= monday && attendanceDate <= sunday;
+        // Reset time to start of day for accurate comparison
+        attendanceDate.setHours(0, 0, 0, 0);
+        const isInRange = attendanceDate >= monday && attendanceDate <= sunday;
+        console.log('Checking attendance date:', attendanceDate, 'isInRange:', isInRange, 'original date:', attendance.date);
+        return isInRange;
       });
     }
+    
+    console.log('Filtered attendance:', filteredAttendance);
     
     // Create a map of date to work hours from filtered attendance data
     const workHoursMap = new Map<string, number>();
@@ -203,15 +225,22 @@ export function useUserDashboard({
           month: 'short',
           day: 'numeric',
         });
+        console.log(`Mapping ${dateKey} -> ${attendance.work_hours} hours`);
         workHoursMap.set(dateKey, attendance.work_hours);
       }
     });
     
+    console.log('Work hours map:', workHoursMap);
+    
     // Map chart labels to actual work hours or 0 if no data
-    return labels.map((label) => {
+    const result = labels.map((label) => {
       const workHours = workHoursMap.get(label);
+      console.log(`Label: ${label}, Work hours: ${workHours || 0}`);
       return workHours || 0;
     });
+    
+    console.log('Final work hours data:', result);
+    return result;
   };
 
   // Update date range when period changes

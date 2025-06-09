@@ -135,6 +135,25 @@ func (h *LeaveRequestHandler) ListLeaveRequests(c *gin.Context) {
 		return
 	}
 
+	// Get current user ID from context
+	userIDCtx, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User ID not found in context", errors.New("missing userID in context"))
+		return
+	}
+	currentUserID, ok := userIDCtx.(uint)
+	if !ok {
+		response.InternalServerError(c, errors.New("invalid user ID type in context"))
+		return
+	}
+
+	// Get current employee to get manager ID
+	currentEmployee, err := h.leaveRequestUseCase.GetEmployeeByUserID(c.Request.Context(), currentUserID)
+	if err != nil {
+		response.InternalServerError(c, err)
+		return
+	}
+
 	// Convert query DTO to filters and pagination params
 	filters := make(map[string]interface{})
 	if query.EmployeeID != nil {
@@ -146,6 +165,9 @@ func (h *LeaveRequestHandler) ListLeaveRequests(c *gin.Context) {
 	if query.LeaveType != nil {
 		filters["leave_type"] = *query.LeaveType
 	}
+
+	// Add manager filter to only show leave requests for employees under this manager
+	filters["manager_id"] = currentEmployee.ID
 
 	paginationParams := domain.PaginationParams{
 		Page:     query.Page,

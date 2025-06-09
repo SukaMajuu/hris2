@@ -101,7 +101,7 @@ class AttendanceService {
   // Get attendance statistics for dashboard
   async getAttendanceStatistics(): Promise<AttendanceStatistics> {
     const response = await this.apiService.get<ApiResponse<AttendanceStatistics>>(
-      `${API_ROUTES.v1.api.attendances.list}/statistics`,
+      API_ROUTES.v1.api.attendances.statistics,
     );
     return response.data.data;
   }

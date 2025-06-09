@@ -244,7 +244,6 @@ func (r *AttendanceRepository) GetStatistics(ctx context.Context) (onTime, late,
 		return 0, 0, 0, 0, 0, 0, 0, fmt.Errorf("failed to count leave attendances: %w", err)
 	}
 
-	// Total attended = onTime + late + earlyLeave (excluding absent and leave)
 	totalAttended = onTime + late + earlyLeave + absent + leave
 
 	// Get total number of active employees
@@ -303,10 +302,8 @@ func (r *AttendanceRepository) GetStatisticsByManager(ctx context.Context, manag
 		return 0, 0, 0, 0, 0, 0, 0, fmt.Errorf("failed to count leave attendances by manager: %w", err)
 	}
 
-	// Total attended = onTime + late + earlyLeave (excluding absent and leave)
-	totalAttended = onTime + late + earlyLeave
+	totalAttended = onTime + late + earlyLeave + absent + leave
 
-	// Get total number of active employees under this manager
 	if err = r.db.WithContext(ctx).
 		Table("employees").
 		Where("employment_status = ? AND manager_id = ?", true, managerID).

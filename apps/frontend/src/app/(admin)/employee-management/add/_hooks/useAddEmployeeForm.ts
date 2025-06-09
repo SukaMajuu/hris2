@@ -22,22 +22,56 @@ const getTodaysDate = (): string => {
   return `${year}-${month}-${day}`;
 };
 
-const initialFormData: EmployeeFormData = {
+type FormEmployeeData = Omit<
+  EmployeeFormData,
+  'gender' | 'lastEducation' | 'taxStatus' | 'contractType'
+> & {
+  gender: '' | 'Male' | 'Female';
+  lastEducation:
+    | ''
+    | 'SD'
+    | 'SMP'
+    | 'SMA/SMK'
+    | 'D1'
+    | 'D2'
+    | 'D3'
+    | 'S1/D4'
+    | 'S2'
+    | 'S3'
+    | 'Other';
+  taxStatus:
+    | ''
+    | 'TK/0'
+    | 'TK/1'
+    | 'TK/2'
+    | 'TK/3'
+    | 'K/0'
+    | 'K/1'
+    | 'K/2'
+    | 'K/3'
+    | 'K/I/0'
+    | 'K/I/1'
+    | 'K/I/2'
+    | 'K/I/3';
+  contractType: '' | 'permanent' | 'contract' | 'freelance';
+};
+
+const initialFormData: FormEmployeeData = {
   firstName: '',
   lastName: '',
   email: '',
   nik: '',
   phoneNumber: '',
-  gender: 'Male' as const,
-  lastEducation: 'SMA/SMK' as const,
+  gender: '',
+  lastEducation: '',
   placeOfBirth: '',
   dateOfBirth: '',
-  taxStatus: 'TK/0' as const,
+  taxStatus: '',
   employeeId: '',
   branch: '',
   position: '',
   grade: '',
-  contractType: 'permanent' as const,
+  contractType: '',
   hireDate: getTodaysDate(),
   profilePhoto: undefined,
   profilePhotoPreview: null,
@@ -48,12 +82,13 @@ const initialFormData: EmployeeFormData = {
 
 export function useAddEmployeeForm() {
   const [activeStep, setActiveStep] = useState(1);
+  const [hasRealtimeValidationErrors, setHasRealtimeValidationErrors] = useState(false);
   const profilePhotoInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
   const createEmployeeMutation = useCreateEmployee();
 
-  const form = useForm<EmployeeFormData>({
+  const form = useForm<FormEmployeeData>({
     resolver: zodResolver(employeeFormSchema),
     defaultValues: initialFormData,
     mode: 'onChange',
@@ -83,7 +118,7 @@ export function useAddEmployeeForm() {
 
     if (type === 'file') {
       const file = files?.[0];
-      setValue(name as keyof EmployeeFormData, file as File);
+      setValue(name as keyof FormEmployeeData, file as File);
 
       if (name === 'profilePhoto') {
         if (file) {
@@ -97,12 +132,62 @@ export function useAddEmployeeForm() {
         }
       }
     } else {
-      setValue(name as keyof EmployeeFormData, value);
+      // Handle numeric-only fields
+      let processedValue = value;
+
+      if (name === 'nik') {
+        // Only allow numbers for NIK, max 16 digits
+        processedValue = value.replace(/\D/g, '').slice(0, 16);
+      } else if (name === 'phoneNumber') {
+        // Allow + at the beginning and numbers only
+        if (value.startsWith('+')) {
+          processedValue = '+' + value.slice(1).replace(/\D/g, '');
+        } else if (value === '') {
+          processedValue = '';
+        } else {
+          // If user types without +, add + and keep only numbers
+          processedValue = '+' + value.replace(/\D/g, '');
+        }
+      } else if (name === 'bankAccountNumber') {
+        // Only allow numbers for bank account number
+        processedValue = value.replace(/\D/g, '');
+      } else if (name === 'dateOfBirth') {
+        // Validate date of birth
+        if (value) {
+          const selectedDate = new Date(value);
+          const today = new Date();
+          const minDate = new Date();
+          minDate.setFullYear(today.getFullYear() - 100); // 100 years ago
+
+          // Check if date is in the future
+          if (selectedDate > today) {
+            toast.error('Date of birth cannot be in the future');
+            return; // Don't update the value
+          }
+
+          // Check if date is too old (more than 100 years ago)
+          if (selectedDate < minDate) {
+            toast.error('Date of birth cannot be more than 100 years ago');
+            return; // Don't update the value
+          }
+
+          // Check if date is today or very recent (less than 16 years ago for work eligibility)
+          const minWorkAge = new Date();
+          minWorkAge.setFullYear(today.getFullYear() - 16);
+          if (selectedDate > minWorkAge) {
+            toast.error('Employee must be at least 16 years old');
+            return; // Don't update the value
+          }
+        }
+        processedValue = value;
+      }
+
+      setValue(name as keyof FormEmployeeData, processedValue);
     }
   };
 
   const handleSelectChange = (name: string, value: string) => {
-    setValue(name as keyof EmployeeFormData, value);
+    setValue(name as keyof FormEmployeeData, value);
   };
 
   const validateCurrentStep = async () => {
@@ -125,7 +210,12 @@ export function useAddEmployeeForm() {
   const handleNextStep = async () => {
     console.log('HandleNextStep called for step:', activeStep);
 
-    // Define fields for each step
+    // Check for real-time validation errors on step 1 (Personal Information)
+    if (activeStep === 1 && hasRealtimeValidationErrors) {
+      console.log('Cannot proceed: Real-time validation errors detected');
+      return;
+    }
+
     const stepFields = {
       1: [
         'firstName',
@@ -140,13 +230,12 @@ export function useAddEmployeeForm() {
       ] as const,
       2: ['employeeId', 'branch', 'position', 'contractType', 'hireDate'] as const,
       3: ['bankName', 'bankAccountHolder', 'bankAccountNumber'] as const,
-      4: [] as const, // Review step has no validation
+      4: [] as const,
     };
 
     const currentStepFields = stepFields[activeStep as keyof typeof stepFields];
 
     if (currentStepFields) {
-      // Validate only current step fields
       const isValid = await form.trigger(currentStepFields);
 
       if (!isValid) {
@@ -167,6 +256,10 @@ export function useAddEmployeeForm() {
     }
   };
 
+  const handleValidationChange = (hasErrors: boolean) => {
+    setHasRealtimeValidationErrors(hasErrors);
+  };
+
   const handleRemovePhoto = () => {
     setValue('profilePhoto', undefined);
     setValue('profilePhotoPreview', null);
@@ -179,10 +272,8 @@ export function useAddEmployeeForm() {
     if (e) e.preventDefault();
 
     try {
-      // Validate entire form
       const validData = employeeFormSchema.parse(getValues());
 
-      // Prepare data for API
       const createData = {
         email: validData.email,
         phone: validData.phoneNumber,
@@ -210,9 +301,30 @@ export function useAddEmployeeForm() {
 
       await createEmployeeMutation.mutateAsync(createData);
 
-      toast.success('Employee created successfully!');
+      const fullName = `${validData.firstName}${validData.lastName ? ` ${validData.lastName}` : ''}`;
 
-      // Redirect to employee list
+      toast.success(
+        `Employee has been added and Employee account for '${fullName}' has been created successfully! The default password is 'password'.`,
+        {
+          duration: 8000,
+          position: 'top-center',
+          dismissible: true,
+          action: {
+            label: 'Got it!',
+            onClick: () => {},
+          },
+          style: {
+            maxWidth: '600px',
+            fontSize: '15px',
+            padding: '16px 20px',
+            textAlign: 'center',
+            fontWeight: '500',
+            borderRadius: '12px',
+            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.15)',
+          },
+        },
+      );
+
       router.push('/employee-management');
     } catch (error) {
       console.error('Form submission error:', error);
@@ -225,16 +337,23 @@ export function useAddEmployeeForm() {
   };
 
   const goToStep = async (stepNumber: number) => {
-    // Allow backward navigation without validation
+    // Only allow going back to previous steps, not forward to incomplete steps
     if (stepNumber <= activeStep) {
       setActiveStep(stepNumber);
       return;
     }
 
-    // For forward navigation, validate all steps between current and target
+    // Check if we can proceed forward step by step
     let canProceed = true;
 
     for (let step = activeStep; step < stepNumber; step++) {
+      // Check for real-time validation errors on step 1 (Personal Information)
+      if (step === 1 && hasRealtimeValidationErrors) {
+        console.log('Cannot proceed: Real-time validation errors detected');
+        canProceed = false;
+        break;
+      }
+
       const stepFields = {
         1: [
           'firstName',
@@ -257,7 +376,7 @@ export function useAddEmployeeForm() {
       if (currentStepFields && currentStepFields.length > 0) {
         const isValid = await form.trigger(currentStepFields);
         if (!isValid) {
-          console.log(`Step ${step} validation failed`);
+          console.log(`Step ${step} validation failed, cannot proceed to step ${stepNumber}`);
           canProceed = false;
           break;
         }
@@ -266,6 +385,11 @@ export function useAddEmployeeForm() {
 
     if (canProceed) {
       setActiveStep(stepNumber);
+    } else {
+      // Show a toast to inform user about validation errors
+      toast.error(
+        'Please complete and fix all validation errors in the current step before proceeding',
+      );
     }
   };
 
@@ -329,7 +453,8 @@ export function useAddEmployeeForm() {
     isStepValid,
     validateCurrentStep,
     form,
+    handleValidationChange,
   };
 }
 
-export type { EmployeeFormData };
+export type { EmployeeFormData, FormEmployeeData };

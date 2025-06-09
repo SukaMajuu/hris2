@@ -1,16 +1,30 @@
 package database
 
 import (
+	"crypto/rand"
 	"fmt"
 	"log"
+	"math/big"
 	"time"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
 	"github.com/SukaMajuu/hris/apps/backend/domain/enums"
 	"github.com/shopspring/decimal"
-
 	"gorm.io/gorm"
 )
+
+// secureRandInt generates a secure random integer in the range [0, max)
+func secureRandInt(max int) int {
+	if max <= 0 {
+		return 0
+	}
+	n, err := rand.Int(rand.Reader, big.NewInt(int64(max)))
+	if err != nil {
+		// Fallback to 0 if random generation fails
+		return 0
+	}
+	return int(n.Int64())
+}
 
 func seedSubscriptionFeatures(db *gorm.DB) error {
 	var count int64
@@ -258,12 +272,6 @@ func seedAdminUser(db *gorm.DB) error {
 		return fmt.Errorf("failed to seed admin subscription: %w", err)
 	}
 
-	// Update admin employee to link to the subscription
-	adminEmployee.SubscriptionID = &adminSubscription.ID
-	if err := db.Save(&adminEmployee).Error; err != nil {
-		log.Printf("Warning: failed to link admin employee to subscription: %v", err)
-	}
-
 	log.Println("Successfully seeded Admin user, employee, and premium subscription (51-100 seats).")
 	return nil
 }
@@ -334,7 +342,7 @@ func seedWorkSchedules(db *gorm.DB) error {
 
 	// Helper function to create time pointers
 	timePtr := func(hour, minute int) *time.Time {
-		t := time.Date(0, 1, 1, hour, minute, 0, 0, time.UTC)
+		t := time.Date(0, 1, 1, hour, minute, 0, 0, time.Local)
 		return &t
 	}
 
@@ -472,23 +480,159 @@ func seedDemoEmployees(db *gorm.DB) error {
 		}
 
 		demo.Employee.UserID = demo.User.ID
+		demo.Employee.WorkScheduleID = &standardSchedule.ID
 		if err := db.Create(&demo.Employee).Error; err != nil {
 			_ = db.Delete(&demo.User)
 			return fmt.Errorf("failed to seed demo employee for %s: %w", demo.User.Email, err)
 		}
 
-		// Create checkclock settings for each demo employee
-		checkclockSetting := domain.CheckclockSettings{
-			EmployeeID:     demo.Employee.ID,
-			WorkScheduleID: standardSchedule.ID,
+		log.Printf("Successfully created demo employee: %s", demo.User.Email)
+	}
+
+	log.Println("Successfully seeded Demo Employees.")
+	return nil
+}
+
+func seedAttendances(db *gorm.DB) error {
+	var count int64
+	db.Model(&domain.Attendance{}).Count(&count)
+	if count > 0 {
+		log.Println("Attendance table already seeded.")
+		return nil
+	}
+
+	// Get all demo employees with their work schedules
+	var employees []domain.Employee
+	db.Preload("WorkSchedule").Where("first_name IN ?", []string{"John", "Jane", "Mike"}).Find(&employees)
+
+	if len(employees) == 0 {
+		log.Println("No demo employees found. Skipping attendance seeding.")
+		return nil
+	}
+
+	now := time.Now()
+	var attendances []domain.Attendance
+
+	// Define all attendance statuses to showcase (without Leave)
+	allStatuses := []domain.AttendanceStatus{
+		domain.OnTime,
+		domain.OnTime, // More on-time records
+		domain.Late,
+		domain.EarlyLeave,
+		domain.Absent,
+		domain.OnTime, // More on-time records
+		domain.Late,
+		domain.OnTime,
+	}
+
+	for _, employee := range employees {
+		// Skip if employee doesn't have a work schedule
+		if employee.WorkSchedule == nil {
+			log.Printf("Employee %s doesn't have a work schedule, skipping attendance seeding", employee.FirstName)
+			continue
 		}
-		if err := db.Create(&checkclockSetting).Error; err != nil {
-			log.Printf("Warning: failed to create checkclock setting for %s: %v", demo.User.Email, err)
+
+		// Generate 8 attendance records for each employee
+		weekdayCount := 0
+		dateOffset := 1
+
+		for weekdayCount < 8 {
+			date := now.AddDate(0, 0, -dateOffset)
+
+			// Skip weekends
+			if date.Weekday() == time.Saturday || date.Weekday() == time.Sunday {
+				dateOffset++
+				continue
+			}
+
+			var attendance domain.Attendance
+			attendance.EmployeeID = employee.ID
+			attendance.Date = date
+
+			// Assign status based on predefined pattern
+			status := allStatuses[weekdayCount]
+			attendance = generateAttendanceByStatus(attendance, date, status)
+
+			attendances = append(attendances, attendance)
+			weekdayCount++
+			dateOffset++
 		}
 	}
 
-	log.Println("Successfully seeded Demo Employees and Checkclock Settings.")
+	if len(attendances) > 0 {
+		if err := db.Create(&attendances).Error; err != nil {
+			return fmt.Errorf("failed to seed attendances: %w", err)
+		}
+	}
+
+	log.Printf("Successfully seeded %d attendance records.", len(attendances))
 	return nil
+}
+
+func generateAttendanceByStatus(attendance domain.Attendance, date time.Time, status domain.AttendanceStatus) domain.Attendance {
+	attendance.Status = status
+
+	// Head office coordinates
+	lat := -6.208763
+	long := 106.845599
+
+	switch status {
+	case domain.OnTime:
+		// Standard work hours: 8:00 AM - 5:00 PM
+		clockIn := time.Date(date.Year(), date.Month(), date.Day(), 8, 0, 0, 0, date.Location())
+		clockOut := time.Date(date.Year(), date.Month(), date.Day(), 17, 0, 0, 0, date.Location())
+		// Add small variation (0-15 minutes)
+		clockIn = clockIn.Add(time.Duration(secureRandInt(15)) * time.Minute)
+		clockOut = clockOut.Add(time.Duration(secureRandInt(15)) * time.Minute)
+
+		workHours := clockOut.Sub(clockIn).Hours() - 1.0 // Subtract 1 hour for lunch
+
+		attendance.ClockIn = &clockIn
+		attendance.ClockOut = &clockOut
+		attendance.WorkHours = &workHours
+		attendance.ClockInLat = &lat
+		attendance.ClockInLong = &long
+		attendance.ClockOutLat = &lat
+		attendance.ClockOutLong = &long
+
+	case domain.Late:
+		// Late arrival: 8:30 AM - 9:30 AM
+		clockIn := time.Date(date.Year(), date.Month(), date.Day(), 8, 30, 0, 0, date.Location())
+		clockIn = clockIn.Add(time.Duration(secureRandInt(60)) * time.Minute) // 30-90 min late
+		clockOut := time.Date(date.Year(), date.Month(), date.Day(), 17, 30, 0, 0, date.Location())
+
+		workHours := clockOut.Sub(clockIn).Hours() - 1.0
+
+		attendance.ClockIn = &clockIn
+		attendance.ClockOut = &clockOut
+		attendance.WorkHours = &workHours
+		attendance.ClockInLat = &lat
+		attendance.ClockInLong = &long
+		attendance.ClockOutLat = &lat
+		attendance.ClockOutLong = &long
+
+	case domain.EarlyLeave:
+		// Early leave: Clock out between 3:00 PM - 4:30 PM
+		clockIn := time.Date(date.Year(), date.Month(), date.Day(), 8, 0, 0, 0, date.Location())
+		clockOut := time.Date(date.Year(), date.Month(), date.Day(), 15, 0, 0, 0, date.Location())
+		clockOut = clockOut.Add(time.Duration(secureRandInt(90)) * time.Minute) // Leave between 3:00-4:30 PM
+
+		workHours := clockOut.Sub(clockIn).Hours() - 1.0
+
+		attendance.ClockIn = &clockIn
+		attendance.ClockOut = &clockOut
+		attendance.WorkHours = &workHours
+		attendance.ClockInLat = &lat
+		attendance.ClockInLong = &long
+		attendance.ClockOutLat = &lat
+		attendance.ClockOutLong = &long
+
+	case domain.Absent:
+		// No clock in/out data for absent
+		break
+	}
+
+	return attendance
 }
 
 func Run(db *gorm.DB) error {
@@ -521,6 +665,10 @@ func Run(db *gorm.DB) error {
 	}
 
 	if err := seedDemoEmployees(db); err != nil {
+		return err
+	}
+
+	if err := seedAttendances(db); err != nil {
 		return err
 	}
 

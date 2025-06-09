@@ -1,3 +1,5 @@
+import { WorkSchedule } from "./work-schedule.types";
+
 export interface Employee {
 	id: number;
 	email?: string;
@@ -6,6 +8,7 @@ export interface Employee {
 	last_name?: string;
 	employee_code: string;
 	branch_id?: number;
+	branch?: string;
 	branch_name?: string;
 	position_id?: number;
 	position_name?: string;
@@ -25,6 +28,8 @@ export interface Employee {
 	bank_account_holder_name?: string;
 	tax_status?: string;
 	profile_photo_url?: string;
+	work_schedule_id?: number;
+	work_schedule?: WorkSchedule;
 	created_at?: string;
 	updated_at?: string;
 	sp?: string;
@@ -35,6 +40,7 @@ export interface EmployeeFilters {
 	name?: string;
 	gender?: string;
 	employment_status?: boolean;
+	search?: string;
 }
 
 export interface EmployeeStats {

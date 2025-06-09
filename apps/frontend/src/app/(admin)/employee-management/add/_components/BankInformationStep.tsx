@@ -3,12 +3,12 @@
 import React from 'react';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import type { EmployeeFormData } from '../_hooks/useAddEmployeeForm';
+import type { FormEmployeeData } from '../_hooks/useAddEmployeeForm';
 import { FieldErrors } from 'react-hook-form';
 
 interface BankInformationStepProps {
-  formData: EmployeeFormData;
-  errors: FieldErrors<EmployeeFormData>;
+  formData: FormEmployeeData;
+  errors: FieldErrors<FormEmployeeData>;
   onInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
@@ -79,6 +79,8 @@ export function BankInformationStep({ formData, errors, onInputChange }: BankInf
               value={formData.bankAccountNumber}
               onChange={onInputChange}
               placeholder='Enter account number'
+              inputMode='numeric'
+              pattern='[0-9]*'
               className={`focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 bg-slate-50 placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:placeholder:text-slate-500 ${
                 errors.bankAccountNumber ? 'border-red-500 focus:border-red-500' : ''
               }`}
@@ -86,6 +88,9 @@ export function BankInformationStep({ formData, errors, onInputChange }: BankInf
             {errors.bankAccountNumber && (
               <p className='mt-1 text-sm text-red-500'>{errors.bankAccountNumber.message}</p>
             )}
+            <p className='mt-1 text-xs text-slate-500 dark:text-slate-400'>
+              Account number must only contain numbers
+            </p>
           </div>
         </div>
       </form>

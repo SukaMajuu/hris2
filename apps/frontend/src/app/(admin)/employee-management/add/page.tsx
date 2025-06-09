@@ -1,7 +1,7 @@
 'use client';
 
 import { Card } from '@/components/ui/card';
-import { useAddEmployeeForm } from './_hooks/useAddEmployeeForm';
+import { useAddEmployeeForm, type FormEmployeeData } from './_hooks/useAddEmployeeForm';
 import { AddEmployeeHeader } from './_components/AddEmployeeHeader';
 import { StepNavigator } from './_components/StepNavigator';
 import { PersonalInformationStep } from './_components/PersonalInformationStep';
@@ -26,6 +26,7 @@ export default function AddEmployeePage() {
     handleSubmit,
     goToStep,
     isStepValid,
+    handleValidationChange,
   } = useAddEmployeeForm();
 
   const renderStepContent = () => {
@@ -37,6 +38,7 @@ export default function AddEmployeePage() {
             errors={errors}
             onInputChange={handleInputChange}
             onSelectChange={handleSelectChange}
+            onValidationChange={handleValidationChange}
           />
         );
       case 2:

@@ -15,18 +15,18 @@ const (
 )
 
 type Attendance struct {
-	ID             uint             `gorm:"primaryKey"`
-	EmployeeID     uint             `gorm:"not null"`
-	Employee       Employee         `gorm:"foreignKey:EmployeeID"`
-	WorkScheduleID uint             `gorm:"not null"`
-	WorkSchedule   WorkSchedule     `gorm:"foreignKey:WorkScheduleID"`
-	Date           time.Time        `gorm:"type:date;not null"`
-	CheckIn        *time.Time       `gorm:"type:timestamp;not null"`
-	CheckOut       *time.Time       `gorm:"type:timestamp;not null"`
-	CheckInLat     *float64         `gorm:"type:float"`
-	CheckInLong    *float64         `gorm:"type:float"`
-	WorkHours      *float64         `gorm:"type:float"`
-	Status         AttendanceStatus `gorm:"type:attendance_status;not null;default:on_time"`
+	ID           uint             `gorm:"primaryKey"`
+	EmployeeID   uint             `gorm:"not null"`
+	Employee     Employee         `gorm:"foreignKey:EmployeeID"`
+	Date         time.Time        `gorm:"type:date;not null"`
+	ClockIn      *time.Time       `gorm:"type:timestamp"`
+	ClockOut     *time.Time       `gorm:"type:timestamp"`
+	ClockInLat   *float64         `gorm:"type:float"`
+	ClockInLong  *float64         `gorm:"type:float"`
+	ClockOutLat  *float64         `gorm:"type:float"`
+	ClockOutLong *float64         `gorm:"type:float"`
+	WorkHours    *float64         `gorm:"type:float"`
+	Status       AttendanceStatus `gorm:"type:attendance_status;not null;default:on_time"`
 
 	CreatedAt time.Time `gorm:"autoCreateTime"`
 	UpdatedAt time.Time `gorm:"autoUpdateTime"`

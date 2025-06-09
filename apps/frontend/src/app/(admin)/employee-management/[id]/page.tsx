@@ -4,7 +4,7 @@ import { useParams } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { useState } from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,14 +16,18 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Pencil, ArrowLeft } from "lucide-react";
+import { Pencil, ArrowLeft, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import DocumentManagement from "./_tabContents/documentManagement";
 import EmployeeInformation from "./_tabContents/employeeInformation";
 import { useDetailEmployee } from "./_hooks/useDetailEmployee";
+import { FeatureGuard } from "@/components/subscription/FeatureGuard";
+import { useFeatureAccess } from "@/hooks/useFeatureAccess";
+import { FEATURE_CODES } from "@/const/features";
 
 export default function Page() {
 	const params = useParams();
 	const id = Number(params.id);
+	const { hasFeature } = useFeatureAccess();
 
 	const {
 		initialEmployeeData: employee,
@@ -75,6 +79,9 @@ export default function Page() {
 		editBank,
 		setEditBank,
 		currentDocuments,
+		validationStates,
+		hasValidationErrors,
+		validateDateOfBirth,
 		handleProfileImageChange,
 		handleAddNewDocument,
 		handleDeleteDocument,
@@ -84,7 +91,13 @@ export default function Page() {
 		handleSaveBank,
 		handleResetPassword,
 		handleCancelEdit,
+		handleCancelPersonalEdit,
 	} = useDetailEmployee(id);
+
+	// Check if document management feature is available
+	const canManageDocuments = hasFeature(
+		FEATURE_CODES.DOCUMENT_EMPLOYEE_MANAGEMENT
+	);
 
 	const [activeTab, setActiveTab] = useState<"personal" | "document">(
 		"personal"
@@ -120,7 +133,7 @@ export default function Page() {
 				<Link href="/employee-management">
 					<Button
 						variant="outline"
-						className="border-slate-300 text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+						className="cursor-pointer border-slate-300 text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-100"
 					>
 						<ArrowLeft className="mr-2 h-4 w-4" />
 						Back to Employee List
@@ -139,10 +152,10 @@ export default function Page() {
 						onClick={() =>
 							editJob ? handleCancelEdit() : setEditJob(true)
 						}
-						className="rounded-md px-4 py-2 text-blue-600 transition-colors duration-150 hover:bg-slate-100 hover:text-blue-700 dark:text-blue-400 dark:hover:bg-slate-700/50 dark:hover:text-blue-300"
+						className="cursor-pointer rounded-md px-4 py-2 text-blue-600 transition-colors duration-150 hover:bg-slate-100 hover:text-blue-700 dark:text-blue-400 dark:hover:bg-slate-700/50 dark:hover:text-blue-300"
 					>
 						<Pencil className="mr-2 h-4 w-4" />
-						{editJob ? "Cancel Job Edit" : "Edit Job Info"}
+						{editJob ? "Cancel Edit" : "Edit"}
 					</Button>
 				</CardHeader>
 				<CardContent className="p-6">
@@ -191,14 +204,53 @@ export default function Page() {
 										Employee Code
 									</Label>
 									{editJob ? (
-										<Input
-											id="employeeCodeTop"
-											value={employeeCode}
-											onChange={(e) =>
-												setEmployeeCode(e.target.value)
-											}
-											className="mt-1 h-8 border-slate-300 bg-slate-50 text-sm focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800"
-										/>
+										<div className="relative">
+											<Input
+												id="employeeCodeTop"
+												value={employeeCode}
+												onChange={(e) =>
+													setEmployeeCode(
+														e.target.value
+													)
+												}
+												className={`mt-1 h-8 border-slate-300 bg-slate-50 pr-8 text-sm focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 ${
+													validationStates
+														.employee_code
+														.isValid === false
+														? "border-red-500 focus:border-red-500 focus:ring-red-500"
+														: validationStates
+																.employee_code
+																.isValid ===
+														  true
+														? "border-green-500 focus:border-green-500 focus:ring-green-500"
+														: ""
+												}`}
+											/>
+											<div className="absolute inset-y-0 right-0 flex items-center pr-2">
+												{validationStates.employee_code
+													.isValidating ? (
+													<Loader2 className="h-3 w-3 animate-spin text-blue-500" />
+												) : validationStates
+														.employee_code
+														.isValid === true ? (
+													<CheckCircle className="h-3 w-3 text-green-500" />
+												) : validationStates
+														.employee_code
+														.isValid === false ? (
+													<XCircle className="h-3 w-3 text-red-500" />
+												) : null}
+											</div>
+											{validationStates.employee_code
+												.message && (
+												<p className="mt-1 text-xs text-red-500">
+													{
+														validationStates
+															.employee_code
+															.message
+													}
+												</p>
+											)}
+										</div>
 									) : (
 										<p className="text-slate-700 dark:text-slate-300">
 											{employeeCode}
@@ -310,7 +362,7 @@ export default function Page() {
 												setContractType(value)
 											}
 										>
-											<SelectTrigger className="mt-1 h-8 w-full border-slate-300 bg-slate-50 text-sm focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800">
+											<SelectTrigger className="mt-1 h-8 w-full cursor-pointer border-slate-300 bg-slate-50 text-sm focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800">
 												<SelectValue
 													placeholder={
 														contractType ||
@@ -341,10 +393,26 @@ export default function Page() {
 								<div className="mt-4 text-right">
 									<Button
 										onClick={handleSaveJob}
-										className="bg-blue-600 text-white hover:bg-blue-700"
+										disabled={
+											validationStates.employee_code
+												.isValid === false
+										}
+										className={`cursor-pointer ${
+											validationStates.employee_code
+												.isValid === false
+												? "cursor-not-allowed bg-slate-400 text-slate-600"
+												: "bg-blue-600 text-white hover:bg-blue-700"
+										}`}
 									>
-										Save Job Info
+										Save Changes
 									</Button>
+									{validationStates.employee_code.isValid ===
+										false && (
+										<p className="mt-2 text-xs text-red-500">
+											Please fix employee code validation
+											error before saving
+										</p>
+									)}
 								</div>
 							)}
 						</div>
@@ -359,18 +427,29 @@ export default function Page() {
 				}
 				className="w-full"
 			>
-				<TabsList className="grid h-12 w-full grid-cols-1 rounded-lg border border-slate-200 bg-white p-1 shadow-md sm:grid-cols-2 md:inline-flex md:w-auto dark:border-slate-700 dark:bg-slate-800">
+				<TabsList
+					className={`grid h-12 w-full ${
+						canManageDocuments
+							? "grid-cols-1 sm:grid-cols-2 md:inline-flex md:w-auto"
+							: "grid-cols-1 md:inline-flex md:w-auto"
+					} rounded-lg border border-slate-200 bg-white p-1 shadow-md dark:border-slate-700 dark:bg-slate-800`}
+				>
 					<TabsTrigger
 						value="personal"
-						className="data-[state=active]:bg-primary dark:data-[state=active]:bg-primary rounded-md px-4 py-2 text-slate-700 transition-colors duration-150 hover:bg-slate-100 data-[state=active]:text-white dark:text-slate-300 dark:hover:bg-slate-700/50 dark:data-[state=active]:text-slate-50"
+						className="data-[state=active]:bg-primary dark:data-[state=active]:bg-primary cursor-pointer rounded-md px-4 py-2 text-slate-700 transition-colors duration-150 hover:bg-slate-100 data-[state=active]:text-white dark:text-slate-300 dark:hover:bg-slate-700/50 dark:data-[state=active]:text-slate-50"
 					>
 						Employee Information
 					</TabsTrigger>
 					<TabsTrigger
 						value="document"
-						className="data-[state=active]:bg-primary dark:data-[state=active]:bg-primary rounded-md px-4 py-2 text-slate-700 transition-colors duration-150 hover:bg-slate-100 data-[state=active]:text-white dark:text-slate-300 dark:hover:bg-slate-700/50 dark:data-[state=active]:text-slate-50"
+						className="data-[state=active]:bg-primary dark:data-[state=active]:bg-primary cursor-pointer rounded-md px-4 py-2 text-slate-700 transition-colors duration-150 hover:bg-slate-100 data-[state=active]:text-white dark:text-slate-300 dark:hover:bg-slate-700/50 dark:data-[state=active]:text-slate-50"
 					>
 						Employee Document
+						{!canManageDocuments && (
+							<span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-400">
+								Premium
+							</span>
+						)}
 					</TabsTrigger>
 				</TabsList>
 
@@ -399,6 +478,7 @@ export default function Page() {
 						editPersonal={editPersonal}
 						setEditPersonal={setEditPersonal}
 						handleSavePersonal={handleSavePersonal}
+						handleCancelPersonalEdit={handleCancelPersonalEdit}
 						bankName={bankName}
 						setBankName={setBankName}
 						bankAccountHolder={bankAccountHolder}
@@ -409,16 +489,27 @@ export default function Page() {
 						setEditBank={setEditBank}
 						handleSaveBank={handleSaveBank}
 						handleResetPassword={handleResetPassword}
+						validationStates={validationStates}
+						hasValidationErrors={hasValidationErrors}
+						validateDateOfBirth={validateDateOfBirth}
 					/>
 				</TabsContent>
 
 				<TabsContent value="document" className="mt-6">
-					<DocumentManagement
-						currentDocuments={currentDocuments}
-						handleAddNewDocument={handleAddNewDocument}
-						handleDeleteDocument={handleDeleteDocument}
-						handleDownloadDocument={handleDownloadDocument}
-					/>
+					{canManageDocuments ? (
+						<DocumentManagement
+							currentDocuments={currentDocuments}
+							handleAddNewDocument={handleAddNewDocument}
+							handleDeleteDocument={handleDeleteDocument}
+							handleDownloadDocument={handleDownloadDocument}
+						/>
+					) : (
+						<FeatureGuard
+							feature={FEATURE_CODES.DOCUMENT_EMPLOYEE_MANAGEMENT}
+						>
+							<div></div>
+						</FeatureGuard>
+					)}
 				</TabsContent>
 			</Tabs>
 		</div>

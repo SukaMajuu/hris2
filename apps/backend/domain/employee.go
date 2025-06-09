@@ -15,6 +15,13 @@ type Employee struct {
 	PositionName     string `gorm:"type:varchar(255)"`
 	EmploymentStatus bool   `gorm:"type:boolean;default:true;not null"`
 
+	// Work Schedule Relationship
+	WorkScheduleID *uint         `gorm:"type:index"`
+	WorkSchedule   *WorkSchedule `gorm:"foreignKey:WorkScheduleID"`
+
+	// Annual Leave Fields
+	AnnualLeaveAllowance uint `gorm:"type:uint;default:12;not null"`
+
 	// Self-Reference for Manager-Subordinate Relationship
 	ManagerID    *uint      `gorm:"type:uint"`
 	Manager      *Employee  `gorm:"foreignKey:ManagerID"`
@@ -38,9 +45,6 @@ type Employee struct {
 	BankAccountHolderName *string               `gorm:"type:varchar(255)"`
 	TaxStatus             *enums.TaxStatus      `gorm:"type:tax_status"`
 	ProfilePhotoURL       *string               `gorm:"type:varchar(255)"`
-
-	SubscriptionID *uint         `gorm:"type:uint"`
-	Subscription   *Subscription `gorm:"foreignKey:SubscriptionID"`
 
 	CreatedAt time.Time `gorm:"autoCreateTime"`
 	UpdatedAt time.Time `gorm:"autoUpdateTime"`

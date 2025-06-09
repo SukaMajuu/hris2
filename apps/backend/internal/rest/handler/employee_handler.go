@@ -1,14 +1,16 @@
 package handler
 
 import (
+	"bytes"
+	"encoding/csv"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"mime/multipart"
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
 	domainEmployeeDTO "github.com/SukaMajuu/hris/apps/backend/domain/dto/employee"
@@ -16,6 +18,17 @@ import (
 	employeeUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/employee"
 	"github.com/SukaMajuu/hris/apps/backend/pkg/response"
 	"github.com/gin-gonic/gin"
+	"github.com/xuri/excelize/v2"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
+)
+
+// Field type constants for validation
+const (
+	FieldTypeEmail        = "email"
+	FieldTypeNIK          = "nik"
+	FieldTypeEmployeeCode = "employee_code"
+	FieldTypePhone        = "phone"
 )
 
 type EmployeeHandler struct {
@@ -65,13 +78,7 @@ func (h *EmployeeHandler) ListEmployees(c *gin.Context) {
 		paginationParams.PageSize = 10
 	}
 
-	filters := make(map[string]interface{})
-	if queryDTO.Status != nil {
-		filters["employment_status"] = *queryDTO.Status == "active"
-	}
-
-	// Add manager filter to only show employees managed by current user
-	filters["manager_id"] = currentEmployee.ID
+	filters := h.buildFilters(&queryDTO, currentEmployee.ID)
 
 	log.Printf("EmployeeHandler: Listing employees for manager ID %d with DTO: %+v, Parsed Filters: %+v, Pagination: %+v", currentEmployee.ID, queryDTO, filters, paginationParams)
 
@@ -83,6 +90,24 @@ func (h *EmployeeHandler) ListEmployees(c *gin.Context) {
 	}
 
 	response.Success(c, http.StatusOK, "Employees retrieved successfully", employeeData)
+}
+
+func (h *EmployeeHandler) buildFilters(queryDTO *employeeDTO.ListEmployeesRequestQuery, managerID uint) map[string]interface{} {
+	filters := make(map[string]interface{})
+
+	if queryDTO.Status != nil {
+		filters["employment_status"] = *queryDTO.Status == "active"
+	}
+	if queryDTO.Search != nil && *queryDTO.Search != "" {
+		filters["search"] = *queryDTO.Search
+	}
+	if queryDTO.Gender != nil && *queryDTO.Gender != "" {
+		filters["gender"] = *queryDTO.Gender
+	}
+
+	filters["manager_id"] = managerID
+
+	return filters
 }
 
 func (h *EmployeeHandler) CreateEmployee(c *gin.Context) {
@@ -113,30 +138,25 @@ func (h *EmployeeHandler) CreateEmployee(c *gin.Context) {
 
 	if reqDTO.PhotoFile != nil {
 		log.Printf("EmployeeHandler: Photo file detected: %s", reqDTO.PhotoFile.Filename)
-		// TODO: Add validation back after fixing upload issue
 	}
 
-	// Convert DTO to domain model
 	employeeDomain, err := employeeDTO.MapCreateDTOToDomain(&reqDTO)
 	if err != nil {
 		response.BadRequest(c, err.Error(), err)
 		return
 	}
 
-	// Create employee
 	createdEmployee, err := h.employeeUseCase.Create(c.Request.Context(), employeeDomain, creatorEmployee.ID)
 	if err != nil {
 		h.handleCreateEmployeeError(c, err)
 		return
 	}
 
-	// Handle photo upload if provided
 	if reqDTO.PhotoFile != nil {
 		createdEmployee = h.handlePhotoUploadForNewEmployee(c, createdEmployee, reqDTO.PhotoFile)
 	}
 
-	// Convert domain to response DTO
-	respDTO := h.mapDomainToResponseDTO(createdEmployee)
+	respDTO := domainEmployeeDTO.ToEmployeeResponseDTO(createdEmployee)
 	response.Success(c, http.StatusCreated, "Employee created successfully", respDTO)
 }
 
@@ -185,160 +205,6 @@ func (h *EmployeeHandler) GetEmployeeByID(c *gin.Context) {
 	response.Success(c, http.StatusOK, "Employee retrieved successfully", employeeDTO)
 }
 
-func (h *EmployeeHandler) mapUpdateDTOToDomain(employeeID uint, reqDTO *employeeDTO.UpdateEmployeeRequestDTO) (*domain.Employee, error) {
-	employeeUpdatePayload := &domain.Employee{
-		ID: employeeID,
-	}
-
-	if reqDTO.Email != nil || reqDTO.Phone != nil {
-		employeeUpdatePayload.User = domain.User{}
-		if reqDTO.Email != nil {
-			employeeUpdatePayload.User.Email = *reqDTO.Email
-		}
-		if reqDTO.Phone != nil {
-			employeeUpdatePayload.User.Phone = *reqDTO.Phone
-		}
-	}
-
-	if reqDTO.FirstName != nil {
-		employeeUpdatePayload.FirstName = *reqDTO.FirstName
-	}
-	if reqDTO.LastName != nil {
-		employeeUpdatePayload.LastName = reqDTO.LastName
-	}
-	if reqDTO.PositionName != nil {
-		employeeUpdatePayload.PositionName = *reqDTO.PositionName
-	}
-	if reqDTO.EmploymentStatus != nil {
-		employeeUpdatePayload.EmploymentStatus = *reqDTO.EmploymentStatus
-	}
-	if reqDTO.EmployeeCode != nil {
-		employeeUpdatePayload.EmployeeCode = reqDTO.EmployeeCode
-	}
-	if reqDTO.Branch != nil {
-		employeeUpdatePayload.Branch = reqDTO.Branch
-	}
-	if reqDTO.Gender != nil {
-		employeeUpdatePayload.Gender = reqDTO.Gender
-	}
-	if reqDTO.NIK != nil {
-		employeeUpdatePayload.NIK = reqDTO.NIK
-	}
-	if reqDTO.PlaceOfBirth != nil {
-		employeeUpdatePayload.PlaceOfBirth = reqDTO.PlaceOfBirth
-	}
-	if reqDTO.DateOfBirth != nil && *reqDTO.DateOfBirth != "" {
-		parsedDate, err := time.Parse("2006-01-02", *reqDTO.DateOfBirth)
-		if err != nil {
-			log.Printf("EmployeeHandler: Error parsing DateOfBirth '%s': %v", *reqDTO.DateOfBirth, err)
-			return nil, fmt.Errorf("invalid DateOfBirth format. Please use YYYY-MM-DD. Value: %s", *reqDTO.DateOfBirth)
-		}
-		employeeUpdatePayload.DateOfBirth = &parsedDate
-	}
-	if reqDTO.LastEducation != nil {
-		employeeUpdatePayload.LastEducation = reqDTO.LastEducation
-	}
-	if reqDTO.Grade != nil {
-		employeeUpdatePayload.Grade = reqDTO.Grade
-	}
-	if reqDTO.ContractType != nil {
-		employeeUpdatePayload.ContractType = reqDTO.ContractType
-	}
-	if reqDTO.ResignationDate != nil && *reqDTO.ResignationDate != "" {
-		parsedDate, err := time.Parse("2006-01-02", *reqDTO.ResignationDate)
-		if err != nil {
-			return nil, fmt.Errorf("invalid ResignationDate format. Please use YYYY-MM-DD. Value: %s", *reqDTO.ResignationDate)
-		}
-		employeeUpdatePayload.ResignationDate = &parsedDate
-	}
-	if reqDTO.HireDate != nil && *reqDTO.HireDate != "" {
-		parsedDate, err := time.Parse("2006-01-02", *reqDTO.HireDate)
-		if err != nil {
-			return nil, fmt.Errorf("invalid HireDate format. Please use YYYY-MM-DD. Value: %s", *reqDTO.HireDate)
-		}
-		employeeUpdatePayload.HireDate = &parsedDate
-	}
-	if reqDTO.BankName != nil {
-		employeeUpdatePayload.BankName = reqDTO.BankName
-	}
-	if reqDTO.BankAccountNumber != nil {
-		employeeUpdatePayload.BankAccountNumber = reqDTO.BankAccountNumber
-	}
-	if reqDTO.BankAccountHolderName != nil {
-		employeeUpdatePayload.BankAccountHolderName = reqDTO.BankAccountHolderName
-	}
-	if reqDTO.TaxStatus != nil {
-		employeeUpdatePayload.TaxStatus = reqDTO.TaxStatus
-	}
-	if reqDTO.ProfilePhotoURL != nil {
-		employeeUpdatePayload.ProfilePhotoURL = reqDTO.ProfilePhotoURL
-	}
-	return employeeUpdatePayload, nil
-}
-
-func (h *EmployeeHandler) mapDomainToResponseDTO(employee *domain.Employee) *domainEmployeeDTO.EmployeeResponseDTO {
-	var genderDTO *string
-	if employee.Gender != nil {
-		genderStr := string(*employee.Gender)
-		genderDTO = &genderStr
-	}
-	var phoneDTO *string
-	if employee.User.Phone != "" {
-		phoneDTO = &employee.User.Phone
-	}
-
-	respDTO := &domainEmployeeDTO.EmployeeResponseDTO{
-		ID:                    employee.ID,
-		Email:                 &employee.User.Email,
-		Phone:                 phoneDTO,
-		FirstName:             employee.FirstName,
-		LastName:              employee.LastName,
-		EmployeeCode:          employee.EmployeeCode,
-		PositionName:          employee.PositionName,
-		Branch:                employee.Branch,
-		Gender:                genderDTO,
-		NIK:                   employee.NIK,
-		PlaceOfBirth:          employee.PlaceOfBirth,
-		Grade:                 employee.Grade,
-		EmploymentStatus:      employee.EmploymentStatus,
-		BankName:              employee.BankName,
-		BankAccountNumber:     employee.BankAccountNumber,
-		BankAccountHolderName: employee.BankAccountHolderName,
-		ProfilePhotoURL:       employee.ProfilePhotoURL,
-		CreatedAt:             employee.CreatedAt.Format(time.RFC3339),
-		UpdatedAt:             employee.UpdatedAt.Format(time.RFC3339),
-	}
-
-	if employee.LastEducation != nil {
-		lastEducationStr := string(*employee.LastEducation)
-		respDTO.LastEducation = &lastEducationStr
-	}
-	if employee.ContractType != nil {
-		contractTypeStr := string(*employee.ContractType)
-		respDTO.ContractType = &contractTypeStr
-	}
-	if employee.TaxStatus != nil {
-		taxStatusStr := string(*employee.TaxStatus)
-		respDTO.TaxStatus = &taxStatusStr
-	}
-	if employee.DateOfBirth != nil {
-		dateOfBirthStr := employee.DateOfBirth.Format("2006-01-02")
-		respDTO.DateOfBirth = &dateOfBirthStr
-	}
-	if employee.HireDate != nil {
-		hireDateStr := employee.HireDate.Format("2006-01-02")
-		respDTO.HireDate = &hireDateStr
-	}
-	if employee.ResignationDate != nil {
-		resignationDateStr := employee.ResignationDate.Format("2006-01-02")
-		respDTO.ResignationDate = &resignationDateStr
-	}
-	if employee.User.Email == "" {
-		respDTO.Email = nil
-	}
-	return respDTO
-}
-
 func (h *EmployeeHandler) UpdateEmployee(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
@@ -354,7 +220,14 @@ func (h *EmployeeHandler) UpdateEmployee(c *gin.Context) {
 		return
 	}
 
-	// Validate photo file type if provided
+	var workScheduleIDValue string
+	if reqDTO.WorkScheduleID != nil {
+		workScheduleIDValue = fmt.Sprintf("%d", *reqDTO.WorkScheduleID)
+	} else {
+		workScheduleIDValue = "nil"
+	}
+	log.Printf("EmployeeHandler: UpdateEmployee received data for ID %d, WorkScheduleID: %s", id, workScheduleIDValue)
+
 	if reqDTO.PhotoFile != nil {
 		mimeType := reqDTO.PhotoFile.Header.Get("Content-Type")
 		log.Printf("EmployeeHandler: Photo file MIME type detected: %s", mimeType)
@@ -366,7 +239,7 @@ func (h *EmployeeHandler) UpdateEmployee(c *gin.Context) {
 		}
 	}
 
-	employeeUpdatePayload, err := h.mapUpdateDTOToDomain(uint(id), &reqDTO)
+	employeeUpdatePayload, err := employeeDTO.MapUpdateDTOToDomain(uint(id), &reqDTO)
 	if err != nil {
 		response.BadRequest(c, err.Error(), err)
 		return
@@ -383,14 +256,12 @@ func (h *EmployeeHandler) UpdateEmployee(c *gin.Context) {
 		return
 	}
 
-	// If photo file is provided, upload it after employee update
 	if reqDTO.PhotoFile != nil {
 		log.Printf("EmployeeHandler: Uploading photo for updated employee ID: %d", uint(id))
 
 		updatedEmployeeWithPhoto, err := h.employeeUseCase.UploadProfilePhoto(c.Request.Context(), uint(id), reqDTO.PhotoFile)
 		if err != nil {
 			log.Printf("EmployeeHandler: Error uploading photo for updated employee: %v", err)
-			// Don't fail the whole update, just log the error
 			log.Printf("EmployeeHandler: Employee updated successfully but photo upload failed")
 		} else {
 			updatedEmployee = updatedEmployeeWithPhoto
@@ -398,8 +269,7 @@ func (h *EmployeeHandler) UpdateEmployee(c *gin.Context) {
 		}
 	}
 
-	respDTO := h.mapDomainToResponseDTO(updatedEmployee)
-
+	respDTO := domainEmployeeDTO.ToEmployeeResponseDTO(updatedEmployee)
 	response.Success(c, http.StatusOK, "Employee updated successfully", respDTO)
 }
 
@@ -457,7 +327,6 @@ func (h *EmployeeHandler) UploadEmployeePhoto(c *gin.Context) {
 		return
 	}
 
-	// Validate file type
 	if reqDTO.File != nil {
 		mimeType := reqDTO.File.Header.Get("Content-Type")
 		log.Printf("EmployeeHandler: Photo file MIME type detected: %s", mimeType)
@@ -482,14 +351,13 @@ func (h *EmployeeHandler) UploadEmployeePhoto(c *gin.Context) {
 		return
 	}
 
-	respDTO := h.mapDomainToResponseDTO(updatedEmployee)
+	respDTO := domainEmployeeDTO.ToEmployeeResponseDTO(updatedEmployee)
 	response.Success(c, http.StatusOK, "Photo uploaded successfully", respDTO)
 }
 
 func (h *EmployeeHandler) GetEmployeeStatistics(c *gin.Context) {
 	log.Printf("EmployeeHandler: GetEmployeeStatistics called")
 
-	// Get current user ID from context
 	userIDCtx, exists := c.Get("userID")
 	if !exists {
 		response.Unauthorized(c, "User ID not found in context", fmt.Errorf("missing userID in context"))
@@ -501,7 +369,6 @@ func (h *EmployeeHandler) GetEmployeeStatistics(c *gin.Context) {
 		return
 	}
 
-	// Get current employee information
 	currentEmployee, err := h.employeeUseCase.GetEmployeeByUserID(c.Request.Context(), currentUserID)
 	if err != nil {
 		log.Printf("EmployeeHandler: Error getting current employee for UserID %d: %v", currentUserID, err)
@@ -509,13 +376,452 @@ func (h *EmployeeHandler) GetEmployeeStatistics(c *gin.Context) {
 		return
 	}
 
-	// Get statistics filtered by current manager
-	statisticsData, err := h.employeeUseCase.GetStatisticsByManager(c.Request.Context(), currentEmployee.ID)
-	if err != nil {
-		log.Printf("EmployeeHandler: Error getting employee statistics from use case for manager %d: %v", currentEmployee.ID, err)
-		response.InternalServerError(c, fmt.Errorf("failed to retrieve employee statistics"))
-		return
+	// Get month parameter from query string
+	month := c.Query("month")
+
+	var statisticsData *domainEmployeeDTO.EmployeeStatisticsResponseDTO
+	if month != "" {
+		// Use month-specific function when month parameter is provided
+		statisticsData, err = h.employeeUseCase.GetStatisticsByManagerAndMonth(c.Request.Context(), currentEmployee.ID, month)
+		if err != nil {
+			log.Printf("EmployeeHandler: Error getting employee statistics by month from use case for manager %d: %v", currentEmployee.ID, err)
+			response.InternalServerError(c, fmt.Errorf("failed to retrieve employee statistics"))
+			return
+		}
+		log.Printf("EmployeeHandler: Retrieved employee statistics for manager %d with month filter: %s", currentEmployee.ID, month)
+	} else {
+		// Use general function when no month parameter is provided
+		statisticsData, err = h.employeeUseCase.GetStatisticsByManager(c.Request.Context(), currentEmployee.ID)
+		if err != nil {
+			log.Printf("EmployeeHandler: Error getting employee statistics from use case for manager %d: %v", currentEmployee.ID, err)
+			response.InternalServerError(c, fmt.Errorf("failed to retrieve employee statistics"))
+			return
+		}
+		log.Printf("EmployeeHandler: Retrieved overall employee statistics for manager %d", currentEmployee.ID)
 	}
 
 	response.Success(c, http.StatusOK, "Employee statistics retrieved successfully", statisticsData)
+}
+
+func (h *EmployeeHandler) GetHireDateRange(c *gin.Context) {
+	log.Printf("EmployeeHandler: GetHireDateRange called")
+
+	userIDCtx, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User ID not found in context", fmt.Errorf("missing userID in context"))
+		return
+	}
+	currentUserID, ok := userIDCtx.(uint)
+	if !ok {
+		response.InternalServerError(c, fmt.Errorf("invalid user ID type in context"))
+		return
+	}
+
+	currentEmployee, err := h.employeeUseCase.GetEmployeeByUserID(c.Request.Context(), currentUserID)
+	if err != nil {
+		log.Printf("EmployeeHandler: Error getting current employee for UserID %d: %v", currentUserID, err)
+		response.InternalServerError(c, fmt.Errorf("failed to get current employee information: %w", err))
+		return
+	}
+
+	earliest, latest, err := h.employeeUseCase.GetHireDateRange(c.Request.Context(), currentEmployee.ID)
+	if err != nil {
+		log.Printf("EmployeeHandler: Error getting hire date range from use case for manager %d: %v", currentEmployee.ID, err)
+		response.InternalServerError(c, fmt.Errorf("failed to retrieve hire date range"))
+		return
+	}
+
+	responseData := &domainEmployeeDTO.HireDateRangeResponseDTO{}
+	if earliest != nil {
+		earliestStr := earliest.Format("2006-01-02")
+		responseData.EarliestHireDate = &earliestStr
+	}
+	if latest != nil {
+		latestStr := latest.Format("2006-01-02")
+		responseData.LatestHireDate = &latestStr
+	}
+
+	response.Success(c, http.StatusOK, "Hire date range retrieved successfully", responseData)
+}
+
+func (h *EmployeeHandler) BulkImportEmployees(c *gin.Context) {
+	var reqDTO employeeDTO.BulkImportEmployeesRequestDTO
+	if err := c.ShouldBind(&reqDTO); err != nil {
+		log.Printf("EmployeeHandler: Error binding bulk import request: %v", err)
+		response.BadRequest(c, "Invalid request format", err)
+		return
+	}
+
+	if reqDTO.File == nil {
+		response.BadRequest(c, "File is required", fmt.Errorf("no file provided"))
+		return
+	}
+
+	mimeType := reqDTO.File.Header.Get("Content-Type")
+	log.Printf("EmployeeHandler: Import file MIME type detected: %s", mimeType)
+
+	if !h.isValidImportFileType(mimeType) {
+		response.BadRequest(c, fmt.Sprintf("File type not allowed. Detected: %s. Allowed types: CSV, Excel", mimeType), nil)
+		return
+	}
+
+	userIDCtx, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User ID not found in context", fmt.Errorf("missing userID in context"))
+		return
+	}
+	creatorUserID, ok := userIDCtx.(uint)
+	if !ok {
+		response.InternalServerError(c, fmt.Errorf("invalid user ID type in context"))
+		return
+	}
+
+	creatorEmployee, err := h.employeeUseCase.GetEmployeeByUserID(c.Request.Context(), creatorUserID)
+	if err != nil {
+		response.InternalServerError(c, fmt.Errorf("failed to get creator employee information: %w", err))
+		return
+	}
+
+	employees, parseErrors, err := h.parseImportFile(reqDTO.File)
+	if err != nil {
+		log.Printf("EmployeeHandler: Error parsing import file: %v", err)
+		response.BadRequest(c, fmt.Sprintf("Failed to parse file: %v", err), err)
+		return
+	}
+
+	if len(parseErrors) > 0 {
+		response.BadRequest(c, "File contains validation errors", fmt.Errorf("file contains %d validation errors", len(parseErrors)))
+		return
+	}
+
+	if len(employees) == 0 {
+		response.BadRequest(c, "No valid employee data found in file", nil)
+		return
+	}
+
+	successfulIDs, importErrors := h.employeeUseCase.BulkImportWithTransaction(c.Request.Context(), employees, creatorEmployee.ID)
+
+	result := h.buildBulkImportResult(successfulIDs, importErrors)
+
+	if len(importErrors) > 0 {
+		response.Success(c, http.StatusPartialContent, fmt.Sprintf("Import completed with %d successes and %d errors", len(successfulIDs), len(importErrors)), result)
+	} else {
+		response.Success(c, http.StatusCreated, fmt.Sprintf("Successfully imported %d employees", len(successfulIDs)), result)
+	}
+}
+
+func (h *EmployeeHandler) ValidateUniqueField(c *gin.Context) {
+	fieldType := c.Query("field")
+	value := c.Query("value")
+
+	if fieldType == "" || value == "" {
+		response.BadRequest(c, "Both 'field' and 'value' query parameters are required", nil)
+		return
+	}
+
+	if fieldType != FieldTypeEmail && fieldType != FieldTypeNIK && fieldType != FieldTypeEmployeeCode && fieldType != FieldTypePhone {
+		response.BadRequest(c, "Field must be one of: email, nik, employee_code, phone", nil)
+		return
+	}
+
+	var exists bool
+	var err error
+
+	switch fieldType {
+	case FieldTypeEmail:
+		_, err = h.employeeUseCase.GetUserByEmail(c.Request.Context(), value)
+		exists = err == nil
+	case FieldTypeNIK:
+		_, err = h.employeeUseCase.GetByNIK(c.Request.Context(), value)
+		exists = err == nil
+	case FieldTypeEmployeeCode:
+		_, err = h.employeeUseCase.GetByEmployeeCode(c.Request.Context(), value)
+		exists = err == nil
+	case FieldTypePhone:
+		_, err = h.employeeUseCase.GetUserByPhone(c.Request.Context(), value)
+		exists = err == nil
+	}
+
+	// If there was an error other than "not found", return server error
+	if err != nil && !strings.Contains(err.Error(), "not found") && !strings.Contains(err.Error(), "record not found") {
+		log.Printf("EmployeeHandler: Error validating unique field %s=%s: %v", fieldType, value, err)
+		response.InternalServerError(c, fmt.Errorf("validation error"))
+		return
+	}
+
+	result := map[string]interface{}{
+		"field":  fieldType,
+		"value":  value,
+		"exists": exists,
+	}
+
+	if exists {
+		caser := cases.Title(language.English)
+		result["message"] = fmt.Sprintf("%s '%s' is already in use", caser.String(strings.ReplaceAll(fieldType, "_", " ")), value)
+	}
+
+	response.Success(c, http.StatusOK, "Field validation completed", result)
+}
+
+func (h *EmployeeHandler) isValidImportFileType(mimeType string) bool {
+	allowedTypes := []string{
+		"text/csv",
+		"application/csv",
+		"application/vnd.ms-excel",
+		"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+	}
+
+	for _, allowedType := range allowedTypes {
+		if mimeType == allowedType {
+			return true
+		}
+	}
+	return false
+}
+
+func (h *EmployeeHandler) buildBulkImportResult(successfulIDs []uint, importErrors []employeeUseCase.EmployeeImportError) employeeDTO.BulkImportResult {
+	result := employeeDTO.BulkImportResult{
+		SuccessCount: len(successfulIDs),
+		ErrorCount:   len(importErrors),
+	}
+
+	for _, importErr := range importErrors {
+		failedRow := employeeDTO.BulkImportFailedRow{
+			Row: importErr.Row,
+			Errors: []employeeDTO.BulkImportError{
+				{
+					Field:   importErr.Field,
+					Message: importErr.Message,
+					Value:   importErr.Value,
+				},
+			},
+		}
+		result.FailedRows = append(result.FailedRows, failedRow)
+	}
+
+	return result
+}
+
+func (h *EmployeeHandler) parseImportFile(file *multipart.FileHeader) ([]*domain.Employee, []employeeDTO.BulkImportError, error) {
+	src, err := file.Open()
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to open file: %w", err)
+	}
+	defer func() {
+		if closeErr := src.Close(); closeErr != nil {
+			log.Printf("Warning: failed to close file: %v", closeErr)
+		}
+	}()
+
+	var employees []*domain.Employee
+	var parseErrors []employeeDTO.BulkImportError
+
+	mimeType := file.Header.Get("Content-Type")
+
+	if strings.Contains(mimeType, "csv") {
+		employees, parseErrors, err = h.parseCSVFile(src)
+	} else if strings.Contains(mimeType, "excel") || strings.Contains(mimeType, "spreadsheet") {
+		employees, parseErrors, err = h.parseExcelFile(src)
+	} else {
+		return nil, nil, fmt.Errorf("unsupported file type: %s", mimeType)
+	}
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return employees, parseErrors, nil
+}
+
+func (h *EmployeeHandler) parseCSVFile(src io.Reader) ([]*domain.Employee, []employeeDTO.BulkImportError, error) {
+	reader := csv.NewReader(src)
+	records, err := reader.ReadAll()
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to read CSV: %w", err)
+	}
+
+	if len(records) < 2 {
+		return nil, nil, fmt.Errorf("CSV file must contain header and at least one data row")
+	}
+
+	headers := records[0]
+	var employees []*domain.Employee
+	var parseErrors []employeeDTO.BulkImportError
+
+	for i, record := range records[1:] {
+		rowNum := i + 2
+
+		if len(record) != len(headers) {
+			parseErrors = append(parseErrors, employeeDTO.BulkImportError{
+				Field:   "row",
+				Message: fmt.Sprintf("Row %d has %d columns, expected %d", rowNum, len(record), len(headers)),
+			})
+			continue
+		}
+
+		employee, rowErrors := employeeDTO.ParseEmployeeFromRecord(headers, record, rowNum)
+		if len(rowErrors) > 0 {
+			parseErrors = append(parseErrors, rowErrors...)
+			continue
+		}
+
+		employees = append(employees, employee)
+	}
+
+	return employees, parseErrors, nil
+}
+
+func (h *EmployeeHandler) parseExcelFile(src io.Reader) ([]*domain.Employee, []employeeDTO.BulkImportError, error) {
+	content, err := io.ReadAll(src)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to read Excel file: %w", err)
+	}
+
+	f, err := excelize.OpenReader(bytes.NewReader(content))
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to open Excel file: %w", err)
+	}
+	defer func() {
+		if closeErr := f.Close(); closeErr != nil {
+			log.Printf("Warning: failed to close Excel file: %v", closeErr)
+		}
+	}()
+
+	sheetName := f.GetSheetName(0)
+	if sheetName == "" {
+		return nil, nil, fmt.Errorf("excel file contains no sheets")
+	}
+
+	rows, err := f.GetRows(sheetName)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get rows from Excel: %w", err)
+	}
+
+	if len(rows) < 2 {
+		return nil, nil, fmt.Errorf("excel file must contain header and at least one data row")
+	}
+
+	headers := rows[0]
+	var employees []*domain.Employee
+	var parseErrors []employeeDTO.BulkImportError
+
+	for i, row := range rows[1:] {
+		rowNum := i + 2
+
+		for len(row) < len(headers) {
+			row = append(row, "")
+		}
+
+		employee, rowErrors := employeeDTO.ParseEmployeeFromRecord(headers, row, rowNum)
+		if len(rowErrors) > 0 {
+			parseErrors = append(parseErrors, rowErrors...)
+			continue
+		}
+
+		employees = append(employees, employee)
+	}
+
+	return employees, parseErrors, nil
+}
+
+func (h *EmployeeHandler) GetCurrentUserProfile(c *gin.Context) {
+	userIDCtx, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User ID not found in context", fmt.Errorf("missing userID in context"))
+		return
+	}
+	userID, ok := userIDCtx.(uint)
+	if !ok {
+		response.InternalServerError(c, fmt.Errorf("invalid user ID type in context"))
+		return
+	}
+
+	employee, err := h.employeeUseCase.GetEmployeeByUserID(c.Request.Context(), userID)
+	if err != nil {
+		log.Printf("EmployeeHandler: Error getting current user profile for UserID %d: %v", userID, err)
+		response.InternalServerError(c, fmt.Errorf("failed to get current user profile: %w", err))
+		return
+	}
+
+	respDTO := domainEmployeeDTO.ToEmployeeResponseDTO(employee)
+	response.Success(c, http.StatusOK, "Current user profile retrieved successfully", respDTO)
+}
+
+func (h *EmployeeHandler) UpdateCurrentUserProfile(c *gin.Context) {
+	userIDCtx, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User ID not found in context", fmt.Errorf("missing userID in context"))
+		return
+	}
+	userID, ok := userIDCtx.(uint)
+	if !ok {
+		response.InternalServerError(c, fmt.Errorf("invalid user ID type in context"))
+		return
+	}
+
+	// Get current employee to get the employee ID
+	currentEmployee, err := h.employeeUseCase.GetEmployeeByUserID(c.Request.Context(), userID)
+	if err != nil {
+		log.Printf("EmployeeHandler: Error getting current employee for UserID %d: %v", userID, err)
+		response.InternalServerError(c, fmt.Errorf("failed to get current employee information: %w", err))
+		return
+	}
+
+	var reqDTO employeeDTO.UpdateEmployeeRequestDTO
+	if err := c.ShouldBind(&reqDTO); err != nil {
+		log.Printf("EmployeeHandler: Error binding update current user profile request: %v", err)
+		response.BadRequest(c, "Invalid request format", err)
+		return
+	}
+
+	// Handle photo upload if provided
+	photoFile, photoErr := c.FormFile("photo_file")
+	if photoErr == nil {
+		log.Printf("EmployeeHandler: Photo file detected for current user: %s", photoFile.Filename)
+
+		// Validate photo file type
+		mimeType := photoFile.Header.Get("Content-Type")
+		log.Printf("EmployeeHandler: Photo file MIME type detected: %s", mimeType)
+
+		if !isAllowedPhotoMimeType(mimeType) {
+			log.Printf("EmployeeHandler: Photo MIME type not allowed: %s", mimeType)
+			response.BadRequest(c, "Invalid photo file type. Only JPEG, PNG, GIF, and WebP are allowed", nil)
+			return
+		}
+
+		reqDTO.PhotoFile = photoFile
+	}
+
+	// Convert DTO to domain object
+	updatePayload, err := employeeDTO.MapUpdateDTOToDomain(currentEmployee.ID, &reqDTO)
+	if err != nil {
+		log.Printf("EmployeeHandler: Error converting update current user profile DTO to domain: %v", err)
+		response.BadRequest(c, "Invalid request data", err)
+		return
+	}
+
+	// Update the employee
+	updatedEmployee, err := h.employeeUseCase.Update(c.Request.Context(), updatePayload)
+	if err != nil {
+		log.Printf("EmployeeHandler: Error updating current user profile for EmployeeID %d: %v", currentEmployee.ID, err)
+		response.InternalServerError(c, fmt.Errorf("failed to update current user profile: %w", err))
+		return
+	}
+
+	// Handle photo upload if provided
+	if reqDTO.PhotoFile != nil {
+		log.Printf("EmployeeHandler: Uploading photo for current user ID: %d", currentEmployee.ID)
+
+		updatedEmployeeWithPhoto, err := h.employeeUseCase.UploadProfilePhoto(c.Request.Context(), currentEmployee.ID, reqDTO.PhotoFile)
+		if err != nil {
+			log.Printf("EmployeeHandler: Error uploading photo for current user: %v", err)
+			log.Printf("EmployeeHandler: Profile updated successfully but photo upload failed")
+		} else {
+			updatedEmployee = updatedEmployeeWithPhoto
+			log.Printf("EmployeeHandler: Photo uploaded successfully for current user")
+		}
+	}
+
+	respDTO := domainEmployeeDTO.ToEmployeeResponseDTO(updatedEmployee)
+	response.Success(c, http.StatusOK, "Current user profile updated successfully", respDTO)
 }

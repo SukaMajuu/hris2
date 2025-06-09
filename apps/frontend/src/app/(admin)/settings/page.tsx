@@ -8,8 +8,7 @@ import { Loader2, AlertCircle } from "lucide-react";
 
 export default function SettingsPage() {
 	const { data: userSubscription, isLoading, error } = useUserSubscription();
-
-	// Helper function to format employee range description
+    
 	const getEmployeeRangeDescription = () => {
 		if (!userSubscription?.seat_plan) {
 			return "No seat tier selected";

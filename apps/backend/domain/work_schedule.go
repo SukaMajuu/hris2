@@ -23,6 +23,7 @@ type WorkSchedule struct {
 	Name     string               `gorm:"type:varchar(255);not null"`
 	WorkType enums.WorkType       `gorm:"type:work_type;not null"`
 	Details  []WorkScheduleDetail `gorm:"foreignKey:WorkScheduleID"`
+	IsActive bool                 `gorm:"type:boolean;default:true;not null"`
 
 	CreatedAt time.Time `gorm:"autoCreateTime"` // Corrected casing
 	UpdatedAt time.Time `gorm:"autoUpdateTime"` // Corrected casing
@@ -45,6 +46,7 @@ type WorkScheduleDetail struct {
 	CheckoutEnd    *time.Time     `gorm:"type:time"`
 	LocationID     *uint          `gorm:"type:uint"` // FK ke tabel location
 	Location       *Location      `gorm:"foreignKey:LocationID"`
+	IsActive       bool           `gorm:"type:boolean;default:true;not null"`
 
 	CreatedAt time.Time `gorm:"autoCreateTime"`
 	UpdatedAt time.Time `gorm:"autoUpdateTime"`

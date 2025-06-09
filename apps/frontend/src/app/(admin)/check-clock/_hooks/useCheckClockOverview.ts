@@ -1,90 +1,216 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useAttendances } from "@/api/queries/attendance.queries";
+import { useLeaveRequestsQuery } from "@/api/queries/leave-request.queries";
+import { useEmployeesQuery } from "@/api/queries/employee.queries";
+import { useCreateAttendance } from "@/api/mutations/attendance.mutation";
+import { useCreateLeaveRequestForEmployeeMutation } from "@/api/mutations/leave-request.mutations";
+import { Attendance } from "@/types/attendance";
+import { LeaveRequest } from "@/types/leave-request";
+import { Employee, EmployeeFilters } from "@/types/employee";
 
-export interface OverviewData {
-    id: number;
-    name: string;
-    date: string;
-    checkIn: string;
-    checkOut: string;
-    location: string;
-    workHours: string;
-    status: "On Time" | "Late" | "Leave";
-    detailAddress: string;
-    latitude: string;
-    longitude: string;
-    leaveType?: string; // Jenis cuti, hanya jika status Leave
+// Combined interface for table display
+interface CombinedAttendanceData {
+	id: number;
+	employee_id: number;
+	employee?: {
+		id: number;
+		first_name: string;
+		last_name?: string;
+		employee_code?: string;
+		position_name?: string;
+	};
+	work_schedule_id?: number;
+	work_schedule?: any;
+	date: string;
+	clock_in: string | null;
+	clock_out: string | null;
+	clock_in_lat?: number | null;
+	clock_in_long?: number | null;
+	clock_out_lat?: number | null;
+	clock_out_long?: number | null;
+	work_hours: number | null;
+	status: string;
+	created_at: string;
+	updated_at: string;
+	type: "attendance" | "leave_request"; // To distinguish between types
+	leave_type?: string; // For leave requests
+	originalLeaveRequest?: LeaveRequest; // Store original leave request data
 }
 
-// Dummy employee list
-export const employeeList: string[] = [
-    "Jackmerius Tacktheritrix",
-    "D'Squarius Green, Jr.",
-    "Sarah Connor"
-];
-
 export function useCheckClockOverview() {
-    const [page, setPage] = useState(1);
-    const [pageSize, setPageSize] = useState(10);
+	const [page, setPage] = useState(1);
+	const [pageSize, setPageSize] = useState(10);
+	const [nameFilter, setNameFilter] = useState("");
 
-    // Jenis leave yang valid
-    const leaveTypes = [
-        "sick leave",
-        "compassionate leave",
-        "maternity leave",
-        "annual leave",
-        "marriage leave"
-    ];
+	const {
+		data: attendances,
+		isLoading: isLoadingAttendances,
+		error: attendanceError,
+	} = useAttendances();
 
-    // Mock data generation
-    const [overviewData] = useState<OverviewData[]>(() => 
-        [...Array(100)].map((_, index) => {
-            const employeeName = employeeList[index % employeeList.length] ?? "Unknown";
-            if ((index + 1) % 3 === 0) {
-                // Set leaveType secara bergantian
-                const leaveType = leaveTypes[((index + 1) / 3 - 1) % leaveTypes.length];
-                return {
-                    id: index + 1,
-                    name: employeeName,
-                    date: `March ${String(index + 1).padStart(2, "0")}, 2025`,
-                    checkIn: "-",
-                    checkOut: "-",
-                    location: "-",
-                    workHours: "-",
-                    status: "Leave",
-                    detailAddress: leaveType ?? "-",
-                    latitude: "-",
-                    longitude: "-",
-                    leaveType: leaveType,
-                };
-            } else {
-                return {
-                    id: index + 1,
-                    name: employeeName,
-                    date: `March ${String(index + 1).padStart(2, "0")}, 2025`,
-                    checkIn: index % 2 === 0 ? "07:15" : "08:15",
-                    checkOut: "17:30",
-                    location: "-7.943081, 112.608652",
-                    workHours: index % 2 === 0 ? "10h 15m" : "9h 15m",
-                    status: index % 2 === 0 ? "On Time" : "Late",
-                    detailAddress: "Jl. Veteran No.1, Kota Malang",
-                    latitude: "-7.943081",
-                    longitude: "112.608652",
-                };
-            }
-        })
-    );
+	const {
+		data: leaveRequestsData,
+		isLoading: isLoadingLeaveRequests,
+		error: leaveRequestError,
+	} = useLeaveRequestsQuery(1, 1000); // Get all leave requests
 
-    const totalRecords = overviewData.length;
-    const totalPages = Math.ceil(totalRecords / pageSize);
+	const employeeFilters: EmployeeFilters = {
+		employment_status: true,
+		name: "",
+	};
 
-    return {
-        page,
-        setPage,
-        pageSize,
-        setPageSize,
-        overviewData,
-        totalRecords,
-        totalPages,
-        employeeList,
-    };
+	const {
+		data: employeesData,
+		isLoading: isLoadingEmployees,
+	} = useEmployeesQuery(1, 100, employeeFilters);
+
+	const createAttendanceMutation = useCreateAttendance();
+	const createLeaveRequestMutation = useCreateLeaveRequestForEmployeeMutation();
+
+	const overviewData = useMemo(() => {
+		if (!attendances && !leaveRequestsData?.items) return [];
+
+		const combinedData: CombinedAttendanceData[] = [];
+
+		// Process attendance records
+		if (attendances) {
+			attendances.forEach((attendance) => {
+				// Try to get employee from employees list first
+				let employee = employeesData?.data?.items?.find(
+					(emp) => emp.id === attendance.employee_id
+				);
+
+				// If not found or incomplete, use employee data from attendance response
+				if (!employee || !employee.first_name) {
+					const attendanceEmployee = attendance.employee;
+					employee = {
+						id: attendance.employee_id,
+						first_name:
+							attendanceEmployee?.first_name ||
+							"Unknown Employee",
+						last_name: attendanceEmployee?.last_name || "",
+						employee_code: attendanceEmployee?.employee_code || "",
+						position_name: attendanceEmployee?.position_name || "",
+						employment_status:
+							attendanceEmployee?.employment_status || false,
+						created_at: attendanceEmployee?.created_at || "",
+						updated_at: attendanceEmployee?.updated_at || "",
+					};
+				}
+
+				combinedData.push({
+					...attendance,
+					type: "attendance",
+					employee: {
+						id: employee.id,
+						first_name: employee.first_name || "Unknown Employee",
+						last_name: employee.last_name,
+						employee_code: employee.employee_code,
+						position_name: employee.position_name,
+					},
+				});
+			});
+		}
+
+		// Process leave request records
+		if (leaveRequestsData?.items) {
+			leaveRequestsData.items.forEach((leaveRequest: LeaveRequest) => {
+				// Use employee data directly from leave request response
+				const employee = {
+					id: leaveRequest.employee_id,
+					first_name:
+						leaveRequest.employee_name || "Unknown Employee",
+					last_name: "",
+					employee_code: "",
+					position_name: leaveRequest.position_name || "",
+				};
+
+				// Transform leave request to attendance-like structure
+				combinedData.push({
+					id: leaveRequest.id,
+					employee_id: leaveRequest.employee_id,
+					employee: employee,
+					date: leaveRequest.start_date,
+					clock_in: null, // No clock in for leave requests
+					clock_out: null, // No clock out for leave requests
+					work_hours: null, // No work hours for leave requests
+					status: leaveRequest.leave_type, // Use leave type as status
+					created_at: leaveRequest.created_at,
+					updated_at: leaveRequest.updated_at,
+					type: "leave_request",
+					leave_type: leaveRequest.leave_type,
+					originalLeaveRequest: leaveRequest,
+				});
+			});
+		}
+
+		// Sort by date descending (most recent first)
+		return combinedData.sort(
+			(a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+		);
+	}, [attendances, leaveRequestsData, employeesData]);
+
+	const filteredData = useMemo(() => {
+		if (!nameFilter) return overviewData;
+		return overviewData.filter((item) =>
+			item.employee
+				? `${item.employee.first_name} ${item.employee.last_name || ""}`
+						.toLowerCase()
+						.includes(nameFilter.toLowerCase())
+				: false
+		);
+	}, [overviewData, nameFilter]);
+
+	const paginatedData = useMemo(() => {
+		const startIndex = (page - 1) * pageSize;
+		const endIndex = startIndex + pageSize;
+		return filteredData.slice(startIndex, endIndex);
+	}, [filteredData, page, pageSize]);
+
+	const totalRecords = filteredData.length;
+	const totalPages = Math.ceil(totalRecords / pageSize);
+
+	const employeeList = useMemo(() => {
+		if (!employeesData?.data?.items) return [];
+		return employeesData.data.items;
+	}, [employeesData]);
+
+	const createAttendance = async (attendanceData: Partial<Attendance>) => {
+		try {
+			await createAttendanceMutation.mutateAsync(attendanceData);
+		} catch (error) {
+			console.error("Failed to create attendance:", error);
+			throw error;
+		}
+	};
+
+	const createLeaveRequest = async (employeeId: number, data: any) => {
+		try {
+			await createLeaveRequestMutation.mutateAsync({ employeeId, data });
+		} catch (error) {
+			console.error("Failed to create leave request:", error);
+			throw error;
+		}
+	};
+
+	return {
+		page,
+		setPage,
+		pageSize,
+		setPageSize,
+		overviewData: paginatedData,
+		totalRecords,
+		totalPages,
+		employeeList,
+		nameFilter,
+		setNameFilter,
+		isLoading:
+			isLoadingAttendances ||
+			isLoadingEmployees ||
+			isLoadingLeaveRequests,
+		error: attendanceError || leaveRequestError,
+		createAttendance,
+		isCreating: createAttendanceMutation.isPending,
+		createLeaveRequest,
+	};
 }

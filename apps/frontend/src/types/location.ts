@@ -42,3 +42,23 @@ export interface LocationFormData {
 	longitude?: number;
 	radius_m?: number | string;
 }
+
+// New filter interface for enhanced filtering
+export interface LocationFilterOptions {
+	name?: string;
+	address_detail?: string;
+	radius_range?: string;
+	sort_by?: string;
+	sort_order?: "asc" | "desc";
+}
+
+// Enhanced location list query parameters
+export interface LocationListParams extends Record<string, string | number | undefined> {
+	page?: number;
+	page_size?: number;
+	name?: string;
+	address_detail?: string;
+	radius_range?: string;
+	sort_by?: string;
+	sort_order?: "asc" | "desc";
+}

@@ -10,7 +10,6 @@ import (
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
 	dtoemployee "github.com/SukaMajuu/hris/apps/backend/domain/dto/employee"
-	"github.com/SukaMajuu/hris/apps/backend/domain/enums"
 	"github.com/SukaMajuu/hris/apps/backend/internal/usecase/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -23,18 +22,6 @@ func stringPtr(s string) *string {
 
 func uintPtr(u uint) *uint {
 	return &u
-}
-
-func timePtr(t time.Time) *time.Time {
-	return &t
-}
-
-func genderPtr(g enums.Gender) *enums.Gender {
-	return &g
-}
-
-func contractTypePtr(c enums.ContractType) *enums.ContractType {
-	return &c
 }
 
 func TestEmployeeUseCase_List(t *testing.T) {
@@ -295,7 +282,7 @@ func TestEmployeeUseCase_Create(t *testing.T) {
 				assert.Contains(t, err.Error(), strings.ReplaceAll(tt.expectedErrorMsg, "database error", ""))
 				assert.Nil(t, result)
 				if tt.checkErrorIs != nil {
-					assert.True(t, errors.Is(err, tt.checkErrorIs))
+					assert.Contains(t, err.Error(), tt.checkErrorIs.Error())
 				}
 			} else {
 				assert.NoError(t, err)

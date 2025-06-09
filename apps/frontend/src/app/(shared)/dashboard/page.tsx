@@ -39,21 +39,24 @@ export default function DashboardPage() {
   const isEmployeeDashboard = role === 'user' && canAccessEmployeeDashboard();
 
   const {
-    employeeStats,
-    isLoadingStats,
+    employeeStatsForChart,
+    isLoadingStatsForChart,
+    employeeStatsForStatusChart,
+    isLoadingStatsForStatusChart,
+    employeeStatsOverall,
+    isLoadingStatsOverall,
     selectedMonthForEmployeeStatsChart,
     setSelectedMonthForEmployeeStatsChart,
     selectedMonthForEmployeeStatusChart,
     setSelectedMonthForEmployeeStatusChart,
-    selectedMonth,
-    setSelectedMonth,
     monthYearOptions,
-    attendanceTable,
+    isLoadingHireDateRange,
   } = useDashboardData();
 
   // If user doesn't have access to either dashboard, show upgrade prompt
   if (!isAdminDashboard && !isEmployeeDashboard) {
-    const requiredFeature = role === 'admin' ? FEATURE_CODES.ADMIN_DASHBOARD : FEATURE_CODES.EMPLOYEE_DASHBOARD;
+    const requiredFeature =
+      role === 'admin' ? FEATURE_CODES.ADMIN_DASHBOARD : FEATURE_CODES.EMPLOYEE_DASHBOARD;
     return (
       <div className='flex flex-col gap-6'>
         <FeatureGuard feature={requiredFeature}>
@@ -71,25 +74,41 @@ export default function DashboardPage() {
             <div className='mb-2 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4'>
               <StatCard
                 label='Total Employee'
-                value={isLoadingStats ? '...' : employeeStats?.total_employees?.toString() || '0'}
+                value={
+                  isLoadingStatsOverall
+                    ? '...'
+                    : employeeStatsOverall?.total_employees?.toString() || '0'
+                }
                 icon={<UsersIcon className='h-5 w-5' />}
                 description={`Update: ${new Date().toLocaleString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}`}
               />
               <StatCard
                 label='New Employees'
-                value={isLoadingStats ? '...' : employeeStats?.new_employees?.toString() || '0'}
+                value={
+                  isLoadingStatsOverall
+                    ? '...'
+                    : employeeStatsOverall?.new_employees?.toString() || '0'
+                }
                 icon={<UserPlusIcon className='h-5 w-5' />}
                 description={`Update: ${new Date().toLocaleString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}`}
               />
               <StatCard
                 label='Active Employees'
-                value={isLoadingStats ? '...' : employeeStats?.active_employees?.toString() || '0'}
+                value={
+                  isLoadingStatsOverall
+                    ? '...'
+                    : employeeStatsOverall?.active_employees?.toString() || '0'
+                }
                 icon={<BriefcaseIcon className='h-5 w-5' />}
                 description={`Update: ${new Date().toLocaleString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}`}
               />
               <StatCard
                 label='Resigned Employees'
-                value={isLoadingStats ? '...' : employeeStats?.resigned_employees?.toString() || '0'}
+                value={
+                  isLoadingStatsOverall
+                    ? '...'
+                    : employeeStatsOverall?.resigned_employees?.toString() || '0'
+                }
                 icon={<Trash2Icon className='h-5 w-5' />}
                 description={`Update: ${new Date().toLocaleString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}`}
               />
@@ -98,15 +117,15 @@ export default function DashboardPage() {
             <div className='grid grid-cols-1 gap-6 xl:grid-cols-2'>
               <div className='flex flex-col gap-6'>
                 <EmployeeStatsChart
-                  employeeStats={employeeStats}
-                  isLoading={isLoadingStats}
+                  employeeStats={employeeStatsForChart}
+                  isLoading={isLoadingStatsForChart}
                   selectedMonth={selectedMonthForEmployeeStatsChart}
                   onMonthChange={setSelectedMonthForEmployeeStatsChart}
                   monthYearOptions={monthYearOptions}
                 />
                 <EmployeeStatusChart
-                  employeeStats={employeeStats}
-                  isLoading={isLoadingStats}
+                  employeeStats={employeeStatsForStatusChart}
+                  isLoading={isLoadingStatsForStatusChart}
                   selectedMonth={selectedMonthForEmployeeStatusChart}
                   onMonthChange={setSelectedMonthForEmployeeStatusChart}
                   monthYearOptions={monthYearOptions}
@@ -116,7 +135,7 @@ export default function DashboardPage() {
               <div className='flex flex-col gap-6'>
                 <AttendanceStatistics />
 
-                <AttendanceTable attendanceData={attendanceTable} />
+                <AttendanceTable />
               </div>
             </div>
           </>
@@ -152,8 +171,8 @@ export default function DashboardPage() {
             </div>
           </FeatureGuard>
           <UserDashboardCharts
-            selectedMonth={selectedMonth}
-            onMonthChange={setSelectedMonth}
+            selectedMonth={selectedMonthForEmployeeStatusChart}
+            onMonthChange={setSelectedMonthForEmployeeStatusChart}
             monthYearOptions={monthYearOptions}
           />
         </FeatureGuard>

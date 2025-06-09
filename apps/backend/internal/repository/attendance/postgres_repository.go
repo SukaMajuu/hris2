@@ -203,3 +203,147 @@ func (r *AttendanceRepository) GetTodayAttendanceByEmployee(ctx context.Context,
 
 	return &attendance, nil
 }
+
+// GetStatistics retrieves attendance statistics for today
+func (r *AttendanceRepository) GetStatistics(ctx context.Context) (onTime, late, earlyLeave, absent, leave, totalAttended, totalEmployees int64, err error) {
+	today := time.Now().Format("2006-01-02")
+
+	// Count each status for today
+	if err = r.db.WithContext(ctx).
+		Model(&domain.Attendance{}).
+		Where("DATE(date) = DATE(?) AND status = ?", today, domain.OnTime).
+		Count(&onTime).Error; err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, fmt.Errorf("failed to count on-time attendances: %w", err)
+	}
+
+	if err = r.db.WithContext(ctx).
+		Model(&domain.Attendance{}).
+		Where("DATE(date) = DATE(?) AND status = ?", today, domain.Late).
+		Count(&late).Error; err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, fmt.Errorf("failed to count late attendances: %w", err)
+	}
+
+	if err = r.db.WithContext(ctx).
+		Model(&domain.Attendance{}).
+		Where("DATE(date) = DATE(?) AND status = ?", today, domain.EarlyLeave).
+		Count(&earlyLeave).Error; err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, fmt.Errorf("failed to count early leave attendances: %w", err)
+	}
+
+	if err = r.db.WithContext(ctx).
+		Model(&domain.Attendance{}).
+		Where("DATE(date) = DATE(?) AND status = ?", today, domain.Absent).
+		Count(&absent).Error; err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, fmt.Errorf("failed to count absent attendances: %w", err)
+	}
+
+	if err = r.db.WithContext(ctx).
+		Model(&domain.Attendance{}).
+		Where("DATE(date) = DATE(?) AND status = ?", today, domain.Leave).
+		Count(&leave).Error; err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, fmt.Errorf("failed to count leave attendances: %w", err)
+	}
+
+	totalAttended = onTime + late + earlyLeave + absent + leave
+
+	// Get total number of active employees
+	if err = r.db.WithContext(ctx).
+		Table("employees").
+		Where("employment_status = ?", true).
+		Count(&totalEmployees).Error; err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, fmt.Errorf("failed to count total employees: %w", err)
+	}
+
+	return onTime, late, earlyLeave, absent, leave, totalAttended, totalEmployees, nil
+}
+
+// GetStatisticsByManager retrieves attendance statistics for today filtered by manager
+func (r *AttendanceRepository) GetStatisticsByManager(ctx context.Context, managerID uint) (onTime, late, earlyLeave, absent, leave, totalAttended, totalEmployees int64, err error) {
+	today := time.Now().Format("2006-01-02")
+
+	// Count each status for today with separate queries
+	if err = r.db.WithContext(ctx).
+		Table("attendances").
+		Joins("JOIN employees ON attendances.employee_id = employees.id").
+		Where("DATE(attendances.date) = DATE(?) AND employees.manager_id = ? AND attendances.status = ?", today, managerID, domain.OnTime).
+		Count(&onTime).Error; err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, fmt.Errorf("failed to count on-time attendances by manager: %w", err)
+	}
+
+	if err = r.db.WithContext(ctx).
+		Table("attendances").
+		Joins("JOIN employees ON attendances.employee_id = employees.id").
+		Where("DATE(attendances.date) = DATE(?) AND employees.manager_id = ? AND attendances.status = ?", today, managerID, domain.Late).
+		Count(&late).Error; err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, fmt.Errorf("failed to count late attendances by manager: %w", err)
+	}
+
+	if err = r.db.WithContext(ctx).
+		Table("attendances").
+		Joins("JOIN employees ON attendances.employee_id = employees.id").
+		Where("DATE(attendances.date) = DATE(?) AND employees.manager_id = ? AND attendances.status = ?", today, managerID, domain.EarlyLeave).
+		Count(&earlyLeave).Error; err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, fmt.Errorf("failed to count early leave attendances by manager: %w", err)
+	}
+
+	if err = r.db.WithContext(ctx).
+		Table("attendances").
+		Joins("JOIN employees ON attendances.employee_id = employees.id").
+		Where("DATE(attendances.date) = DATE(?) AND employees.manager_id = ? AND attendances.status = ?", today, managerID, domain.Absent).
+		Count(&absent).Error; err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, fmt.Errorf("failed to count absent attendances by manager: %w", err)
+	}
+
+	if err = r.db.WithContext(ctx).
+		Table("attendances").
+		Joins("JOIN employees ON attendances.employee_id = employees.id").
+		Where("DATE(attendances.date) = DATE(?) AND employees.manager_id = ? AND attendances.status = ?", today, managerID, domain.Leave).
+		Count(&leave).Error; err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, fmt.Errorf("failed to count leave attendances by manager: %w", err)
+	}
+
+	totalAttended = onTime + late + earlyLeave + absent + leave
+
+	if err = r.db.WithContext(ctx).
+		Table("employees").
+		Where("employment_status = ? AND manager_id = ?", true, managerID).
+		Count(&totalEmployees).Error; err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, fmt.Errorf("failed to count total employees by manager: %w", err)
+	}
+
+	return onTime, late, earlyLeave, absent, leave, totalAttended, totalEmployees, nil
+}
+
+// GetTodayAttendancesByManager retrieves today's attendance records filtered by manager with pagination
+func (r *AttendanceRepository) GetTodayAttendancesByManager(ctx context.Context, managerID uint, paginationParams domain.PaginationParams) ([]*domain.Attendance, int64, error) {
+	var attendances []*domain.Attendance
+	var total int64
+	today := time.Now().Format("2006-01-02")
+
+	// Build base query
+	query := r.db.WithContext(ctx).
+		Table("attendances").
+		Joins("JOIN employees ON attendances.employee_id = employees.id").
+		Where("DATE(attendances.date) = DATE(?) AND employees.manager_id = ?", today, managerID)
+
+	// Count total records
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, fmt.Errorf("failed to count today's attendances by manager: %w", err)
+	}
+
+	// Get paginated records with preload
+	offset := (paginationParams.Page - 1) * paginationParams.PageSize
+	if err := r.db.WithContext(ctx).
+		Model(&domain.Attendance{}).
+		Joins("JOIN employees ON attendances.employee_id = employees.id").
+		Where("DATE(attendances.date) = DATE(?) AND employees.manager_id = ?", today, managerID).
+		Preload("Employee").
+		Offset(offset).
+		Limit(paginationParams.PageSize).
+		Order("attendances.clock_in DESC, attendances.created_at DESC").
+		Find(&attendances).Error; err != nil {
+		return nil, 0, fmt.Errorf("failed to list today's attendances by manager: %w", err)
+	}
+
+	return attendances, total, nil
+}

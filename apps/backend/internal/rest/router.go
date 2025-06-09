@@ -47,7 +47,7 @@ func NewRouter(
 		subscriptionHandler: handler.NewSubscriptionHandler(subscriptionUseCase),
 		documentHandler:     handler.NewDocumentHandler(documentUseCase),
 		leaveRequestHandler: handler.NewLeaveRequestHandler(leaveRequestUseCase),
-		attendanceHandler:   handler.NewAttendanceHandler(attendanceUseCase),
+		attendanceHandler:   handler.NewAttendanceHandler(attendanceUseCase, employeeUseCase),
 	}
 }
 
@@ -89,6 +89,7 @@ func (r *Router) Setup() *gin.Engine {
 			{
 				employee.GET("", r.employeeHandler.ListEmployees)
 				employee.GET("/statistics", r.employeeHandler.GetEmployeeStatistics)
+				employee.GET("/hire-date-range", r.employeeHandler.GetHireDateRange)
 				employee.GET("/validate-unique", r.employeeHandler.ValidateUniqueField)
 				employee.GET("/me", r.employeeHandler.GetCurrentUserProfile)
 				employee.PATCH("/me", r.employeeHandler.UpdateCurrentUserProfile)
@@ -123,6 +124,8 @@ func (r *Router) Setup() *gin.Engine {
 			{
 				attendances.POST("", r.attendanceHandler.CreateAttendance)
 				attendances.GET("", r.attendanceHandler.ListAttendances)
+				attendances.GET("/statistics", r.attendanceHandler.GetAttendanceStatistics)
+				attendances.GET("/today", r.attendanceHandler.GetTodayAttendancesByManager)
 				attendances.GET("/:id", r.attendanceHandler.GetAttendanceByID)
 				attendances.PUT("/:id", r.attendanceHandler.UpdateAttendance)
 				attendances.DELETE("/:id", r.attendanceHandler.DeleteAttendance)

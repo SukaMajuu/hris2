@@ -9,17 +9,20 @@ import (
 	"github.com/SukaMajuu/hris/apps/backend/domain"
 	attendanceDTO "github.com/SukaMajuu/hris/apps/backend/internal/rest/dto/attendance"
 	attendanceUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/attendance"
+	employeeUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/employee"
 	"github.com/SukaMajuu/hris/apps/backend/pkg/response"
 	"github.com/gin-gonic/gin"
 )
 
 type AttendanceHandler struct {
 	attendanceUseCase *attendanceUseCase.AttendanceUseCase
+	employeeUseCase   *employeeUseCase.EmployeeUseCase
 }
 
-func NewAttendanceHandler(useCase *attendanceUseCase.AttendanceUseCase) *AttendanceHandler {
+func NewAttendanceHandler(attendanceUC *attendanceUseCase.AttendanceUseCase, employeeUC *employeeUseCase.EmployeeUseCase) *AttendanceHandler {
 	return &AttendanceHandler{
-		attendanceUseCase: useCase,
+		attendanceUseCase: attendanceUC,
+		employeeUseCase:   employeeUC,
 	}
 }
 
@@ -269,4 +272,81 @@ func (h *AttendanceHandler) DeleteAttendance(c *gin.Context) {
 	}
 
 	response.Success(c, http.StatusOK, "Attendance deleted successfully", nil)
+}
+
+func (h *AttendanceHandler) GetAttendanceStatistics(c *gin.Context) {
+	// Get current user ID from context
+	userIDCtx, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User ID not found in context", fmt.Errorf("missing userID in context"))
+		return
+	}
+	currentUserID, ok := userIDCtx.(uint)
+	if !ok {
+		response.InternalServerError(c, fmt.Errorf("invalid user ID type in context"))
+		return
+	}
+
+	// Get current employee to get manager ID
+	currentEmployee, err := h.employeeUseCase.GetEmployeeByUserID(c.Request.Context(), currentUserID)
+	if err != nil {
+		response.InternalServerError(c, fmt.Errorf("failed to get current employee information: %w", err))
+		return
+	}
+
+	statistics, err := h.attendanceUseCase.GetStatisticsByManager(c.Request.Context(), currentEmployee.ID)
+	if err != nil {
+		response.InternalServerError(c, fmt.Errorf("failed to get attendance statistics: %w", err))
+		return
+	}
+
+	response.Success(c, http.StatusOK, "Attendance statistics retrieved successfully", statistics)
+}
+
+func (h *AttendanceHandler) GetTodayAttendancesByManager(c *gin.Context) {
+	// Get current user ID from context
+	userIDCtx, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User ID not found in context", fmt.Errorf("missing userID in context"))
+		return
+	}
+	currentUserID, ok := userIDCtx.(uint)
+	if !ok {
+		response.InternalServerError(c, fmt.Errorf("invalid user ID type in context"))
+		return
+	}
+
+	// Get current employee to get manager ID
+	currentEmployee, err := h.employeeUseCase.GetEmployeeByUserID(c.Request.Context(), currentUserID)
+	if err != nil {
+		response.InternalServerError(c, fmt.Errorf("failed to get current employee information: %w", err))
+		return
+	}
+
+	// Parse pagination parameters
+	var queryDTO attendanceDTO.ListAttendanceRequestQuery
+	if err := c.ShouldBindQuery(&queryDTO); err != nil {
+		response.BadRequest(c, "Invalid query parameters", err)
+		return
+	}
+
+	paginationParams := domain.PaginationParams{
+		Page:     queryDTO.Page,
+		PageSize: queryDTO.PageSize,
+	}
+
+	if paginationParams.Page == 0 {
+		paginationParams.Page = 1
+	}
+	if paginationParams.PageSize == 0 {
+		paginationParams.PageSize = 5 // Default to 5 for recent attendances
+	}
+
+	attendances, err := h.attendanceUseCase.GetTodayAttendancesByManager(c.Request.Context(), currentEmployee.ID, paginationParams)
+	if err != nil {
+		response.InternalServerError(c, fmt.Errorf("failed to get today's attendances: %w", err))
+		return
+	}
+
+	response.Success(c, http.StatusOK, "Today's attendances retrieved successfully", attendances)
 }

@@ -153,105 +153,6 @@ func (r *PostgresRepository) List(ctx context.Context, filters map[string]interf
 	return employees, totalItems, nil
 }
 
-func (r *PostgresRepository) GetStatistics(ctx context.Context) (
-	totalEmployees, newEmployees, activeEmployees, resignedEmployees,
-	permanentEmployees, contractEmployees, freelanceEmployees int64,
-	err error,
-) {
-
-	err = r.db.WithContext(ctx).Model(&domain.Employee{}).Count(&totalEmployees).Error
-	if err != nil {
-		return 0, 0, 0, 0, 0, 0, 0, err
-	}
-
-	err = r.db.WithContext(ctx).Model(&domain.Employee{}).Where("employment_status = ?", true).Count(&activeEmployees).Error
-	if err != nil {
-		return 0, 0, 0, 0, 0, 0, 0, err
-	}
-
-	err = r.db.WithContext(ctx).Model(&domain.Employee{}).Where("employment_status = ?", false).Count(&resignedEmployees).Error
-	if err != nil {
-		return 0, 0, 0, 0, 0, 0, 0, err
-	}
-	now := time.Now()
-	thirtyDaysAgo := now.AddDate(0, 0, -30)
-
-	err = r.db.WithContext(ctx).Model(&domain.Employee{}).
-		Where("hire_date >= ?", thirtyDaysAgo).
-		Count(&newEmployees).Error
-	if err != nil {
-		return 0, 0, 0, 0, 0, 0, 0, err
-	}
-
-	err = r.db.WithContext(ctx).Model(&domain.Employee{}).Where("contract_type = ?", "permanent").Count(&permanentEmployees).Error
-	if err != nil {
-		return 0, 0, 0, 0, 0, 0, 0, err
-	}
-
-	err = r.db.WithContext(ctx).Model(&domain.Employee{}).Where("contract_type = ?", "contract").Count(&contractEmployees).Error
-	if err != nil {
-		return 0, 0, 0, 0, 0, 0, 0, err
-	}
-
-	err = r.db.WithContext(ctx).Model(&domain.Employee{}).Where("contract_type = ?", "freelance").Count(&freelanceEmployees).Error
-	if err != nil {
-		return 0, 0, 0, 0, 0, 0, 0, err
-	}
-
-	return totalEmployees, newEmployees, activeEmployees, resignedEmployees, permanentEmployees, contractEmployees, freelanceEmployees, nil
-}
-
-func (r *PostgresRepository) GetStatisticsByManager(ctx context.Context, managerID uint) (
-	totalEmployees, newEmployees, activeEmployees, resignedEmployees,
-	permanentEmployees, contractEmployees, freelanceEmployees int64,
-	err error,
-) {
-
-	newQuery := func() *gorm.DB {
-		return r.db.WithContext(ctx).Model(&domain.Employee{}).Where("manager_id = ?", managerID)
-	}
-
-	err = newQuery().Count(&totalEmployees).Error
-	if err != nil {
-		return 0, 0, 0, 0, 0, 0, 0, err
-	}
-
-	err = newQuery().Where("employment_status = ?", true).Count(&activeEmployees).Error
-	if err != nil {
-		return 0, 0, 0, 0, 0, 0, 0, err
-	}
-
-	err = newQuery().Where("employment_status = ?", false).Count(&resignedEmployees).Error
-	if err != nil {
-		return 0, 0, 0, 0, 0, 0, 0, err
-	}
-
-	now := time.Now()
-	thirtyDaysAgo := now.AddDate(0, 0, -30)
-
-	err = newQuery().Where("hire_date >= ?", thirtyDaysAgo).Count(&newEmployees).Error
-	if err != nil {
-		return 0, 0, 0, 0, 0, 0, 0, err
-	}
-
-	err = newQuery().Where("contract_type = ?", "permanent").Count(&permanentEmployees).Error
-	if err != nil {
-		return 0, 0, 0, 0, 0, 0, 0, err
-	}
-
-	err = newQuery().Where("contract_type = ?", "contract").Count(&contractEmployees).Error
-	if err != nil {
-		return 0, 0, 0, 0, 0, 0, 0, err
-	}
-
-	err = newQuery().Where("contract_type = ?", "freelance").Count(&freelanceEmployees).Error
-	if err != nil {
-		return 0, 0, 0, 0, 0, 0, 0, err
-	}
-
-	return totalEmployees, newEmployees, activeEmployees, resignedEmployees, permanentEmployees, contractEmployees, freelanceEmployees, nil
-}
-
 func (r *PostgresRepository) GetStatisticsWithTrendsByManager(ctx context.Context, managerID uint) (
 	totalEmployees, newEmployees, activeEmployees, resignedEmployees,
 	permanentEmployees, contractEmployees, freelanceEmployees int64,
@@ -267,12 +168,15 @@ func (r *PostgresRepository) GetStatisticsWithTrendsByManager(ctx context.Contex
 		return 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, err
 	}
 
-	err = newQuery().Where("employment_status = ?", true).Count(&activeEmployees).Error
+	// Count active employees: employment_status = true AND resignation_date IS NULL
+	err = newQuery().Where("employment_status = ? AND resignation_date IS NULL", true).Count(&activeEmployees).Error
 	if err != nil {
 		return 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, err
 	}
 
-	err = newQuery().Where("employment_status = ?", false).Count(&resignedEmployees).Error
+	// Count resigned employees: employment_status = false OR resignation_date IS NOT NULL
+	// This handles cases where resignation_date was set but employment_status wasn't updated
+	err = newQuery().Where("employment_status = ? OR resignation_date IS NOT NULL", false).Count(&resignedEmployees).Error
 	if err != nil {
 		return 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, err
 	}
@@ -332,20 +236,183 @@ func (r *PostgresRepository) GetStatisticsWithTrendsByManager(ctx context.Contex
 		activeEmployeesTrend = 0
 	}
 
-	err = newQuery().Where("contract_type = ?", "permanent").Count(&permanentEmployees).Error
+	err = newQuery().Where("contract_type = ? AND employment_status = ? AND resignation_date IS NULL", "permanent", true).Count(&permanentEmployees).Error
 	if err != nil {
 		return 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, err
 	}
 
-	err = newQuery().Where("contract_type = ?", "contract").Count(&contractEmployees).Error
+	err = newQuery().Where("contract_type = ? AND employment_status = ? AND resignation_date IS NULL", "contract", true).Count(&contractEmployees).Error
 	if err != nil {
 		return 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, err
 	}
 
-	err = newQuery().Where("contract_type = ?", "freelance").Count(&freelanceEmployees).Error
+	err = newQuery().Where("contract_type = ? AND employment_status = ? AND resignation_date IS NULL", "freelance", true).Count(&freelanceEmployees).Error
 	if err != nil {
 		return 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, err
 	}
 
 	return totalEmployees, newEmployees, activeEmployees, resignedEmployees, permanentEmployees, contractEmployees, freelanceEmployees, totalEmployeesTrend, newEmployeesTrend, activeEmployeesTrend, nil
+}
+
+func (r *PostgresRepository) GetStatisticsWithTrendsByManagerAndMonth(ctx context.Context, managerID uint, month string) (
+	totalEmployees, newEmployees, activeEmployees, resignedEmployees,
+	permanentEmployees, contractEmployees, freelanceEmployees int64,
+	totalEmployeesTrend, newEmployeesTrend, activeEmployeesTrend float64,
+	err error,
+) {
+	newQuery := func() *gorm.DB {
+		return r.db.WithContext(ctx).Model(&domain.Employee{}).Where("manager_id = ?", managerID)
+	}
+
+	// Parse month parameter (format: YYYY-MM)
+	var filterTime time.Time
+	if month != "" {
+		parsedTime, parseErr := time.Parse("2006-01", month)
+		if parseErr != nil {
+			// If parsing fails, use current month
+			now := time.Now()
+			filterTime = time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+		} else {
+			filterTime = parsedTime
+		}
+	} else {
+		// If no month provided, use current month
+		now := time.Now()
+		filterTime = time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	}
+
+	// Calculate month boundaries
+	startOfMonth := time.Date(filterTime.Year(), filterTime.Month(), 1, 0, 0, 0, 0, filterTime.Location())
+	endOfMonth := startOfMonth.AddDate(0, 1, 0).Add(-time.Nanosecond)
+
+	// New employees: hired in the selected month
+	err = newQuery().Where("hire_date >= ? AND hire_date <= ?", startOfMonth, endOfMonth).Count(&newEmployees).Error
+	if err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, err
+	}
+
+	// Active employees: employees who were active during the selected month
+	// This includes employees who:
+	// 1. Were hired up to the selected month AND
+	// 2. Either have no resignation date (still active) OR resigned after the selected month
+	err = newQuery().Where("hire_date <= ? AND (resignation_date IS NULL OR resignation_date > ?)", endOfMonth, endOfMonth).Count(&activeEmployees).Error
+	if err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, err
+	}
+
+	// Resigned employees: employees who resigned specifically in the selected month
+	// This should count employees who:
+	// 1. Have employment_status = false (inactive) AND
+	// 2. Resigned in the selected month (resignation_date is in the selected month)
+	err = newQuery().Where(
+		"employment_status = ? AND resignation_date >= ? AND resignation_date <= ?",
+		false, startOfMonth, endOfMonth,
+	).Count(&resignedEmployees).Error
+	if err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, err
+	}
+
+	// Total employees: employees who were working at some point up to the selected month
+	// This includes: active employees + all employees who resigned at any point (not just in this month)
+	var totalResignedUpToMonth int64
+	err = newQuery().Where("hire_date <= ? AND (employment_status = ? OR resignation_date IS NOT NULL)", endOfMonth, false).Count(&totalResignedUpToMonth).Error
+	if err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, err
+	}
+	totalEmployees = activeEmployees + totalResignedUpToMonth
+
+	// Calculate trends (comparing with previous month)
+	prevMonth := startOfMonth.AddDate(0, -1, 0)
+	prevMonthEnd := startOfMonth.Add(-time.Nanosecond)
+
+	// Previous month new employees
+	var prevNewEmployees int64
+	err = newQuery().Where("hire_date >= ? AND hire_date <= ?", prevMonth, prevMonthEnd).Count(&prevNewEmployees).Error
+	if err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, err
+	}
+
+	// Calculate new employees trend
+	if prevNewEmployees > 0 {
+		newEmployeesTrend = float64(newEmployees-prevNewEmployees) / float64(prevNewEmployees) * 100
+	} else if newEmployees > 0 {
+		newEmployeesTrend = 100
+	} else {
+		newEmployeesTrend = 0
+	}
+
+	// Previous month active employees
+	var prevActiveEmployees int64
+	err = newQuery().Where("hire_date <= ? AND (resignation_date IS NULL OR resignation_date > ?)", prevMonthEnd, prevMonthEnd).Count(&prevActiveEmployees).Error
+	if err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, err
+	}
+
+	// Calculate active employees trend
+	if prevActiveEmployees > 0 {
+		activeEmployeesTrend = float64(activeEmployees-prevActiveEmployees) / float64(prevActiveEmployees) * 100
+	} else if activeEmployees > 0 {
+		activeEmployeesTrend = 100
+	} else {
+		activeEmployeesTrend = 0
+	}
+
+	// Previous month total employees
+	var prevTotalResignedUpToMonth int64
+	err = newQuery().Where("hire_date <= ? AND (employment_status = ? OR resignation_date IS NOT NULL)", prevMonthEnd, false).Count(&prevTotalResignedUpToMonth).Error
+	if err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, err
+	}
+	prevTotalEmployees := prevActiveEmployees + prevTotalResignedUpToMonth
+
+	// Calculate total employees trend
+	if prevTotalEmployees > 0 {
+		totalEmployeesTrend = float64(totalEmployees-prevTotalEmployees) / float64(prevTotalEmployees) * 100
+	} else if totalEmployees > 0 {
+		totalEmployeesTrend = 100
+	} else {
+		totalEmployeesTrend = 0
+	}
+
+	// Contract type statistics (for the selected month)
+	err = newQuery().Where("hire_date <= ? AND contract_type = ? AND (resignation_date IS NULL OR resignation_date > ?)", endOfMonth, "permanent", endOfMonth).Count(&permanentEmployees).Error
+	if err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, err
+	}
+
+	err = newQuery().Where("hire_date <= ? AND contract_type = ? AND (resignation_date IS NULL OR resignation_date > ?)", endOfMonth, "contract", endOfMonth).Count(&contractEmployees).Error
+	if err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, err
+	}
+
+	err = newQuery().Where("hire_date <= ? AND contract_type = ? AND (resignation_date IS NULL OR resignation_date > ?)", endOfMonth, "freelance", endOfMonth).Count(&freelanceEmployees).Error
+	if err != nil {
+		return 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, err
+	}
+
+	return totalEmployees, newEmployees, activeEmployees, resignedEmployees, permanentEmployees, contractEmployees, freelanceEmployees, totalEmployeesTrend, newEmployeesTrend, activeEmployeesTrend, nil
+}
+
+func (r *PostgresRepository) GetHireDateRange(ctx context.Context, managerID uint) (earliestHireDate, latestHireDate *time.Time, err error) {
+	var earliest, latest *time.Time
+
+	// Get earliest hire date
+	err = r.db.WithContext(ctx).Model(&domain.Employee{}).
+		Where("manager_id = ? AND hire_date IS NOT NULL", managerID).
+		Select("MIN(hire_date)").
+		Scan(&earliest).Error
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Get latest hire date
+	err = r.db.WithContext(ctx).Model(&domain.Employee{}).
+		Where("manager_id = ? AND hire_date IS NOT NULL", managerID).
+		Select("MAX(hire_date)").
+		Scan(&latest).Error
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return earliest, latest, nil
 }

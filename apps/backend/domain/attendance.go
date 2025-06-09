@@ -11,6 +11,7 @@ const (
 	Late       AttendanceStatus = "late"
 	EarlyLeave AttendanceStatus = "early_leave"
 	Absent     AttendanceStatus = "absent"
+	Leave      AttendanceStatus = "leave"
 )
 
 type Attendance struct {

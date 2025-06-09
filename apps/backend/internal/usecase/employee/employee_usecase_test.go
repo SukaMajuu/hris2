@@ -1164,9 +1164,12 @@ func TestEmployeeUseCase_BulkImport(t *testing.T) {
 				mockRegisterCall := mockAuthRepo.On("RegisterEmployeeUser", ctx, mock.AnythingOfType("*domain.User"), mock.AnythingOfType("*domain.Employee"))
 
 				if i < len(tt.mockRegisterErrors) && tt.mockRegisterErrors[i] == nil {
+					// Capture the index for closure
+					index := i
 					mockRegisterCall.Run(func(args mock.Arguments) {
 						emp := args.Get(2).(*domain.Employee)
-						emp.ID = uint(i + 1)
+						// Safe conversion: index is always non-negative and we add 1
+						emp.ID = uint(index) + 1
 					})
 				}
 

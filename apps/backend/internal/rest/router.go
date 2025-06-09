@@ -116,6 +116,7 @@ func (r *Router) Setup() *gin.Engine {
 				workScheduleRoutes.POST("", r.workScheduleHandler.CreateWorkSchedule)
 				workScheduleRoutes.GET("", r.workScheduleHandler.ListWorkSchedules)
 				workScheduleRoutes.GET("/:id", r.workScheduleHandler.GetWorkSchedule)
+				workScheduleRoutes.GET("/:id/edit", r.workScheduleHandler.GetWorkScheduleForEdit)
 				workScheduleRoutes.PUT("/:id", r.workScheduleHandler.UpdateWorkSchedule)
 				workScheduleRoutes.DELETE("/:id", r.workScheduleHandler.DeleteWorkSchedule)
 			}
@@ -125,6 +126,7 @@ func (r *Router) Setup() *gin.Engine {
 				attendances.POST("", r.attendanceHandler.CreateAttendance)
 				attendances.GET("", r.attendanceHandler.ListAttendances)
 				attendances.GET("/statistics", r.attendanceHandler.GetAttendanceStatistics)
+				attendances.GET("/statistics/monthly", r.attendanceHandler.GetEmployeeMonthlyStatistics)
 				attendances.GET("/today", r.attendanceHandler.GetTodayAttendancesByManager)
 				attendances.GET("/:id", r.attendanceHandler.GetAttendanceByID)
 				attendances.PUT("/:id", r.attendanceHandler.UpdateAttendance)

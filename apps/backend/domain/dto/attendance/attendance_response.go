@@ -52,6 +52,16 @@ type AttendanceStatisticsResponseDTO struct {
 	TotalEmployees int64 `json:"total_employees"`
 }
 
+type EmployeeMonthlyStatisticsResponseDTO struct {
+	OnTime         int64   `json:"on_time"`
+	Late           int64   `json:"late"`
+	Absent         int64   `json:"absent"`
+	Leave          int64   `json:"leave"`
+	TotalWorkHours float64 `json:"total_work_hours"`
+	Year           int     `json:"year"`
+	Month          int     `json:"month"`
+}
+
 func NewAttendanceResponseDTO(attendance *domain.Attendance) *AttendanceResponseDTO {
 	var workScheduleID uint
 	if attendance.Employee.WorkScheduleID != nil {

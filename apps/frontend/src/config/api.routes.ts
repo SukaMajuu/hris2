@@ -50,6 +50,7 @@ export const API_ROUTES = {
         base: '/api/work-schedules',
         list: '/api/work-schedules',
         detail: (id: number) => `/api/work-schedules/${id}`,
+        edit: (id: number) => `/api/work-schedules/${id}/edit`,
         create: '/api/work-schedules',
         update: (id: number) => `/api/work-schedules/${id}`,
         delete: (id: number) => `/api/work-schedules/${id}`,
@@ -99,6 +100,8 @@ export const API_ROUTES = {
         clockIn: '/api/attendances/clock-in',
         clockOut: '/api/attendances/clock-out',
         statistics: '/api/attendances/statistics',
+        monthlyStatistics: (year?: number, month?: number) =>
+          `/api/attendances/statistics/monthly${year && month ? `?year=${year}&month=${month}` : ''}`,
         today: '/api/attendances/today',
         byEmployee: (employeeId: number) => `/api/attendances/employees/${employeeId}`,
       },

@@ -25,6 +25,14 @@ func (m *WorkScheduleRepository) GetByIDWithDetails(ctx context.Context, id uint
 	return args.Get(0).(*domain.WorkSchedule), args.Error(1)
 }
 
+func (m *WorkScheduleRepository) GetByIDWithAllDetails(ctx context.Context, id uint) (*domain.WorkSchedule, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*domain.WorkSchedule), args.Error(1)
+}
+
 func (m *WorkScheduleRepository) UpdateWithDetails(ctx context.Context, workSchedule *domain.WorkSchedule, details []*domain.WorkScheduleDetail, deletedDetailIDs []uint) error {
 	args := m.Called(ctx, workSchedule, details, deletedDetailIDs)
 	return args.Error(0)

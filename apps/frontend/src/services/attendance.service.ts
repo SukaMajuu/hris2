@@ -17,6 +17,16 @@ export interface AttendanceStatistics {
   total_employees: number;
 }
 
+export interface EmployeeMonthlyStatistics {
+  on_time: number;
+  late: number;
+  absent: number;
+  leave: number;
+  total_work_hours: number;
+  year: number;
+  month: number;
+}
+
 export interface RecentAttendance {
   id: number;
   name: string;
@@ -97,13 +107,30 @@ class AttendanceService {
   async deleteAttendance(id: number): Promise<void> {
     await this.apiService.delete(API_ROUTES.v1.api.attendances.delete(id));
   }
-
   // Get attendance statistics for dashboard
   async getAttendanceStatistics(): Promise<AttendanceStatistics> {
     const response = await this.apiService.get<ApiResponse<AttendanceStatistics>>(
       API_ROUTES.v1.api.attendances.statistics,
     );
     return response.data.data;
+  }
+  // Get employee monthly statistics for dashboard
+  async getEmployeeMonthlyStatistics(
+    year?: number,
+    month?: number,
+  ): Promise<EmployeeMonthlyStatistics> {
+    console.log('AttendanceService: Fetching monthly statistics with params:', { year, month });
+    const url = API_ROUTES.v1.api.attendances.monthlyStatistics(year, month);
+    console.log('AttendanceService: Request URL:', url);
+    
+    try {
+      const response = await this.apiService.get<ApiResponse<EmployeeMonthlyStatistics>>(url);
+      console.log('AttendanceService: Response received:', response.data);
+      return response.data.data;
+    } catch (error) {
+      console.error('AttendanceService: Error fetching monthly statistics:', error);
+      throw error;
+    }
   }
 
   // Get recent attendances for dashboard table (limit 5)

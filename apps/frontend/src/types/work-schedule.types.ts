@@ -13,6 +13,7 @@ export type WorkScheduleDetailItem = {
 	checkout_end: string | null;
 	location_id: number | null;
 	location: Location | null;
+	is_active?: boolean;
 };
 
 export interface WorkSchedule {

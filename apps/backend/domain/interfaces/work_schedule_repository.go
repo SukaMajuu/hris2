@@ -10,6 +10,7 @@ type WorkScheduleRepository interface {
 	// Create & Read Operations
 	CreateWithDetails(ctx context.Context, workSchedule *domain.WorkSchedule, details []*domain.WorkScheduleDetail) error
 	GetByIDWithDetails(ctx context.Context, id uint) (*domain.WorkSchedule, error)
+	GetByIDWithAllDetails(ctx context.Context, id uint) (*domain.WorkSchedule, error) // Includes both active and inactive details for editing
 
 	// Update Operations
 	UpdateWithDetails(ctx context.Context, workSchedule *domain.WorkSchedule, details []*domain.WorkScheduleDetail, deletedDetailIDs []uint) error

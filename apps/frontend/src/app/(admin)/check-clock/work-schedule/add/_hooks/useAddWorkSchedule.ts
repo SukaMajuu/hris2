@@ -23,7 +23,9 @@ export const useAddWorkSchedule = () => {
 	}, []);
 
 	const handleSubmit = useCallback(
-		async (data: WorkSchedule) => {
+		async (data: WorkSchedule, detailsToDelete?: number[]) => {
+			// Note: detailsToDelete is not used for creating new work schedules
+			// but we accept it to maintain consistency with the form component interface
 			try {
 				// Clear previous validation errors
 				setValidationErrors({});

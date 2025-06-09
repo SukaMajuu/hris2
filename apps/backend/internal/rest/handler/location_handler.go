@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"strconv" // Added for Atoi conversion
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
@@ -80,7 +81,11 @@ func (h *LocationHandler) GetLocationByID(c *gin.Context) {
 
 	location, err := h.locationUseCase.GetByID(c.Request.Context(), uint(id))
 	if err != nil {
-		response.NotFound(c, domain.ErrLocationNotFound.Error(), err)
+		if errors.Is(err, domain.ErrLocationNotFound) {
+			response.NotFound(c, err.Error(), nil)
+			return
+		}
+		response.InternalServerError(c, err)
 		return
 	}
 
@@ -109,6 +114,10 @@ func (h *LocationHandler) UpdateLocation(c *gin.Context) {
 	})
 
 	if err != nil {
+		if errors.Is(err, domain.ErrLocationNotFound) {
+			response.NotFound(c, err.Error(), nil)
+			return
+		}
 		response.InternalServerError(c, err)
 		return
 	}
@@ -126,6 +135,11 @@ func (h *LocationHandler) DeleteLocation(c *gin.Context) {
 
 	err = h.locationUseCase.Delete(c.Request.Context(), uint(id))
 	if err != nil {
+		// Use errors.Is instead of string matching for better error handling
+		if errors.Is(err, domain.ErrLocationNotFound) {
+			response.NotFound(c, err.Error(), nil)
+			return
+		}
 		response.InternalServerError(c, err)
 		return
 	}

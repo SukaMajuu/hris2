@@ -153,105 +153,6 @@ func (r *PostgresRepository) List(ctx context.Context, filters map[string]interf
 	return employees, totalItems, nil
 }
 
-func (r *PostgresRepository) GetStatistics(ctx context.Context) (
-	totalEmployees, newEmployees, activeEmployees, resignedEmployees,
-	permanentEmployees, contractEmployees, freelanceEmployees int64,
-	err error,
-) {
-
-	err = r.db.WithContext(ctx).Model(&domain.Employee{}).Count(&totalEmployees).Error
-	if err != nil {
-		return 0, 0, 0, 0, 0, 0, 0, err
-	}
-
-	err = r.db.WithContext(ctx).Model(&domain.Employee{}).Where("employment_status = ?", true).Count(&activeEmployees).Error
-	if err != nil {
-		return 0, 0, 0, 0, 0, 0, 0, err
-	}
-
-	err = r.db.WithContext(ctx).Model(&domain.Employee{}).Where("employment_status = ?", false).Count(&resignedEmployees).Error
-	if err != nil {
-		return 0, 0, 0, 0, 0, 0, 0, err
-	}
-	now := time.Now()
-	thirtyDaysAgo := now.AddDate(0, 0, -30)
-
-	err = r.db.WithContext(ctx).Model(&domain.Employee{}).
-		Where("hire_date >= ?", thirtyDaysAgo).
-		Count(&newEmployees).Error
-	if err != nil {
-		return 0, 0, 0, 0, 0, 0, 0, err
-	}
-
-	err = r.db.WithContext(ctx).Model(&domain.Employee{}).Where("contract_type = ?", "permanent").Count(&permanentEmployees).Error
-	if err != nil {
-		return 0, 0, 0, 0, 0, 0, 0, err
-	}
-
-	err = r.db.WithContext(ctx).Model(&domain.Employee{}).Where("contract_type = ?", "contract").Count(&contractEmployees).Error
-	if err != nil {
-		return 0, 0, 0, 0, 0, 0, 0, err
-	}
-
-	err = r.db.WithContext(ctx).Model(&domain.Employee{}).Where("contract_type = ?", "freelance").Count(&freelanceEmployees).Error
-	if err != nil {
-		return 0, 0, 0, 0, 0, 0, 0, err
-	}
-
-	return totalEmployees, newEmployees, activeEmployees, resignedEmployees, permanentEmployees, contractEmployees, freelanceEmployees, nil
-}
-
-func (r *PostgresRepository) GetStatisticsByManager(ctx context.Context, managerID uint) (
-	totalEmployees, newEmployees, activeEmployees, resignedEmployees,
-	permanentEmployees, contractEmployees, freelanceEmployees int64,
-	err error,
-) {
-
-	newQuery := func() *gorm.DB {
-		return r.db.WithContext(ctx).Model(&domain.Employee{}).Where("manager_id = ?", managerID)
-	}
-
-	err = newQuery().Count(&totalEmployees).Error
-	if err != nil {
-		return 0, 0, 0, 0, 0, 0, 0, err
-	}
-
-	err = newQuery().Where("employment_status = ?", true).Count(&activeEmployees).Error
-	if err != nil {
-		return 0, 0, 0, 0, 0, 0, 0, err
-	}
-
-	err = newQuery().Where("employment_status = ?", false).Count(&resignedEmployees).Error
-	if err != nil {
-		return 0, 0, 0, 0, 0, 0, 0, err
-	}
-
-	now := time.Now()
-	thirtyDaysAgo := now.AddDate(0, 0, -30)
-
-	err = newQuery().Where("hire_date >= ?", thirtyDaysAgo).Count(&newEmployees).Error
-	if err != nil {
-		return 0, 0, 0, 0, 0, 0, 0, err
-	}
-
-	err = newQuery().Where("contract_type = ?", "permanent").Count(&permanentEmployees).Error
-	if err != nil {
-		return 0, 0, 0, 0, 0, 0, 0, err
-	}
-
-	err = newQuery().Where("contract_type = ?", "contract").Count(&contractEmployees).Error
-	if err != nil {
-		return 0, 0, 0, 0, 0, 0, 0, err
-	}
-
-	err = newQuery().Where("contract_type = ?", "freelance").Count(&freelanceEmployees).Error
-	if err != nil {
-		return 0, 0, 0, 0, 0, 0, 0, err
-	}
-
-	return totalEmployees, newEmployees, activeEmployees, resignedEmployees, permanentEmployees, contractEmployees, freelanceEmployees, nil
-}
-
 func (r *PostgresRepository) GetStatisticsWithTrendsByManager(ctx context.Context, managerID uint) (
 	totalEmployees, newEmployees, activeEmployees, resignedEmployees,
 	permanentEmployees, contractEmployees, freelanceEmployees int64,
@@ -332,17 +233,17 @@ func (r *PostgresRepository) GetStatisticsWithTrendsByManager(ctx context.Contex
 		activeEmployeesTrend = 0
 	}
 
-	err = newQuery().Where("contract_type = ?", "permanent").Count(&permanentEmployees).Error
+	err = newQuery().Where("contract_type = ? AND employment_status = ?", "permanent", true).Count(&permanentEmployees).Error
 	if err != nil {
 		return 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, err
 	}
 
-	err = newQuery().Where("contract_type = ?", "contract").Count(&contractEmployees).Error
+	err = newQuery().Where("contract_type = ? AND employment_status = ?", "contract", true).Count(&contractEmployees).Error
 	if err != nil {
 		return 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, err
 	}
 
-	err = newQuery().Where("contract_type = ?", "freelance").Count(&freelanceEmployees).Error
+	err = newQuery().Where("contract_type = ? AND employment_status = ?", "freelance", true).Count(&freelanceEmployees).Error
 	if err != nil {
 		return 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, err
 	}

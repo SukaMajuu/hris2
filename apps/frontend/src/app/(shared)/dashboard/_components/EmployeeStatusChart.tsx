@@ -96,9 +96,9 @@ export function EmployeeStatusChart({
   };
 
   return (
-    <Card className='rounded-2xl border-none p-0 shadow-sm'>
-      <CardContent className='flex flex-col gap-6 p-6'>
-        <div className='mb-2 flex items-center justify-between'>
+    <Card className='flex h-full flex-row rounded-2xl border-none p-0 shadow-sm'>
+      <CardContent className='flex w-full flex-col justify-between gap-8 p-6'>
+        <div className='flex items-center justify-between'>
           <div>
             <div className='text-sm font-medium text-gray-500'>Employee Statistics</div>
             <div className='text-xl font-bold'>Employee Status</div>
@@ -125,9 +125,10 @@ export function EmployeeStatusChart({
             </Select>
           </div>
         </div>
-        <div className='flex items-center justify-center'>
+
+        <div className='flex-1'>
           {isLoading ? (
-            <div className='flex h-64 items-center justify-center'>
+            <div className='flex items-center justify-center'>
               <div className='text-gray-500'>Loading...</div>
             </div>
           ) : (

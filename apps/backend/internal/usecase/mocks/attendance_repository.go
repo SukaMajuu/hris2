@@ -59,4 +59,19 @@ func (m *AttendanceRepository) Delete(ctx context.Context, id uint) error {
 	return args.Error(0)
 }
 
+func (m *AttendanceRepository) GetStatistics(ctx context.Context) (onTime, late, earlyLeave, absent, leave, totalAttended, totalEmployees int64, err error) {
+	args := m.Called(ctx)
+	return args.Get(0).(int64), args.Get(1).(int64), args.Get(2).(int64), args.Get(3).(int64), args.Get(4).(int64), args.Get(5).(int64), args.Get(6).(int64), args.Error(7)
+}
+
+func (m *AttendanceRepository) GetStatisticsByManager(ctx context.Context, managerID uint) (onTime, late, earlyLeave, absent, leave, totalAttended, totalEmployees int64, err error) {
+	args := m.Called(ctx, managerID)
+	return args.Get(0).(int64), args.Get(1).(int64), args.Get(2).(int64), args.Get(3).(int64), args.Get(4).(int64), args.Get(5).(int64), args.Get(6).(int64), args.Error(7)
+}
+
+func (m *AttendanceRepository) GetTodayAttendancesByManager(ctx context.Context, managerID uint, paginationParams domain.PaginationParams) ([]*domain.Attendance, int64, error) {
+	args := m.Called(ctx, managerID, paginationParams)
+	return args.Get(0).([]*domain.Attendance), args.Get(1).(int64), args.Error(2)
+}
+
 var _ interfaces.AttendanceRepository = (*AttendanceRepository)(nil)

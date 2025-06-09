@@ -42,6 +42,16 @@ type AttendanceSummaryResponseDTO struct {
 	AverageHours float64 `json:"average_hours"`
 }
 
+type AttendanceStatisticsResponseDTO struct {
+	OnTime         int64 `json:"on_time"`
+	Late           int64 `json:"late"`
+	EarlyLeave     int64 `json:"early_leave"`
+	Absent         int64 `json:"absent"`
+	Leave          int64 `json:"leave"`
+	TotalAttended  int64 `json:"total_attended"`
+	TotalEmployees int64 `json:"total_employees"`
+}
+
 func NewAttendanceResponseDTO(attendance *domain.Attendance) *AttendanceResponseDTO {
 	var workScheduleID uint
 	if attendance.Employee.WorkScheduleID != nil {
@@ -193,6 +203,8 @@ func NewAttendanceSummaryResponseDTO(attendances []*domain.Attendance) *Attendan
 			summary.AbsentDays++
 		case domain.EarlyLeave:
 			summary.PresentDays++ // Count early leave as present but different status
+		case domain.Leave:
+			summary.LeaveDays++
 		}
 
 		if attendance.WorkHours != nil {
@@ -229,6 +241,7 @@ func IsValidAttendanceStatus(status string) bool {
 		string(domain.Late),
 		string(domain.EarlyLeave),
 		string(domain.Absent),
+		string(domain.Leave),
 	}
 
 	for _, validStatus := range validStatuses {
@@ -260,6 +273,8 @@ func GetStatusDisplayName(status domain.AttendanceStatus) string {
 		return "Early Leave"
 	case domain.Absent:
 		return "Absent"
+	case domain.Leave:
+		return "Leave"
 	default:
 		return "Unknown"
 	}
@@ -286,6 +301,8 @@ func GetAttendanceStatistics(attendances []*domain.Attendance) map[string]interf
 			workingDays++
 		case domain.Absent:
 			absentCount++
+		case domain.Leave:
+			leaveCount++
 		}
 
 		if attendance.WorkHours != nil {

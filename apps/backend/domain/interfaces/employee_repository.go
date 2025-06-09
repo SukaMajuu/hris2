@@ -15,16 +15,6 @@ type EmployeeRepository interface {
 	Update(ctx context.Context, employee *domain.Employee) error
 	Delete(ctx context.Context, id uint) error
 	List(ctx context.Context, filters map[string]interface{}, pagination domain.PaginationParams) ([]*domain.Employee, int64, error)
-	GetStatistics(ctx context.Context) (
-		totalEmployees, newEmployees, activeEmployees, resignedEmployees,
-		permanentEmployees, contractEmployees, freelanceEmployees int64,
-		err error,
-	)
-	GetStatisticsByManager(ctx context.Context, managerID uint) (
-		totalEmployees, newEmployees, activeEmployees, resignedEmployees,
-		permanentEmployees, contractEmployees, freelanceEmployees int64,
-		err error,
-	)
 	GetStatisticsWithTrendsByManager(ctx context.Context, managerID uint) (
 		totalEmployees, newEmployees, activeEmployees, resignedEmployees,
 		permanentEmployees, contractEmployees, freelanceEmployees int64,

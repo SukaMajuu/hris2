@@ -47,7 +47,7 @@ func NewRouter(
 		subscriptionHandler: handler.NewSubscriptionHandler(subscriptionUseCase),
 		documentHandler:     handler.NewDocumentHandler(documentUseCase),
 		leaveRequestHandler: handler.NewLeaveRequestHandler(leaveRequestUseCase),
-		attendanceHandler:   handler.NewAttendanceHandler(attendanceUseCase),
+		attendanceHandler:   handler.NewAttendanceHandler(attendanceUseCase, employeeUseCase),
 	}
 }
 
@@ -123,6 +123,8 @@ func (r *Router) Setup() *gin.Engine {
 			{
 				attendances.POST("", r.attendanceHandler.CreateAttendance)
 				attendances.GET("", r.attendanceHandler.ListAttendances)
+				attendances.GET("/statistics", r.attendanceHandler.GetAttendanceStatistics)
+				attendances.GET("/today", r.attendanceHandler.GetTodayAttendancesByManager)
 				attendances.GET("/:id", r.attendanceHandler.GetAttendanceByID)
 				attendances.PUT("/:id", r.attendanceHandler.UpdateAttendance)
 				attendances.DELETE("/:id", r.attendanceHandler.DeleteAttendance)

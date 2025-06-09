@@ -8,6 +8,8 @@ import { useMyLeaveRequests } from '@/app/(user)/attendance/_hooks/useMyLeaveReq
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { FEATURE_CODES } from '@/const/features';
 import { useEmployeeMonthlyStatistics } from '@/api/queries/attendance.queries';
+import { useCurrentUserProfileQuery } from '@/api/queries/employee.queries';
+import { useAttendancesByEmployee } from '@/api/queries/attendance.queries';
 
 interface UseUserDashboardProps {
   selectedMonth: string;
@@ -27,19 +29,24 @@ export function useUserDashboard({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [chartKey, setChartKey] = useState(0);
-  const [selectedPeriod, setSelectedPeriod] = useState('This Week');
+  const [selectedPeriod, setSelectedPeriod] = useState('Weekly');
   const [dateRangeText, setDateRangeText] = useState('');
 
   // Refs
   const dropdownRef = useRef<HTMLDivElement>(null);
   const optionsContainerRef = useRef<HTMLDivElement>(null);
-
   // Feature access
   const { hasFeature } = useFeatureAccess();
   const canAccessCheckClock = hasFeature(FEATURE_CODES.CHECK_CLOCK_SYSTEM);
 
   // Data fetching hooks
   const { data: leaveRequestsData, isLoading, error, refetch } = useMyLeaveRequests(1, 10);
+
+  // Get current user profile to get employee ID
+  const { data: currentEmployee } = useCurrentUserProfileQuery();
+
+  // Fetch employee attendance data for working hours chart
+  const { data: attendanceData } = useAttendancesByEmployee(currentEmployee?.id || 0);
 
   // Parse selected month to get year and month for monthly statistics
   const [year, month] = selectedMonth.split('-').map(Number);
@@ -60,7 +67,6 @@ export function useUserDashboard({
       attachment: undefined,
     },
   });
-
   // Function to get date range based on selected period
   const getDateRange = (period: string): string => {
     const today = new Date();
@@ -73,47 +79,43 @@ export function useUserDashboard({
       });
     };
 
-    if (period === 'This Week') {
+    if (period === 'Weekly') {
       const monday = new Date(today);
       monday.setDate(today.getDate() - (day === 0 ? 6 : day - 1)); // Adjust to get Monday
 
-      const saturday = new Date(monday);
-      saturday.setDate(monday.getDate() + 5); // Saturday is 5 days after Monday
+      const friday = new Date(monday);
+      friday.setDate(monday.getDate() + 4); // Friday is 4 days after Monday
 
-      return `(${formatDate(monday)}–${formatDate(saturday)})`;
-    } else if (period === 'Last Week') {
-      const mondayLastWeek = new Date(today);
-      const daysToLastMonday = day === 0 ? 13 : day + 6;
-      mondayLastWeek.setDate(today.getDate() - daysToLastMonday); // Last Monday
-
-      const saturdayLastWeek = new Date(mondayLastWeek);
-      saturdayLastWeek.setDate(mondayLastWeek.getDate() + 5); // Last Saturday
-
-      return `(${formatDate(mondayLastWeek)}–${formatDate(saturdayLastWeek)})`;
-    } else if (period === 'Last Month') {
-      const lastMonth = new Date(today);
-      lastMonth.setMonth(today.getMonth() - 1);
-
-      return `(${lastMonth.toLocaleDateString('en-US', {
-        month: 'short',
-      })})`;
+      return `(${formatDate(monday)}–${formatDate(friday)})`;
+    } else if (period === 'Monthly') {
+      const [selectedYear, selectedMonthIndex] = selectedMonth.split('-').map(Number);
+      if (selectedYear && selectedMonthIndex) {
+        const monthDate = new Date(selectedYear, selectedMonthIndex - 1);
+        return `(${monthDate.toLocaleDateString('en-US', {
+          month: 'short',
+          year: 'numeric',
+        })})`;
+      }
+      return '';
     }
 
     return '';
-  };
-
-  // Generate chart labels based on selected period
+  };// Generate chart labels based on selected period
   const getChartLabels = () => {
     if (selectedPeriod === 'Monthly') {
-      // Generate only working days (Monday-Friday) for current month
-      const today = new Date();
-      const currentMonth = today.getMonth();
-      const currentYear = today.getFullYear();
-      const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+      // Generate only working days (Monday-Friday) for selected month
+      const [selectedYear, selectedMonthIndex] = selectedMonth.split('-').map(Number);
+      
+      // Validate that we have valid year and month
+      if (!selectedYear || !selectedMonthIndex) {
+        return [];
+      }
+      
+      const daysInMonth = new Date(selectedYear, selectedMonthIndex, 0).getDate();
 
       const workingDays = [];
       for (let i = 1; i <= daysInMonth; i++) {
-        const date = new Date(currentYear, currentMonth, i);
+        const date = new Date(selectedYear, selectedMonthIndex - 1, i);
         const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
 
         // Only include Monday (1) to Friday (5)
@@ -148,19 +150,66 @@ export function useUserDashboard({
       }
       return weekDays;
     }
-  };
-
-  // Generate mock work hours data based on period
+  };  // Generate real work hours data based on attendance records
   const getWorkHoursData = () => {
     const labels = getChartLabels();
-    const data = labels.map(() => {
-      // Generate random work hours between 6-10 hours (simulate real data)
-      const baseHours = 8;
-      const variation = (Math.random() - 0.5) * 4; // ±2 hours variation
-      const hours = Math.max(6, Math.min(10, baseHours + variation));
-      return Math.round(hours * 10) / 10; // Round to 1 decimal place
+    
+    if (!attendanceData || attendanceData.length === 0) {
+      // Return zeros if no attendance data
+      return labels.map(() => 0);
+    }
+    
+    // Filter attendance data based on selected period
+    let filteredAttendance = attendanceData;
+    
+    if (selectedPeriod === 'Monthly') {
+      // Filter for selected month
+      const [selectedYear, selectedMonthIndex] = selectedMonth.split('-').map(Number);
+      if (selectedYear && selectedMonthIndex) {
+        filteredAttendance = attendanceData.filter((attendance) => {
+          const attendanceDate = new Date(attendance.date);
+          return (
+            attendanceDate.getFullYear() === selectedYear &&
+            attendanceDate.getMonth() === selectedMonthIndex - 1
+          );
+        });
+      }
+    } else {
+      // Filter for current week
+      const today = new Date();
+      const currentDay = today.getDay();
+      const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
+      const monday = new Date(today);
+      monday.setDate(today.getDate() + mondayOffset);
+      
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      
+      filteredAttendance = attendanceData.filter((attendance) => {
+        const attendanceDate = new Date(attendance.date);
+        return attendanceDate >= monday && attendanceDate <= sunday;
+      });
+    }
+    
+    // Create a map of date to work hours from filtered attendance data
+    const workHoursMap = new Map<string, number>();
+    
+    filteredAttendance.forEach((attendance) => {
+      if (attendance.work_hours !== null && attendance.work_hours !== undefined) {
+        const attendanceDate = new Date(attendance.date);
+        const dateKey = attendanceDate.toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+        });
+        workHoursMap.set(dateKey, attendance.work_hours);
+      }
     });
-    return data;
+    
+    // Map chart labels to actual work hours or 0 if no data
+    return labels.map((label) => {
+      const workHours = workHoursMap.get(label);
+      return workHours || 0;
+    });
   };
 
   // Update date range when period changes
@@ -354,14 +403,14 @@ export function useUserDashboard({
 
     // Refs
     dropdownRef,
-    optionsContainerRef,
-
-    // Data
+    optionsContainerRef,    // Data
     leaveRequestsData,
     isLoading,
     error,
     monthlyStats,
     isLoadingMonthlyStats,
+    attendanceData,
+    currentEmployee,
     canAccessCheckClock,
 
     // Form

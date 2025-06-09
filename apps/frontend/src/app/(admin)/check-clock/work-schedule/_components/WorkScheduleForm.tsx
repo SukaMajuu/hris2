@@ -255,7 +255,7 @@ export function WorkScheduleForm({
 				const hasWFA = remainingDetails.some(detail => detail.worktype_detail === WORK_TYPES.WFA);
 
 				if (!hasWFO || !hasWFA) {
-					toast.error("Work type Hybrid minimal memiliki 2 worktype detail yang berbeda (WFO dan WFA)");
+					toast.error("Hybrid work type requires at least two different work type details (WFO and WFA)");
 					return prev;
 				}
 			}

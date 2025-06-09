@@ -35,21 +35,29 @@ export const MultiSelect = React.forwardRef<HTMLButtonElement, MultiSelectProps>
       // Don't allow toggling disabled options
       if (disabledOptions.includes(optionValue)) {
         return;
-      }
-
-      const newValue = value.includes(optionValue)
+      } const newValue = value.includes(optionValue)
         ? value.filter((v) => v !== optionValue)
         : [...value, optionValue];
       onChange(newValue);
-    }; const handleSelectAll = () => {
+    };
+
+    const handleSelectAll = () => {
       // Only include non-disabled options when selecting all
       const availableOptions = options.filter(option => !disabledOptions.includes(option.value));
       const availableValues = availableOptions.map(option => option.value);
 
-      if (value.length === availableValues.length) {
-        onChange([]);
+      // Get currently selected available (non-disabled) options
+      const selectedAvailableValues = value.filter(v => !disabledOptions.includes(v));
+
+      // Get currently selected disabled options (these should persist)
+      const selectedDisabledValues = value.filter(v => disabledOptions.includes(v));
+
+      if (selectedAvailableValues.length === availableValues.length) {
+        // If all available options are selected, deselect them but keep disabled ones
+        onChange(selectedDisabledValues);
       } else {
-        onChange(availableValues);
+        // Select all available options and keep disabled ones
+        onChange([...selectedDisabledValues, ...availableValues]);
       }
     };
 
@@ -78,15 +86,19 @@ export const MultiSelect = React.forwardRef<HTMLButtonElement, MultiSelectProps>
               <CommandItem
                 onSelect={handleSelectAll}
                 className="cursor-pointer"
+              >                <div
+                className={cn(
+                  "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                  (() => {
+                    const availableOptions = options.filter(option => !disabledOptions.includes(option.value));
+                    const availableValues = availableOptions.map(option => option.value);
+                    const selectedAvailableValues = value.filter(v => !disabledOptions.includes(v));
+                    return selectedAvailableValues.length === availableValues.length && availableValues.length > 0;
+                  })()
+                    ? "bg-primary text-primary-foreground"
+                    : "opacity-50 [&_svg]:invisible"
+                )}
               >
-                <div
-                  className={cn(
-                    "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                    value.length === options.filter(option => !disabledOptions.includes(option.value)).length
-                      ? "bg-primary text-primary-foreground"
-                      : "opacity-50 [&_svg]:invisible"
-                  )}
-                >
                   <CheckIcon className="h-4 w-4" />
                 </div>
                 <span>Select All</span>

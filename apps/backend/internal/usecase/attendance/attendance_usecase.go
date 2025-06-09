@@ -631,3 +631,27 @@ func (uc *AttendanceUseCase) GetTodayAttendancesByManager(ctx context.Context, m
 
 	return responseAttendance.ToAttendanceListResponseData(attendances, totalRecords, paginationParams.Page, paginationParams.PageSize), nil
 }
+
+func (uc *AttendanceUseCase) ListByManager(ctx context.Context, managerID uint, paginationParams domain.PaginationParams) (*responseAttendance.AttendanceListResponseData, error) {
+	attendances, totalItems, err := uc.attendanceRepo.ListByManager(ctx, managerID, paginationParams)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list attendances by manager: %w", err)
+	}
+
+	responseDTOs := make([]*responseAttendance.AttendanceResponseDTO, len(attendances))
+	for i, attendance := range attendances {
+		responseDTOs[i] = responseAttendance.NewAttendanceResponseDTO(attendance)
+	}
+
+	return &responseAttendance.AttendanceListResponseData{
+		Items: responseDTOs,
+		Pagination: domain.Pagination{
+			TotalItems:  totalItems,
+			TotalPages:  int(math.Ceil(float64(totalItems) / float64(paginationParams.PageSize))),
+			CurrentPage: paginationParams.Page,
+			PageSize:    paginationParams.PageSize,
+			HasNextPage: paginationParams.Page*paginationParams.PageSize < int(totalItems),
+			HasPrevPage: paginationParams.Page > 1,
+		},
+	}, nil
+}

@@ -49,6 +49,14 @@ func (m *AttendanceRepository) ListAll(ctx context.Context, paginationParams dom
 	return args.Get(0).([]*domain.Attendance), args.Get(1).(int64), args.Error(2)
 }
 
+func (m *AttendanceRepository) ListByManager(ctx context.Context, managerID uint, paginationParams domain.PaginationParams) ([]*domain.Attendance, int64, error) {
+	args := m.Called(ctx, managerID, paginationParams)
+	if args.Get(0) == nil {
+		return nil, args.Get(1).(int64), args.Error(2)
+	}
+	return args.Get(0).([]*domain.Attendance), args.Get(1).(int64), args.Error(2)
+}
+
 func (m *AttendanceRepository) Update(ctx context.Context, attendance *domain.Attendance) error {
 	args := m.Called(ctx, attendance)
 	return args.Error(0)

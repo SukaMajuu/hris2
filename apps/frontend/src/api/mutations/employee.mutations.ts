@@ -35,7 +35,7 @@ export const useCreateEmployee = () => {
     mutationFn: (data: CreateEmployeeRequest) => employeeService.createEmployee(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.employees.list(1, 10) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.employees.stats });
+      queryClient.invalidateQueries({ queryKey: queryKeys.employees.stats() });
     },
   });
 };
@@ -60,7 +60,7 @@ export const useUpdateEmployee = () => {
       });
 
       // Invalidate employee stats
-      queryClient.invalidateQueries({ queryKey: queryKeys.employees.stats });
+      queryClient.invalidateQueries({ queryKey: queryKeys.employees.stats() });
 
       // Invalidate current user profile in case it's the current user being updated
       queryClient.invalidateQueries({ queryKey: queryKeys.employees.currentProfile });
@@ -84,7 +84,7 @@ export const useResignEmployee = () => {
     mutationFn: (id: number) => employeeService.resignEmployee(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.employees.list(1, 10) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.employees.stats });
+      queryClient.invalidateQueries({ queryKey: queryKeys.employees.stats() });
     },
   });
 };
@@ -96,7 +96,7 @@ export const useBulkImportEmployees = () => {
     mutationFn: (file: File) => employeeService.bulkImportEmployees(file),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.employees.list(1, 10) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.employees.stats });
+      queryClient.invalidateQueries({ queryKey: queryKeys.employees.stats() });
     },
   });
 };

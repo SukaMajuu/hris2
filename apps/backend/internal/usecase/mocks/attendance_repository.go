@@ -82,4 +82,9 @@ func (m *AttendanceRepository) GetTodayAttendancesByManager(ctx context.Context,
 	return args.Get(0).([]*domain.Attendance), args.Get(1).(int64), args.Error(2)
 }
 
+func (m *AttendanceRepository) GetEmployeeMonthlyStatistics(ctx context.Context, employeeID uint, year int, month int) (onTime, late, absent, leave int64, totalWorkHours float64, err error) {
+	args := m.Called(ctx, employeeID, year, month)
+	return args.Get(0).(int64), args.Get(1).(int64), args.Get(2).(int64), args.Get(3).(int64), args.Get(4).(float64), args.Error(5)
+}
+
 var _ interfaces.AttendanceRepository = (*AttendanceRepository)(nil)

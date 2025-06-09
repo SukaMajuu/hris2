@@ -18,10 +18,8 @@ export function useDashboardData() {
     },
   );
 
-  // Fetch hire date range to determine available months
   const { data: hireDateRange, isLoading: isLoadingHireDateRange } = useHireDateRangeQuery();
 
-  // Separate queries for each chart with their respective month parameters
   const { data: employeeStatsOverall, isLoading: isLoadingStatsOverall } = useEmployeeStatsQuery();
 
   const { data: employeeStatsForChart, isLoading: isLoadingStatsForChart } = useEmployeeStatsQuery(
@@ -31,21 +29,18 @@ export function useDashboardData() {
   const { data: employeeStatsForStatusChart, isLoading: isLoadingStatsForStatusChart } =
     useEmployeeStatsQuery(selectedMonthForEmployeeStatusChart);
 
-  // Generate dynamic month/year options based on hire date range
   const monthYearOptions = useMemo(() => {
     if (!hireDateRange) return [];
 
     const options = [];
     const today = new Date();
 
-    // Default to current month if no hire date range is available
     const startDate = hireDateRange.earliest_hire_date
       ? new Date(hireDateRange.earliest_hire_date)
       : new Date(today.getFullYear(), today.getMonth(), 1);
 
     const endDate = new Date(today.getFullYear(), today.getMonth(), 1);
 
-    // Generate options from earliest hire date to current month
     const current = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
 
     while (current <= endDate) {
@@ -60,12 +55,10 @@ export function useDashboardData() {
       current.setMonth(current.getMonth() + 1);
     }
 
-    // Reverse to show most recent first
     return options.reverse();
   }, [hireDateRange]);
 
   return {
-    // Employee stats
     employeeStatsOverall,
     isLoadingStatsOverall,
     employeeStatsForChart,
@@ -73,15 +66,12 @@ export function useDashboardData() {
     employeeStatsForStatusChart,
     isLoadingStatsForStatusChart,
 
-    // Month selection for employee stats chart
     selectedMonthForEmployeeStatsChart,
     setSelectedMonthForEmployeeStatsChart,
 
-    // Month selection for employee status chart
     selectedMonthForEmployeeStatusChart,
     setSelectedMonthForEmployeeStatusChart,
 
-    // Dynamic month/year options based on hire date range
     monthYearOptions,
     isLoadingHireDateRange,
   };

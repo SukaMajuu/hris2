@@ -38,9 +38,9 @@ export function useUserDashboard({
   const optionsContainerRef = useRef<HTMLDivElement>(null);
   // Feature access
   const { hasFeature } = useFeatureAccess();
-  const canAccessCheckClock = hasFeature(FEATURE_CODES.CHECK_CLOCK_SYSTEM);  // Data fetching hooks
+  const canAccessCheckClock = hasFeature(FEATURE_CODES.CHECK_CLOCK_SYSTEM); // Data fetching hooks
   const { data: leaveRequestsData, isLoading, error, refetch } = useMyLeaveRequests(1, 100); // Fetch more records to get all leaves
-  
+
   // Also fetch using the new query hook for more comprehensive data (without filters to get all leave requests)
   const { data: myLeaveRequestsData } = useMyLeaveRequestsQuery(1, 100);
 
@@ -102,17 +102,17 @@ export function useUserDashboard({
     }
 
     return '';
-  };// Generate chart labels based on selected period
+  }; // Generate chart labels based on selected period
   const getChartLabels = () => {
     if (selectedPeriod === 'Monthly') {
       // Generate only working days (Monday-Friday) for selected month
       const [selectedYear, selectedMonthIndex] = selectedMonth.split('-').map(Number);
-      
+
       // Validate that we have valid year and month
       if (!selectedYear || !selectedMonthIndex) {
         return [];
       }
-      
+
       const daysInMonth = new Date(selectedYear, selectedMonthIndex, 0).getDate();
 
       const workingDays = [];
@@ -152,18 +152,18 @@ export function useUserDashboard({
       }
       return weekDays;
     }
-  };  // Generate real work hours data based on attendance records
+  }; // Generate real work hours data based on attendance records
   const getWorkHoursData = () => {
     const labels = getChartLabels();
-    
+
     if (!attendanceData || attendanceData.length === 0) {
       // Return zeros if no attendance data
       return labels.map(() => 0);
     }
-    
+
     // Filter attendance data based on selected period
     let filteredAttendance = attendanceData;
-    
+
     if (selectedPeriod === 'Monthly') {
       // Filter for selected month
       const [selectedYear, selectedMonthIndex] = selectedMonth.split('-').map(Number);
@@ -175,7 +175,8 @@ export function useUserDashboard({
             attendanceDate.getMonth() === selectedMonthIndex - 1
           );
         });
-      }    } else {
+      }
+    } else {
       // Filter for current week
       const today = new Date();
       const currentDay = today.getDay();
@@ -184,11 +185,11 @@ export function useUserDashboard({
       monday.setDate(today.getDate() + mondayOffset);
       // Reset time to start of day for accurate comparison
       monday.setHours(0, 0, 0, 0);
-      
+
       const sunday = new Date(monday);
       sunday.setDate(monday.getDate() + 6);
       // Set time to end of day for accurate comparison      sunday.setHours(23, 59, 59, 999);
-      
+
       filteredAttendance = attendanceData.filter((attendance) => {
         const attendanceDate = new Date(attendance.date);
         // Reset time to start of day for accurate comparison
@@ -197,26 +198,27 @@ export function useUserDashboard({
         return isInRange;
       });
     }
-    
+
     // Create a map of date to work hours from filtered attendance data
     const workHoursMap = new Map<string, number>();
-    
+
     filteredAttendance.forEach((attendance) => {
       if (attendance.work_hours !== null && attendance.work_hours !== undefined) {
         const attendanceDate = new Date(attendance.date);
         const dateKey = attendanceDate.toLocaleDateString('en-US', {
           month: 'short',
           day: 'numeric',
-        });        workHoursMap.set(dateKey, attendance.work_hours);
+        });
+        workHoursMap.set(dateKey, attendance.work_hours);
       }
     });
-    
+
     // Map chart labels to actual work hours or 0 if no data
     const result = labels.map((label) => {
       const workHours = workHoursMap.get(label);
       return workHours || 0;
     });
-    
+
     return result;
   };
 
@@ -321,7 +323,8 @@ export function useUserDashboard({
         start_date: '',
         end_date: '',
         employee_note: '',
-        attachment: undefined,      });
+        attachment: undefined,
+      });
 
       // Refresh data after successful submission
       refetch();
@@ -334,51 +337,55 @@ export function useUserDashboard({
       });
     } finally {
       setIsSubmitting(false);
-    }  };
+    }
+  };
   // Annual leave calculations
   const getAnnualLeaveData = () => {
     const totalAnnualLeave = 12; // Fixed total of 12 days per year
     const currentYear = new Date().getFullYear();
-      // Debug: Log all leave requests data
-    
+    // Debug: Log all leave requests data
+
     // Get annual leave requests for current year
-    const annualLeaveRequests = myLeaveRequestsData?.items.filter((request) => {
-      const startDate = new Date(request.start_date);
-      const isAnnualLeave = request.leave_type === LeaveType.ANNUAL_LEAVE;
-      const isApproved = request.status === LeaveRequestStatus.APPROVED;
-      const isCurrentYear = startDate.getFullYear() === currentYear;
-      
-      return isAnnualLeave && isApproved && isCurrentYear;
-    }) || [];
-    
+    const annualLeaveRequests =
+      myLeaveRequestsData?.items.filter((request) => {
+        const startDate = new Date(request.start_date);
+        const isAnnualLeave = request.leave_type === LeaveType.ANNUAL_LEAVE;
+        const isApproved = request.status === LeaveRequestStatus.APPROVED;
+        const isCurrentYear = startDate.getFullYear() === currentYear;
+
+        return isAnnualLeave && isApproved && isCurrentYear;
+      }) || [];
+
     // Calculate total days used by calculating duration from start_date and end_date
     const totalDaysUsed = annualLeaveRequests.reduce((total, request) => {
       const startDate = new Date(request.start_date);
       const endDate = new Date(request.end_date);
-        // Calculate duration in days (inclusive of both start and end date)
+      // Calculate duration in days (inclusive of both start and end date)
       const timeDifference = endDate.getTime() - startDate.getTime();
       const durationInDays = Math.floor(timeDifference / (1000 * 60 * 60 * 24)) + 1;
-      
+
       return total + Math.max(0, durationInDays); // Ensure non-negative duration
     }, 0);
-    
+
     // Calculate remaining days
     const remainingDays = Math.max(0, totalAnnualLeave - totalDaysUsed);
-    
+
     // Calculate usage percentage
-    const usagePercentage = totalAnnualLeave > 0 ? Math.round((totalDaysUsed / totalAnnualLeave) * 100) : 0;
-    
+    const usagePercentage =
+      totalAnnualLeave > 0 ? Math.round((totalDaysUsed / totalAnnualLeave) * 100) : 0;
+
     // Get most recent annual leave
-    const mostRecentLeave = annualLeaveRequests
-      .sort((a, b) => new Date(b.start_date).getTime() - new Date(a.start_date).getTime())[0];
-    
+    const mostRecentLeave = annualLeaveRequests.sort(
+      (a, b) => new Date(b.start_date).getTime() - new Date(a.start_date).getTime(),
+    )[0];
+
     return {
       totalAnnualLeave,
       totalDaysUsed,
       remainingDays,
       usagePercentage,
       mostRecentLeave,
-      annualLeaveRequests
+      annualLeaveRequests,
     };
   };
 
@@ -430,7 +437,7 @@ export function useUserDashboard({
   });
   const getLeavePieChartData = () => {
     const { totalDaysUsed, remainingDays } = getAnnualLeaveData();
-    
+
     return {
       labels: ['Used', 'Remaining'],
       datasets: [
@@ -485,7 +492,7 @@ export function useUserDashboard({
     getPieChartData,
     getBarChartData,
     getLeavePieChartData,
-    
+
     // Annual leave data
     getAnnualLeaveData,
   };

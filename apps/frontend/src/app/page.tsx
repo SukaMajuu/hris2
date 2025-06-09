@@ -1,14 +1,14 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import Header from './_component/header';
-import Hero from './_component/hero';
-import Features from './_component/features';
-import Benefits from './_component/benefits';
+import Header from '../components/landing-page/header';
+import Hero from '../components/landing-page/hero';
+import Features from '../components/landing-page/features';
+import Benefits from '../components/landing-page/benefits';
 // import Testimonials from './_component/testimoni';
-import Pricing from './_component/pricing';
-import Contact from './_component/contact';
-import Footer from './_component/footer';
+import Pricing from '../components/landing-page/pricing';
+import Contact from '../components/landing-page/contact';
+import Footer from '../components/landing-page/footer';
 
 const LandingPage: React.FC = () => {
   useEffect(() => {

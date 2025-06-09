@@ -28,13 +28,11 @@ export function useFeatureAccess() {
 	 * Check if a specific feature is available for the current user's subscription
 	 */
 	const hasFeature = (featureCode: FeatureCode): boolean => {
-		// Non-admin users don't have access to admin features
+		// Admin-only features that regular users cannot access
 		if (!isAdmin && (
 			featureCode === FEATURE_CODES.ADMIN_DASHBOARD ||
 			featureCode === FEATURE_CODES.EMPLOYEE_MANAGEMENT ||
-			featureCode === FEATURE_CODES.DOCUMENT_EMPLOYEE_MANAGEMENT ||
-			featureCode === FEATURE_CODES.CHECK_CLOCK_SETTINGS ||
-			featureCode === FEATURE_CODES.CHECK_CLOCK_SYSTEM
+			featureCode === FEATURE_CODES.CHECK_CLOCK_SETTINGS
 		)) {
 			return false;
 		}
@@ -44,7 +42,13 @@ export function useFeatureAccess() {
 			return hasActiveSubscription;
 		}
 
-		// For admin features, check if the feature is in the subscription plan
+		// Features available for both admin and regular users if they have active subscription and the feature
+		if (featureCode === FEATURE_CODES.CHECK_CLOCK_SYSTEM ||
+			featureCode === FEATURE_CODES.DOCUMENT_EMPLOYEE_MANAGEMENT) {
+			return hasActiveSubscription && availableFeatures.includes(featureCode);
+		}
+
+		// For other features, check if the feature is in the subscription plan
 		return hasActiveSubscription && availableFeatures.includes(featureCode);
 	};
 

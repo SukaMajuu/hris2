@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button } from '../../../components/ui/button';
+import { Button } from '../ui/button';
 import { Mail, Phone, MapPin, CheckCircle } from 'lucide-react';
 
 const Contact: React.FC = () => {

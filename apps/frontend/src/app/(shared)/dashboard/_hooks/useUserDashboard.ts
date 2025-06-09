@@ -49,9 +49,40 @@ export function useUserDashboard({
 
   // Fetch employee attendance data for working hours chart
   const { data: attendanceData } = useAttendancesByEmployee(currentEmployee?.id || 0);
-
   // Parse selected month to get year and month for monthly statistics
-  const [year, month] = selectedMonth.split('-').map(Number);
+  // Provide fallback to current month if selectedMonth is invalid or empty
+  const getCurrentMonthString = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1; // getMonth() returns 0-11, we need 1-12
+    return `${year}-${month.toString().padStart(2, '0')}`;
+  };
+  const validSelectedMonth =
+    selectedMonth && selectedMonth.includes('-') ? selectedMonth : getCurrentMonthString();
+  const [year, month] = validSelectedMonth.split('-').map(Number);
+  const generateMonthYearOptions = () => {
+    const options = [];
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+
+    // Generate current month first, then previous months (0 to 11 for last 12 months)
+    for (let i = 0; i < 12; i++) {
+      const date = new Date(currentYear, currentMonth - i);
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1;
+      const value = `${year}-${month.toString().padStart(2, '0')}`;
+      const label = date.toLocaleDateString('en-US', {
+        month: 'long',
+        year: 'numeric',
+      });
+      options.push({ value, label });
+    }
+    return options;
+  };
+
+  const validMonthYearOptions =
+    monthYearOptions && monthYearOptions.length > 0 ? monthYearOptions : generateMonthYearOptions();
 
   // Fetch monthly statistics for the selected month
   const { data: monthlyStats, isLoading: isLoadingMonthlyStats } = useEmployeeMonthlyStatistics(
@@ -90,7 +121,7 @@ export function useUserDashboard({
 
       return `(${formatDate(monday)}–${formatDate(friday)})`;
     } else if (period === 'Monthly') {
-      const [selectedYear, selectedMonthIndex] = selectedMonth.split('-').map(Number);
+      const [selectedYear, selectedMonthIndex] = validSelectedMonth.split('-').map(Number);
       if (selectedYear && selectedMonthIndex) {
         const monthDate = new Date(selectedYear, selectedMonthIndex - 1);
         return `(${monthDate.toLocaleDateString('en-US', {
@@ -100,13 +131,14 @@ export function useUserDashboard({
       }
       return '';
     }
-
     return '';
-  }; // Generate chart labels based on selected period
+  };
+
+  // Generate chart labels based on selected period
   const getChartLabels = () => {
     if (selectedPeriod === 'Monthly') {
       // Generate only working days (Monday-Friday) for selected month
-      const [selectedYear, selectedMonthIndex] = selectedMonth.split('-').map(Number);
+      const [selectedYear, selectedMonthIndex] = validSelectedMonth.split('-').map(Number);
 
       // Validate that we have valid year and month
       if (!selectedYear || !selectedMonthIndex) {
@@ -152,7 +184,9 @@ export function useUserDashboard({
       }
       return weekDays;
     }
-  }; // Generate real work hours data based on attendance records
+  };
+
+  // Generate real work hours data based on attendance records
   const getWorkHoursData = () => {
     const labels = getChartLabels();
 
@@ -163,10 +197,9 @@ export function useUserDashboard({
 
     // Filter attendance data based on selected period
     let filteredAttendance = attendanceData;
-
     if (selectedPeriod === 'Monthly') {
       // Filter for selected month
-      const [selectedYear, selectedMonthIndex] = selectedMonth.split('-').map(Number);
+      const [selectedYear, selectedMonthIndex] = validSelectedMonth.split('-').map(Number);
       if (selectedYear && selectedMonthIndex) {
         filteredAttendance = attendanceData.filter((attendance) => {
           const attendanceDate = new Date(attendance.date);
@@ -247,7 +280,9 @@ export function useUserDashboard({
   // Auto-scroll to selected month when dropdown opens
   useEffect(() => {
     if (isDropdownOpen && optionsContainerRef.current) {
-      const selectedIndex = monthYearOptions.findIndex((option) => option.value === selectedMonth);
+      const selectedIndex = validMonthYearOptions.findIndex(
+        (option) => option.value === selectedMonth,
+      );
       if (selectedIndex !== -1) {
         const optionHeight = 40;
         const containerHeight = optionsContainerRef.current.clientHeight;
@@ -262,7 +297,7 @@ export function useUserDashboard({
         });
       }
     }
-  }, [isDropdownOpen, selectedMonth, monthYearOptions]);
+  }, [isDropdownOpen, selectedMonth, validMonthYearOptions]);
 
   // Navigation handlers
   const handleNavigateToAttendanceWithLeaveFilter = () => {
@@ -465,8 +500,7 @@ export function useUserDashboard({
 
     // Refs
     dropdownRef,
-    optionsContainerRef,
-
+    optionsContainerRef, 
     // Data
     leaveRequestsData,
     myLeaveRequestsData,
@@ -477,6 +511,7 @@ export function useUserDashboard({
     attendanceData,
     currentEmployee,
     canAccessCheckClock,
+    validMonthYearOptions,
 
     // Form
     form,

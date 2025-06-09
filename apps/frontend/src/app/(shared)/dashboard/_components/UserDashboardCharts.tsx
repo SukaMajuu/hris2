@@ -49,11 +49,11 @@ export function UserDashboardCharts({
     // Refs
     dropdownRef,
     optionsContainerRef,
-
-    // Data
+     // Data
     monthlyStats,
     isLoadingMonthlyStats,
     canAccessCheckClock,
+    validMonthYearOptions,
 
     // Form
     form,
@@ -63,11 +63,11 @@ export function UserDashboardCharts({
     handleRequestLeave,
     handleMonthChange,
     onSubmitPermit,
-    refetch,    // Chart data
+    refetch, 
     getPieChartData,
     getBarChartData,
     getLeavePieChartData,
-    
+
     // Annual leave data
     getAnnualLeaveData,
   } = useUserDashboard({
@@ -83,7 +83,12 @@ export function UserDashboardCharts({
           <CardContent className='p-8'>
             <div className='mb-6 flex items-center justify-between'>
               <div>
-                <div className='mb-1 text-sm font-medium text-gray-500'>Monthly Overview</div>
+                {' '}
+                <div className='mb-1 text-sm font-medium text-gray-500'>
+                  Monthly Overview -{' '}
+                  {validMonthYearOptions.find((option) => option.value === selectedMonth)?.label ||
+                    'Current Month'}
+                </div>
                 <div className='text-2xl font-bold text-gray-900'>
                   Attendance Summary
                   {!canAccessCheckClock && (
@@ -91,23 +96,37 @@ export function UserDashboardCharts({
                       Premium
                     </span>
                   )}
-                </div>
+                </div>{' '}
                 <div className='mt-2 flex items-center text-sm text-gray-600'>
                   <span className='mr-2 inline-block h-2 w-2 rounded-full bg-green-500'></span>
-                  Total Working Days: 25
+                  Total Working Days:{' '}
+                  {isLoadingMonthlyStats
+                    ? '...'
+                    : (monthlyStats?.on_time || 0) +
+                        (monthlyStats?.late || 0) +
+                        (monthlyStats?.leave || 0) +
+                        (monthlyStats?.absent || 0) || 0}
                 </div>{' '}
               </div>
               {/* Custom Month/Year Dropdown with Auto-scroll */}
               {canAccessCheckClock && (
                 <div className='relative' ref={dropdownRef}>
+                  {' '}
                   <button
                     type='button'
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                    className='flex min-w-[180px] items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm shadow-sm transition-all duration-200 hover:bg-gray-50 hover:shadow-md focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none'
+                    disabled={isLoadingMonthlyStats}
+                    className={`flex min-w-[180px] items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm shadow-sm transition-all duration-200 hover:bg-gray-50 hover:shadow-md focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none ${
+                      isLoadingMonthlyStats ? 'cursor-not-allowed opacity-50' : ''
+                    }`}
                   >
-                    <span className='truncate font-medium text-gray-700'>
-                      {monthYearOptions.find((option) => option.value === selectedMonth)?.label ||
-                        'Select Month'}
+                    {' '}
+                    <span className='flex items-center truncate font-medium text-gray-700'>
+                      {validMonthYearOptions.find((option) => option.value === selectedMonth)
+                        ?.label || 'Select Month'}
+                      {isLoadingMonthlyStats && (
+                        <div className='ml-2 h-3 w-3 animate-spin rounded-full border-b border-gray-400'></div>
+                      )}
                     </span>{' '}
                     <ChevronDown
                       className={`ml-3 h-4 w-4 text-gray-500 transition-transform duration-200 ${
@@ -120,8 +139,9 @@ export function UserDashboardCharts({
                       className='absolute top-full right-0 left-0 z-50 mt-2 max-h-64 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-xl backdrop-blur-sm'
                       ref={optionsContainerRef}
                     >
+                      {' '}
                       <div className='py-2'>
-                        {monthYearOptions.map((option) => (
+                        {validMonthYearOptions.map((option) => (
                           <button
                             key={option.value}
                             type='button'
@@ -154,7 +174,7 @@ export function UserDashboardCharts({
                   </div>
                 ) : (
                   <Pie
-                    key={chartKey}
+                    key={`attendance-pie-${chartKey}-${selectedMonth}`}
                     data={getPieChartData()}
                     options={{
                       responsive: true,
@@ -237,21 +257,30 @@ export function UserDashboardCharts({
                 Entitlement: 12 days per year{' '}
               </div>
             </div>
-            <>              {/* Total Annual Leave Section */}
+            <>
+              {' '}
+              {/* Total Annual Leave Section */}
               <div className='mb-6 rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white p-6 transition-shadow duration-200 hover:shadow-md'>
                 <div className='flex items-center justify-between'>
                   <div>
                     <p className='mb-2 text-sm font-medium text-blue-600'>Total Annual Leave</p>
-                    <p className='text-3xl font-bold text-gray-900'>{getAnnualLeaveData().totalAnnualLeave} Days</p>
+                    <p className='text-3xl font-bold text-gray-900'>
+                      {getAnnualLeaveData().totalAnnualLeave} Days
+                    </p>
                     <p className='mt-2 flex items-center text-sm text-blue-600'>
                       <span className='mr-2 inline-block h-1.5 w-1.5 rounded-full bg-green-500'></span>
-                      Remaining: <span className='ml-1 font-semibold'>{getAnnualLeaveData().remainingDays} days</span>{' '}
+                      Remaining:{' '}
+                      <span className='ml-1 font-semibold'>
+                        {getAnnualLeaveData().remainingDays} days
+                      </span>{' '}
                     </p>
                   </div>
                   <div className='relative h-24 w-24'>
                     <div className='absolute inset-0 flex items-center justify-center'>
                       <div className='text-center'>
-                        <div className='text-xl font-bold text-blue-600'>{getAnnualLeaveData().usagePercentage}%</div>
+                        <div className='text-xl font-bold text-blue-600'>
+                          {getAnnualLeaveData().usagePercentage}%
+                        </div>
                         <div className='text-xs text-gray-500'>Used</div>
                       </div>
                     </div>{' '}
@@ -271,7 +300,8 @@ export function UserDashboardCharts({
                     />
                   </div>{' '}
                 </div>
-              </div>              {/* Taken and Available Cards */}
+              </div>{' '}
+              {/* Taken and Available Cards */}
               <div className='mb-6 grid grid-cols-2 gap-4'>
                 {/* Taken Card */}
                 <div className='rounded-xl border border-red-100 bg-gradient-to-br from-red-50 to-white p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-md'>
@@ -279,7 +309,9 @@ export function UserDashboardCharts({
                     <div className='mr-3 h-3 w-3 rounded-full bg-red-500'></div>
                     <p className='text-sm font-semibold text-red-700'>Taken</p>
                   </div>
-                  <p className='mb-3 text-2xl font-bold text-gray-900'>{getAnnualLeaveData().totalDaysUsed} Days</p>
+                  <p className='mb-3 text-2xl font-bold text-gray-900'>
+                    {getAnnualLeaveData().totalDaysUsed} Days
+                  </p>
 
                   {/* Prominent Last Leave Date */}
                   <div className='mb-4 rounded-lg border border-red-200 bg-white/70 p-3'>
@@ -287,19 +319,29 @@ export function UserDashboardCharts({
                     {getAnnualLeaveData().mostRecentLeave ? (
                       <>
                         <p className='text-sm font-bold text-gray-900'>
-                          {new Date(getAnnualLeaveData().mostRecentLeave!.start_date).toLocaleDateString('en-US', {
+                          {new Date(
+                            getAnnualLeaveData().mostRecentLeave!.start_date,
+                          ).toLocaleDateString('en-US', {
                             month: 'short',
                             day: 'numeric',
-                            year: 'numeric'
+                            year: 'numeric',
                           })}
-                        </p>                        <p className='text-xs text-gray-600'>
-                          Annual Leave ({(() => {
-                            const startDate = new Date(getAnnualLeaveData().mostRecentLeave!.start_date);
-                            const endDate = new Date(getAnnualLeaveData().mostRecentLeave!.end_date);
+                        </p>{' '}
+                        <p className='text-xs text-gray-600'>
+                          Annual Leave (
+                          {(() => {
+                            const startDate = new Date(
+                              getAnnualLeaveData().mostRecentLeave!.start_date,
+                            );
+                            const endDate = new Date(
+                              getAnnualLeaveData().mostRecentLeave!.end_date,
+                            );
                             const timeDifference = endDate.getTime() - startDate.getTime();
-                            const durationInDays = Math.floor(timeDifference / (1000 * 60 * 60 * 24)) + 1;
+                            const durationInDays =
+                              Math.floor(timeDifference / (1000 * 60 * 60 * 24)) + 1;
                             return Math.max(1, durationInDays);
-                          })()} days)
+                          })()}{' '}
+                          days)
                         </p>
                       </>
                     ) : (
@@ -324,7 +366,9 @@ export function UserDashboardCharts({
                     <div className='mr-3 h-3 w-3 rounded-full bg-green-500'></div>
                     <p className='text-sm font-semibold text-green-700'>Available</p>
                   </div>
-                  <p className='mb-4 text-2xl font-bold text-gray-900'>{getAnnualLeaveData().remainingDays} Days</p>
+                  <p className='mb-4 text-2xl font-bold text-gray-900'>
+                    {getAnnualLeaveData().remainingDays} Days
+                  </p>
                   <button
                     className='group flex w-full items-center justify-center rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:from-blue-600 hover:to-blue-700 hover:shadow-lg'
                     onClick={handleRequestLeave}

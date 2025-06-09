@@ -53,6 +53,7 @@ func toWorkScheduleDetailResponseDTO(detail domain.WorkScheduleDetail) *dtoworks
 		CheckOutStart:  formatTimeToStringPtr(detail.CheckoutStart), // Corrected casing
 		CheckOutEnd:    formatTimeToStringPtr(detail.CheckoutEnd),   // Corrected casing
 		LocationID:     detail.LocationID,
+		IsActive:       detail.IsActive,
 	}
 
 	if detail.Location != nil {
@@ -190,11 +191,21 @@ func (uc *WorkScheduleUseCase) Update(
 	return toWorkScheduleResponseDTO(updatedWorkSchedule), nil
 }
 
-// GetByID retrieves a work schedule by ID with all its details
+// GetByID retrieves a work schedule by ID with active details only
 func (uc *WorkScheduleUseCase) GetByID(ctx context.Context, id uint) (*dtoworkschedule.WorkScheduleResponseDTO, error) {
 	workSchedule, err := uc.workScheduleRepo.GetByIDWithDetails(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get work schedule by ID %d: %w", id, err)
+	}
+
+	return toWorkScheduleResponseDTO(workSchedule), nil
+}
+
+// GetByIDForEdit retrieves a work schedule by ID with all details (active and inactive) for editing
+func (uc *WorkScheduleUseCase) GetByIDForEdit(ctx context.Context, id uint) (*dtoworkschedule.WorkScheduleResponseDTO, error) {
+	workSchedule, err := uc.workScheduleRepo.GetByIDWithAllDetails(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get work schedule by ID %d for editing: %w", id, err)
 	}
 
 	return toWorkScheduleResponseDTO(workSchedule), nil

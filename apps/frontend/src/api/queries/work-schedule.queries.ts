@@ -18,3 +18,11 @@ export const useWorkScheduleDetail = (id: number) => {
         enabled: !!id,
     });
 };
+
+export const useWorkScheduleDetailForEdit = (id: number) => {
+    return useQuery<WorkSchedule, Error>({
+        queryKey: [...queryKeys.workSchedules.detail(id), 'edit'],
+        queryFn: () => workScheduleService.getByIdForEdit(id),
+        enabled: !!id,
+    });
+};

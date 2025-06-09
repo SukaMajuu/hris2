@@ -27,7 +27,7 @@ func (r *locationRepository) List(ctx context.Context, paginationParams domain.P
 	var locations []*domain.Location
 	var totalItems int64
 
-	query := r.db.WithContext(ctx).Model(&domain.Location{})
+	query := r.db.WithContext(ctx).Model(&domain.Location{}).Where("is_active = ?", true)
 	if err := query.Count(&totalItems).Error; err != nil {
 		return nil, 0, err
 	}
@@ -42,7 +42,7 @@ func (r *locationRepository) List(ctx context.Context, paginationParams domain.P
 
 func (r *locationRepository) GetByID(ctx context.Context, id uint) (*domain.Location, error) {
 	var location domain.Location
-	if err := r.db.WithContext(ctx).Where("id = ?", id).First(&location).Error; err != nil {
+	if err := r.db.WithContext(ctx).Where("id = ? AND is_active = ?", id, true).First(&location).Error; err != nil {
 		return nil, err
 	}
 	return &location, nil
@@ -60,13 +60,13 @@ func (r *locationRepository) Update(ctx context.Context, id uint, location *doma
 }
 
 func (r *locationRepository) Delete(ctx context.Context, id uint) error {
-	return r.db.WithContext(ctx).Where("id = ?", id).Delete(&domain.Location{}).Error
+	return r.db.WithContext(ctx).Model(&domain.Location{}).Where("id = ?", id).Update("is_active", false).Error
 }
 
-// Exists checks if a location with the given ID exists.
+// Exists checks if a location with the given ID exists and is active.
 func (r *locationRepository) Exists(ctx context.Context, id uint) (bool, error) {
 	var location domain.Location
-	err := r.db.WithContext(ctx).Model(&domain.Location{}).Where("id = ?", id).First(&location).Error
+	err := r.db.WithContext(ctx).Model(&domain.Location{}).Where("id = ? AND is_active = ?", id, true).First(&location).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return false, nil // Record not found means it doesn't exist

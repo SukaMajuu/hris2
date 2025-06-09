@@ -122,15 +122,29 @@ export default function LocationPage() {
 			serverPagination.currentPage,
 			serverPagination.pageSize,
 		]
-	);
+	); 
+	
 	const table = useReactTable<typeof locations[number]>({
 		data: locations,
 		columns,
 		state: {
+			columnFilters: [{ id: "name", value: filters.name || "" }],
 			pagination: {
 				pageIndex: serverPagination.currentPage - 1,
 				pageSize: serverPagination.pageSize,
 			},
+		},
+		onColumnFiltersChange: (updater) => {
+			const newFilters =
+				typeof updater === "function"
+					? updater(table.getState().columnFilters)
+					: updater;
+			const nameFilterUpdate = newFilters.find((f) => f.id === "name");
+			const newNameFilter = (nameFilterUpdate?.value as string) || "";
+			handleApplyFilters({
+				...filters,
+				name: newNameFilter,
+			});
 		},
 		onPaginationChange: (updater) => {
 			const currentPaginationState = {
@@ -171,16 +185,19 @@ export default function LocationPage() {
 							</div>
 						</div>
 						<div className="flex flex-wrap gap-2 w-full md:w-[400px]">
-							{" "}
-							<div className="relative flex-[1]">
+							{" "}							<div className="relative flex-[1]">
 								<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
 								<Input
 									value={filters.name || ""}
 									onChange={(event) => {
+										const newNameFilter = event.target.value;
 										handleApplyFilters({
 											...filters,
-											name: event.target.value,
+											name: newNameFilter,
 										});
+										table
+											.getColumn("name")
+											?.setFilterValue(newNameFilter);
 									}}
 									className="pl-10 w-full bg-white border-gray-200"
 									placeholder="Search Location"
@@ -190,11 +207,10 @@ export default function LocationPage() {
 								variant={
 									isFilterVisible ? "default" : "outline"
 								}
-								className={`gap-2 ${
-									isFilterVisible
+								className={`gap-2 ${isFilterVisible
 										? "bg-[#6B9AC4] hover:bg-[#5A89B3]"
 										: "hover:bg-[#5A89B3] hover:text-white"
-								}`}
+									}`}
 								onClick={handleToggleFilterVisibility}
 							>
 								<Filter className="h-4 w-4" />

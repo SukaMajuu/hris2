@@ -32,6 +32,7 @@ import {
 } from "../_utils/attendanceFilters";
 import { Attendance, AttendanceFormData } from "@/types/attendance";
 import { Badge } from "@/components/ui/badge";
+import { formatWorkHours } from "@/utils/time";
 
 // Status mapping for user-friendly display
 const statusMapping = {
@@ -308,9 +309,7 @@ export default function AttendanceOverviewTab() {
 				header: "Work Hours",
 				accessorKey: "work_hours",
 				cell: ({ row }) => {
-					return row.original.work_hours
-						? `${row.original.work_hours}h`
-						: "-";
+					return formatWorkHours(row.original.work_hours);
 				},
 			},
 			{
@@ -494,9 +493,7 @@ export default function AttendanceOverviewTab() {
 											Work Hours
 										</p>
 										<p className="text-slate-700">
-											{selectedData.work_hours
-												? `${selectedData.work_hours}h`
-												: "-"}
+											{formatWorkHours(selectedData.work_hours)}
 										</p>
 									</div>
 									<div>

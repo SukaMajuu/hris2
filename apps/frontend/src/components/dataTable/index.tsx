@@ -46,7 +46,7 @@ export function DataTable<TData>({
 				containerClassName
 			)}
 		>
-			<ShadcnTable className="w-full min-w-[800px] table-auto md:min-w-max">
+			<ShadcnTable className="w-full min-w-[800px] table-auto">
 				<TableHeader>
 					{table.getHeaderGroups().map((headerGroup) => (
 						<TableRow

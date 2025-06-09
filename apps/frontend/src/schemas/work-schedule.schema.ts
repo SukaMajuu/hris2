@@ -41,6 +41,7 @@ const WorkScheduleDetailSchema = z
 		checkout_end: z.string().nullable(),
 		location_id: z.number().nullable(),
 		location: LocationSchema.nullable(),
+		is_active: z.boolean().optional().default(true),
 	})
 	.superRefine((data, ctx) => {
 		// Validate times are in correct format

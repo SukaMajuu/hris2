@@ -24,6 +24,7 @@ type UpdateWorkScheduleDetail struct {
 	CheckOutStart  *string  `json:"checkout_start,omitempty"`
 	CheckOutEnd    *string  `json:"checkout_end,omitempty"`
 	LocationID     *uint    `json:"location_id,omitempty"`
+	IsActive       *bool    `json:"is_active,omitempty"`
 }
 
 func (r *UpdateWorkScheduleRequest) Validate() error {

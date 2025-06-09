@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { useUpdateWorkSchedule } from "@/api/mutations/work-schedule.mutation";
-import { useWorkScheduleDetail } from "@/api/queries/work-schedule.queries";
+import { useWorkScheduleDetailForEdit } from "@/api/queries/work-schedule.queries";
 import { useLocations } from "@/api/queries/location.queries";
 import { toast } from "sonner";
 import { WorkSchedule } from "@/types/work-schedule.types";
@@ -14,8 +14,8 @@ export const useEditWorkSchedule = (id: number) => {
 		Record<string, string>
 	>({});
 
-	// Queries and mutations
-	const workScheduleQuery = useWorkScheduleDetail(id);
+	// Queries and mutations - using the edit query instead of regular detail query
+	const workScheduleQuery = useWorkScheduleDetailForEdit(id);
 	const locationsQuery = useLocations({});
 	const updateMutation = useUpdateWorkSchedule();
 
@@ -29,14 +29,20 @@ export const useEditWorkSchedule = (id: number) => {
 
 	// Handle form submission with validation
 	const handleSubmit = useCallback(
-		async (data: WorkSchedule) => {
+		async (data: WorkSchedule, detailsToDelete: number[] = []) => {
 			try {
 				// Clear previous validation errors
 				setValidationErrors({});
 
 				const validatedData = workScheduleSchema.parse(data);
 
-				await updateMutation.mutateAsync({ id, data: validatedData });
+				// Create the payload with toDelete array
+				const updatePayload = {
+					...validatedData,
+					toDelete: detailsToDelete
+				};
+
+				await updateMutation.mutateAsync({ id, data: updatePayload });
 				toast.success("Work schedule successfully updated");
 
 				router.push("/check-clock/work-schedule");

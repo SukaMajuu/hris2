@@ -23,6 +23,7 @@ type WorkScheduleDetailResponseDTO struct {
 	CheckOutEnd    *string                          `json:"checkout_end"`
 	LocationID     *uint                            `json:"location_id"`
 	Location       *dtolocation.LocationResponseDTO `json:"location"`
+	IsActive       bool                             `json:"is_active"`
 }
 
 type WorkScheduleListResponseData struct {

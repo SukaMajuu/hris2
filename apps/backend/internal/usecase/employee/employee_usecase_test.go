@@ -1173,7 +1173,11 @@ func TestEmployeeUseCase_BulkImport(t *testing.T) {
 					case 2:
 						empID = 3
 					default:
-						empID = uint(i + 1)
+						if i >= 0 {
+							empID = uint(i + 1)
+						} else {
+							empID = 1
+						}
 					}
 
 					mockRegisterCall.Run(func(args mock.Arguments) {

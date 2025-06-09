@@ -125,6 +125,7 @@ func (r *Router) Setup() *gin.Engine {
 				attendances.POST("", r.attendanceHandler.CreateAttendance)
 				attendances.GET("", r.attendanceHandler.ListAttendances)
 				attendances.GET("/statistics", r.attendanceHandler.GetAttendanceStatistics)
+				attendances.GET("/statistics/monthly", r.attendanceHandler.GetEmployeeMonthlyStatistics)
 				attendances.GET("/today", r.attendanceHandler.GetTodayAttendancesByManager)
 				attendances.GET("/:id", r.attendanceHandler.GetAttendanceByID)
 				attendances.PUT("/:id", r.attendanceHandler.UpdateAttendance)

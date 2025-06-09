@@ -619,6 +619,23 @@ func (uc *AttendanceUseCase) GetStatisticsByManager(ctx context.Context, manager
 	}, nil
 }
 
+func (uc *AttendanceUseCase) GetEmployeeMonthlyStatistics(ctx context.Context, employeeID uint, year int, month int) (*responseAttendance.EmployeeMonthlyStatisticsResponseDTO, error) {
+	onTime, late, absent, leave, totalWorkHours, err := uc.attendanceRepo.GetEmployeeMonthlyStatistics(ctx, employeeID, year, month)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get employee monthly statistics: %w", err)
+	}
+
+	return &responseAttendance.EmployeeMonthlyStatisticsResponseDTO{
+		OnTime:         onTime,
+		Late:           late,
+		Absent:         absent,
+		Leave:          leave,
+		TotalWorkHours: totalWorkHours,
+		Year:           year,
+		Month:          month,
+	}, nil
+}
+
 func (uc *AttendanceUseCase) GetEmployeeByUserID(ctx context.Context, userID uint) (*domain.Employee, error) {
 	return uc.employeeRepo.GetByUserID(ctx, userID)
 }

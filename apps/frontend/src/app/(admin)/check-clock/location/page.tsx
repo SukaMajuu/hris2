@@ -20,6 +20,8 @@ import { LocationFilter } from "./_components/LocationFilter";
 import { Edit, Filter, Plus, Search, Trash2 } from "lucide-react";
 import ConfirmationDelete from "./_components/confirmationDelete";
 import { usePagination } from "@/hooks/usePagination";
+import { FeatureGuard } from "@/components/subscription/FeatureGuard";
+import { FEATURE_CODES } from "@/const/features";
 
 export default function LocationPage() {
 	const { pagination, setPage, setPageSize } = usePagination(1, 10);
@@ -151,7 +153,7 @@ export default function LocationPage() {
 	});
 
 	return (
-		<div>
+		<FeatureGuard feature={FEATURE_CODES.CHECK_CLOCK_SYSTEM}>
 			<Card className="mb-6 border border-gray-100 dark:border-gray-800">
 				<CardContent>
 					{" "}
@@ -252,6 +254,6 @@ export default function LocationPage() {
 				locationToDelete={locationToDelete}
 				isDeleting={isDeleting}
 			/>
-		</div>
+		</FeatureGuard>
 	);
 }

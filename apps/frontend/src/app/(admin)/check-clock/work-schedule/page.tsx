@@ -24,6 +24,8 @@ import { WorkSchedule } from "@/types/work-schedule.types";
 import { useWorkSchedule } from "./_hooks/useWorkSchedule";
 import { usePagination } from "@/hooks/usePagination";
 import { useRouter } from "next/navigation";
+import { FeatureGuard } from "@/components/subscription/FeatureGuard";
+import { FEATURE_CODES } from "@/const/features";
 
 export default function WorkSchedulePage() {
 	const router = useRouter();
@@ -210,7 +212,7 @@ export default function WorkSchedulePage() {
 	}
 
 	return (
-		<>
+		<FeatureGuard feature={FEATURE_CODES.CHECK_CLOCK_SYSTEM}>
 			<Card className="border border-gray-100 dark:border-gray-800">
 				<CardContent>
 					<header className="flex flex-col gap-4 mb-6">
@@ -270,6 +272,6 @@ export default function WorkSchedulePage() {
 						: []
 				}
 			/>
-		</>
+		</FeatureGuard>
 	);
 }

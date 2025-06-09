@@ -733,55 +733,30 @@ func (uc *EmployeeUseCase) convertToImportError(err error, employee *domain.Empl
 }
 
 func (uc *EmployeeUseCase) Resign(ctx context.Context, id uint) error {
-	log.Printf("EmployeeUseCase: Resign (Delete) called for ID: %d", id)
+	log.Printf("EmployeeUseCase: Resign called for employee ID: %d", id)
 
-	existingEmployee, err := uc.employeeRepo.GetByID(ctx, id)
+	employee, err := uc.employeeRepo.GetByID(ctx, id)
 	if err != nil {
-		if errors.Is(err, domain.ErrEmployeeNotFound) {
-			log.Printf("EmployeeUseCase: No employee found with ID %d for resignation", id)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			log.Printf("EmployeeUseCase: No employee found with ID %d", id)
 			return domain.ErrEmployeeNotFound
 		}
-		log.Printf("EmployeeUseCase: Error getting employee by ID %d from repository for resignation: %v", id, err)
-		return fmt.Errorf("failed to get employee by ID %d for resignation: %w", id, err)
+		log.Printf("EmployeeUseCase: Error getting employee by ID %d from repository: %v", id, err)
+		return fmt.Errorf("failed to get employee by ID %d: %w", id, err)
 	}
 
+	employee.EmploymentStatus = false
 	now := time.Now()
-	existingEmployee.EmploymentStatus = false
-	existingEmployee.ResignationDate = &now
+	employee.ResignationDate = &now
 
-	err = uc.employeeRepo.Update(ctx, existingEmployee)
+	err = uc.employeeRepo.Update(ctx, employee)
 	if err != nil {
-		log.Printf("EmployeeUseCase: Error updating employee ID %d in repository for resignation: %v", id, err)
-		return fmt.Errorf("failed to update employee ID %d for resignation: %w", id, err)
+		log.Printf("EmployeeUseCase: Error updating employee resignation status in repository: %v", err)
+		return fmt.Errorf("failed to update employee resignation status: %w", err)
 	}
 
-	log.Printf("EmployeeUseCase: Successfully resigned employee with ID %d. EmploymentStatus set to false and ResignationDate to %v", id, now.Format(time.RFC3339))
+	log.Printf("EmployeeUseCase: Successfully resigned employee with ID %d", id)
 	return nil
-}
-
-func (uc *EmployeeUseCase) GetStatistics(ctx context.Context) (*dtoemployee.EmployeeStatisticsResponseDTO, error) {
-	log.Printf("EmployeeUseCase: GetStatistics called")
-
-	totalEmployees, newEmployees, activeEmployees, resignedEmployees, permanentEmployees, contractEmployees, freelanceEmployees, err := uc.employeeRepo.GetStatistics(ctx)
-	if err != nil {
-		log.Printf("EmployeeUseCase: Error getting employee statistics from repository: %v", err)
-		return nil, fmt.Errorf("failed to get employee statistics: %w", err)
-	}
-
-	response := &dtoemployee.EmployeeStatisticsResponseDTO{
-		TotalEmployees:     totalEmployees,
-		NewEmployees:       newEmployees,
-		ActiveEmployees:    activeEmployees,
-		ResignedEmployees:  resignedEmployees,
-		PermanentEmployees: permanentEmployees,
-		ContractEmployees:  contractEmployees,
-		FreelanceEmployees: freelanceEmployees,
-	}
-
-	log.Printf("EmployeeUseCase: Successfully retrieved employee statistics - Total: %d, New: %d, Active: %d, Resigned: %d, Permanent: %d, Contract: %d, Freelance: %d",
-		totalEmployees, newEmployees, activeEmployees, resignedEmployees, permanentEmployees, contractEmployees, freelanceEmployees)
-
-	return response, nil
 }
 
 func (uc *EmployeeUseCase) GetStatisticsByManager(ctx context.Context, managerID uint) (*dtoemployee.EmployeeStatisticsResponseDTO, error) {
@@ -813,6 +788,41 @@ func (uc *EmployeeUseCase) GetStatisticsByManager(ctx context.Context, managerID
 		"Total: %d (trend: %.2f%%), New: %d (trend: %.2f%%), Active: %d (trend: %.2f%%), "+
 		"Resigned: %d, Permanent: %d, Contract: %d, Freelance: %d",
 		managerID, totalEmployees, totalEmployeesTrend, newEmployees, newEmployeesTrend,
+		activeEmployees, activeEmployeesTrend, resignedEmployees, permanentEmployees,
+		contractEmployees, freelanceEmployees)
+
+	return response, nil
+}
+
+func (uc *EmployeeUseCase) GetStatisticsByManagerAndMonth(ctx context.Context, managerID uint, month string) (*dtoemployee.EmployeeStatisticsResponseDTO, error) {
+	log.Printf("EmployeeUseCase: GetStatisticsByManagerAndMonth called for manager ID: %d, month: %s", managerID, month)
+
+	totalEmployees, newEmployees, activeEmployees, resignedEmployees,
+		permanentEmployees, contractEmployees, freelanceEmployees,
+		totalEmployeesTrend, newEmployeesTrend, activeEmployeesTrend, err :=
+		uc.employeeRepo.GetStatisticsWithTrendsByManagerAndMonth(ctx, managerID, month)
+	if err != nil {
+		log.Printf("EmployeeUseCase: Error getting employee statistics with trends by manager and month from repository: %v", err)
+		return nil, fmt.Errorf("failed to get employee statistics by manager and month: %w", err)
+	}
+
+	response := &dtoemployee.EmployeeStatisticsResponseDTO{
+		TotalEmployees:       totalEmployees,
+		NewEmployees:         newEmployees,
+		ActiveEmployees:      activeEmployees,
+		ResignedEmployees:    resignedEmployees,
+		PermanentEmployees:   permanentEmployees,
+		ContractEmployees:    contractEmployees,
+		FreelanceEmployees:   freelanceEmployees,
+		TotalEmployeesTrend:  &totalEmployeesTrend,
+		NewEmployeesTrend:    &newEmployeesTrend,
+		ActiveEmployeesTrend: &activeEmployeesTrend,
+	}
+
+	log.Printf("EmployeeUseCase: Successfully retrieved employee statistics by manager %d and month %s - "+
+		"Total: %d (trend: %.2f%%), New: %d (trend: %.2f%%), Active: %d (trend: %.2f%%), "+
+		"Resigned: %d, Permanent: %d, Contract: %d, Freelance: %d",
+		managerID, month, totalEmployees, totalEmployeesTrend, newEmployees, newEmployeesTrend,
 		activeEmployees, activeEmployeesTrend, resignedEmployees, permanentEmployees,
 		contractEmployees, freelanceEmployees)
 
@@ -1002,4 +1012,19 @@ func (uc *EmployeeUseCase) getContentTypeFromExtension(filename string) string {
 	default:
 		return mimeTypeJPEG
 	}
+}
+
+func (uc *EmployeeUseCase) GetHireDateRange(ctx context.Context, managerID uint) (earliestHireDate, latestHireDate *time.Time, err error) {
+	log.Printf("EmployeeUseCase: GetHireDateRange called for manager ID: %d", managerID)
+
+	earliest, latest, err := uc.employeeRepo.GetHireDateRange(ctx, managerID)
+	if err != nil {
+		log.Printf("EmployeeUseCase: Error getting hire date range from repository: %v", err)
+		return nil, nil, fmt.Errorf("failed to get hire date range: %w", err)
+	}
+
+	log.Printf("EmployeeUseCase: Successfully retrieved hire date range for manager %d - Earliest: %v, Latest: %v",
+		managerID, earliest, latest)
+
+	return earliest, latest, nil
 }

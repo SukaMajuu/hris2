@@ -11,10 +11,10 @@ export const useEmployeesQuery = (page: number, pageSize: number, filters: Emplo
   });
 };
 
-export const useEmployeeStatsQuery = () => {
+export const useEmployeeStatsQuery = (month?: string) => {
   return useQuery({
-    queryKey: queryKeys.employees.stats,
-    queryFn: () => employeeService.getEmployeeStats(),
+    queryKey: queryKeys.employees.stats(month),
+    queryFn: () => employeeService.getEmployeeStats(month),
     staleTime: 30 * 1000,
   });
 };
@@ -33,5 +33,13 @@ export const useCurrentUserProfileQuery = () => {
     queryKey: queryKeys.employees.currentProfile,
     queryFn: () => employeeService.getCurrentUserProfile(),
     staleTime: 30 * 1000,
+  });
+};
+
+export const useHireDateRangeQuery = () => {
+  return useQuery({
+    queryKey: queryKeys.employees.hireDateRange(),
+    queryFn: () => employeeService.getHireDateRange(),
+    staleTime: 5 * 60 * 1000, // 5 minutes cache since this data doesn't change frequently
   });
 };

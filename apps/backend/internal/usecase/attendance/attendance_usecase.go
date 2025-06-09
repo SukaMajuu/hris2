@@ -584,3 +584,50 @@ func findRelevantWorkScheduleDetail(details []domain.WorkScheduleDetail, current
 	}
 	return nil // No matching work schedule detail found for this day
 }
+
+func (uc *AttendanceUseCase) GetStatistics(ctx context.Context) (*responseAttendance.AttendanceStatisticsResponseDTO, error) {
+	onTime, late, earlyLeave, absent, leave, totalAttended, totalEmployees, err := uc.attendanceRepo.GetStatistics(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get attendance statistics: %w", err)
+	}
+
+	return &responseAttendance.AttendanceStatisticsResponseDTO{
+		OnTime:         onTime,
+		Late:           late,
+		EarlyLeave:     earlyLeave,
+		Absent:         absent,
+		Leave:          leave,
+		TotalAttended:  totalAttended,
+		TotalEmployees: totalEmployees,
+	}, nil
+}
+
+func (uc *AttendanceUseCase) GetStatisticsByManager(ctx context.Context, managerID uint) (*responseAttendance.AttendanceStatisticsResponseDTO, error) {
+	onTime, late, earlyLeave, absent, leave, totalAttended, totalEmployees, err := uc.attendanceRepo.GetStatisticsByManager(ctx, managerID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get attendance statistics by manager: %w", err)
+	}
+
+	return &responseAttendance.AttendanceStatisticsResponseDTO{
+		OnTime:         onTime,
+		Late:           late,
+		EarlyLeave:     earlyLeave,
+		Absent:         absent,
+		Leave:          leave,
+		TotalAttended:  totalAttended,
+		TotalEmployees: totalEmployees,
+	}, nil
+}
+
+func (uc *AttendanceUseCase) GetEmployeeByUserID(ctx context.Context, userID uint) (*domain.Employee, error) {
+	return uc.employeeRepo.GetByUserID(ctx, userID)
+}
+
+func (uc *AttendanceUseCase) GetTodayAttendancesByManager(ctx context.Context, managerID uint, paginationParams domain.PaginationParams) (*responseAttendance.AttendanceListResponseData, error) {
+	attendances, totalRecords, err := uc.attendanceRepo.GetTodayAttendancesByManager(ctx, managerID, paginationParams)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get today's attendances by manager: %w", err)
+	}
+
+	return responseAttendance.ToAttendanceListResponseData(attendances, totalRecords, paginationParams.Page, paginationParams.PageSize), nil
+}

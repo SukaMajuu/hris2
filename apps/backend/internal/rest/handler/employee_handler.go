@@ -376,14 +376,72 @@ func (h *EmployeeHandler) GetEmployeeStatistics(c *gin.Context) {
 		return
 	}
 
-	statisticsData, err := h.employeeUseCase.GetStatisticsByManager(c.Request.Context(), currentEmployee.ID)
-	if err != nil {
-		log.Printf("EmployeeHandler: Error getting employee statistics from use case for manager %d: %v", currentEmployee.ID, err)
-		response.InternalServerError(c, fmt.Errorf("failed to retrieve employee statistics"))
-		return
+	// Get month parameter from query string
+	month := c.Query("month")
+
+	var statisticsData *domainEmployeeDTO.EmployeeStatisticsResponseDTO
+	if month != "" {
+		// Use month-specific function when month parameter is provided
+		statisticsData, err = h.employeeUseCase.GetStatisticsByManagerAndMonth(c.Request.Context(), currentEmployee.ID, month)
+		if err != nil {
+			log.Printf("EmployeeHandler: Error getting employee statistics by month from use case for manager %d: %v", currentEmployee.ID, err)
+			response.InternalServerError(c, fmt.Errorf("failed to retrieve employee statistics"))
+			return
+		}
+		log.Printf("EmployeeHandler: Retrieved employee statistics for manager %d with month filter: %s", currentEmployee.ID, month)
+	} else {
+		// Use general function when no month parameter is provided
+		statisticsData, err = h.employeeUseCase.GetStatisticsByManager(c.Request.Context(), currentEmployee.ID)
+		if err != nil {
+			log.Printf("EmployeeHandler: Error getting employee statistics from use case for manager %d: %v", currentEmployee.ID, err)
+			response.InternalServerError(c, fmt.Errorf("failed to retrieve employee statistics"))
+			return
+		}
+		log.Printf("EmployeeHandler: Retrieved overall employee statistics for manager %d", currentEmployee.ID)
 	}
 
 	response.Success(c, http.StatusOK, "Employee statistics retrieved successfully", statisticsData)
+}
+
+func (h *EmployeeHandler) GetHireDateRange(c *gin.Context) {
+	log.Printf("EmployeeHandler: GetHireDateRange called")
+
+	userIDCtx, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User ID not found in context", fmt.Errorf("missing userID in context"))
+		return
+	}
+	currentUserID, ok := userIDCtx.(uint)
+	if !ok {
+		response.InternalServerError(c, fmt.Errorf("invalid user ID type in context"))
+		return
+	}
+
+	currentEmployee, err := h.employeeUseCase.GetEmployeeByUserID(c.Request.Context(), currentUserID)
+	if err != nil {
+		log.Printf("EmployeeHandler: Error getting current employee for UserID %d: %v", currentUserID, err)
+		response.InternalServerError(c, fmt.Errorf("failed to get current employee information: %w", err))
+		return
+	}
+
+	earliest, latest, err := h.employeeUseCase.GetHireDateRange(c.Request.Context(), currentEmployee.ID)
+	if err != nil {
+		log.Printf("EmployeeHandler: Error getting hire date range from use case for manager %d: %v", currentEmployee.ID, err)
+		response.InternalServerError(c, fmt.Errorf("failed to retrieve hire date range"))
+		return
+	}
+
+	responseData := &domainEmployeeDTO.HireDateRangeResponseDTO{}
+	if earliest != nil {
+		earliestStr := earliest.Format("2006-01-02")
+		responseData.EarliestHireDate = &earliestStr
+	}
+	if latest != nil {
+		latestStr := latest.Format("2006-01-02")
+		responseData.LatestHireDate = &latestStr
+	}
+
+	response.Success(c, http.StatusOK, "Hire date range retrieved successfully", responseData)
 }
 
 func (h *EmployeeHandler) BulkImportEmployees(c *gin.Context) {

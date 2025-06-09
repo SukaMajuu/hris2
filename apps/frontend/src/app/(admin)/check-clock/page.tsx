@@ -4,8 +4,10 @@ import CheckClockEmployeeTab from "./_tabsContent/CheckClockEmployeeTab";
 import CheckClockOverviewTab from "./_tabsContent/CheckClockOverviewTab";
 import CheckClockApprovalTab from "./_tabsContent/CheckClockApprovalTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FeatureGuard } from "@/components/subscription/FeatureGuard";
+import { FEATURE_CODES } from "@/const/features";
 
-export default function CheckClockPage() {
+function CheckClockContent() {
 	return (
 		<div className="p-0">
 			<div>
@@ -48,5 +50,13 @@ export default function CheckClockPage() {
 				</Tabs>
 			</div>
 		</div>
+	);
+}
+
+export default function CheckClockPage() {
+	return (
+		<FeatureGuard feature={FEATURE_CODES.CHECK_CLOCK_SYSTEM}>
+			<CheckClockContent />
+		</FeatureGuard>
 	);
 }

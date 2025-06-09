@@ -56,6 +56,11 @@ type EmployeeListResponseData struct {
 	Pagination domain.Pagination      `json:"pagination"`
 }
 
+type HireDateRangeResponseDTO struct {
+	EarliestHireDate *string `json:"earliest_hire_date"`
+	LatestHireDate   *string `json:"latest_hire_date"`
+}
+
 // FromDomain converts a domain Employee to EmployeeResponseDTO
 func (dto *EmployeeResponseDTO) FromDomain(employee *domain.Employee) *EmployeeResponseDTO {
 	if employee == nil {

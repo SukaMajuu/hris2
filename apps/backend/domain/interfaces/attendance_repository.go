@@ -23,4 +23,9 @@ type AttendanceRepository interface {
 
 	// Delete operations
 	Delete(ctx context.Context, id uint) error
+
+	// Statistics operations
+	GetStatistics(ctx context.Context) (onTime, late, earlyLeave, absent, leave, totalAttended, totalEmployees int64, err error)
+	GetStatisticsByManager(ctx context.Context, managerID uint) (onTime, late, earlyLeave, absent, leave, totalAttended, totalEmployees int64, err error)
+	GetTodayAttendancesByManager(ctx context.Context, managerID uint, paginationParams domain.PaginationParams) ([]*domain.Attendance, int64, error)
 }

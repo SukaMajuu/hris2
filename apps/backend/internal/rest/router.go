@@ -175,6 +175,8 @@ func (r *Router) Setup() *gin.Engine {
 		webhooks := v1.Group("/webhooks")
 		{
 			webhooks.POST("/xendit", r.subscriptionHandler.ProcessWebhook)
+			webhooks.POST("/tripay", r.subscriptionHandler.ProcessTripayWebhook)
+			webhooks.POST("/midtrans", r.subscriptionHandler.ProcessMidtransWebhook)
 		}
 	}
 

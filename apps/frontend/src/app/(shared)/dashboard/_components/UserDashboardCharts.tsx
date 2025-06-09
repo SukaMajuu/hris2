@@ -63,12 +63,13 @@ export function UserDashboardCharts({
     handleRequestLeave,
     handleMonthChange,
     onSubmitPermit,
-    refetch,
-
-    // Chart data
+    refetch,    // Chart data
     getPieChartData,
     getBarChartData,
     getLeavePieChartData,
+    
+    // Annual leave data
+    getAnnualLeaveData,
   } = useUserDashboard({
     selectedMonth,
     onMonthChange,
@@ -236,22 +237,21 @@ export function UserDashboardCharts({
                 Entitlement: 12 days per year{' '}
               </div>
             </div>
-            <>
-              {/* Total Annual Leave Section */}
+            <>              {/* Total Annual Leave Section */}
               <div className='mb-6 rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white p-6 transition-shadow duration-200 hover:shadow-md'>
                 <div className='flex items-center justify-between'>
                   <div>
                     <p className='mb-2 text-sm font-medium text-blue-600'>Total Annual Leave</p>
-                    <p className='text-3xl font-bold text-gray-900'>12 Days</p>
+                    <p className='text-3xl font-bold text-gray-900'>{getAnnualLeaveData().totalAnnualLeave} Days</p>
                     <p className='mt-2 flex items-center text-sm text-blue-600'>
                       <span className='mr-2 inline-block h-1.5 w-1.5 rounded-full bg-green-500'></span>
-                      Remaining: <span className='ml-1 font-semibold'>8 days</span>{' '}
+                      Remaining: <span className='ml-1 font-semibold'>{getAnnualLeaveData().remainingDays} days</span>{' '}
                     </p>
                   </div>
                   <div className='relative h-24 w-24'>
                     <div className='absolute inset-0 flex items-center justify-center'>
                       <div className='text-center'>
-                        <div className='text-xl font-bold text-blue-600'>33%</div>
+                        <div className='text-xl font-bold text-blue-600'>{getAnnualLeaveData().usagePercentage}%</div>
                         <div className='text-xs text-gray-500'>Used</div>
                       </div>
                     </div>{' '}
@@ -271,8 +271,7 @@ export function UserDashboardCharts({
                     />
                   </div>{' '}
                 </div>
-              </div>
-              {/* Taken and Available Cards */}
+              </div>              {/* Taken and Available Cards */}
               <div className='mb-6 grid grid-cols-2 gap-4'>
                 {/* Taken Card */}
                 <div className='rounded-xl border border-red-100 bg-gradient-to-br from-red-50 to-white p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-md'>
@@ -280,13 +279,35 @@ export function UserDashboardCharts({
                     <div className='mr-3 h-3 w-3 rounded-full bg-red-500'></div>
                     <p className='text-sm font-semibold text-red-700'>Taken</p>
                   </div>
-                  <p className='mb-3 text-2xl font-bold text-gray-900'>4 Days</p>
+                  <p className='mb-3 text-2xl font-bold text-gray-900'>{getAnnualLeaveData().totalDaysUsed} Days</p>
 
                   {/* Prominent Last Leave Date */}
                   <div className='mb-4 rounded-lg border border-red-200 bg-white/70 p-3'>
                     <p className='mb-1 text-xs font-medium text-red-600'>MOST RECENT</p>
-                    <p className='text-sm font-bold text-gray-900'>Mar 15, 2025</p>
-                    <p className='text-xs text-gray-600'>Sick Leave (2 days)</p>
+                    {getAnnualLeaveData().mostRecentLeave ? (
+                      <>
+                        <p className='text-sm font-bold text-gray-900'>
+                          {new Date(getAnnualLeaveData().mostRecentLeave!.start_date).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                          })}
+                        </p>                        <p className='text-xs text-gray-600'>
+                          Annual Leave ({(() => {
+                            const startDate = new Date(getAnnualLeaveData().mostRecentLeave!.start_date);
+                            const endDate = new Date(getAnnualLeaveData().mostRecentLeave!.end_date);
+                            const timeDifference = endDate.getTime() - startDate.getTime();
+                            const durationInDays = Math.floor(timeDifference / (1000 * 60 * 60 * 24)) + 1;
+                            return Math.max(1, durationInDays);
+                          })()} days)
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className='text-sm font-bold text-gray-900'>No recent leave</p>
+                        <p className='text-xs text-gray-600'>No annual leave taken this year</p>
+                      </>
+                    )}
                   </div>
                   <button
                     onClick={handleNavigateToAttendanceWithLeaveFilter}
@@ -303,7 +324,7 @@ export function UserDashboardCharts({
                     <div className='mr-3 h-3 w-3 rounded-full bg-green-500'></div>
                     <p className='text-sm font-semibold text-green-700'>Available</p>
                   </div>
-                  <p className='mb-4 text-2xl font-bold text-gray-900'>8 Days</p>
+                  <p className='mb-4 text-2xl font-bold text-gray-900'>{getAnnualLeaveData().remainingDays} Days</p>
                   <button
                     className='group flex w-full items-center justify-center rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:from-blue-600 hover:to-blue-700 hover:shadow-lg'
                     onClick={handleRequestLeave}

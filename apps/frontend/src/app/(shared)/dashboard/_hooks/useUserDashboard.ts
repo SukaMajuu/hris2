@@ -3,8 +3,9 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { leaveRequestService } from '@/services/leave-request.service';
-import { CreateLeaveRequestRequest, LeaveType } from '@/types/leave-request';
+import { CreateLeaveRequestRequest, LeaveType, LeaveRequestStatus } from '@/types/leave-request';
 import { useMyLeaveRequests } from '@/app/(user)/attendance/_hooks/useMyLeaveRequests';
+import { useMyLeaveRequestsQuery } from '@/api/queries/leave-request.queries';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { FEATURE_CODES } from '@/const/features';
 import { useEmployeeMonthlyStatistics } from '@/api/queries/attendance.queries';
@@ -37,10 +38,11 @@ export function useUserDashboard({
   const optionsContainerRef = useRef<HTMLDivElement>(null);
   // Feature access
   const { hasFeature } = useFeatureAccess();
-  const canAccessCheckClock = hasFeature(FEATURE_CODES.CHECK_CLOCK_SYSTEM);
-
-  // Data fetching hooks
-  const { data: leaveRequestsData, isLoading, error, refetch } = useMyLeaveRequests(1, 10);
+  const canAccessCheckClock = hasFeature(FEATURE_CODES.CHECK_CLOCK_SYSTEM);  // Data fetching hooks
+  const { data: leaveRequestsData, isLoading, error, refetch } = useMyLeaveRequests(1, 100); // Fetch more records to get all leaves
+  
+  // Also fetch using the new query hook for more comprehensive data (without filters to get all leave requests)
+  const { data: myLeaveRequestsData } = useMyLeaveRequestsQuery(1, 100);
 
   // Get current user profile to get employee ID
   const { data: currentEmployee } = useCurrentUserProfileQuery();
@@ -326,7 +328,78 @@ export function useUserDashboard({
       });
     } finally {
       setIsSubmitting(false);
-    }
+    }  };
+  // Annual leave calculations
+  const getAnnualLeaveData = () => {
+    const totalAnnualLeave = 12; // Fixed total of 12 days per year
+    const currentYear = new Date().getFullYear();
+    
+    // Debug: Log all leave requests data
+    console.log('All leave requests:', myLeaveRequestsData?.items);
+    
+    // Get annual leave requests for current year
+    const annualLeaveRequests = myLeaveRequestsData?.items.filter((request) => {
+      const startDate = new Date(request.start_date);
+      const isAnnualLeave = request.leave_type === LeaveType.ANNUAL_LEAVE;
+      const isApproved = request.status === LeaveRequestStatus.APPROVED;
+      const isCurrentYear = startDate.getFullYear() === currentYear;
+      
+      // Debug: Log filtering details
+      if (isAnnualLeave) {
+        console.log(`Annual leave request:`, {
+          id: request.id,
+          leave_type: request.leave_type,
+          status: request.status,
+          start_date: request.start_date,
+          duration: request.duration,
+          isApproved,
+          isCurrentYear,
+          year: startDate.getFullYear()
+        });
+      }
+      
+      return isAnnualLeave && isApproved && isCurrentYear;
+    }) || [];
+      console.log('Filtered annual leave requests:', annualLeaveRequests);
+    
+    // Calculate total days used by calculating duration from start_date and end_date
+    const totalDaysUsed = annualLeaveRequests.reduce((total, request) => {
+      const startDate = new Date(request.start_date);
+      const endDate = new Date(request.end_date);
+      
+      // Calculate duration in days (inclusive of both start and end date)
+      const timeDifference = endDate.getTime() - startDate.getTime();
+      const durationInDays = Math.floor(timeDifference / (1000 * 60 * 60 * 24)) + 1;
+      
+      console.log(`Calculating duration for request ${request.id}:`, {
+        start_date: request.start_date,
+        end_date: request.end_date,
+        durationInDays: Math.max(0, durationInDays)
+      });
+      
+      return total + Math.max(0, durationInDays); // Ensure non-negative duration
+    }, 0);
+    
+    console.log(`Total days used: ${totalDaysUsed}`);
+    
+    // Calculate remaining days
+    const remainingDays = Math.max(0, totalAnnualLeave - totalDaysUsed);
+    
+    // Calculate usage percentage
+    const usagePercentage = totalAnnualLeave > 0 ? Math.round((totalDaysUsed / totalAnnualLeave) * 100) : 0;
+    
+    // Get most recent annual leave
+    const mostRecentLeave = annualLeaveRequests
+      .sort((a, b) => new Date(b.start_date).getTime() - new Date(a.start_date).getTime())[0];
+    
+    return {
+      totalAnnualLeave,
+      totalDaysUsed,
+      remainingDays,
+      usagePercentage,
+      mostRecentLeave,
+      annualLeaveRequests
+    };
   };
 
   // Chart data generators
@@ -375,20 +448,22 @@ export function useUserDashboard({
       },
     ],
   });
-
-  const getLeavePieChartData = () => ({
-    labels: ['Used', 'Remaining'],
-    datasets: [
-      {
-        data: [4, 8],
-        backgroundColor: ['#3b82f6', '#e5e7eb'],
-        borderWidth: 3,
-        borderColor: '#ffffff',
-        hoverOffset: 4,
-      },
-    ],
-  });
-
+  const getLeavePieChartData = () => {
+    const { totalDaysUsed, remainingDays } = getAnnualLeaveData();
+    
+    return {
+      labels: ['Used', 'Remaining'],
+      datasets: [
+        {
+          data: [totalDaysUsed, remainingDays],
+          backgroundColor: ['#3b82f6', '#e5e7eb'],
+          borderWidth: 3,
+          borderColor: '#ffffff',
+          hoverOffset: 4,
+        },
+      ],
+    };
+  };
   return {
     // State
     openPermitDialog,
@@ -403,8 +478,11 @@ export function useUserDashboard({
 
     // Refs
     dropdownRef,
-    optionsContainerRef,    // Data
+    optionsContainerRef,
+
+    // Data
     leaveRequestsData,
+    myLeaveRequestsData,
     isLoading,
     error,
     monthlyStats,
@@ -427,5 +505,8 @@ export function useUserDashboard({
     getPieChartData,
     getBarChartData,
     getLeavePieChartData,
+    
+    // Annual leave data
+    getAnnualLeaveData,
   };
 }

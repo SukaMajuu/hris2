@@ -8,12 +8,14 @@ import Link from "next/link";
 import { AlertCircle } from "lucide-react";
 import { useCheckout } from "./_hooks/useCheckout";
 import CheckoutPageSkeleton from "./_components/CheckoutPageSkeleton";
+import { useRouter } from "next/navigation";
 
 const formatCurrency = (value: number) => {
 	return `Rp ${value.toLocaleString("id-ID")}`;
 };
 
 function CheckoutPageContent() {
+	const router = useRouter();
 	const {
 		// URL Parameters
 		planId,
@@ -95,6 +97,21 @@ function CheckoutPageContent() {
 			</div>
 		);
 	}
+
+	const handleContinueToPayment = () => {
+		// Determine if monthly based on selected billing option
+		const isMonthly = selectedBillingOption?.id === "monthly";
+
+		// Build URL with parameters for payment processing
+		const params = new URLSearchParams({
+			planId: planId.toString(),
+			seatPlanId: seatPlanId.toString(),
+			isMonthly: isMonthly.toString(),
+			amount: totalAtRenewal.toString(),
+		});
+
+		router.push(`/payment/process?${params.toString()}`);
+	};
 
 	return (
 		<div className="bg-slate-100 dark:bg-slate-950 p-4 md:p-8">
@@ -273,6 +290,8 @@ function CheckoutPageContent() {
 					<Button
 						size="lg"
 						className="w-full mt-6 bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white text-base py-3"
+						onClick={handleContinueToPayment}
+						disabled={!selectedBillingOption}
 					>
 						Continue to Payment
 					</Button>

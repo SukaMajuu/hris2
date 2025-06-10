@@ -157,11 +157,11 @@ class AttendanceService {
         : undefined,
     }));
   }
-
   private formatStatus(status: string): string {
     switch (status.toLowerCase()) {
       case 'on_time':
-        return 'On Time';
+      case 'ontime':
+        return 'Ontime';
       case 'late':
         return 'Late';
       case 'early_leave':

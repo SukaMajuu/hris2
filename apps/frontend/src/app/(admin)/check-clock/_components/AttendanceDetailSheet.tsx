@@ -84,10 +84,9 @@ export function AttendanceDetailSheet({
 								<div>
 									<p className="text-xs font-medium text-slate-500">
 										Status
-									</p>
-									<p className="text-slate-700">
-										{selectedData.status === "on_time"
-											? "On Time"
+									</p>									<p className="text-slate-700">
+										{selectedData.status === "on_time" || selectedData.status === "ontime"
+											? "Ontime"
 											: selectedData.status === "late"
 											? "Late"
 											: selectedData.status ===

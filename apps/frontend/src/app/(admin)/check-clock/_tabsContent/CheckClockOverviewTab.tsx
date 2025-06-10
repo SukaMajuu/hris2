@@ -162,25 +162,50 @@ export default function CheckClockOverviewTab() {
 				},
 				meta: { className: "w-[100px] md:w-[140px] text-center" },
 			},
-			{				header: "Clock In",
+			{
+				header: "Clock In",
 				accessorKey: "clock_in",
 				cell: ({ row }) => {
-					// For leave attendance, clock_in will be null
-					return formatTime(row.original.clock_in);
+					const clockIn = formatTime(row.original.clock_in);
+					return (
+						<div className="flex items-center justify-center">
+							<div className="text-center text-xs md:text-sm">
+								{clockIn}
+							</div>
+						</div>
+					);
 				},
+				meta: { className: "w-[80px] md:w-[100px] text-center" },
 			},
-			{				header: "Clock Out",
+			{
+				header: "Clock Out",
 				accessorKey: "clock_out",
 				cell: ({ row }) => {
-					// For leave attendance, clock_out will be null
-					return formatTime(row.original.clock_out);
+					const clockOut = formatTime(row.original.clock_out);
+					return (
+						<div className="flex items-center justify-center">
+							<div className="text-center text-xs md:text-sm">
+								{clockOut}
+							</div>
+						</div>
+					);
 				},
-			},			{				header: "Work Hours",
+				meta: { className: "w-[80px] md:w-[100px] text-center" },
+			},
+			{
+				header: "Work Hours",
 				accessorKey: "work_hours",
 				cell: ({ row }) => {
-					// For leave attendance, work_hours will be null
-					return formatWorkHours(row.original.work_hours);
+					const workHours = formatWorkHours(row.original.work_hours);
+					return (
+						<div className="flex items-center justify-center">
+							<div className="text-center text-xs md:text-sm">
+								{workHours}
+							</div>
+						</div>
+					);
 				},
+				meta: { className: "w-[80px] md:w-[120px] text-center" },
 			},
 			{
 				header: "Status",

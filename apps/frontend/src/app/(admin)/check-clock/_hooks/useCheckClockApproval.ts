@@ -31,7 +31,8 @@ export function useCheckClockApproval() {
   );
 
   // Mutation for updating leave request status
-  const updateStatusMutation = useUpdateLeaveRequestStatusMutation(); // Transform leave request data to approval items
+  const updateStatusMutation = useUpdateLeaveRequestStatusMutation();
+  // Transform leave request data to approval items
   const approvalData: ApprovalItem[] =
     leaveRequestsData?.items.map((leaveRequest) => {
       // Handle both possible response formats
@@ -49,6 +50,7 @@ export function useCheckClockApproval() {
         employeeName = leaveRequest.employee_name;
         positionName = leaveRequest.position_name || 'Unknown Position';
       }
+      
       return {
         id: leaveRequest.id,
         name: employeeName,
@@ -81,7 +83,6 @@ export function useCheckClockApproval() {
     }
     setIsModalOpen(false);
   };
-
   const handleReject = async (adminNote?: string) => {
     if (selectedItem?.leaveRequest) {
       try {

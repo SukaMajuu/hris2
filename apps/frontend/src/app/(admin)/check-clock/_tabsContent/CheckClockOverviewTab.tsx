@@ -10,7 +10,6 @@ import { DataTable } from "@/components/dataTable";
 import { PaginationComponent } from "@/components/pagination";
 import { PageSizeComponent } from "@/components/pageSize";
 import { AttendanceDetailSheet } from "../_components/AttendanceDetailSheet";
-import { LeaveRequestDetailSheet } from "../_components/LeaveRequestDetailSheet";
 import { AddAttendanceDialog } from "../_components/AddAttendanceDialog";
 import { CheckClockOverviewFilter } from "../_components/CheckClockOverviewFilter";
 import { formatWorkHours, formatTime } from "@/utils/time";
@@ -26,6 +25,7 @@ import {
 import { LeaveRequest } from "@/types/leave-request";
 
 // Combined interface for table display (matching the hook)
+// NOTE: Now only handles attendance records, including those auto-created from approved leave requests
 interface CombinedAttendanceData {
 	id: number;
 	employee_id: number;
@@ -49,7 +49,7 @@ interface CombinedAttendanceData {
 	status: string;
 	created_at: string;
 	updated_at: string;
-	type: "attendance" | "leave_request";
+	type: "attendance"; // Only attendance type now
 	leave_type?: string;
 	originalLeaveRequest?: LeaveRequest;
 }
@@ -74,17 +74,11 @@ export default function CheckClockOverviewTab() {
 		createAttendance,
 		isCreating,
 	} = useCheckClockOverview();
-
 	const [openSheet, setOpenSheet] = React.useState(false);
 	const [
 		selectedData,
 		setSelectedData,
 	] = React.useState<CombinedAttendanceData | null>(null);
-	const [openLeaveSheet, setOpenLeaveSheet] = React.useState(false);
-	const [
-		selectedLeaveRequest,
-		setSelectedLeaveRequest,
-	] = React.useState<LeaveRequest | null>(null);
 	const [openDialog, setOpenDialog] = React.useState(false);
 	const [showFilters, setShowFilters] = React.useState(false);
 
@@ -99,44 +93,15 @@ export default function CheckClockOverviewTab() {
 			pageSize: pageSize,
 		});
 	}, [page, pageSize]);
-
 	const handleViewDetails = React.useCallback(
 		(id: number) => {
 			const data = overviewData.find((item) => item.id === id);
 			if (data) {
-				if (
-					data.type === "leave_request" &&
-					data.originalLeaveRequest
-				) {
-					// Use original leave request data
-					setSelectedLeaveRequest(data.originalLeaveRequest);
-					setOpenLeaveSheet(true);
-				} else if (data.type === "leave_request") {
-					// Fallback: Convert CombinedAttendanceData to LeaveRequest
-					const leaveRequest: LeaveRequest = {
-						id: data.id,
-						employee_id: data.employee_id,
-						employee_name:
-							data.employee?.first_name +
-							(data.employee?.last_name
-								? ` ${data.employee.last_name}`
-								: ""),
-						position_name: data.employee?.position_name || "",
-						leave_type: data.leave_type as any,
-						start_date: data.date,
-						end_date: data.date,
-						duration: 0,
-						status: data.status as any,
-						created_at: data.created_at,
-						updated_at: data.updated_at,
-					};
-					setSelectedLeaveRequest(leaveRequest);
-					setOpenLeaveSheet(true);
-				} else {
-					// For attendance records
-					setSelectedData(data);
-					setOpenSheet(true);
-				}
+				// All data are now attendance records
+				// If it's a leave attendance (status="leave"), show attendance details
+				// which will automatically fetch and display related leave request information
+				setSelectedData(data);
+				setOpenSheet(true);
 			}
 		},
 		[overviewData]
@@ -169,26 +134,23 @@ export default function CheckClockOverviewTab() {
 					});
 				},
 			},
-			{
-				header: "Clock In",
+			{				header: "Clock In",
 				accessorKey: "clock_in",
 				cell: ({ row }) => {
-					if (row.original.type === "leave_request") return "-";
+					// For leave attendance, clock_in will be null
 					return formatTime(row.original.clock_in);
 				},
 			},
-			{
-				header: "Clock Out",
+			{				header: "Clock Out",
 				accessorKey: "clock_out",
 				cell: ({ row }) => {
-					if (row.original.type === "leave_request") return "-";
+					// For leave attendance, clock_out will be null
 					return formatTime(row.original.clock_out);
 				},
-			},			{
-				header: "Work Hours",
+			},			{				header: "Work Hours",
 				accessorKey: "work_hours",
 				cell: ({ row }) => {
-					if (row.original.type === "leave_request") return "-";
+					// For leave attendance, work_hours will be null
 					return formatWorkHours(row.original.work_hours);
 				},
 			},
@@ -382,20 +344,11 @@ export default function CheckClockOverviewTab() {
 						</div>
 					)}
 				</CardContent>
-			</Card>
-
-			{/* Attendance Detail Sheet */}
+			</Card>			{/* Attendance Detail Sheet */}
 			<AttendanceDetailSheet
 				open={openSheet}
 				onOpenChange={setOpenSheet}
 				selectedData={selectedData as any}
-			/>
-
-			{/* Leave Request Detail Sheet */}
-			<LeaveRequestDetailSheet
-				open={openLeaveSheet}
-				onOpenChange={setOpenLeaveSheet}
-				leaveRequest={selectedLeaveRequest}
 			/>
 
 			{/* Add Attendance Dialog */}

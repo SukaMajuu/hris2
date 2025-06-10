@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react";
 import { useAttendances } from "@/api/queries/attendance.queries";
-import { useLeaveRequestsQuery } from "@/api/queries/leave-request.queries";
 import { useEmployeesQuery } from "@/api/queries/employee.queries";
 import { useCreateAttendance } from "@/api/mutations/attendance.mutation";
 import { useCreateLeaveRequestForEmployeeMutation } from "@/api/mutations/leave-request.mutations";
@@ -9,6 +8,8 @@ import { LeaveRequest } from "@/types/leave-request";
 import { Employee, EmployeeFilters } from "@/types/employee";
 
 // Combined interface for table display
+// NOTE: This interface now only handles attendance records
+// Leave requests are automatically converted to attendance records by backend when approved
 interface CombinedAttendanceData {
 	id: number;
 	employee_id: number;
@@ -29,12 +30,12 @@ interface CombinedAttendanceData {
 	clock_out_lat?: number | null;
 	clock_out_long?: number | null;
 	work_hours: number | null;
-	status: string;
+	status: string; // Can be 'ontime', 'late', 'early_leave', 'absent', 'leave', etc.
 	created_at: string;
 	updated_at: string;
-	type: "attendance" | "leave_request"; // To distinguish between types
-	leave_type?: string; // For leave requests
-	originalLeaveRequest?: LeaveRequest; // Store original leave request data
+	type: "attendance"; // Only attendance type now - leave requests are handled as attendance with status="leave"
+	leave_type?: string; // For leave requests that became attendance records
+	originalLeaveRequest?: LeaveRequest; // Store original leave request data if needed
 }
 
 interface FilterOptions {
@@ -56,12 +57,9 @@ export function useCheckClockOverview() {
 		error: attendanceError,
 	} = useAttendances();
 
-	const {
-		data: leaveRequestsData,
-		isLoading: isLoadingLeaveRequests,
-		error: leaveRequestError,
-	} = useLeaveRequestsQuery(1, 1000); // Get all leave requests
-
+	// We no longer need to fetch leave requests separately since backend creates 
+	// attendance records with status "leave" when leave requests are approved
+	
 	const employeeFilters: EmployeeFilters = {
 		employment_status: true,
 		name: "",
@@ -73,94 +71,59 @@ export function useCheckClockOverview() {
 	} = useEmployeesQuery(1, 100, employeeFilters);
 
 	const createAttendanceMutation = useCreateAttendance();
-	const createLeaveRequestMutation = useCreateLeaveRequestForEmployeeMutation();
-
-	const overviewData = useMemo(() => {
-		if (!attendances && !leaveRequestsData?.items) return [];
+	const createLeaveRequestMutation = useCreateLeaveRequestForEmployeeMutation();	const overviewData = useMemo(() => {
+		if (!attendances) {
+			return [];
+		}
 
 		const combinedData: CombinedAttendanceData[] = [];
 
-		// Process attendance records
-		if (attendances) {
-			attendances.forEach((attendance) => {
-				// Try to get employee from employees list first
-				let employee = employeesData?.data?.items?.find(
-					(emp) => emp.id === attendance.employee_id
-				);
+		// Process attendance records ONLY
+		// The backend already creates attendance records with status "leave" when leave requests are approved
+		// So we don't need to show leave requests separately as they will cause duplicates
+		attendances.forEach((attendance) => {
+			// Try to get employee from employees list first
+			let employee = employeesData?.data?.items?.find(
+				(emp) => emp.id === attendance.employee_id
+			);
 
-				// If not found or incomplete, use employee data from attendance response
-				if (!employee || !employee.first_name) {
-					const attendanceEmployee = attendance.employee;
-					employee = {
-						id: attendance.employee_id,
-						first_name:
-							attendanceEmployee?.first_name ||
-							"Unknown Employee",
-						last_name: attendanceEmployee?.last_name || "",
-						employee_code: attendanceEmployee?.employee_code || "",
-						position_name: attendanceEmployee?.position_name || "",
-						employment_status:
-							attendanceEmployee?.employment_status || false,
-						created_at: attendanceEmployee?.created_at || "",
-						updated_at: attendanceEmployee?.updated_at || "",
-					};
-				}
-
-				combinedData.push({
-					...attendance,
-					type: "attendance",
-					employee: {
-						id: employee.id,
-						first_name: employee.first_name || "Unknown Employee",
-						last_name: employee.last_name,
-						employee_code: employee.employee_code,
-						position_name: employee.position_name,
-					},
-				});
-			});
-		}
-
-		// Process leave request records
-		if (leaveRequestsData?.items) {
-			leaveRequestsData.items.forEach((leaveRequest: LeaveRequest) => {
-				// Use employee data directly from leave request response
-				const employee = {
-					id: leaveRequest.employee_id,
+			// If not found or incomplete, use employee data from attendance response
+			if (!employee || !employee.first_name) {
+				const attendanceEmployee = attendance.employee;
+				employee = {
+					id: attendance.employee_id,
 					first_name:
-						leaveRequest.employee_name || "Unknown Employee",
-					last_name: "",
-					employee_code: "",
-					position_name: leaveRequest.position_name || "",
+						attendanceEmployee?.first_name ||
+						"Unknown Employee",
+					last_name: attendanceEmployee?.last_name || "",
+					employee_code: attendanceEmployee?.employee_code || "",
+					position_name: attendanceEmployee?.position_name || "",
+					employment_status:
+						attendanceEmployee?.employment_status || false,
+					created_at: attendanceEmployee?.created_at || "",
+					updated_at: attendanceEmployee?.updated_at || "",
 				};
+			}
 
-				// Transform leave request to attendance-like structure
-				combinedData.push({
-					id: leaveRequest.id,
-					employee_id: leaveRequest.employee_id,
-					employee: employee,
-					date: leaveRequest.start_date,
-					clock_in: null, // No clock in for leave requests
-					clock_out: null, // No clock out for leave requests
-					work_hours: null, // No work hours for leave requests
-					status: leaveRequest.leave_type, // Use leave type as status
-					created_at: leaveRequest.created_at,
-					updated_at: leaveRequest.updated_at,
-					type: "leave_request",
-					leave_type: leaveRequest.leave_type,
-					originalLeaveRequest: leaveRequest,
-				});
+			combinedData.push({
+				...attendance,
+				type: "attendance" as const,
+				employee: {
+					id: employee.id,
+					first_name: employee.first_name || "Unknown Employee",
+					last_name: employee.last_name,
+					employee_code: employee.employee_code,
+					position_name: employee.position_name,
+				},
 			});
-		}
+		});
 
 		// Sort by date descending (most recent first)
 		return combinedData.sort(
 			(a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
 		);
-	}, [attendances, leaveRequestsData, employeesData]);	const filteredData = useMemo(() => {
+	}, [attendances, employeesData]);	const filteredData = useMemo(() => {
 		let filtered = overviewData;
-		
-		console.log("Original data count:", filtered.length);
-		console.log("Applied filters:", filters);
 
 		// Employee name filter
 		if (nameFilter) {
@@ -168,10 +131,8 @@ export function useCheckClockOverview() {
 				item.employee
 					? `${item.employee.first_name} ${item.employee.last_name || ""}`
 							.toLowerCase()
-							.includes(nameFilter.toLowerCase())
-					: false
+							.includes(nameFilter.toLowerCase())					: false
 			);
-			console.log("After name filter:", filtered.length);
 		}
 
 		// Advanced filters
@@ -180,47 +141,29 @@ export function useCheckClockOverview() {
 				item.employee
 					? `${item.employee.first_name} ${item.employee.last_name || ""}`
 							.toLowerCase()
-							.includes(filters.employeeName!.toLowerCase())
-					: false
+							.includes(filters.employeeName!.toLowerCase())					: false
 			);
-			console.log("After employee name filter:", filtered.length);
 		}
 
 		// Date range filter
 		if (filters.dateFrom) {
 			filtered = filtered.filter((item) => {
 				const itemDate = new Date(item.date);
-				const fromDate = new Date(filters.dateFrom!);
-				return itemDate >= fromDate;
+				const fromDate = new Date(filters.dateFrom!);				return itemDate >= fromDate;
 			});
-			console.log("After date from filter:", filtered.length);
 		}
-
 		if (filters.dateTo) {
 			filtered = filtered.filter((item) => {
 				const itemDate = new Date(item.date);
 				const toDate = new Date(filters.dateTo!);
 				return itemDate <= toDate;
 			});
-			console.log("After date to filter:", filtered.length);
 		}		// Status filter
 		if (filters.status) {
-			console.log("Filtering by status:", filters.status);
-			console.log("Sample data statuses:", filtered.slice(0, 5).map(item => ({ id: item.id, type: item.type, status: item.status, leave_type: item.leave_type })));
-			
 			filtered = filtered.filter((item) => {
 				const statusToMatch = filters.status!.toLowerCase();
 				
-				// For leave requests, check the leave_type (which becomes the status)
-				if (item.type === "leave_request") {
-					// Leave requests use leave_type as their status
-					const leaveType = item.leave_type?.toLowerCase() || item.status?.toLowerCase();
-					const matches = leaveType === statusToMatch;
-					if (matches) console.log("Leave request match:", item.id, leaveType, "matches", statusToMatch);
-					return matches;
-				}
-				
-				// For attendance records, check the status with proper mapping
+				// All items are now attendance records (including those created from approved leave requests)
 				const itemStatus = item.status?.toLowerCase();
 				
 				// Handle status variations and mapping
@@ -239,20 +182,25 @@ export function useCheckClockOverview() {
 						matches = itemStatus === "absent";
 						break;
 					case "leave":
+						// This will match attendance records created from approved leave requests
 						matches = itemStatus === "leave";
+						break;
+					// Handle different leave types that might appear as attendance status
+					case "annual_leave":
+					case "sick_leave":
+					case "maternity_leave":
+					case "compassionate_leave":
+					case "marriage_leave":
+						matches = itemStatus === statusToMatch || itemStatus === "leave";
 						break;
 					default:
 						matches = itemStatus === statusToMatch;
 						break;
 				}
 				
-				if (matches) console.log("Attendance match:", item.id, itemStatus, "matches", statusToMatch);
 				return matches;
 			});
-			console.log("After status filter:", filtered.length);
 		}
-
-		console.log("Final filtered data count:", filtered.length);
 		return filtered;
 	}, [overviewData, nameFilter, filters]);
 
@@ -296,8 +244,7 @@ export function useCheckClockOverview() {
 	const resetFilters = () => {
 		setFilters({});
 		setPage(1);
-	};
-	return {
+	};	return {
 		page,
 		setPage,
 		pageSize,
@@ -313,9 +260,8 @@ export function useCheckClockOverview() {
 		resetFilters,
 		isLoading:
 			isLoadingAttendances ||
-			isLoadingEmployees ||
-			isLoadingLeaveRequests,
-		error: attendanceError || leaveRequestError,
+			isLoadingEmployees,
+		error: attendanceError,
 		createAttendance,
 		isCreating: createAttendanceMutation.isPending,
 		createLeaveRequest,

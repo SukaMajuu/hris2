@@ -703,12 +703,11 @@ func (uc *LeaveRequestUseCase) createLeaveAttendanceRecords(ctx context.Context,
 
 			err = uc.attendanceRepo.Update(ctx, existingAttendance)
 			if err != nil {
-				log.Printf("Warning: Failed to update existing attendance record for employee %d on %s: %v", 
+				return fmt.Errorf("failed to update attendance record for employee %d on %s: %w", 
 					leaveRequest.EmployeeID, dateStr, err)
-			} else {
-				log.Printf("Updated existing attendance record for employee %d on %s to leave status", 
-					leaveRequest.EmployeeID, dateStr)
 			}
+			log.Printf("Updated existing attendance record for employee %d on %s to leave status", 
+				leaveRequest.EmployeeID, dateStr)
 		} else {
 			// No existing attendance record, create a new one with "leave" status
 			newAttendance := &domain.Attendance{
@@ -728,12 +727,11 @@ func (uc *LeaveRequestUseCase) createLeaveAttendanceRecords(ctx context.Context,
 
 			err = uc.attendanceRepo.Create(ctx, newAttendance)
 			if err != nil {
-				log.Printf("Warning: Failed to create attendance record for employee %d on %s: %v", 
+				return fmt.Errorf("failed to create attendance record for employee %d on %s: %w", 
 					leaveRequest.EmployeeID, dateStr, err)
-			} else {
-				log.Printf("Created new attendance record for employee %d on %s with leave status", 
-					leaveRequest.EmployeeID, dateStr)
 			}
+			log.Printf("Created new attendance record for employee %d on %s with leave status", 
+				leaveRequest.EmployeeID, dateStr)
 		}
 
 		// Move to next day

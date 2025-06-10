@@ -10,6 +10,7 @@ import (
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
 	dtoemployee "github.com/SukaMajuu/hris/apps/backend/domain/dto/employee"
+	"github.com/SukaMajuu/hris/apps/backend/domain/enums"
 	"github.com/SukaMajuu/hris/apps/backend/internal/usecase/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -1383,6 +1384,240 @@ func TestEmployeeUseCase_BulkImport(t *testing.T) {
 			mockAuthRepo.AssertExpectations(t)
 			mockEmployeeRepo.AssertExpectations(t)
 			mockXenditRepo.AssertExpectations(t)
+		})
+	}
+}
+
+func TestEmployeeUseCase_GetCurrentEmployeeCount(t *testing.T) {
+	ctx := context.Background()
+	adminUserID := uint(1)
+	adminEmployeeID := uint(1)
+
+	// Setup admin user and employee
+	adminUser := &domain.User{
+		ID:   adminUserID,
+		Role: enums.RoleAdmin,
+	}
+	adminEmployee := &domain.Employee{
+		ID:     adminEmployeeID,
+		UserID: adminUserID,
+		User:   *adminUser,
+	}
+
+	tests := []struct {
+		name          string
+		setupMocks    func(*mocks.EmployeeRepository, *mocks.AuthRepository)
+		expectedCount int
+		expectedError string
+		description   string
+	}{
+		{
+			name: "single admin only - no subordinates",
+			setupMocks: func(mockEmployeeRepo *mocks.EmployeeRepository, mockAuthRepo *mocks.AuthRepository) {
+				mockAuthRepo.On("GetUserByID", ctx, adminUserID).Return(adminUser, nil)
+				mockEmployeeRepo.On("GetByUserID", ctx, adminUserID).Return(adminEmployee, nil)
+
+				// No direct subordinates
+				mockEmployeeRepo.On("List", ctx,
+					map[string]interface{}{
+						"manager_id":        adminEmployeeID,
+						"employment_status": true,
+					},
+					domain.PaginationParams{Page: 1, PageSize: 1}).
+					Return([]*domain.Employee{}, int64(0), nil)
+			},
+			expectedCount: 1, // Only admin
+			description:   "Should count only the admin when no subordinates exist",
+		},
+		{
+			name: "admin with 2 direct subordinates - flat hierarchy",
+			setupMocks: func(mockEmployeeRepo *mocks.EmployeeRepository, mockAuthRepo *mocks.AuthRepository) {
+				mockAuthRepo.On("GetUserByID", ctx, adminUserID).Return(adminUser, nil)
+				mockEmployeeRepo.On("GetByUserID", ctx, adminUserID).Return(adminEmployee, nil)
+
+				// 2 direct subordinates
+				subordinate1 := &domain.Employee{ID: 2, ManagerID: &adminEmployeeID}
+				subordinate2 := &domain.Employee{ID: 3, ManagerID: &adminEmployeeID}
+				subordinates := []*domain.Employee{subordinate1, subordinate2}
+
+				mockEmployeeRepo.On("List", ctx,
+					map[string]interface{}{
+						"manager_id":        adminEmployeeID,
+						"employment_status": true,
+					},
+					domain.PaginationParams{Page: 1, PageSize: 1}).
+					Return([]*domain.Employee{}, int64(2), nil)
+
+				mockEmployeeRepo.On("List", ctx,
+					map[string]interface{}{
+						"manager_id":        adminEmployeeID,
+						"employment_status": true,
+					},
+					domain.PaginationParams{Page: 1, PageSize: 2}).
+					Return(subordinates, int64(2), nil)
+
+				// Each subordinate has no further subordinates
+				for _, sub := range subordinates {
+					mockEmployeeRepo.On("List", ctx,
+						map[string]interface{}{
+							"manager_id":        sub.ID,
+							"employment_status": true,
+						},
+						domain.PaginationParams{Page: 1, PageSize: 1}).
+						Return([]*domain.Employee{}, int64(0), nil)
+				}
+			},
+			expectedCount: 3, // Admin + 2 subordinates
+			description:   "Should count admin plus all direct subordinates in flat hierarchy",
+		},
+		{
+			name: "admin with multi-level hierarchy",
+			setupMocks: func(mockEmployeeRepo *mocks.EmployeeRepository, mockAuthRepo *mocks.AuthRepository) {
+				mockAuthRepo.On("GetUserByID", ctx, adminUserID).Return(adminUser, nil)
+				mockEmployeeRepo.On("GetByUserID", ctx, adminUserID).Return(adminEmployee, nil)
+
+				// Admin has 1 manager (ID: 2)
+				manager := &domain.Employee{ID: 2, ManagerID: &adminEmployeeID}
+
+				// Manager has 2 employees (ID: 3, 4)
+				employee1 := &domain.Employee{ID: 3, ManagerID: &manager.ID}
+				employee2 := &domain.Employee{ID: 4, ManagerID: &manager.ID}
+
+				// Admin's direct subordinates count (just the manager) - first call
+				mockEmployeeRepo.On("List", ctx,
+					map[string]interface{}{
+						"manager_id":        adminEmployeeID,
+						"employment_status": true,
+					},
+					domain.PaginationParams{Page: 1, PageSize: 1}).
+					Return([]*domain.Employee{}, int64(1), nil).Once()
+
+				// Admin's direct subordinates actual list (just the manager) - second call
+				mockEmployeeRepo.On("List", ctx,
+					map[string]interface{}{
+						"manager_id":        adminEmployeeID,
+						"employment_status": true,
+					},
+					domain.PaginationParams{Page: 1, PageSize: 1}).
+					Return([]*domain.Employee{manager}, int64(1), nil).Once()
+
+				// Manager's subordinates count (2 employees) - third call
+				mockEmployeeRepo.On("List", ctx,
+					map[string]interface{}{
+						"manager_id":        manager.ID,
+						"employment_status": true,
+					},
+					domain.PaginationParams{Page: 1, PageSize: 1}).
+					Return([]*domain.Employee{}, int64(2), nil).Once()
+
+				// Manager's subordinates actual list (2 employees) - fourth call
+				mockEmployeeRepo.On("List", ctx,
+					map[string]interface{}{
+						"manager_id":        manager.ID,
+						"employment_status": true,
+					},
+					domain.PaginationParams{Page: 1, PageSize: 2}).
+					Return([]*domain.Employee{employee1, employee2}, int64(2), nil).Once()
+
+				// Employees have no subordinates - two separate calls
+				mockEmployeeRepo.On("List", ctx,
+					map[string]interface{}{
+						"manager_id":        employee1.ID,
+						"employment_status": true,
+					},
+					domain.PaginationParams{Page: 1, PageSize: 1}).
+					Return([]*domain.Employee{}, int64(0), nil).Once()
+
+				mockEmployeeRepo.On("List", ctx,
+					map[string]interface{}{
+						"manager_id":        employee2.ID,
+						"employment_status": true,
+					},
+					domain.PaginationParams{Page: 1, PageSize: 1}).
+					Return([]*domain.Employee{}, int64(0), nil).Once()
+			},
+			expectedCount: 4, // Admin + 1 manager + 2 employees
+			description:   "Should correctly count all employees in multi-level hierarchy",
+		},
+		{
+			name: "only active employees are counted",
+			setupMocks: func(mockEmployeeRepo *mocks.EmployeeRepository, mockAuthRepo *mocks.AuthRepository) {
+				mockAuthRepo.On("GetUserByID", ctx, adminUserID).Return(adminUser, nil)
+				mockEmployeeRepo.On("GetByUserID", ctx, adminUserID).Return(adminEmployee, nil)
+
+				// Admin has 1 active subordinate (inactive employees should be filtered out by employment_status: true)
+				activeEmployee := &domain.Employee{ID: 2, ManagerID: &adminEmployeeID}
+
+				// Count call
+				mockEmployeeRepo.On("List", ctx,
+					map[string]interface{}{
+						"manager_id":        adminEmployeeID,
+						"employment_status": true, // This filter ensures only active employees are counted
+					},
+					domain.PaginationParams{Page: 1, PageSize: 1}).
+					Return([]*domain.Employee{}, int64(1), nil).Once()
+
+				// Actual list call
+				mockEmployeeRepo.On("List", ctx,
+					map[string]interface{}{
+						"manager_id":        adminEmployeeID,
+						"employment_status": true,
+					},
+					domain.PaginationParams{Page: 1, PageSize: 1}).
+					Return([]*domain.Employee{activeEmployee}, int64(1), nil).Once()
+
+				// Active employee has no subordinates
+				mockEmployeeRepo.On("List", ctx,
+					map[string]interface{}{
+						"manager_id":        activeEmployee.ID,
+						"employment_status": true,
+					},
+					domain.PaginationParams{Page: 1, PageSize: 1}).
+					Return([]*domain.Employee{}, int64(0), nil).Once()
+			},
+			expectedCount: 2, // Admin + 1 active employee (inactive employees excluded)
+			description:   "Should only count active employees (employment_status: true)",
+		},
+		{
+			name: "non-admin user should return error",
+			setupMocks: func(mockEmployeeRepo *mocks.EmployeeRepository, mockAuthRepo *mocks.AuthRepository) {
+				nonAdminUser := &domain.User{
+					ID:   adminUserID,
+					Role: enums.RoleUser, // Not admin
+				}
+				mockAuthRepo.On("GetUserByID", ctx, adminUserID).Return(nonAdminUser, nil)
+			},
+			expectedError: "user is not an admin",
+			description:   "Should return error when user is not an admin",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockEmployeeRepo := new(mocks.EmployeeRepository)
+			mockAuthRepo := new(mocks.AuthRepository)
+			mockXenditRepo := new(mocks.XenditRepository)
+			mockSupabaseClient := &supa.Client{}
+			mockDB := &gorm.DB{}
+
+			uc := NewEmployeeUseCase(mockEmployeeRepo, mockAuthRepo, mockXenditRepo, mockSupabaseClient, mockDB)
+
+			tt.setupMocks(mockEmployeeRepo, mockAuthRepo)
+
+			count, err := uc.getCurrentEmployeeCount(ctx, adminUserID)
+
+			if tt.expectedError != "" {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tt.expectedError)
+				assert.Equal(t, 0, count)
+			} else {
+				assert.NoError(t, err, tt.description)
+				assert.Equal(t, tt.expectedCount, count, tt.description)
+			}
+
+			// Verify all mocks were called as expected
+			mockEmployeeRepo.AssertExpectations(t)
+			mockAuthRepo.AssertExpectations(t)
 		})
 	}
 }

@@ -194,19 +194,53 @@ func (uc *EmployeeUseCase) getCurrentEmployeeCount(ctx context.Context, adminUse
 		return 0, fmt.Errorf("failed to get admin employee: %w", err)
 	}
 
-	filters := map[string]interface{}{
-		"manager_id": adminEmployee.ID,
+	totalCount, err := uc.countAllEmployeesRecursively(ctx, adminEmployee.ID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to count all employees recursively: %w", err)
 	}
 
-	_, totalCount, err := uc.employeeRepo.List(ctx, filters, domain.PaginationParams{
+	totalCount++
+
+	log.Printf("EmployeeUseCase: Total employee count for admin %d (including admin): %d", adminUserID, totalCount)
+	return totalCount, nil
+}
+
+func (uc *EmployeeUseCase) countAllEmployeesRecursively(ctx context.Context, managerID uint) (int, error) {
+
+	filters := map[string]interface{}{
+		"manager_id":        managerID,
+		"employment_status": true,
+	}
+
+	_, directCount, err := uc.employeeRepo.List(ctx, filters, domain.PaginationParams{
 		Page:     1,
 		PageSize: 1,
 	})
 	if err != nil {
-		return 0, fmt.Errorf("failed to count employees: %w", err)
+		return 0, fmt.Errorf("failed to count direct employees for manager %d: %w", managerID, err)
 	}
 
-	return int(totalCount) + 1, nil
+	totalCount := int(directCount)
+
+	if directCount > 0 {
+		subordinates, _, err := uc.employeeRepo.List(ctx, filters, domain.PaginationParams{
+			Page:     1,
+			PageSize: int(directCount),
+		})
+		if err != nil {
+			return 0, fmt.Errorf("failed to get direct employees for manager %d: %w", managerID, err)
+		}
+
+		for _, subordinate := range subordinates {
+			subCount, err := uc.countAllEmployeesRecursively(ctx, subordinate.ID)
+			if err != nil {
+				return 0, fmt.Errorf("failed to count employees under subordinate %d: %w", subordinate.ID, err)
+			}
+			totalCount += subCount
+		}
+	}
+
+	return totalCount, nil
 }
 
 func (uc *EmployeeUseCase) updateSubscriptionEmployeeCount(ctx context.Context, creatorEmployeeID uint) error {

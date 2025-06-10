@@ -19,11 +19,12 @@ const (
 )
 
 type WorkSchedule struct {
-	ID       uint                 `gorm:"primaryKey"`
-	Name     string               `gorm:"type:varchar(255);not null"`
-	WorkType enums.WorkType       `gorm:"type:work_type;not null"`
-	Details  []WorkScheduleDetail `gorm:"foreignKey:WorkScheduleID"`
-	IsActive bool                 `gorm:"type:boolean;default:true;not null"`
+	ID        uint                 `gorm:"primaryKey"`
+	Name      string               `gorm:"type:varchar(255);not null"`
+	WorkType  enums.WorkType       `gorm:"type:work_type;not null"`
+	Details   []WorkScheduleDetail `gorm:"foreignKey:WorkScheduleID"`
+	IsActive  bool                 `gorm:"type:boolean;default:true;not null"`
+	CreatedBy uint                 `gorm:"not null"` // Foreign key to User table
 
 	CreatedAt time.Time `gorm:"autoCreateTime"` // Corrected casing
 	UpdatedAt time.Time `gorm:"autoUpdateTime"` // Corrected casing

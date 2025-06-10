@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"strconv"
 
 	subscriptionDTO "github.com/SukaMajuu/hris/apps/backend/internal/rest/dto/subscription"
@@ -171,4 +172,59 @@ func (h *SubscriptionHandler) ProcessWebhook(c *gin.Context) {
 	}
 
 	response.OK(c, "Webhook processed successfully", nil)
+}
+
+func (h *SubscriptionHandler) ProcessTripayWebhook(c *gin.Context) {
+	// Get signature from header
+	signature := c.GetHeader("X-Callback-Signature")
+	if signature == "" {
+		response.BadRequest(c, "Missing X-Callback-Signature header", nil)
+		return
+	}
+
+	// Read raw body for signature validation
+	body, err := c.GetRawData()
+	if err != nil {
+		response.BadRequest(c, "Failed to read request body", err)
+		return
+	}
+
+	// Parse JSON payload
+	var webhookData map[string]interface{}
+	if err := json.Unmarshal(body, &webhookData); err != nil {
+		response.BadRequest(c, "Invalid JSON payload", err)
+		return
+	}
+
+	// Process webhook with signature validation
+	if err := h.subscriptionUseCase.ProcessTripayWebhook(c.Request.Context(), webhookData, signature, string(body)); err != nil {
+		response.InternalServerError(c, err)
+		return
+	}
+
+	response.OK(c, "Tripay webhook processed successfully", nil)
+}
+
+func (h *SubscriptionHandler) ProcessMidtransWebhook(c *gin.Context) {
+	// Read raw body for signature validation
+	body, err := c.GetRawData()
+	if err != nil {
+		response.BadRequest(c, "Failed to read request body", err)
+		return
+	}
+
+	// Parse JSON payload
+	var notification map[string]interface{}
+	if err := json.Unmarshal(body, &notification); err != nil {
+		response.BadRequest(c, "Invalid JSON payload", err)
+		return
+	}
+
+	// Process Midtrans webhook notification
+	if err := h.subscriptionUseCase.ProcessMidtransWebhook(c.Request.Context(), notification); err != nil {
+		response.InternalServerError(c, err)
+		return
+	}
+
+	response.OK(c, "Midtrans webhook processed successfully", nil)
 }

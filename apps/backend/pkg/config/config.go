@@ -12,6 +12,7 @@ type Config struct {
 	Server   ServerConfig
 	JWT      JWTConfig
 	Xendit   XenditConfig
+	Midtrans MidtransConfig
 }
 
 type DatabaseConfig struct {
@@ -50,6 +51,14 @@ type XenditConfig struct {
 	WebhookURL  string
 }
 
+type MidtransConfig struct {
+	ServerKey       string
+	ClientKey       string
+	Environment     string
+	BaseURL         string
+	NotificationURL string
+}
+
 func Load() (*Config, error) {
 	_ = godotenv.Load()
 
@@ -84,6 +93,13 @@ func Load() (*Config, error) {
 			BaseURL:     getEnv("XENDIT_BASE_URL", "https://api.xendit.co"),
 			Environment: getEnv("XENDIT_ENVIRONMENT", "test"),
 			WebhookURL:  getEnv("XENDIT_WEBHOOK_URL", ""),
+		},
+		Midtrans: MidtransConfig{
+			ServerKey:       getEnv("MIDTRANS_SERVER_KEY", ""),
+			ClientKey:       getEnv("MIDTRANS_CLIENT_KEY", ""),
+			Environment:     getEnv("MIDTRANS_ENVIRONMENT", "sandbox"),
+			BaseURL:         getEnv("MIDTRANS_BASE_URL", "https://app.sandbox.midtrans.com/snap/v1"),
+			NotificationURL: getEnv("MIDTRANS_NOTIFICATION_URL", ""),
 		},
 	}, nil
 }

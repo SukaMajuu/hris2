@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
 	attendanceDTO "github.com/SukaMajuu/hris/apps/backend/internal/rest/dto/attendance"
@@ -176,6 +177,25 @@ func (h *AttendanceHandler) ListAttendances(c *gin.Context) {
 		return
 	}
 
+	// Get current user ID from context
+	userIDCtx, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User ID not found in context", fmt.Errorf("missing userID in context"))
+		return
+	}
+	currentUserID, ok := userIDCtx.(uint)
+	if !ok {
+		response.InternalServerError(c, fmt.Errorf("invalid user ID type in context"))
+		return
+	}
+
+	// Get current employee to get manager ID
+	currentEmployee, err := h.employeeUseCase.GetEmployeeByUserID(c.Request.Context(), currentUserID)
+	if err != nil {
+		response.InternalServerError(c, fmt.Errorf("failed to get current employee information: %w", err))
+		return
+	}
+
 	paginationParams := domain.PaginationParams{
 		Page:     queryDTO.Page,
 		PageSize: queryDTO.PageSize,
@@ -188,7 +208,8 @@ func (h *AttendanceHandler) ListAttendances(c *gin.Context) {
 		paginationParams.PageSize = 10
 	}
 
-	attendances, err := h.attendanceUseCase.List(c.Request.Context(), paginationParams)
+	// Get attendances filtered by manager
+	attendances, err := h.attendanceUseCase.ListByManager(c.Request.Context(), currentEmployee.ID, paginationParams)
 	if err != nil {
 		response.InternalServerError(c, fmt.Errorf("failed to list attendances: %w", err))
 		return
@@ -349,4 +370,57 @@ func (h *AttendanceHandler) GetTodayAttendancesByManager(c *gin.Context) {
 	}
 
 	response.Success(c, http.StatusOK, "Today's attendances retrieved successfully", attendances)
+}
+
+func (h *AttendanceHandler) GetEmployeeMonthlyStatistics(c *gin.Context) {
+	// Get current user ID from context
+	userIDCtx, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User ID not found in context", fmt.Errorf("missing userID in context"))
+		return
+	}
+	currentUserID, ok := userIDCtx.(uint)
+	if !ok {
+		response.InternalServerError(c, fmt.Errorf("invalid user ID type in context"))
+		return
+	}
+
+	// Get current employee
+	currentEmployee, err := h.employeeUseCase.GetEmployeeByUserID(c.Request.Context(), currentUserID)
+	if err != nil {
+		response.InternalServerError(c, fmt.Errorf("failed to get current employee information: %w", err))
+		return
+	}
+
+	// Get year and month from query parameters
+	yearStr := c.DefaultQuery("year", "")
+	monthStr := c.DefaultQuery("month", "")
+
+	var year, month int
+	if yearStr == "" || monthStr == "" {
+		// Default to current month if not specified
+		now := time.Now()
+		year = now.Year()
+		month = int(now.Month())
+	} else {
+		year, err = strconv.Atoi(yearStr)
+		if err != nil || year < 2000 || year > 2100 {
+			response.BadRequest(c, "Invalid year parameter", fmt.Errorf("year must be a valid integer between 2000 and 2100"))
+			return
+		}
+
+		month, err = strconv.Atoi(monthStr)
+		if err != nil || month < 1 || month > 12 {
+			response.BadRequest(c, "Invalid month parameter", fmt.Errorf("month must be a valid integer between 1 and 12"))
+			return
+		}
+	}
+
+	statistics, err := h.attendanceUseCase.GetEmployeeMonthlyStatistics(c.Request.Context(), currentEmployee.ID, year, month)
+	if err != nil {
+		response.InternalServerError(c, fmt.Errorf("failed to get employee monthly statistics: %w", err))
+		return
+	}
+
+	response.Success(c, http.StatusOK, "Employee monthly statistics retrieved successfully", statistics)
 }

@@ -40,3 +40,11 @@ export const useAttendancesByEmployee = (employeeId: number) => {
     enabled: !!employeeId,
   });
 };
+
+export const useEmployeeMonthlyStatistics = (year?: number, month?: number) => {
+  return useQuery({
+    queryKey: queryKeys.attendance.monthlyStatistics(year, month),
+    queryFn: () => attendanceService.getEmployeeMonthlyStatistics(year, month),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};

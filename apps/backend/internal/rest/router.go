@@ -126,6 +126,7 @@ func (r *Router) Setup() *gin.Engine {
 				attendances.POST("", r.attendanceHandler.CreateAttendance)
 				attendances.GET("", r.attendanceHandler.ListAttendances)
 				attendances.GET("/statistics", r.attendanceHandler.GetAttendanceStatistics)
+				attendances.GET("/statistics/monthly", r.attendanceHandler.GetEmployeeMonthlyStatistics)
 				attendances.GET("/today", r.attendanceHandler.GetTodayAttendancesByManager)
 				attendances.GET("/:id", r.attendanceHandler.GetAttendanceByID)
 				attendances.PUT("/:id", r.attendanceHandler.UpdateAttendance)
@@ -176,6 +177,8 @@ func (r *Router) Setup() *gin.Engine {
 		webhooks := v1.Group("/webhooks")
 		{
 			webhooks.POST("/xendit", r.subscriptionHandler.ProcessWebhook)
+			webhooks.POST("/tripay", r.subscriptionHandler.ProcessTripayWebhook)
+			webhooks.POST("/midtrans", r.subscriptionHandler.ProcessMidtransWebhook)
 		}
 	}
 

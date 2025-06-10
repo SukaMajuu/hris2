@@ -105,6 +105,12 @@ export const queryKeys = {
     detail: (id: number) => [...queryKeys.attendance.all, 'detail', id],
     byEmployee: (employeeId: number) => [...queryKeys.attendance.all, 'employee', employeeId],
     statistics: () => [...queryKeys.attendance.all, 'statistics'],
+    monthlyStatistics: (year?: number, month?: number) => [
+      ...queryKeys.attendance.all,
+      'monthlyStatistics',
+      year,
+      month,
+    ],
     recent: () => [...queryKeys.attendance.all, 'recent'],
   },
 } as const;

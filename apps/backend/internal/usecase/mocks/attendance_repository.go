@@ -49,6 +49,14 @@ func (m *AttendanceRepository) ListAll(ctx context.Context, paginationParams dom
 	return args.Get(0).([]*domain.Attendance), args.Get(1).(int64), args.Error(2)
 }
 
+func (m *AttendanceRepository) ListByManager(ctx context.Context, managerID uint, paginationParams domain.PaginationParams) ([]*domain.Attendance, int64, error) {
+	args := m.Called(ctx, managerID, paginationParams)
+	if args.Get(0) == nil {
+		return nil, args.Get(1).(int64), args.Error(2)
+	}
+	return args.Get(0).([]*domain.Attendance), args.Get(1).(int64), args.Error(2)
+}
+
 func (m *AttendanceRepository) Update(ctx context.Context, attendance *domain.Attendance) error {
 	args := m.Called(ctx, attendance)
 	return args.Error(0)
@@ -72,6 +80,11 @@ func (m *AttendanceRepository) GetStatisticsByManager(ctx context.Context, manag
 func (m *AttendanceRepository) GetTodayAttendancesByManager(ctx context.Context, managerID uint, paginationParams domain.PaginationParams) ([]*domain.Attendance, int64, error) {
 	args := m.Called(ctx, managerID, paginationParams)
 	return args.Get(0).([]*domain.Attendance), args.Get(1).(int64), args.Error(2)
+}
+
+func (m *AttendanceRepository) GetEmployeeMonthlyStatistics(ctx context.Context, employeeID uint, year int, month int) (onTime, late, absent, leave int64, totalWorkHours float64, err error) {
+	args := m.Called(ctx, employeeID, year, month)
+	return args.Get(0).(int64), args.Get(1).(int64), args.Get(2).(int64), args.Get(3).(int64), args.Get(4).(float64), args.Error(5)
 }
 
 var _ interfaces.AttendanceRepository = (*AttendanceRepository)(nil)

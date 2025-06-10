@@ -172,7 +172,7 @@ function NavContent({ menuItems, footerItems, pathname }: NavContentProps) {
   );
 }
 
-const hideLayoutForPaths = ['/subscription', '/subscription/checkout'];
+const hideLayoutForPaths = ['/subscription', '/subscription/checkout', '/payment', '/payment/process', '/payment/pending', '/payment/success', '/payment/failed'];
 
 export default function MainLayout({ children }: MainLayoutProps) {
   const pathname = usePathname();

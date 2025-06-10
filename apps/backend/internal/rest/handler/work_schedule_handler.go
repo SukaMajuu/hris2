@@ -3,6 +3,7 @@ package handler
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
 	"github.com/SukaMajuu/hris/apps/backend/domain/enums"
@@ -225,11 +226,11 @@ func (h *WorkScheduleHandler) DeleteWorkSchedule(c *gin.Context) {
 		return
 	}
 	id := uint(idUint64)
-
 	err = h.workScheduleUseCase.Delete(c.Request.Context(), id)
 	if err != nil {
-		// Check if it's a not found error
-		if fmt.Sprintf("%v", err) == fmt.Sprintf("work schedule with ID %d not found", id) {
+		// Check if it's a not found error by looking for specific error messages
+		errMsg := err.Error()
+		if strings.Contains(errMsg, "not found") || strings.Contains(errMsg, "already deleted") {
 			response.NotFound(c, err.Error(), nil)
 			return
 		}

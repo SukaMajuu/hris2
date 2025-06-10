@@ -96,46 +96,63 @@ export default function WorkSchedulePage() {
 				cell: ({ row }) => {
 					const currentPage = serverPagination.currentPage;
 					const pageSize = serverPagination.pageSize;
-					return (currentPage - 1) * pageSize + row.index + 1;
+					return (
+						<div className="flex items-center justify-center">
+							<div className="text-center text-xs md:text-sm">
+								{(currentPage - 1) * pageSize + row.index + 1}
+							</div>
+						</div>
+					);
 				},
-				meta: { className: "max-w-[80px] w-[80px]" },
+				meta: { className: "w-[50px] md:w-[80px] text-center" },
 				enableSorting: false,
 				enableColumnFilter: false,
 			},
 			{
 				header: "Schedule Name",
 				accessorKey: "name",
+				cell: ({ row }) => (
+					<div className="flex items-center justify-center">
+						<div className="max-w-[120px] truncate text-center text-xs md:max-w-[200px] md:text-sm">
+							{row.original.name}
+						</div>
+					</div>
+				),
+				meta: { className: "w-[120px] md:w-[200px] text-center" },
 			},
 			{
 				header: "Work Type",
 				accessorKey: "work_type",
 				cell: ({ row }) => (
-					<WorkTypeBadge
-						workType={row.original.work_type as WorkType}
-					/>
+					<div className="flex items-center justify-center">
+						<WorkTypeBadge
+							workType={row.original.work_type as WorkType}
+						/>
+					</div>
 				),
+				meta: { className: "w-[100px] md:w-[150px] text-center" },
 			},
 			{
 				header: "Action",
 				id: "action",
 				cell: ({ row }) => (
-					<div className="flex justify-center gap-2">
+					<div className="flex flex-col justify-center gap-1 md:flex-row">
 						<Button
 							variant="default"
 							size="sm"
-							className="h-9 px-3 bg-blue-500 text-white hover:bg-blue-600 border-none hover:cursor-pointer"
+							className="h-7 w-full cursor-pointer bg-blue-500 px-1 text-xs hover:cursor-pointer hover:bg-blue-600 md:h-8 md:w-auto md:px-2"
 							onClick={(e) => {
 								e.stopPropagation();
 								handleView(row.original);
 							}}
 						>
-							<Eye className="h-4 w-4 mr-1" />
-							View
+							<Eye className="mr-0 h-3 w-3 md:mr-1" />
+							<span className="hidden md:inline">View</span>
 						</Button>
 						<Button
 							size="sm"
 							variant="outline"
-							className="h-9 px-3 bg-[#FFA500] text-white hover:bg-[#E69500] border-none hover:cursor-pointer"
+							className="h-7 w-full cursor-pointer bg-[#FFA500] px-1 text-xs hover:cursor-pointer hover:bg-[#E69500] border-none text-white md:h-8 md:w-auto md:px-2"
 							onClick={(e) => {
 								e.stopPropagation();
 								if (row.original.id) {
@@ -143,23 +160,24 @@ export default function WorkSchedulePage() {
 								}
 							}}
 						>
-							<Edit className="h-4 w-4 mr-1" />
-							Edit
+							<Edit className="mr-0 h-3 w-3 md:mr-1" />
+							<span className="hidden md:inline">Edit</span>
 						</Button>
 						<Button
 							size="sm"
 							variant="outline"
-							className="h-9 px-3 bg-destructive text-white hover:bg-destructive/80 border-none hover:cursor-pointer"
+							className="h-7 w-full cursor-pointer bg-destructive px-1 text-xs hover:cursor-pointer hover:bg-destructive/80 border-none text-white md:h-8 md:w-auto md:px-2"
 							onClick={(e) => {
 								e.stopPropagation();
 								handleOpenDelete(row.original);
 							}}
 						>
-							<Trash className="h-4 w-4 mr-1" />
-							Delete
+							<Trash className="mr-0 h-3 w-3 md:mr-1" />
+							<span className="hidden md:inline">Delete</span>
 						</Button>
 					</div>
 				),
+				meta: { className: "w-[120px] md:w-[250px] text-center" },
 				enableSorting: false,
 				enableColumnFilter: false,
 			},

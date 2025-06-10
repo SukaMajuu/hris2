@@ -55,10 +55,9 @@ export class WorkScheduleService {
 		);
 		return response.data.data;
 	}
-
 	async delete(id: number): Promise<void> {
-		// Use API_ROUTES for the endpoint
-		await this.api.delete(API_ROUTES.v1.api.workSchedules.delete(id));
+		// Use API_ROUTES for the endpoint with PATCH method for soft delete
+		await this.api.patch(API_ROUTES.v1.api.workSchedules.delete(id));
 	}
 }
 

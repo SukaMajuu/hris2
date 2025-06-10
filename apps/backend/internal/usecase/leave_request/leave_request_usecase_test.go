@@ -194,10 +194,9 @@ func TestLeaveRequestUseCase_CreateForEmployee(t *testing.T) {
 		UpdatedAt:    now.Format("2006-01-02T15:04:05Z07:00"),
 	}
 
-	tests := []struct {
-		name           string
+	tests := []struct {		name           string
 		leaveRequest   *domain.LeaveRequest
-		setupMocks     func(*mocks.LeaveRequestRepository, *mocks.EmployeeRepository)
+		setupMocks     func(*mocks.LeaveRequestRepository, *mocks.EmployeeRepository, *mocks.AttendanceRepository)
 		expectedResult *dtoleave.LeaveRequestResponseDTO
 		expectedError  string
 	}{
@@ -209,26 +208,37 @@ func TestLeaveRequestUseCase_CreateForEmployee(t *testing.T) {
 				StartDate:  startDate,
 				EndDate:    endDate,
 				Duration:   2,
-			},
-			setupMocks: func(lrRepo *mocks.LeaveRequestRepository, empRepo *mocks.EmployeeRepository) {
+			},			setupMocks: func(lrRepo *mocks.LeaveRequestRepository, empRepo *mocks.EmployeeRepository, attRepo *mocks.AttendanceRepository) {
 				empRepo.On("GetByID", ctx, uint(1)).Return(mockEmployee, nil)
 				lrRepo.On("Create", ctx, mock.MatchedBy(func(lr *domain.LeaveRequest) bool {
 					return lr.EmployeeID == 1 && lr.Status == domain.LeaveStatusApproved
 				})).Return(nil)
 				lrRepo.On("GetByID", ctx, uint(1)).Return(mockLeaveRequest, nil)
+				
+				// Mock attendance repository calls for createLeaveAttendanceRecords
+				// For each day in the leave period (2023-12-25 to 2023-12-26, skipping Sunday 2023-12-24)
+				// 2023-12-25 is Monday, 2023-12-26 is Tuesday - both working days
+				attRepo.On("GetByEmployeeAndDate", ctx, uint(1), "2023-12-25").Return(nil, errors.New("not found"))
+				attRepo.On("Create", ctx, mock.MatchedBy(func(att *domain.Attendance) bool {
+					return att.EmployeeID == 1 && att.Status == domain.Leave && att.Date.Format("2006-01-02") == "2023-12-25"
+				})).Return(nil)
+				
+				attRepo.On("GetByEmployeeAndDate", ctx, uint(1), "2023-12-26").Return(nil, errors.New("not found"))
+				attRepo.On("Create", ctx, mock.MatchedBy(func(att *domain.Attendance) bool {
+					return att.EmployeeID == 1 && att.Status == domain.Leave && att.Date.Format("2006-01-02") == "2023-12-26"
+				})).Return(nil)
 			},
 			expectedResult: expectedResponseDTO,
 			expectedError:  "",
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, tt := range tests {		t.Run(tt.name, func(t *testing.T) {
 			mockLeaveRequestRepo := new(mocks.LeaveRequestRepository)
 			mockEmployeeRepo := new(mocks.EmployeeRepository)
 			mockAttendanceRepo := new(mocks.AttendanceRepository)
 
-			tt.setupMocks(mockLeaveRequestRepo, mockEmployeeRepo)
+			tt.setupMocks(mockLeaveRequestRepo, mockEmployeeRepo, mockAttendanceRepo)
 
 			useCase := NewLeaveRequestUseCase(mockLeaveRequestRepo, mockEmployeeRepo, mockAttendanceRepo, nil)
 			result, err := useCase.CreateForEmployee(ctx, tt.leaveRequest, nil)
@@ -244,6 +254,7 @@ func TestLeaveRequestUseCase_CreateForEmployee(t *testing.T) {
 
 			mockLeaveRequestRepo.AssertExpectations(t)
 			mockEmployeeRepo.AssertExpectations(t)
+			mockAttendanceRepo.AssertExpectations(t)
 		})
 	}
 }
@@ -797,34 +808,46 @@ func TestLeaveRequestUseCase_UpdateStatus(t *testing.T) {
 	}
 
 	repoError := errors.New("repository update status failed")
-
 	tests := []struct {
 		name           string
 		id             uint
 		status         domain.LeaveStatus
 		adminNote      *string
-		setupMocks     func(*mocks.LeaveRequestRepository)
+		setupMocks     func(*mocks.LeaveRequestRepository, *mocks.AttendanceRepository)
 		expectedResult *dtoleave.LeaveRequestResponseDTO
 		expectedError  string
-	}{
-		{
+	}{		{
 			name:      "successful status update to approved",
 			id:        1,
 			status:    domain.LeaveStatusApproved,
 			adminNote: &adminNote,
-			setupMocks: func(lrRepo *mocks.LeaveRequestRepository) {
+			setupMocks: func(lrRepo *mocks.LeaveRequestRepository, attRepo *mocks.AttendanceRepository) {
+				// Mock GetByID call that happens before UpdateStatus
+				lrRepo.On("GetByID", ctx, uint(1)).Return(updatedLeaveRequest, nil)
 				lrRepo.On("UpdateStatus", ctx, uint(1), domain.LeaveStatusApproved, &adminNote).Return(nil)
+				
+				// Mock attendance repository calls for createLeaveAttendanceRecords (for approved status)
+				attRepo.On("GetByEmployeeAndDate", ctx, uint(1), "2023-12-25").Return(nil, errors.New("not found"))
+				attRepo.On("Create", ctx, mock.MatchedBy(func(att *domain.Attendance) bool {
+					return att.EmployeeID == 1 && att.Status == domain.Leave && att.Date.Format("2006-01-02") == "2023-12-25"
+				})).Return(nil)
+				
+				attRepo.On("GetByEmployeeAndDate", ctx, uint(1), "2023-12-26").Return(nil, errors.New("not found"))
+				attRepo.On("Create", ctx, mock.MatchedBy(func(att *domain.Attendance) bool {
+					return att.EmployeeID == 1 && att.Status == domain.Leave && att.Date.Format("2006-01-02") == "2023-12-26"
+				})).Return(nil)
+				
+				// Mock GetByID call that happens after UpdateStatus
 				lrRepo.On("GetByID", ctx, uint(1)).Return(updatedLeaveRequest, nil)
 			},
 			expectedResult: expectedResponseDTO,
 			expectedError:  "",
-		},
-		{
+		},		{
 			name:      "successful status update to rejected",
 			id:        1,
 			status:    domain.LeaveStatusRejected,
 			adminNote: nil,
-			setupMocks: func(lrRepo *mocks.LeaveRequestRepository) {
+			setupMocks: func(lrRepo *mocks.LeaveRequestRepository, attRepo *mocks.AttendanceRepository) {
 				rejectedRequest := &domain.LeaveRequest{
 					ID:         1,
 					EmployeeID: 1,
@@ -837,7 +860,12 @@ func TestLeaveRequestUseCase_UpdateStatus(t *testing.T) {
 					CreatedAt:  now,
 					UpdatedAt:  now,
 				}
+				// Mock GetByID call that happens before UpdateStatus
+				lrRepo.On("GetByID", ctx, uint(1)).Return(rejectedRequest, nil)
 				lrRepo.On("UpdateStatus", ctx, uint(1), domain.LeaveStatusRejected, (*string)(nil)).Return(nil)
+				// No attendance repository calls for rejected status
+				
+				// Mock GetByID call that happens after UpdateStatus
 				lrRepo.On("GetByID", ctx, uint(1)).Return(rejectedRequest, nil)
 			},
 			expectedResult: &dtoleave.LeaveRequestResponseDTO{
@@ -853,50 +881,63 @@ func TestLeaveRequestUseCase_UpdateStatus(t *testing.T) {
 				UpdatedAt:    now.Format("2006-01-02T15:04:05Z07:00"),
 			},
 			expectedError: "",
-		},
-		{
+		},		{
 			name:      "invalid status",
 			id:        1,
 			status:    domain.LeaveStatusPending,
 			adminNote: nil,
-			setupMocks: func(lrRepo *mocks.LeaveRequestRepository) {
+			setupMocks: func(lrRepo *mocks.LeaveRequestRepository, attRepo *mocks.AttendanceRepository) {
 				// No repository calls expected for invalid status
 			},
 			expectedResult: nil,
 			expectedError:  "invalid status: Waiting Approval",
-		},
-		{
+		},		{
 			name:      "repository update status error",
 			id:        1,
 			status:    domain.LeaveStatusApproved,
 			adminNote: nil,
-			setupMocks: func(lrRepo *mocks.LeaveRequestRepository) {
+			setupMocks: func(lrRepo *mocks.LeaveRequestRepository, attRepo *mocks.AttendanceRepository) {
+				// Mock GetByID call that happens before UpdateStatus
+				lrRepo.On("GetByID", ctx, uint(1)).Return(updatedLeaveRequest, nil)
 				lrRepo.On("UpdateStatus", ctx, uint(1), domain.LeaveStatusApproved, (*string)(nil)).Return(repoError)
 			},
 			expectedResult: nil,
 			expectedError:  "failed to update leave request status:",
-		},
-		{
+		},		{
 			name:      "get updated leave request error",
 			id:        1,
 			status:    domain.LeaveStatusApproved,
 			adminNote: nil,
-			setupMocks: func(lrRepo *mocks.LeaveRequestRepository) {
+			setupMocks: func(lrRepo *mocks.LeaveRequestRepository, attRepo *mocks.AttendanceRepository) {
+				// Mock GetByID call that happens before UpdateStatus (this one succeeds)
+				lrRepo.On("GetByID", ctx, uint(1)).Return(updatedLeaveRequest, nil).Once()
 				lrRepo.On("UpdateStatus", ctx, uint(1), domain.LeaveStatusApproved, (*string)(nil)).Return(nil)
-				lrRepo.On("GetByID", ctx, uint(1)).Return(nil, repoError)
+				
+				// Mock attendance repository calls for createLeaveAttendanceRecords (for approved status)
+				attRepo.On("GetByEmployeeAndDate", ctx, uint(1), "2023-12-25").Return(nil, errors.New("not found"))
+				attRepo.On("Create", ctx, mock.MatchedBy(func(att *domain.Attendance) bool {
+					return att.EmployeeID == 1 && att.Status == domain.Leave && att.Date.Format("2006-01-02") == "2023-12-25"
+				})).Return(nil)
+				
+				attRepo.On("GetByEmployeeAndDate", ctx, uint(1), "2023-12-26").Return(nil, errors.New("not found"))
+				attRepo.On("Create", ctx, mock.MatchedBy(func(att *domain.Attendance) bool {
+					return att.EmployeeID == 1 && att.Status == domain.Leave && att.Date.Format("2006-01-02") == "2023-12-26"
+				})).Return(nil)
+				
+				// Mock GetByID call that happens after UpdateStatus (this one fails)
+				lrRepo.On("GetByID", ctx, uint(1)).Return(nil, repoError).Once()
 			},
 			expectedResult: nil,
 			expectedError:  "failed to retrieve updated leave request:",
 		},
 	}
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockLeaveRequestRepo := new(mocks.LeaveRequestRepository)
 			mockEmployeeRepo := new(mocks.EmployeeRepository)
 			mockAttendanceRepo := new(mocks.AttendanceRepository)
 
-			tt.setupMocks(mockLeaveRequestRepo)
+			tt.setupMocks(mockLeaveRequestRepo, mockAttendanceRepo)
 
 			useCase := NewLeaveRequestUseCase(mockLeaveRequestRepo, mockEmployeeRepo, mockAttendanceRepo, nil)
 			result, err := useCase.UpdateStatus(ctx, tt.id, tt.status, tt.adminNote)
@@ -911,6 +952,7 @@ func TestLeaveRequestUseCase_UpdateStatus(t *testing.T) {
 			}
 
 			mockLeaveRequestRepo.AssertExpectations(t)
+			mockAttendanceRepo.AssertExpectations(t)
 		})
 	}
 }

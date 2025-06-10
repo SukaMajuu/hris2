@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { useCheckClock } from '../_hooks/useAttendance';
+import { useMyLeaveRequests } from '../_hooks/useMyLeaveRequests';
 import { useForm } from 'react-hook-form';
 import { DataTable } from '@/components/dataTable';
 import { Button } from '@/components/ui/button';
@@ -26,6 +27,7 @@ import {
 	getFilterSummary,
 } from "../_utils/attendanceFilters";
 import { Attendance, AttendanceFormData } from "@/types/attendance";
+import { LeaveRequest, LeaveRequestFilters } from "@/types/leave-request";
 import { Badge } from "@/components/ui/badge";
 import { formatWorkHours, formatTime } from "@/utils/time";
 
@@ -62,6 +64,26 @@ const getDisplayStatus = (status: string): string => {
 	return statusMapping[status as keyof typeof statusMapping] || status;
 };
 
+// Helper function to format leave type for display
+const formatLeaveType = (leaveType: string): string => {
+	return leaveType.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+};
+
+// Helper function to get status badge for leave requests
+const getLeaveStatusBadge = (status: string) => {
+	switch (status.toLowerCase()) {
+		case 'approved':
+			return <Badge className="bg-green-600 text-white">Approved</Badge>;
+		case 'rejected':
+			return <Badge className="bg-red-600 text-white">Rejected</Badge>;
+		case 'waiting_approval':
+		case 'waiting approval':
+			return <Badge className="bg-yellow-600 text-white">Waiting Approval</Badge>;
+		default:
+			return <Badge className="bg-gray-600 text-white">{status}</Badge>;
+	}
+};
+
 // Removed formatDecimalHoursToTime - using formatWorkHours from utils instead
 
 // Removed formatTimeToLocal - using formatTime from utils for consistency
@@ -88,11 +110,42 @@ export default function AttendanceOverviewTab() {
 	const [filters, setFilters] = useState({
 		date: '',
 		attendanceStatus: '',
-	});
-
-	const filteredData = useMemo(() => {
+	});	const filteredData = useMemo(() => {
 		return filterAttendanceData(checkClockData, filters);
 	}, [checkClockData, filters]);
+	// Fetch leave requests only when an attendance record is selected
+	const selectedDateForLeave = selectedData?.date ? selectedData.date.split('T')[0] : null;
+	
+	// Only fetch leave requests when we have a selected date and the status is leave
+	const shouldFetchLeaveRequests = selectedData?.status === 'leave' && selectedDateForLeave;
+	
+	const leaveRequestFilters = useMemo((): Omit<LeaveRequestFilters, 'employee_id'> | undefined => {
+		if (!shouldFetchLeaveRequests) return undefined;
+		
+		// Don't filter by date in API call, let client-side filtering handle the date overlap logic
+		return {};
+	}, [shouldFetchLeaveRequests]);
+
+	const { data: leaveRequestsData, isLoading: isLoadingLeaveRequests } = useMyLeaveRequests(
+		1, // page
+		100, // pageSize
+		shouldFetchLeaveRequests ? leaveRequestFilters : undefined
+	);
+
+	// Filter leave requests that overlap with the selected attendance date
+	const filteredLeaveRequests = useMemo(() => {
+		if (!leaveRequestsData?.items || !selectedDateForLeave || selectedData?.status !== 'leave') {
+			return [];
+		}
+		
+		const selectedDate = new Date(selectedDateForLeave);
+		return leaveRequestsData.items.filter((request: LeaveRequest) => {
+			const startDate = new Date(request.start_date);
+			const endDate = new Date(request.end_date);
+			// Check if the selected date falls within the leave request period
+			return selectedDate >= startDate && selectedDate <= endDate;
+		});
+	}, [leaveRequestsData, selectedDateForLeave, selectedData?.status]);
 
 	const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
 		pageIndex: 0,
@@ -469,9 +522,65 @@ export default function AttendanceOverviewTab() {
 												? `${selectedData.clock_in_lat}, ${selectedData.clock_in_long}`
 												: '-'}
 										</p>
-									</div>
-								</div>
+									</div>								</div>
 							</div>
+							{/* Leave Information - hanya tampil jika status adalah leave */}
+							{selectedData.status === 'leave' && (
+								<div className='rounded-lg bg-white p-6 shadow-md'>
+									<h4 className='text-md mb-4 border-b pb-2 font-semibold text-slate-700'>
+										Leave Information
+										<span className='ml-2 text-xs text-slate-500'>
+											for {new Date(selectedData.date).toLocaleDateString()}
+										</span>
+									</h4>
+									{isLoadingLeaveRequests ? (
+										<div className='text-center py-4'>
+											<p className='text-slate-500'>Loading leave requests...</p>
+										</div>
+									) : filteredLeaveRequests.length > 0 ? (
+										<div className='space-y-4'>
+											{filteredLeaveRequests.map((leaveRequest, index) => (
+												<div key={leaveRequest.id} className='border-b border-gray-200 pb-4 last:border-b-0'>
+													<div className='grid grid-cols-1 gap-x-6 gap-y-4 md:grid-cols-2'>
+														<div>
+															<p className='text-xs font-medium text-slate-500'>Leave Type</p>
+															<p className='text-slate-700'>
+																{formatLeaveType(leaveRequest.leave_type)}
+															</p>
+														</div>
+														<div>
+															<p className='text-xs font-medium text-slate-500'>Status</p>
+															<div className='mt-1'>
+																{getLeaveStatusBadge(leaveRequest.status)}
+															</div>
+														</div>														
+														<div className='md:col-span-2'>
+															<p className='text-xs font-medium text-slate-500'>Employee Note</p>
+															<p className='text-slate-700'>
+																{leaveRequest.employee_note || 'No note provided'}
+															</p>
+														</div>
+														{leaveRequest.admin_note && (
+															<div className='md:col-span-2'>
+																<p className='text-xs font-medium text-slate-500'>Admin Note</p>
+																<p className='text-slate-700'>
+																	{leaveRequest.admin_note}
+																</p>
+															</div>
+														)}													
+													</div>
+												</div>
+											))}
+										</div>
+									) : (
+										<div className='text-center py-4'>
+											<p className='text-slate-500'>
+												No leave requests found for this date
+											</p>
+										</div>
+									)}
+								</div>
+							)}
 						</div>
 					)}
 				</SheetContent>

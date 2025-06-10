@@ -1,62 +1,57 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
-import { Card, CardContent } from "@/components/ui/card";
-import { FilterX, Calendar, CheckCircle, Clock, Timer } from "lucide-react";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Card, CardContent } from '@/components/ui/card';
+import { FilterX, Calendar, CheckCircle, Clock, Timer } from 'lucide-react';
 
 interface FilterOptions {
-	date?: string;
-	attendanceStatus?: string;
+  date?: string;
+  attendanceStatus?: string;
 }
 
 interface AttendanceFilterProps {
-	onApplyFilters: (filters: FilterOptions) => void;
-	onResetFilters: () => void;
-	currentFilters: FilterOptions;
-	isVisible: boolean;
+  onApplyFilters: (filters: FilterOptions) => void;
+  onResetFilters: () => void;
+  currentFilters: FilterOptions;
+  isVisible: boolean;
 }
 
 export function AttendanceFilter({
-	onApplyFilters,
-	onResetFilters,
-	currentFilters,
-	isVisible,
+  onApplyFilters,
+  onResetFilters,
+  currentFilters,
+  isVisible,
 }: AttendanceFilterProps) {
-	const [localFilters, setLocalFilters] = useState<FilterOptions>(
-		currentFilters
-	);
+  const [localFilters, setLocalFilters] = useState<FilterOptions>(currentFilters);
 
-	const handleInputChange = (field: keyof FilterOptions, value: string) => {
-		setLocalFilters((prev) => ({
-			...prev,
-			[field]: value || undefined,
-		}));
-	};
+  const handleInputChange = (field: keyof FilterOptions, value: string) => {
+    setLocalFilters((prev) => ({
+      ...prev,
+      [field]: value || undefined,
+    }));
+  };
 
-	const handleApply = () => {
-		// Remove empty values
-		const cleanFilters = Object.entries(localFilters).reduce(
-			(acc, [key, value]) => {
-				if (value && value.trim() !== "") {
-					acc[key as keyof FilterOptions] = value.trim();
-				}
-				return acc;
-			},
-			{} as FilterOptions
-		);
+  const handleApply = () => {
+    // Remove empty values
+    const cleanFilters = Object.entries(localFilters).reduce((acc, [key, value]) => {
+      if (value && value.trim() !== '') {
+        acc[key as keyof FilterOptions] = value.trim();
+      }
+      return acc;
+    }, {} as FilterOptions);
 
-		onApplyFilters(cleanFilters);
-	};
+    onApplyFilters(cleanFilters);
+  };
 
 	const handleReset = () => {
 		setLocalFilters({});
@@ -198,59 +193,55 @@ export function AttendanceFilter({
 							</Select>
 						</div>
 
-						{/* Filter Actions */}
-						<div className="space-y-2">
-							<Label className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-								<FilterX className="h-4 w-4 flex-shrink-0 text-slate-500" />
-								<span className="truncate">Actions</span>
-							</Label>
-							<div className="flex gap-3 w-full">
-								<Button
-									onClick={handleReset}
-									variant="outline"
-									className="flex-1 gap-2 h-11 px-6 border-2 border-red-300 hover:border-red-400 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950 transition-colors duration-200 rounded-md font-medium"
-								>
-									<FilterX className="h-4 w-4" />
-									Reset
-								</Button>
-								<Button
-									onClick={handleApply}
-									className="flex-1 gap-2 h-11 px-6 font-semibold bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white border-2 border-blue-500 hover:border-blue-600 transition-colors duration-200 rounded-md shadow-sm hover:shadow-md"
-								>
-									<span>Apply Filter</span>
-								</Button>
-							</div>
-						</div>
-					</div>
+            {/* Filter Actions */}
+            <div className='space-y-2'>
+              <Label className='flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300'>
+                <FilterX className='h-4 w-4 flex-shrink-0 text-slate-500' />
+                <span className='truncate'>Actions</span>
+              </Label>
+              <div className='flex w-full gap-3'>
+                <Button
+                  onClick={handleReset}
+                  variant='outline'
+                  className='h-11 flex-1 gap-2 rounded-md border-2 border-red-300 px-6 font-medium text-red-600 transition-colors duration-200 hover:border-red-400 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950'
+                >
+                  <FilterX className='h-4 w-4' />
+                  Reset
+                </Button>
+                <Button
+                  onClick={handleApply}
+                  className='h-11 flex-1 gap-2 rounded-md border-2 border-blue-500 bg-blue-500 px-6 font-semibold text-white shadow-sm transition-colors duration-200 hover:border-blue-600 hover:bg-blue-600 hover:shadow-md active:bg-blue-700'
+                >
+                  <span>Apply Filter</span>
+                </Button>
+              </div>
+            </div>
+          </div>
 
-					{/* Active Filters Display */}
-					{(localFilters.date || localFilters.attendanceStatus) && (
-						<div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-							<div className="flex flex-wrap items-center gap-2">
-								<span className="text-sm font-medium text-slate-600 dark:text-slate-400">
-									Active Filters:
-								</span>
-								{localFilters.date && (
-									<span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs rounded-full">
-										<Calendar className="h-3 w-3" />
-										{new Date(
-											localFilters.date
-										).toLocaleDateString()}
-									</span>
-								)}
-								{localFilters.attendanceStatus && (
-									<span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 text-xs rounded-full">
-										{getStatusIcon(
-											localFilters.attendanceStatus
-										)}
-										{localFilters.attendanceStatus}
-									</span>
-								)}
-							</div>
-						</div>
-					)}
-				</div>
-			</CardContent>
-		</Card>
-	);
+          {/* Active Filters Display */}
+          {(localFilters.date || localFilters.attendanceStatus) && (
+            <div className='mt-4 border-t border-slate-200 pt-4 dark:border-slate-700'>
+              <div className='flex flex-wrap items-center gap-2'>
+                <span className='text-sm font-medium text-slate-600 dark:text-slate-400'>
+                  Active Filters:
+                </span>
+                {localFilters.date && (
+                  <span className='inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-xs text-blue-800 dark:bg-blue-900 dark:text-blue-200'>
+                    <Calendar className='h-3 w-3' />
+                    {new Date(localFilters.date).toLocaleDateString()}
+                  </span>
+                )}
+                {localFilters.attendanceStatus && (
+                  <span className='inline-flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-xs text-green-800 dark:bg-green-900 dark:text-green-200'>
+                    {getStatusIcon(localFilters.attendanceStatus)}
+                    {localFilters.attendanceStatus}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
 }

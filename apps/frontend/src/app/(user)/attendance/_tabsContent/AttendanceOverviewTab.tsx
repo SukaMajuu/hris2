@@ -31,28 +31,30 @@ import { formatWorkHours, formatTime } from "@/utils/time";
 
 // Status mapping for user-friendly display
 const statusMapping = {
-	late: 'Late',
-	on_time: 'On Time',
-	early_leave: 'Early Leave',
-	absent: 'Absent',
-	leave: 'On Leave',
+	late: "Late",
+	ontime: "Ontime",
+	on_time: "Ontime", // Keep both for backward compatibility
+	early_leave: "Early Leave",
+	absent: "Absent",
+	leave: "Leave",
 } as const;
 
 // Status color mapping
 const getStatusStyle = (status: string) => {
 	switch (status) {
-		case 'late':
-			return 'bg-red-600';
-		case 'on_time':
-			return 'bg-green-600';
-		case 'early_leave':
-			return 'bg-yellow-600';
-		case 'absent':
-			return 'bg-gray-600';
-		case 'leave':
-			return 'bg-purple-600';
+		case "late":
+			return "bg-red-600";
+		case "ontime":
+		case "on_time":
+			return "bg-green-600";
+		case "early_leave":
+			return "bg-yellow-600";
+		case "absent":
+			return "bg-gray-600";
+		case "leave":
+			return "bg-purple-600";
 		default:
-			return 'bg-gray-600';
+			return "bg-gray-600";
 	}
 };
 

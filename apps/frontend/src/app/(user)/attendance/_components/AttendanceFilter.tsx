@@ -61,17 +61,18 @@ export function AttendanceFilter({
 	const handleReset = () => {
 		setLocalFilters({});
 		onResetFilters();
-	};
-	const getStatusIcon = (status: string) => {
+	};	const getStatusIcon = (status: string) => {
 		switch (status) {
-			case "On Time":
+			case "Ontime":
 				return <CheckCircle className="h-4 w-4 text-green-500" />;
 			case "Late":
 				return <Clock className="h-4 w-4 text-red-500" />;
+			case "Early Leave":
+				return <Clock className="h-4 w-4 text-orange-500" />;
+			case "Absent":
+				return <Timer className="h-4 w-4 text-gray-500" />;
 			case "Leave":
-				return <Timer className="h-4 w-4 text-yellow-500" />;
-			case "Permission":
-				return <Timer className="h-4 w-4 text-purple-500" />;
+				return <Calendar className="h-4 w-4 text-purple-500" />;
 			default:
 				return <CheckCircle className="h-4 w-4 text-slate-500" />;
 		}
@@ -139,18 +140,18 @@ export function AttendanceFilter({
 												All Status
 											</span>
 										</div>
-									</SelectItem>
-									<SelectItem
-										value="Present"
+									</SelectItem>									<SelectItem
+										value="Ontime"
 										className="hover:bg-green-50 dark:hover:bg-green-950 cursor-pointer rounded-sm py-2 px-3 transition-colors duration-150"
 									>
 										<div className="flex items-center gap-3 w-full">
 											<CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
 											<span className="font-medium text-green-700 dark:text-green-300">
-												Present
+												Ontime
 											</span>
 										</div>
-									</SelectItem>									<SelectItem
+									</SelectItem>
+									<SelectItem
 										value="Late"
 										className="hover:bg-red-50 dark:hover:bg-red-950 cursor-pointer rounded-sm py-2 px-3 transition-colors duration-150"
 									>
@@ -158,6 +159,17 @@ export function AttendanceFilter({
 											<Clock className="h-4 w-4 text-red-500 flex-shrink-0" />
 											<span className="font-medium text-red-700 dark:text-red-300">
 												Late
+											</span>
+										</div>
+									</SelectItem>
+									<SelectItem
+										value="Early Leave"
+										className="hover:bg-orange-50 dark:hover:bg-orange-950 cursor-pointer rounded-sm py-2 px-3 transition-colors duration-150"
+									>
+										<div className="flex items-center gap-3 w-full">
+											<Clock className="h-4 w-4 text-orange-500 flex-shrink-0" />
+											<span className="font-medium text-orange-700 dark:text-orange-300">
+												Early Leave
 											</span>
 										</div>
 									</SelectItem>
@@ -173,13 +185,12 @@ export function AttendanceFilter({
 										</div>
 									</SelectItem>
 									<SelectItem
-										value="On Leave"
+										value="Leave"
 										className="hover:bg-purple-50 dark:hover:bg-purple-950 cursor-pointer rounded-sm py-2 px-3 transition-colors duration-150"
 									>
 										<div className="flex items-center gap-3 w-full">
-											<Calendar className="h-4 w-4 text-purple-500 flex-shrink-0" />
-											<span className="font-medium text-purple-700 dark:text-purple-300">
-												On Leave
+											<Calendar className="h-4 w-4 text-purple-500 flex-shrink-0" />											<span className="font-medium text-purple-700 dark:text-purple-300">
+												Leave
 											</span>
 										</div>
 									</SelectItem>

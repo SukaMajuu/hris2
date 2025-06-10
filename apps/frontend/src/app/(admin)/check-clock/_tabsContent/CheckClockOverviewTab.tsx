@@ -12,6 +12,7 @@ import { PageSizeComponent } from "@/components/pageSize";
 import { AttendanceDetailSheet } from "../_components/AttendanceDetailSheet";
 import { LeaveRequestDetailSheet } from "../_components/LeaveRequestDetailSheet";
 import { AddAttendanceDialog } from "../_components/AddAttendanceDialog";
+import { CheckClockOverviewFilter } from "../_components/CheckClockOverviewFilter";
 import { formatWorkHours, formatTime } from "@/utils/time";
 import * as React from "react";
 import {
@@ -65,6 +66,9 @@ export default function CheckClockOverviewTab() {
 		employeeList,
 		nameFilter,
 		setNameFilter,
+		filters,
+		applyFilters,
+		resetFilters,
 		isLoading,
 		error,
 		createAttendance,
@@ -82,6 +86,7 @@ export default function CheckClockOverviewTab() {
 		setSelectedLeaveRequest,
 	] = React.useState<LeaveRequest | null>(null);
 	const [openDialog, setOpenDialog] = React.useState(false);
+	const [showFilters, setShowFilters] = React.useState(false);
 
 	const [pagination, setPagination] = React.useState<PaginationState>({
 		pageIndex: page - 1,
@@ -222,8 +227,7 @@ export default function CheckClockOverviewTab() {
 								displayText = "Leave";
 								break;
 						}
-					} else {
-						// Handle attendance statuses
+					} else {						// Handle attendance statuses
 						switch (row.original.status) {
 							case "late":
 								variant = "destructive";
@@ -242,9 +246,10 @@ export default function CheckClockOverviewTab() {
 								displayText = "Leave";
 								break;
 							case "on_time":
+							case "ontime":
 							default:
 								variant = "default";
-								displayText = "On Time";
+								displayText = "Ontime";
 								break;
 						}
 					}
@@ -361,20 +366,24 @@ export default function CheckClockOverviewTab() {
 									placeholder="Search by employee name..."
 									disabled={isLoading}
 								/>
-							</div>
-							<Button
+							</div>							<Button
 								variant="outline"
 								className="gap-2 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-800 dark:hover:text-slate-200 px-4 py-2 rounded-md"
-								onClick={() => {
-									/* readonly, do nothing */
-								}}
+								onClick={() => setShowFilters(!showFilters)}
 								disabled={isLoading}
 							>
 								<Filter className="h-4 w-4" />
 								Filter
 							</Button>
-						</div>
-					</header>
+						</div>					</header>
+
+					{/* Filter Component */}
+					<CheckClockOverviewFilter
+						onApplyFilters={applyFilters}
+						onResetFilters={resetFilters}
+						currentFilters={filters}
+						isVisible={showFilters}
+					/>
 
 					{isLoading ? (
 						<div className="flex justify-center items-center py-8">

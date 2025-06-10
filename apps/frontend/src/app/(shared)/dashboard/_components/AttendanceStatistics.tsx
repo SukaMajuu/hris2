@@ -14,7 +14,6 @@ export function AttendanceStatistics() {
   const canAccessCheckClock = hasFeature(FEATURE_CODES.CHECK_CLOCK_SYSTEM);
 
   const { data: attendanceStats, isLoading } = useAttendanceStatistics();
-
   const pieData = {
     labels: [
       `Ontime (${attendanceStats?.on_time || 0})`,
@@ -125,8 +124,7 @@ export function AttendanceStatistics() {
                   employees attended
                 </div>
               </div>
-              <div className='flex flex-col gap-2'>
-                <div className='flex items-center gap-3'>
+              <div className='flex flex-col gap-2'>                <div className='flex items-center gap-3'>
                   <span className='inline-block h-3 w-3 rounded-full bg-[#34d399]'></span>
                   <span className='font-semibold'>Ontime ({attendanceStats?.on_time || 0})</span>
                   <span className='ml-auto font-bold'>{attendanceStats?.on_time || 0}</span>

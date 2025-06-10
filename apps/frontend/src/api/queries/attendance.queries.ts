@@ -33,10 +33,10 @@ export const useAttendanceById = (id: number) => {
   });
 };
 
-export const useAttendancesByEmployee = (employeeId: number) => {
+export const useAttendancesByEmployee = (employeeId: number, page: number = 1, pageSize: number = 1000) => {
   return useQuery({
-    queryKey: queryKeys.attendance.byEmployee(employeeId),
-    queryFn: () => attendanceService.getAttendancesByEmployee(employeeId),
+    queryKey: queryKeys.attendance.byEmployee(employeeId, page, pageSize),
+    queryFn: () => attendanceService.getAttendancesByEmployee(employeeId, page, pageSize),
     enabled: !!employeeId,
   });
 };

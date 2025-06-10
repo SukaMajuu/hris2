@@ -102,7 +102,7 @@ export const queryKeys = {
     all: ['attendance'],
     list: (page?: number, pageSize?: number) => [...queryKeys.attendance.all, 'list', page, pageSize],
     detail: (id: number) => [...queryKeys.attendance.all, 'detail', id],
-    byEmployee: (employeeId: number) => [...queryKeys.attendance.all, 'employee', employeeId],
+    byEmployee: (employeeId: number, page?: number, pageSize?: number) => [...queryKeys.attendance.all, 'employee', employeeId, page, pageSize],
     statistics: () => [...queryKeys.attendance.all, 'statistics'],
     monthlyStatistics: (year?: number, month?: number) => [
       ...queryKeys.attendance.all,

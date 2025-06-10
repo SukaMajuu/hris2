@@ -62,17 +62,10 @@ class AttendanceService {
   }  // Get all attendances
   async getAttendances(page: number = 1, pageSize: number = 100): Promise<Attendance[]> {
     const url = `${API_ROUTES.v1.api.attendances.list}?page=${page}&page_size=${pageSize}`;
-    console.log('=== AttendanceService Debug ===');
-    console.log('Fetching attendances from URL:', url);
-    console.log('Page:', page, 'PageSize:', pageSize);
     
     const response = await this.apiService.get<
       ApiResponse<{ items: Attendance[]; pagination: any }>
     >(url);
-    
-    console.log('Response received - Items count:', response.data.data.items.length);
-    console.log('Pagination info:', response.data.data.pagination);
-    console.log('===============================');
     
     return response.data.data.items;
   }
@@ -83,13 +76,13 @@ class AttendanceService {
       API_ROUTES.v1.api.attendances.detail(id),
     );
     return response.data.data;
-  }
-
-  // Get attendances by employee ID
-  async getAttendancesByEmployee(employeeId: number): Promise<Attendance[]> {
+  }  // Get attendances by employee ID
+  async getAttendancesByEmployee(employeeId: number, page: number = 1, pageSize: number = 1000): Promise<Attendance[]> {
     const response = await this.apiService.get<
       ApiResponse<{ items: Attendance[]; pagination: any }>
-    >(API_ROUTES.v1.api.attendances.byEmployee(employeeId));
+    >(API_ROUTES.v1.api.attendances.byEmployee(employeeId), {
+      params: { page, page_size: pageSize }
+    });
     return response.data.data.items;
   }
 
@@ -121,19 +114,15 @@ class AttendanceService {
       API_ROUTES.v1.api.attendances.statistics,
     );
     return response.data.data;
-  }
-  // Get employee monthly statistics for dashboard
+  }  // Get employee monthly statistics for dashboard
   async getEmployeeMonthlyStatistics(
     year?: number,
     month?: number,
   ): Promise<EmployeeMonthlyStatistics> {
-    console.log('AttendanceService: Fetching monthly statistics with params:', { year, month });
     const url = API_ROUTES.v1.api.attendances.monthlyStatistics(year, month);
-    console.log('AttendanceService: Request URL:', url);
     
     try {
       const response = await this.apiService.get<ApiResponse<EmployeeMonthlyStatistics>>(url);
-      console.log('AttendanceService: Response received:', response.data);
       return response.data.data;
     } catch (error) {
       console.error('AttendanceService: Error fetching monthly statistics:', error);

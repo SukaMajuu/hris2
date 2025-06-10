@@ -77,8 +77,8 @@ func (r *AttendanceRepository) ListByEmployee(ctx context.Context, employeeID ui
 	}
 
 	// Get paginated records
-	offset := (paginationParams.Page - 1) * paginationParams.PageSize
-	if err := query.Preload("Employee").Offset(offset).Limit(paginationParams.PageSize).Order("date desc, clock_in desc").Find(&attendances).Error; err != nil {
+	offset := (paginationParams.Page - 1) * 1000
+	if err := query.Preload("Employee").Offset(offset).Limit(1000).Order("date desc, clock_in desc").Find(&attendances).Error; err != nil {
 		return nil, 0, fmt.Errorf("failed to list attendances by employee: %w", err)
 	}
 

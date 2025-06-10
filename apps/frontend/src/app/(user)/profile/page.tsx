@@ -12,9 +12,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Pencil, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Pencil, CheckCircle, XCircle, Loader2, Eye, EyeOff } from 'lucide-react';
 import UserDocumentList from './_components/userDocumentList';
 import { useProfile } from './_hooks/useProfile';
+import { useState } from 'react';
 
 export default function ProfilePage() {
   const {
@@ -71,6 +82,11 @@ export default function ProfilePage() {
     // Phone validation
     phoneValidation,
 
+    // Password validation
+    passwordValidation,
+    confirmPasswordValidation,
+    isChangingPassword,
+
     // Handlers
     handleProfileImageChange,
     handleDownloadDocument,
@@ -83,6 +99,12 @@ export default function ProfilePage() {
     isPersonalFormValid,
     validateDateOfBirth,
   } = useProfile();
+
+  // Password visibility states
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isConfirmingPasswordChange, setIsConfirmingPasswordChange] = useState(false);
 
   if (isLoading) {
     return (
@@ -572,48 +594,215 @@ export default function ProfilePage() {
             <Label htmlFor='currentPassword' className='text-slate-600 dark:text-slate-400'>
               Current Password
             </Label>
-            <Input
-              id='currentPassword'
-              type='password'
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              className='mt-1 border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800'
-            />
+            <div className='relative'>
+              <Input
+                id='currentPassword'
+                type={showCurrentPassword ? 'text' : 'password'}
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                className='mt-1 border-slate-300 bg-slate-50 pr-10 dark:border-slate-600 dark:bg-slate-800'
+                placeholder='Enter your current password'
+              />
+              <button
+                type='button'
+                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                className='absolute inset-y-0 right-0 flex items-center pt-1 pr-3'
+              >
+                {showCurrentPassword ? (
+                  <EyeOff className='h-4 w-4 text-slate-500' />
+                ) : (
+                  <Eye className='h-4 w-4 text-slate-500' />
+                )}
+              </button>
+            </div>
           </div>
+
           <div>
             <Label htmlFor='newPassword' className='text-slate-600 dark:text-slate-400'>
               New Password
             </Label>
-            <Input
-              id='newPassword'
-              type='password'
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              className='mt-1 border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800'
-            />
+            <div className='relative'>
+              <Input
+                id='newPassword'
+                type={showNewPassword ? 'text' : 'password'}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className={`mt-1 bg-slate-50 pr-10 dark:bg-slate-800 ${
+                  passwordValidation.isValid === false
+                    ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                    : passwordValidation.isValid === true
+                      ? 'border-green-500 focus:border-green-500 focus:ring-green-500'
+                      : 'border-slate-300 dark:border-slate-600'
+                }`}
+                placeholder='Enter your new password'
+              />
+              <div className='absolute inset-y-0 right-0 flex items-center pt-1 pr-3'>
+                <div className='flex items-center space-x-1'>
+                  {newPassword && (
+                    <>
+                      {passwordValidation.isValid === true ? (
+                        <CheckCircle className='h-4 w-4 text-green-500' />
+                      ) : passwordValidation.isValid === false ? (
+                        <XCircle className='h-4 w-4 text-red-500' />
+                      ) : null}
+                    </>
+                  )}
+                  <button type='button' onClick={() => setShowNewPassword(!showNewPassword)}>
+                    {showNewPassword ? (
+                      <EyeOff className='h-4 w-4 text-slate-500' />
+                    ) : (
+                      <Eye className='h-4 w-4 text-slate-500' />
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+            {passwordValidation.message && (
+              <p
+                className={`mt-1 text-xs ${
+                  passwordValidation.isValid === false ? 'text-red-500' : 'text-green-600'
+                }`}
+              >
+                {passwordValidation.message}
+              </p>
+            )}
+            {newPassword && !passwordValidation.message && (
+              <div className='mt-2 space-y-1 text-xs text-slate-500 dark:text-slate-400'>
+                <p>Password requirements:</p>
+                <ul className='ml-4 list-disc space-y-1'>
+                  <li className={newPassword.length >= 8 ? 'text-green-600' : ''}>
+                    At least 8 characters
+                  </li>
+                  <li className={/(?=.*[a-z])/.test(newPassword) ? 'text-green-600' : ''}>
+                    One lowercase letter
+                  </li>
+                  <li className={/(?=.*[A-Z])/.test(newPassword) ? 'text-green-600' : ''}>
+                    One uppercase letter
+                  </li>
+                  <li className={/(?=.*\d)/.test(newPassword) ? 'text-green-600' : ''}>
+                    One number
+                  </li>
+                </ul>
+              </div>
+            )}
           </div>
+
           <div>
             <Label htmlFor='confirmPassword' className='text-slate-600 dark:text-slate-400'>
               Confirm New Password
             </Label>
-            <Input
-              id='confirmPassword'
-              type='password'
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className='mt-1 border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800'
-            />
+            <div className='relative'>
+              <Input
+                id='confirmPassword'
+                type={showConfirmPassword ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className={`mt-1 bg-slate-50 pr-10 dark:bg-slate-800 ${
+                  confirmPasswordValidation.isValid === false
+                    ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                    : confirmPasswordValidation.isValid === true
+                      ? 'border-green-500 focus:border-green-500 focus:ring-green-500'
+                      : 'border-slate-300 dark:border-slate-600'
+                }`}
+                placeholder='Confirm your new password'
+              />
+              <div className='absolute inset-y-0 right-0 flex items-center pt-1 pr-3'>
+                <div className='flex items-center space-x-1'>
+                  {confirmPassword && (
+                    <>
+                      {confirmPasswordValidation.isValid === true ? (
+                        <CheckCircle className='h-4 w-4 text-green-500' />
+                      ) : confirmPasswordValidation.isValid === false ? (
+                        <XCircle className='h-4 w-4 text-red-500' />
+                      ) : null}
+                    </>
+                  )}
+                  <button
+                    type='button'
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className='h-4 w-4 text-slate-500' />
+                    ) : (
+                      <Eye className='h-4 w-4 text-slate-500' />
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+            {confirmPasswordValidation.message && (
+              <p className='mt-1 text-xs text-red-500'>{confirmPasswordValidation.message}</p>
+            )}
           </div>
+
           <div className='text-right'>
             <Button
-              onClick={handleChangePassword}
-              className='cursor-pointer bg-blue-600 text-white hover:bg-blue-700'
+              onClick={() => setIsConfirmingPasswordChange(true)}
+              disabled={
+                isChangingPassword ||
+                !currentPassword ||
+                !newPassword ||
+                !confirmPassword ||
+                passwordValidation.isValid !== true ||
+                confirmPasswordValidation.isValid !== true
+              }
+              className='cursor-pointer bg-blue-600 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50'
             >
-              Change Password
+              {isChangingPassword ? (
+                <>
+                  <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                  Changing...
+                </>
+              ) : (
+                'Change Password'
+              )}
             </Button>
           </div>
         </CardContent>
       </Card>
+
+      {/* Password Change Confirmation Dialog */}
+      {isConfirmingPasswordChange && (
+        <AlertDialog open={isConfirmingPasswordChange} onOpenChange={setIsConfirmingPasswordChange}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirm Password Change</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to change your password? This action will log you out from all
+                devices and you'll need to log in again with your new password.
+                <br />
+                <br />
+                This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel
+                disabled={isChangingPassword}
+                onClick={() => setIsConfirmingPasswordChange(false)}
+              >
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={async () => {
+                  await handleChangePassword();
+                  setIsConfirmingPasswordChange(false);
+                }}
+                disabled={isChangingPassword}
+                className='bg-blue-600 text-white hover:bg-blue-700'
+              >
+                {isChangingPassword ? (
+                  <>
+                    <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                    Changing...
+                  </>
+                ) : (
+                  'Change Password'
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </div>
   );
 }

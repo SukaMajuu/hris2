@@ -39,6 +39,8 @@ const statusMapping = {
 	late: "Late",
 	on_time: "On Time",
 	early_leave: "Early Leave",
+	absent: "Absent",
+	leave: "On Leave",
 } as const;
 
 // Status color mapping
@@ -52,6 +54,8 @@ const getStatusStyle = (status: string) => {
 			return "bg-yellow-600";
 		case "absent":
 			return "bg-gray-600";
+		case "leave":
+			return "bg-purple-600";
 		default:
 			return "bg-gray-600";
 	}

@@ -14,6 +14,7 @@ export const useResignEmployeeMutation = () => {
     mutationFn: (employeeId: number) => employeeService.resignEmployee(employeeId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
+      queryClient.invalidateQueries({ queryKey: ['subscription'] });
       queryClient.invalidateQueries({
         predicate: (query) => {
           return (
@@ -35,7 +36,12 @@ export const useCreateEmployee = () => {
     mutationFn: (data: CreateEmployeeRequest) => employeeService.createEmployee(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.employees.list(1, 10) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.employees.stats });
+      queryClient.invalidateQueries({ queryKey: queryKeys.employees.stats() });
+      queryClient.invalidateQueries({
+        predicate: (query) => {
+          return Array.isArray(query.queryKey) && query.queryKey[0] === 'subscription';
+        },
+      });
     },
   });
 };
@@ -47,31 +53,36 @@ export const useUpdateEmployee = () => {
     mutationFn: ({ id, data }: { id: number; data: UpdateEmployeeRequest }) =>
       employeeService.updateEmployee(id, data),
     onSuccess: (_, { id }) => {
-      // Invalidate specific employee detail
       queryClient.invalidateQueries({ queryKey: queryKeys.employees.detail(id) });
 
-      // Invalidate all employee list queries (regardless of pagination/filters)
       queryClient.invalidateQueries({
         predicate: (query) => {
-          return Array.isArray(query.queryKey) &&
-                 query.queryKey[0] === 'employees' &&
-                 query.queryKey[1] === 'list';
-        }
+          return (
+            Array.isArray(query.queryKey) &&
+            query.queryKey[0] === 'employees' &&
+            query.queryKey[1] === 'list'
+          );
+        },
       });
 
-      // Invalidate employee stats
-      queryClient.invalidateQueries({ queryKey: queryKeys.employees.stats });
+      queryClient.invalidateQueries({ queryKey: queryKeys.employees.stats() });
 
-      // Invalidate current user profile in case it's the current user being updated
-      queryClient.invalidateQueries({ queryKey: queryKeys.employees.currentProfile });
-
-      // Invalidate check clock related queries since work schedule assignment affects them
       queryClient.invalidateQueries({
         predicate: (query) => {
-          return Array.isArray(query.queryKey) &&
-                 query.queryKey[0] === 'employees' &&
-                 (query.queryKey[1] === 'checkClock' || query.queryKey[1] === 'assign');
-        }
+          return Array.isArray(query.queryKey) && query.queryKey[0] === 'subscription';
+        },
+      });
+
+      queryClient.invalidateQueries({ queryKey: queryKeys.employees.currentProfile });
+
+      queryClient.invalidateQueries({
+        predicate: (query) => {
+          return (
+            Array.isArray(query.queryKey) &&
+            query.queryKey[0] === 'employees' &&
+            (query.queryKey[1] === 'checkClock' || query.queryKey[1] === 'assign')
+          );
+        },
       });
     },
   });
@@ -84,7 +95,12 @@ export const useResignEmployee = () => {
     mutationFn: (id: number) => employeeService.resignEmployee(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.employees.list(1, 10) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.employees.stats });
+      queryClient.invalidateQueries({ queryKey: queryKeys.employees.stats() });
+      queryClient.invalidateQueries({
+        predicate: (query) => {
+          return Array.isArray(query.queryKey) && query.queryKey[0] === 'subscription';
+        },
+      });
     },
   });
 };
@@ -96,7 +112,12 @@ export const useBulkImportEmployees = () => {
     mutationFn: (file: File) => employeeService.bulkImportEmployees(file),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.employees.list(1, 10) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.employees.stats });
+      queryClient.invalidateQueries({ queryKey: queryKeys.employees.stats() });
+      queryClient.invalidateQueries({
+        predicate: (query) => {
+          return Array.isArray(query.queryKey) && query.queryKey[0] === 'subscription';
+        },
+      });
     },
   });
 };

@@ -150,8 +150,7 @@ export function AttendanceFilter({
 												Present
 											</span>
 										</div>
-									</SelectItem>
-									<SelectItem
+									</SelectItem>									<SelectItem
 										value="Late"
 										className="hover:bg-red-50 dark:hover:bg-red-950 cursor-pointer rounded-sm py-2 px-3 transition-colors duration-150"
 									>
@@ -159,6 +158,28 @@ export function AttendanceFilter({
 											<Clock className="h-4 w-4 text-red-500 flex-shrink-0" />
 											<span className="font-medium text-red-700 dark:text-red-300">
 												Late
+											</span>
+										</div>
+									</SelectItem>
+									<SelectItem
+										value="Absent"
+										className="hover:bg-gray-50 dark:hover:bg-gray-950 cursor-pointer rounded-sm py-2 px-3 transition-colors duration-150"
+									>
+										<div className="flex items-center gap-3 w-full">
+											<Timer className="h-4 w-4 text-gray-500 flex-shrink-0" />
+											<span className="font-medium text-gray-700 dark:text-gray-300">
+												Absent
+											</span>
+										</div>
+									</SelectItem>
+									<SelectItem
+										value="On Leave"
+										className="hover:bg-purple-50 dark:hover:bg-purple-950 cursor-pointer rounded-sm py-2 px-3 transition-colors duration-150"
+									>
+										<div className="flex items-center gap-3 w-full">
+											<Calendar className="h-4 w-4 text-purple-500 flex-shrink-0" />
+											<span className="font-medium text-purple-700 dark:text-purple-300">
+												On Leave
 											</span>
 										</div>
 									</SelectItem>

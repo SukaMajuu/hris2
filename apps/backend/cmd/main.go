@@ -68,7 +68,9 @@ func main() {
 	employeeUseCase := employeeUseCase.NewEmployeeUseCase(
 		employeeRepo,
 		authRepo,
+		xenditRepo,
 		supabaseClient,
+		db,
 	)
 
 	attendanceUseCase := attendanceUseCase.NewAttendanceUseCase(
@@ -95,10 +97,10 @@ func main() {
 		employeeRepo,
 		supabaseClient,
 	)
-
 	leaveRequestUseCase := leaveRequestUseCase.NewLeaveRequestUseCase(
 		leaveRequestRepo,
 		employeeRepo,
+		attendanceRepo,
 		supabaseClient,
 	)
 

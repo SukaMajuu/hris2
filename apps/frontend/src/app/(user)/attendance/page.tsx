@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import AttendanceOverviewTab from "./_tabsContent/AttendanceOverviewTab";
-import PermitTab from "./_tabsContent/PermitTab";
+import PermitTab from "./_tabsContent/LeaveRequestTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FeatureGuard } from "@/components/subscription/FeatureGuard";
 import { FEATURE_CODES } from "@/const/features";

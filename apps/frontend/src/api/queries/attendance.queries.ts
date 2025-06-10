@@ -2,10 +2,10 @@ import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '../query-keys';
 import { attendanceService } from '@/services/attendance.service';
 
-export const useAttendances = () => {
+export const useAttendances = (page: number = 1, pageSize: number = 1000) => {
   return useQuery({
-    queryKey: queryKeys.attendance.list(),
-    queryFn: () => attendanceService.getAttendances(),
+    queryKey: queryKeys.attendance.list(page, pageSize),
+    queryFn: () => attendanceService.getAttendances(page, pageSize),
   });
 };
 

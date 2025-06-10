@@ -74,6 +74,22 @@ export default function CheckClockOverviewTab() {
 		createAttendance,
 		isCreating,
 	} = useCheckClockOverview();
+
+	// Debug: Log data information
+	React.useEffect(() => {
+		console.log('=== CheckClock Debug Info ===');
+		console.log('Total Records:', totalRecords);
+		console.log('Total Pages:', totalPages);
+		console.log('Current Page:', page);
+		console.log('Page Size:', pageSize);
+		console.log('Overview Data Length:', overviewData?.length || 0);
+		console.log('Overview Data:', overviewData);
+		console.log('Is Loading:', isLoading);
+		console.log('Error:', error);
+		console.log('Name Filter:', nameFilter);
+		console.log('Filters:', filters);
+		console.log('===============================');
+	}, [overviewData, totalRecords, totalPages, page, pageSize, isLoading, error, nameFilter, filters]);
 	const [openSheet, setOpenSheet] = React.useState(false);
 	const [
 		selectedData,
@@ -239,7 +255,6 @@ export default function CheckClockOverviewTab() {
 		],
 		[baseColumns]
 	);
-
 	const table = useReactTable<CombinedAttendanceData>({
 		data: overviewData,
 		columns: finalColumns,
@@ -258,6 +273,16 @@ export default function CheckClockOverviewTab() {
 		manualPagination: true,
 		pageCount: totalPages,
 	});
+
+	// Debug: Log table data
+	React.useEffect(() => {
+		console.log('=== Table Debug Info ===');
+		console.log('Table Data Length:', table.getFilteredRowModel().rows.length);
+		console.log('Table Total Row Count:', table.getRowCount());
+		console.log('Table Page Count:', table.getPageCount());
+		console.log('Current Pagination State:', table.getState().pagination);
+		console.log('========================');
+	}, [table, overviewData]);
 
 	if (error) {
 		return (

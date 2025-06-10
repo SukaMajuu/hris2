@@ -59,13 +59,21 @@ class AttendanceService {
       request,
     );
     return response.data.data;
-  }
-
-  // Get all attendances
-  async getAttendances(): Promise<Attendance[]> {
+  }  // Get all attendances
+  async getAttendances(page: number = 1, pageSize: number = 100): Promise<Attendance[]> {
+    const url = `${API_ROUTES.v1.api.attendances.list}?page=${page}&page_size=${pageSize}`;
+    console.log('=== AttendanceService Debug ===');
+    console.log('Fetching attendances from URL:', url);
+    console.log('Page:', page, 'PageSize:', pageSize);
+    
     const response = await this.apiService.get<
       ApiResponse<{ items: Attendance[]; pagination: any }>
-    >(API_ROUTES.v1.api.attendances.list);
+    >(url);
+    
+    console.log('Response received - Items count:', response.data.data.items.length);
+    console.log('Pagination info:', response.data.data.pagination);
+    console.log('===============================');
+    
     return response.data.data.items;
   }
 

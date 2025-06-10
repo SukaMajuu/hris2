@@ -98,10 +98,9 @@ export const queryKeys = {
     seatPlans: (planId: number) => ['subscription', 'seatPlans', planId] as const,
     userSubscription: ['subscription', 'userSubscription'] as const,
     checkoutSession: (sessionId: string) => ['subscription', 'checkoutSession', sessionId] as const,
-  },
-  attendance: {
+  },  attendance: {
     all: ['attendance'],
-    list: () => [...queryKeys.attendance.all, 'list'],
+    list: (page?: number, pageSize?: number) => [...queryKeys.attendance.all, 'list', page, pageSize],
     detail: (id: number) => [...queryKeys.attendance.all, 'detail', id],
     byEmployee: (employeeId: number) => [...queryKeys.attendance.all, 'employee', employeeId],
     statistics: () => [...queryKeys.attendance.all, 'statistics'],

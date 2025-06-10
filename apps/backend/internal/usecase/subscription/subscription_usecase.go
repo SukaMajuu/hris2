@@ -9,6 +9,7 @@ import (
 	subscriptionDto "github.com/SukaMajuu/hris/apps/backend/domain/dto/subscription"
 	"github.com/SukaMajuu/hris/apps/backend/domain/enums"
 	"github.com/SukaMajuu/hris/apps/backend/domain/interfaces"
+	"github.com/SukaMajuu/hris/apps/backend/pkg/tripay"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 )
@@ -396,4 +397,251 @@ func (uc *SubscriptionUseCase) GetCheckoutSession(ctx context.Context, sessionID
 		return nil, fmt.Errorf("failed to get checkout session: %w", err)
 	}
 	return subscriptionDto.ToCheckoutSessionResponse(session), nil
+}
+
+func (uc *SubscriptionUseCase) ProcessTripayWebhook(ctx context.Context, webhookData map[string]interface{}, signature, rawBody string) error {
+	// Validasi signature Tripay
+	if err := uc.validateTripaySignature(signature, rawBody); err != nil {
+		return fmt.Errorf("signature validation failed: %w", err)
+	}
+
+	reference, ok := webhookData["reference"].(string)
+	if !ok {
+		return fmt.Errorf("missing reference")
+	}
+
+	status, ok := webhookData["status"].(string)
+	if !ok {
+		return fmt.Errorf("missing status")
+	}
+
+	merchantRef, ok := webhookData["merchant_ref"].(string)
+	if !ok {
+		return fmt.Errorf("missing merchant_ref")
+	}
+
+	switch status {
+	case "PAID":
+		return uc.processTripayPaidWebhook(ctx, webhookData, reference, merchantRef)
+	case "EXPIRED":
+		return uc.processTripayExpiredWebhook(ctx, merchantRef)
+	case "FAILED":
+		return uc.processTripayFailedWebhook(ctx, merchantRef)
+	default:
+		return fmt.Errorf("unsupported tripay status: %s", status)
+	}
+}
+
+func (uc *SubscriptionUseCase) processTripayPaidWebhook(ctx context.Context, data map[string]interface{}, reference, merchantRef string) error {
+	// Extract session ID from merchant_ref (format: "checkout_sessionID")
+	sessionID := merchantRef[9:]
+	session, err := uc.xenditRepo.GetCheckoutSession(ctx, sessionID)
+	if err != nil {
+		return fmt.Errorf("failed to get checkout session: %w", err)
+	}
+
+	// Parse payment time from Unix timestamp
+	var paidAt time.Time
+	if paidAtUnix, ok := data["paid_at"].(float64); ok {
+		paidAt = time.Unix(int64(paidAtUnix), 0)
+	} else {
+		paidAt = time.Now()
+	}
+
+	// Get payment method from Tripay callback
+	paymentMethod := "Unknown"
+	if method, ok := data["payment_method"].(string); ok {
+		paymentMethod = method
+	}
+
+	// Get total amount received
+	var amountReceived decimal.Decimal
+	if totalAmount, ok := data["total_amount"].(float64); ok {
+		amountReceived = decimal.NewFromFloat(totalAmount)
+	} else {
+		amountReceived = session.Amount
+	}
+
+	// Create payment transaction record
+	transaction := &domain.PaymentTransaction{
+		SubscriptionID:   *session.SubscriptionID,
+		XenditInvoiceID:  &reference, // Use Tripay reference as invoice ID
+		XenditExternalID: merchantRef,
+		Amount:           amountReceived,
+		Currency:         session.Currency,
+		Status:           enums.PaymentPaid,
+		PaymentMethod:    &paymentMethod,
+		Description:      "Subscription payment via Tripay",
+		PaidAt:           &paidAt,
+	}
+
+	if err := uc.xenditRepo.CreatePaymentTransaction(ctx, transaction); err != nil {
+		return fmt.Errorf("failed to create payment transaction: %w", err)
+	}
+
+	// Get subscription and update if needed
+	subscription, err := uc.xenditRepo.GetSubscriptionByAdminUserID(ctx, session.UserID)
+	if err != nil {
+		return fmt.Errorf("failed to get subscription: %w", err)
+	}
+
+	// Convert from trial if applicable
+	if subscription.Status == enums.StatusTrial {
+		subscription.ConvertFromTrialWithCheckoutSession(amountReceived)
+		if err := uc.xenditRepo.UpdateSubscription(ctx, subscription); err != nil {
+			return fmt.Errorf("failed to update subscription: %w", err)
+		}
+
+		// Update trial activity
+		trialActivity, err := uc.xenditRepo.GetTrialActivityBySubscription(ctx, subscription.ID)
+		if err == nil {
+			trialActivity.MarkAsConverted()
+			_ = uc.xenditRepo.UpdateTrialActivity(ctx, trialActivity)
+		}
+	}
+
+	// Mark checkout session as completed
+	session.MarkAsCompleted(subscription.ID, &transaction.ID)
+	return uc.xenditRepo.UpdateCheckoutSession(ctx, session)
+}
+
+func (uc *SubscriptionUseCase) processTripayExpiredWebhook(ctx context.Context, merchantRef string) error {
+	sessionID := merchantRef[9:]
+	session, err := uc.xenditRepo.GetCheckoutSession(ctx, sessionID)
+	if err != nil {
+		return fmt.Errorf("failed to get checkout session: %w", err)
+	}
+
+	session.Status = enums.CheckoutExpired
+	return uc.xenditRepo.UpdateCheckoutSession(ctx, session)
+}
+
+func (uc *SubscriptionUseCase) processTripayFailedWebhook(ctx context.Context, merchantRef string) error {
+	sessionID := merchantRef[9:]
+	session, err := uc.xenditRepo.GetCheckoutSession(ctx, sessionID)
+	if err != nil {
+		return fmt.Errorf("failed to get checkout session: %w", err)
+	}
+
+	session.MarkAsFailed()
+	return uc.xenditRepo.UpdateCheckoutSession(ctx, session)
+}
+
+func (uc *SubscriptionUseCase) validateTripaySignature(signature, rawBody string) error {
+	// TODO: Get Tripay private key from config
+	// For now, we'll use a placeholder
+	privateKey := "your-tripay-private-key-here" // This should come from config
+
+	if !tripay.ValidateCallbackSignature(privateKey, signature, rawBody) {
+		return fmt.Errorf("invalid signature")
+	}
+
+	return nil
+}
+
+func (uc *SubscriptionUseCase) ProcessMidtransWebhook(ctx context.Context, notification map[string]interface{}) error {
+	// Extract required fields from notification
+	orderID, ok := notification["order_id"].(string)
+	if !ok {
+		return fmt.Errorf("missing order_id")
+	}
+
+	transactionStatus, ok := notification["transaction_status"].(string)
+	if !ok {
+		return fmt.Errorf("missing transaction_status")
+	}
+
+	// Extract session ID from order ID (format: HRIS-{sessionID})
+	if len(orderID) < 6 || orderID[:5] != "HRIS-" {
+		return fmt.Errorf("invalid order ID format: %s", orderID)
+	}
+	sessionID := orderID[5:] // Remove "HRIS-" prefix
+
+	// Find checkout session
+	checkoutSession, err := uc.xenditRepo.GetCheckoutSession(ctx, sessionID)
+	if err != nil {
+		return fmt.Errorf("failed to get checkout session: %w", err)
+	}
+
+	// Update checkout session status based on Midtrans transaction status
+	switch transactionStatus {
+	case statusCapture, statusSettlement:
+		// Payment successful
+		checkoutSession.Status = enums.CheckoutCompleted
+		checkoutSession.CompletedAt = func() *time.Time { t := time.Now(); return &t }()
+
+		// Create payment transaction record
+		if err := uc.createMidtransPaymentTransaction(ctx, checkoutSession, notification); err != nil {
+			return fmt.Errorf("failed to create payment transaction: %w", err)
+		}
+
+		// Activate subscription if it's a trial
+		if err := uc.activateMidtransSubscription(ctx, checkoutSession); err != nil {
+			return fmt.Errorf("failed to activate subscription: %w", err)
+		}
+
+	case statusPending:
+		// Payment pending (e.g., bank transfer waiting)
+		checkoutSession.Status = enums.CheckoutPending
+
+	case statusDeny, statusCancel, statusExpire:
+		// Payment failed or canceled
+		checkoutSession.MarkAsFailed()
+
+	default:
+		return fmt.Errorf("unknown transaction status: %s", transactionStatus)
+	}
+
+	// Update checkout session
+	if err := uc.xenditRepo.UpdateCheckoutSession(ctx, checkoutSession); err != nil {
+		return fmt.Errorf("failed to update checkout session: %w", err)
+	}
+
+	return nil
+}
+
+func (uc *SubscriptionUseCase) createMidtransPaymentTransaction(ctx context.Context, session *domain.CheckoutSession, notification map[string]interface{}) error {
+	transactionID, _ := notification["transaction_id"].(string)
+	paymentType, _ := notification["payment_type"].(string)
+	transactionTime, _ := notification["transaction_time"].(string)
+
+	// Parse transaction time
+	paidAt, _ := time.Parse("2006-01-02 15:04:05", transactionTime)
+
+	transaction := &domain.PaymentTransaction{
+		SubscriptionID:   *session.SubscriptionID,
+		XenditInvoiceID:  &transactionID,
+		XenditExternalID: fmt.Sprintf("HRIS-%s", session.SessionID),
+		Amount:           session.Amount,
+		Currency:         session.Currency,
+		Status:           enums.PaymentPaid,
+		PaymentMethod:    &paymentType,
+		Description:      "Midtrans subscription payment",
+		PaidAt:           &paidAt,
+	}
+
+	return uc.xenditRepo.CreatePaymentTransaction(ctx, transaction)
+}
+
+func (uc *SubscriptionUseCase) activateMidtransSubscription(ctx context.Context, checkoutSession *domain.CheckoutSession) error {
+	subscription, err := uc.xenditRepo.GetSubscriptionByAdminUserID(ctx, checkoutSession.UserID)
+	if err != nil {
+		return fmt.Errorf("failed to get subscription: %w", err)
+	}
+
+	if subscription.Status == enums.StatusTrial {
+		subscription.ConvertFromTrialWithCheckoutSession(checkoutSession.Amount)
+		if err := uc.xenditRepo.UpdateSubscription(ctx, subscription); err != nil {
+			return fmt.Errorf("failed to update subscription: %w", err)
+		}
+
+		// Update trial activity
+		trialActivity, err := uc.xenditRepo.GetTrialActivityBySubscription(ctx, subscription.ID)
+		if err == nil {
+			trialActivity.MarkAsConverted()
+			_ = uc.xenditRepo.UpdateTrialActivity(ctx, trialActivity)
+		}
+	}
+
+	return nil
 }

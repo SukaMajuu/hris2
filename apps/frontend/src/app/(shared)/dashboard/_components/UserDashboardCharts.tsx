@@ -49,7 +49,7 @@ export function UserDashboardCharts({
     // Refs
     dropdownRef,
     optionsContainerRef,
-     // Data
+    // Data
     monthlyStats,
     isLoadingMonthlyStats,
     canAccessCheckClock,
@@ -63,7 +63,7 @@ export function UserDashboardCharts({
     handleRequestLeave,
     handleMonthChange,
     onSubmitPermit,
-    refetch, 
+    refetch,
     getPieChartData,
     getBarChartData,
     getLeavePieChartData,

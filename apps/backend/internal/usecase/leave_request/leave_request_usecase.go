@@ -34,17 +34,20 @@ const (
 type LeaveRequestUseCase struct {
 	leaveRequestRepo interfaces.LeaveRequestRepository
 	employeeRepo     interfaces.EmployeeRepository
+	attendanceRepo   interfaces.AttendanceRepository
 	supabaseClient   *supabase.Client
 }
 
 func NewLeaveRequestUseCase(
 	leaveRequestRepo interfaces.LeaveRequestRepository,
 	employeeRepo interfaces.EmployeeRepository,
+	attendanceRepo interfaces.AttendanceRepository,
 	supabaseClient *supabase.Client,
 ) *LeaveRequestUseCase {
 	return &LeaveRequestUseCase{
 		leaveRequestRepo: leaveRequestRepo,
 		employeeRepo:     employeeRepo,
+		attendanceRepo:   attendanceRepo,
 		supabaseClient:   supabaseClient,
 	}
 }
@@ -482,10 +485,25 @@ func (uc *LeaveRequestUseCase) UpdateStatus(ctx context.Context, id uint, status
 		return nil, fmt.Errorf("invalid status: %s", string(status))
 	}
 
+	// Get leave request before updating to access employee and dates
+	leaveRequest, err := uc.leaveRequestRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get leave request: %w", err)
+	}
+
 	// Update status
-	err := uc.leaveRequestRepo.UpdateStatus(ctx, id, status, adminNote)
+	err = uc.leaveRequestRepo.UpdateStatus(ctx, id, status, adminNote)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update leave request status: %w", err)
+	}
+
+	// If approved, create attendance records with "absent" status for the leave duration
+	if status == domain.LeaveStatusApproved {
+		err = uc.createAbsentAttendanceRecords(ctx, leaveRequest)
+		if err != nil {
+			log.Printf("Warning: Failed to create absent attendance records for leave request %d: %v", id, err)
+			// Don't fail the entire operation if attendance creation fails
+		}
 	}
 
 	// Get updated leave request
@@ -495,6 +513,59 @@ func (uc *LeaveRequestUseCase) UpdateStatus(ctx context.Context, id uint, status
 	}
 	log.Printf("LeaveRequestUseCase: Successfully updated leave request status to %s for ID %d", string(status), id)
 	return uc.toLeaveRequestResponseDTO(updatedLeaveRequest), nil
+}
+
+// createAbsentAttendanceRecords creates attendance records with "absent" status for approved leave request
+func (uc *LeaveRequestUseCase) createAbsentAttendanceRecords(ctx context.Context, leaveRequest *domain.LeaveRequest) error {
+	log.Printf("Creating absent attendance records for employee %d from %s to %s", 
+		leaveRequest.EmployeeID, 
+		leaveRequest.StartDate.Format("2006-01-02"), 
+		leaveRequest.EndDate.Format("2006-01-02"))
+
+	// Iterate through each date in the leave period
+	currentDate := leaveRequest.StartDate
+	for !currentDate.After(leaveRequest.EndDate) {
+		// Check if attendance record already exists for this date
+		existingAttendance, err := uc.attendanceRepo.GetByEmployeeAndDate(ctx, leaveRequest.EmployeeID, currentDate.Format("2006-01-02"))
+		
+		if err == nil && existingAttendance != nil {
+			// Update existing attendance record to absent status
+			existingAttendance.Status = domain.Absent
+			existingAttendance.ClockIn = nil
+			existingAttendance.ClockOut = nil
+			existingAttendance.WorkHours = nil
+			existingAttendance.ClockInLat = nil
+			existingAttendance.ClockInLong = nil
+			existingAttendance.ClockOutLat = nil
+			existingAttendance.ClockOutLong = nil
+			
+			err = uc.attendanceRepo.Update(ctx, existingAttendance)
+			if err != nil {
+				log.Printf("Failed to update attendance for date %s: %v", currentDate.Format("2006-01-02"), err)
+			} else {
+				log.Printf("Updated existing attendance to absent for employee %d on %s", leaveRequest.EmployeeID, currentDate.Format("2006-01-02"))
+			}
+		} else {
+			// Create new attendance record with absent status
+			newAttendance := &domain.Attendance{
+				EmployeeID: leaveRequest.EmployeeID,
+				Date:       currentDate,
+				Status:     domain.Absent,
+			}
+			
+			err = uc.attendanceRepo.Create(ctx, newAttendance)
+			if err != nil {
+				log.Printf("Failed to create absent attendance for date %s: %v", currentDate.Format("2006-01-02"), err)
+			} else {
+				log.Printf("Created absent attendance for employee %d on %s", leaveRequest.EmployeeID, currentDate.Format("2006-01-02"))
+			}
+		}
+		
+		// Move to next day
+		currentDate = currentDate.AddDate(0, 0, 1)
+	}
+	
+	return nil
 }
 
 func (uc *LeaveRequestUseCase) Delete(ctx context.Context, id uint) error {

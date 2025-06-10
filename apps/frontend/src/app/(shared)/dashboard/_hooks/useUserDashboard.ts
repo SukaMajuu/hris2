@@ -500,7 +500,7 @@ export function useUserDashboard({
 
     // Refs
     dropdownRef,
-    optionsContainerRef, 
+    optionsContainerRef,
     // Data
     leaveRequestsData,
     myLeaveRequestsData,

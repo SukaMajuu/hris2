@@ -95,10 +95,10 @@ func main() {
 		employeeRepo,
 		supabaseClient,
 	)
-
 	leaveRequestUseCase := leaveRequestUseCase.NewLeaveRequestUseCase(
 		leaveRequestRepo,
 		employeeRepo,
+		attendanceRepo,
 		supabaseClient,
 	)
 

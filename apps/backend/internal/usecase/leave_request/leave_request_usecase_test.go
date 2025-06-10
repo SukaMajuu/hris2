@@ -133,10 +133,11 @@ func TestLeaveRequestUseCase_Create(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockLeaveRequestRepo := new(mocks.LeaveRequestRepository)
 			mockEmployeeRepo := new(mocks.EmployeeRepository)
+			mockAttendanceRepo := new(mocks.AttendanceRepository)
 
 			tt.setupMocks(mockLeaveRequestRepo, mockEmployeeRepo)
 
-			useCase := NewLeaveRequestUseCase(mockLeaveRequestRepo, mockEmployeeRepo, nil)
+			useCase := NewLeaveRequestUseCase(mockLeaveRequestRepo, mockEmployeeRepo, mockAttendanceRepo, nil)
 			result, err := useCase.Create(ctx, tt.leaveRequest, tt.file)
 
 			if tt.expectedError != "" {
@@ -225,10 +226,11 @@ func TestLeaveRequestUseCase_CreateForEmployee(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockLeaveRequestRepo := new(mocks.LeaveRequestRepository)
 			mockEmployeeRepo := new(mocks.EmployeeRepository)
+			mockAttendanceRepo := new(mocks.AttendanceRepository)
 
 			tt.setupMocks(mockLeaveRequestRepo, mockEmployeeRepo)
 
-			useCase := NewLeaveRequestUseCase(mockLeaveRequestRepo, mockEmployeeRepo, nil)
+			useCase := NewLeaveRequestUseCase(mockLeaveRequestRepo, mockEmployeeRepo, mockAttendanceRepo, nil)
 			result, err := useCase.CreateForEmployee(ctx, tt.leaveRequest, nil)
 
 			if tt.expectedError != "" {
@@ -328,10 +330,11 @@ func TestLeaveRequestUseCase_GetByID(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockLeaveRequestRepo := new(mocks.LeaveRequestRepository)
 			mockEmployeeRepo := new(mocks.EmployeeRepository)
+			mockAttendanceRepo := new(mocks.AttendanceRepository)
 
 			tt.setupMocks(mockLeaveRequestRepo)
 
-			useCase := NewLeaveRequestUseCase(mockLeaveRequestRepo, mockEmployeeRepo, nil)
+			useCase := NewLeaveRequestUseCase(mockLeaveRequestRepo, mockEmployeeRepo, mockAttendanceRepo, nil)
 			result, err := useCase.GetByID(ctx, tt.id)
 
 			if tt.expectedError != "" {
@@ -459,10 +462,11 @@ func TestLeaveRequestUseCase_List(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockLeaveRequestRepo := new(mocks.LeaveRequestRepository)
 			mockEmployeeRepo := new(mocks.EmployeeRepository)
+			mockAttendanceRepo := new(mocks.AttendanceRepository)
 
 			tt.setupMocks(mockLeaveRequestRepo)
 
-			useCase := NewLeaveRequestUseCase(mockLeaveRequestRepo, mockEmployeeRepo, nil)
+			useCase := NewLeaveRequestUseCase(mockLeaveRequestRepo, mockEmployeeRepo, mockAttendanceRepo, nil)
 			result, err := useCase.List(ctx, tt.filters, tt.pagination)
 
 			if tt.expectedError != "" {
@@ -569,10 +573,11 @@ func TestLeaveRequestUseCase_GetByEmployeeID(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockLeaveRequestRepo := new(mocks.LeaveRequestRepository)
 			mockEmployeeRepo := new(mocks.EmployeeRepository)
+			mockAttendanceRepo := new(mocks.AttendanceRepository)
 
 			tt.setupMocks(mockLeaveRequestRepo)
 
-			useCase := NewLeaveRequestUseCase(mockLeaveRequestRepo, mockEmployeeRepo, nil)
+			useCase := NewLeaveRequestUseCase(mockLeaveRequestRepo, mockEmployeeRepo, mockAttendanceRepo, nil)
 			result, err := useCase.GetByEmployeeID(ctx, tt.employeeID, tt.pagination)
 
 			if tt.expectedError != "" {
@@ -725,10 +730,11 @@ func TestLeaveRequestUseCase_Update(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockLeaveRequestRepo := new(mocks.LeaveRequestRepository)
 			mockEmployeeRepo := new(mocks.EmployeeRepository)
+			mockAttendanceRepo := new(mocks.AttendanceRepository)
 
 			tt.setupMocks(mockLeaveRequestRepo, mockEmployeeRepo)
 
-			useCase := NewLeaveRequestUseCase(mockLeaveRequestRepo, mockEmployeeRepo, nil)
+			useCase := NewLeaveRequestUseCase(mockLeaveRequestRepo, mockEmployeeRepo, mockAttendanceRepo, nil)
 			result, err := useCase.Update(ctx, tt.id, tt.updates, nil)
 
 			if tt.expectedError != "" {
@@ -888,10 +894,11 @@ func TestLeaveRequestUseCase_UpdateStatus(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockLeaveRequestRepo := new(mocks.LeaveRequestRepository)
 			mockEmployeeRepo := new(mocks.EmployeeRepository)
+			mockAttendanceRepo := new(mocks.AttendanceRepository)
 
 			tt.setupMocks(mockLeaveRequestRepo)
 
-			useCase := NewLeaveRequestUseCase(mockLeaveRequestRepo, mockEmployeeRepo, nil)
+			useCase := NewLeaveRequestUseCase(mockLeaveRequestRepo, mockEmployeeRepo, mockAttendanceRepo, nil)
 			result, err := useCase.UpdateStatus(ctx, tt.id, tt.status, tt.adminNote)
 
 			if tt.expectedError != "" {
@@ -974,10 +981,11 @@ func TestLeaveRequestUseCase_Delete(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockLeaveRequestRepo := new(mocks.LeaveRequestRepository)
 			mockEmployeeRepo := new(mocks.EmployeeRepository)
+			mockAttendanceRepo := new(mocks.AttendanceRepository)
 
 			tt.setupMocks(mockLeaveRequestRepo)
 
-			useCase := NewLeaveRequestUseCase(mockLeaveRequestRepo, mockEmployeeRepo, nil)
+			useCase := NewLeaveRequestUseCase(mockLeaveRequestRepo, mockEmployeeRepo, mockAttendanceRepo, nil)
 			err := useCase.Delete(ctx, tt.id)
 
 			if tt.expectedError != "" {
@@ -1099,10 +1107,11 @@ func TestLeaveRequestUseCase_GetByEmployeeUserID(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockLeaveRequestRepo := new(mocks.LeaveRequestRepository)
 			mockEmployeeRepo := new(mocks.EmployeeRepository)
+			mockAttendanceRepo := new(mocks.AttendanceRepository)
 
 			tt.setupMocks(mockLeaveRequestRepo, mockEmployeeRepo)
 
-			useCase := NewLeaveRequestUseCase(mockLeaveRequestRepo, mockEmployeeRepo, nil)
+			useCase := NewLeaveRequestUseCase(mockLeaveRequestRepo, mockEmployeeRepo, mockAttendanceRepo, nil)
 			result, err := useCase.GetByEmployeeUserID(ctx, tt.userID, tt.filters, tt.pagination)
 
 			if tt.expectedError != "" {
@@ -1173,10 +1182,11 @@ func TestLeaveRequestUseCase_GetEmployeeByUserID(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockLeaveRequestRepo := new(mocks.LeaveRequestRepository)
 			mockEmployeeRepo := new(mocks.EmployeeRepository)
+			mockAttendanceRepo := new(mocks.AttendanceRepository)
 
 			tt.setupMocks(mockEmployeeRepo)
 
-			useCase := NewLeaveRequestUseCase(mockLeaveRequestRepo, mockEmployeeRepo, nil)
+			useCase := NewLeaveRequestUseCase(mockLeaveRequestRepo, mockEmployeeRepo, mockAttendanceRepo, nil)
 			result, err := useCase.GetEmployeeByUserID(ctx, tt.userID)
 
 			if tt.expectedError != "" {
@@ -1249,10 +1259,11 @@ func TestLeaveRequestUseCase_CreateWithFile(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockLeaveRequestRepo := new(mocks.LeaveRequestRepository)
 			mockEmployeeRepo := new(mocks.EmployeeRepository)
+			mockAttendanceRepo := new(mocks.AttendanceRepository)
 
 			tt.setupMocks(mockLeaveRequestRepo, mockEmployeeRepo)
 
-			useCase := NewLeaveRequestUseCase(mockLeaveRequestRepo, mockEmployeeRepo, nil)
+			useCase := NewLeaveRequestUseCase(mockLeaveRequestRepo, mockEmployeeRepo, mockAttendanceRepo, nil)
 			_, err := useCase.Create(ctx, tt.leaveRequest, tt.file)
 
 			if tt.expectedError != "" {

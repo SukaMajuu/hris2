@@ -153,7 +153,6 @@ func TestAttendanceUseCase_GetByID(t *testing.T) {
 
 	mockWorkSchedule := &domain.WorkSchedule{
 		ID:   1,
-		Name: "Standard Schedule",
 	}
 
 	mockEmployee := &domain.Employee{
@@ -232,7 +231,6 @@ func TestAttendanceUseCase_List(t *testing.T) {
 
 	mockWorkSchedule := &domain.WorkSchedule{
 		ID:   1,
-		Name: "Standard Schedule",
 	}
 
 	mockEmployee := &domain.Employee{
@@ -319,7 +317,6 @@ func TestAttendanceUseCase_ListByEmployee(t *testing.T) {
 
 	mockWorkSchedule := &domain.WorkSchedule{
 		ID:   1,
-		Name: "Standard Schedule",
 	}
 
 	mockEmployee := &domain.Employee{

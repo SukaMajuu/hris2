@@ -50,6 +50,7 @@ export const API_ROUTES = {
         base: '/api/work-schedules',
         list: '/api/work-schedules',
         detail: (id: number) => `/api/work-schedules/${id}`,
+        edit: (id: number) => `/api/work-schedules/${id}/edit`,
         create: '/api/work-schedules',
         update: (id: number) => `/api/work-schedules/${id}`,
         delete: (id: number) => `/api/work-schedules/${id}`,

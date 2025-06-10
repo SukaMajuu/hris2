@@ -30,6 +30,7 @@ func (r *WorkScheduleRepository) CreateWithDetails(ctx context.Context, workSche
 		// 2. Create each WorkScheduleDetail record, associating it with the main WorkSchedule
 		for _, detail := range details {
 			detail.WorkScheduleID = workSchedule.ID // Set the foreign key
+			detail.IsActive = true                  // Pastikan detail baru aktif
 			if err := tx.Create(detail).Error; err != nil {
 				return fmt.Errorf("failed to create work schedule detail for schedule ID %d: %w", workSchedule.ID, err)
 			}
@@ -38,11 +39,30 @@ func (r *WorkScheduleRepository) CreateWithDetails(ctx context.Context, workSche
 	})
 }
 
-// GetByIDWithDetails mengambil jadwal kerja berdasarkan ID beserta detailnya
+// GetByIDWithDetails mengambil jadwal kerja berdasarkan ID beserta detailnya (hanya yang aktif)
 func (r *WorkScheduleRepository) GetByIDWithDetails(ctx context.Context, id uint) (*domain.WorkSchedule, error) {
 	var workSchedule domain.WorkSchedule
-	// Preload Details and their associated Location
-	if err := r.db.WithContext(ctx).Preload("Details.Location").First(&workSchedule, id).Error; err != nil {
+	// Preload Details yang aktif dan their associated Location
+	if err := r.db.WithContext(ctx).
+		Preload("Details", "is_active = ?", true).
+		Preload("Details.Location").
+		First(&workSchedule, id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("work schedule with ID %d not found", id)
+		}
+		return nil, fmt.Errorf("failed to get work schedule by ID %d: %w", id, err)
+	}
+	return &workSchedule, nil
+}
+
+// GetByIDWithAllDetails mengambil jadwal kerja berdasarkan ID beserta semua detailnya (aktif dan tidak aktif) untuk editing
+func (r *WorkScheduleRepository) GetByIDWithAllDetails(ctx context.Context, id uint) (*domain.WorkSchedule, error) {
+	var workSchedule domain.WorkSchedule
+	// Preload semua Details (aktif dan tidak aktif) beserta associated Location
+	if err := r.db.WithContext(ctx).
+		Preload("Details").
+		Preload("Details.Location").
+		First(&workSchedule, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, fmt.Errorf("work schedule with ID %d not found", id)
 		}
@@ -58,17 +78,17 @@ func (r *WorkScheduleRepository) UpdateWithDetails(ctx context.Context, workSche
 		if err := tx.Save(workSchedule).Error; err != nil {
 			return fmt.Errorf("failed to update work schedule: %w", err)
 		}
-
-		// Hapus detail yang ditandai untuk dihapus
+		// Hapus work schedule detail yang ditandai untuk dihapus (hard delete)
 		if len(deletedDetailIDs) > 0 {
-			if err := tx.Delete(&domain.WorkScheduleDetail{}, deletedDetailIDs).Error; err != nil {
+			if err := tx.Where("id IN ?", deletedDetailIDs).Delete(&domain.WorkScheduleDetail{}).Error; err != nil {
 				return fmt.Errorf("failed to delete work schedule details: %w", err)
 			}
 		}
-
 		// Simpan atau perbarui setiap WorkScheduleDetail
 		for _, detail := range details {
 			detail.WorkScheduleID = workSchedule.ID // Pastikan ID jadwal kerja terhubung
+			// Keep the IsActive value as set from the handler/usecase layer
+			// detail.IsActive should already be set correctly from the domain object
 			if err := tx.Save(detail).Error; err != nil {
 				return fmt.Errorf("failed to save work schedule detail for schedule ID %d: %w", workSchedule.ID, err)
 			}
@@ -77,10 +97,13 @@ func (r *WorkScheduleRepository) UpdateWithDetails(ctx context.Context, workSche
 	})
 }
 
-// GetDetailsByScheduleID mengambil detail jadwal kerja berdasarkan ID jadwal kerja
+// GetDetailsByScheduleID mengambil detail jadwal kerja berdasarkan ID jadwal kerja (hanya yang aktif)
 func (r *WorkScheduleRepository) GetDetailsByScheduleID(ctx context.Context, scheduleID uint) ([]*domain.WorkScheduleDetail, error) {
 	var details []*domain.WorkScheduleDetail
-	if err := r.db.WithContext(ctx).Preload("Location").Where("work_schedule_id = ?", scheduleID).Find(&details).Error; err != nil {
+	if err := r.db.WithContext(ctx).
+		Preload("Location").
+		Where("work_schedule_id = ? AND is_active = ?", scheduleID, true).
+		Find(&details).Error; err != nil {
 		return nil, fmt.Errorf("failed to get work schedule details for schedule ID %d: %w", scheduleID, err)
 	}
 	return details, nil
@@ -123,10 +146,9 @@ func (r *WorkScheduleRepository) ListWithPagination(ctx context.Context, paginat
 	err := r.db.WithContext(ctx).Model(&domain.WorkSchedule{}).Count(&totalItems).Error
 	if err != nil {
 		return nil, 0, err
-	}
-	// Retrieve paginated items with details preloaded, ordered by ID
+	} // Retrieve paginated items with active details preloaded, ordered by ID
 	err = r.db.WithContext(ctx).Model(&domain.WorkSchedule{}).
-		Preload("Details").
+		Preload("Details", "is_active = ?", true).
 		Preload("Details.Location"). // Preload location for each detail
 		Order("id ASC").             // Add ordering by ID ascending
 		Offset(offset).

@@ -58,6 +58,7 @@ func (h *WorkScheduleHandler) CreateWorkSchedule(c *gin.Context) {
 			CheckoutStart:  checkoutStart,
 			CheckoutEnd:    checkoutEnd,
 			LocationID:     detailDTO.LocationID,
+			IsActive:       detailDTO.IsActive == nil || *detailDTO.IsActive, // Default to true if not provided for new details
 		}
 		domainDetails = append(domainDetails, domainDetail)
 	}
@@ -152,6 +153,7 @@ func (h *WorkScheduleHandler) UpdateWorkSchedule(c *gin.Context) {
 			CheckoutStart:  checkoutStart,
 			CheckoutEnd:    checkoutEnd,
 			LocationID:     detailDTO.LocationID,
+			IsActive:       detailDTO.IsActive == nil || *detailDTO.IsActive, // Use provided value or default to true if not provided
 		}
 
 		// Set ID if it's an existing detail
@@ -193,6 +195,25 @@ func (h *WorkScheduleHandler) GetWorkSchedule(c *gin.Context) {
 	}
 
 	response.OK(c, "Work schedule retrieved successfully", workSchedule)
+}
+
+func (h *WorkScheduleHandler) GetWorkScheduleForEdit(c *gin.Context) {
+	// Get ID from URL parameter
+	idParam := c.Param("id")
+	idUint64, err := strconv.ParseUint(idParam, 10, 32)
+	if err != nil {
+		response.BadRequest(c, "Invalid work schedule ID", nil)
+		return
+	}
+	id := uint(idUint64)
+
+	workSchedule, err := h.workScheduleUseCase.GetByIDForEdit(c.Request.Context(), id)
+	if err != nil {
+		response.NotFound(c, err.Error(), nil)
+		return
+	}
+
+	response.OK(c, "Work schedule retrieved for editing successfully", workSchedule)
 }
 
 func (h *WorkScheduleHandler) DeleteWorkSchedule(c *gin.Context) {

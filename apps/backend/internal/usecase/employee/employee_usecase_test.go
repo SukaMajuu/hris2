@@ -1340,7 +1340,7 @@ func TestEmployeeUseCase_BulkImport(t *testing.T) {
 					case 2:
 						empID = 3
 					default:
-						if i >= 0 {
+						if i >= 0 && i < 1000 {
 							empID = uint(i + 1)
 						} else {
 							empID = 1

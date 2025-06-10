@@ -1334,6 +1334,8 @@ func (uc *EmployeeUseCase) SyncSubscriptionEmployeeCount(ctx context.Context, ad
 func (uc *EmployeeUseCase) comprehensivePreValidation(ctx context.Context, employees []*domain.Employee) []EmployeeImportError {
 	var errors []EmployeeImportError
 
+	_ = ctx
+
 	log.Printf("EmployeeUseCase: Starting comprehensive validation for %d employees", len(employees))
 
 	for i, employee := range employees {

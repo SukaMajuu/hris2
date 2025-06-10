@@ -77,8 +77,8 @@ func (uc *MidtransSubscriptionUseCase) InitiatePaidCheckout(ctx context.Context,
 		Amount:             amount,
 		Currency:           "IDR",
 		Status:             enums.CheckoutInitiated,
-		InitiatedAt:        time.Now(),
-		ExpiresAt:          func() *time.Time { t := time.Now().Add(24 * time.Hour); return &t }(),
+		InitiatedAt:        time.Now().UTC(),
+		ExpiresAt:          func() *time.Time { t := time.Now().UTC().Add(24 * time.Hour); return &t }(),
 	}
 
 	if err := uc.paymentRepo.CreateCheckoutSession(ctx, checkoutSession); err != nil {
@@ -154,7 +154,7 @@ func (uc *MidtransSubscriptionUseCase) InitiatePaidCheckout(ctx context.Context,
 			InvoiceURL: snapResp.RedirectURL,
 			Amount:     amount,
 			Currency:   "IDR",
-			ExpiryDate: time.Now().Add(24 * time.Hour).Format(time.RFC3339),
+			ExpiryDate: time.Now().UTC().Add(24 * time.Hour).Format(time.RFC3339),
 		},
 	}, nil
 }
@@ -174,7 +174,7 @@ func (uc *MidtransSubscriptionUseCase) ProcessNotification(ctx context.Context, 
 	case statusCapture, statusSettlement:
 		// Payment successful
 		checkoutSession.Status = enums.CheckoutCompleted
-		checkoutSession.CompletedAt = func() *time.Time { t := time.Now(); return &t }()
+		checkoutSession.CompletedAt = func() *time.Time { t := time.Now().UTC(); return &t }()
 
 		// Activate subscription
 		if err := uc.activateSubscription(ctx, checkoutSession); err != nil {
@@ -209,7 +209,7 @@ func (uc *MidtransSubscriptionUseCase) activateSubscription(ctx context.Context,
 
 	// Calculate subscription period
 	var startDate, endDate time.Time
-	startDate = time.Now()
+	startDate = time.Now().UTC()
 
 	// Determine if it's monthly or yearly based on amount
 	if checkoutSession.Amount.Cmp(seatPlan.PricePerMonth) == 0 {

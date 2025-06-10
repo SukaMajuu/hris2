@@ -80,8 +80,8 @@ func (uc *SubscriptionUseCase) InitiateTrialCheckout(ctx context.Context, userID
 		Amount:             decimal.NewFromInt(0),
 		Currency:           "IDR",
 		Status:             enums.CheckoutInitiated,
-		InitiatedAt:        time.Now(),
-		ExpiresAt:          func() *time.Time { t := time.Now().Add(24 * time.Hour); return &t }(),
+		InitiatedAt:        time.Now().UTC(),
+		ExpiresAt:          func() *time.Time { t := time.Now().UTC().Add(24 * time.Hour); return &t }(),
 	}
 
 	if err := uc.xenditRepo.CreateCheckoutSession(ctx, checkoutSession); err != nil {
@@ -114,8 +114,8 @@ func (uc *SubscriptionUseCase) InitiatePaidCheckout(ctx context.Context, userID,
 		Amount:             amount,
 		Currency:           "IDR",
 		Status:             enums.CheckoutInitiated,
-		InitiatedAt:        time.Now(),
-		ExpiresAt:          func() *time.Time { t := time.Now().Add(24 * time.Hour); return &t }(),
+		InitiatedAt:        time.Now().UTC(),
+		ExpiresAt:          func() *time.Time { t := time.Now().UTC().Add(24 * time.Hour); return &t }(),
 	}
 
 	if err := uc.xenditRepo.CreateCheckoutSession(ctx, checkoutSession); err != nil {
@@ -193,7 +193,7 @@ func (uc *SubscriptionUseCase) CompleteTrialCheckout(ctx context.Context, sessio
 		SubscriptionPlanID:   session.SubscriptionPlanID,
 		SeatPlanID:           session.SeatPlanID,
 		Status:               enums.StatusTrial,
-		StartDate:            time.Now(),
+		StartDate:            time.Now().UTC(),
 		IsAutoRenew:          true,
 		CurrentEmployeeCount: 0,
 	}
@@ -451,7 +451,7 @@ func (uc *SubscriptionUseCase) processTripayPaidWebhook(ctx context.Context, dat
 	if paidAtUnix, ok := data["paid_at"].(float64); ok {
 		paidAt = time.Unix(int64(paidAtUnix), 0)
 	} else {
-		paidAt = time.Now()
+		paidAt = time.Now().UTC()
 	}
 
 	// Get payment method from Tripay callback
@@ -579,7 +579,7 @@ func (uc *SubscriptionUseCase) ProcessMidtransWebhook(ctx context.Context, notif
 	case statusCapture, statusSettlement:
 		// Payment successful
 		checkoutSession.Status = enums.CheckoutCompleted
-		checkoutSession.CompletedAt = func() *time.Time { t := time.Now(); return &t }()
+		checkoutSession.CompletedAt = func() *time.Time { t := time.Now().UTC(); return &t }()
 
 		// Activate subscription first (this sets the subscription ID)
 		if err := uc.activateMidtransSubscription(ctx, checkoutSession); err != nil {
@@ -654,7 +654,7 @@ func (uc *SubscriptionUseCase) activateMidtransSubscription(ctx context.Context,
 
 		// Calculate subscription period
 		var startDate, endDate time.Time
-		startDate = time.Now()
+		startDate = time.Now().UTC()
 
 		// Determine if it's monthly or yearly based on amount
 		if checkoutSession.Amount.Cmp(seatPlan.PricePerMonth) == 0 {
@@ -671,7 +671,7 @@ func (uc *SubscriptionUseCase) activateMidtransSubscription(ctx context.Context,
 			SubscriptionPlanID:   checkoutSession.SubscriptionPlanID,
 			SeatPlanID:           checkoutSession.SeatPlanID,
 			Status:               enums.StatusActive,
-			StartDate:            startDate,
+			StartDate:            time.Now().UTC(),
 			EndDate:              &endDate,
 			IsAutoRenew:          true,
 			CurrentEmployeeCount: 0,
@@ -789,7 +789,7 @@ func (uc *SubscriptionUseCase) CreateAutomaticTrialForPremiumUser(ctx context.Co
 		SubscriptionPlanID:   premiumPlan.ID,
 		SeatPlanID:           defaultSeatPlan.ID,
 		Status:               enums.StatusTrial,
-		StartDate:            time.Now(),
+		StartDate:            time.Now().UTC(),
 		IsAutoRenew:          true,
 		CurrentEmployeeCount: 1, // The admin user counts as first employee
 	}

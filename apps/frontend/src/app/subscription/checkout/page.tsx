@@ -11,7 +11,8 @@ import CheckoutPageSkeleton from "./_components/CheckoutPageSkeleton";
 import { useRouter } from "next/navigation";
 
 const formatCurrency = (value: number) => {
-	return `Rp ${value.toLocaleString("id-ID")}`;
+	// Format Indonesian Rupiah without locale-specific issues
+	return `Rp ${value.toLocaleString("en-US")}`;
 };
 
 function CheckoutPageContent() {

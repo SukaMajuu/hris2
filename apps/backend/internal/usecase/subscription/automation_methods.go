@@ -105,7 +105,7 @@ func (uc *SubscriptionUseCase) SendTrialWarningNotifications(ctx context.Context
 func (uc *SubscriptionUseCase) ProcessAutoRenewals(ctx context.Context) error {
 	log.Println("🔄 Processing auto-renewals...")
 
-	today := time.Now().Truncate(24 * time.Hour)
+	today := time.Now().UTC().Truncate(24 * time.Hour)
 	subscriptions, err := uc.xenditRepo.GetSubscriptionsDueForRenewal(ctx, today)
 	if err != nil {
 		return fmt.Errorf("failed to get subscriptions due for renewal: %w", err)
@@ -178,7 +178,7 @@ func (uc *SubscriptionUseCase) UpdateUsageStatistics(ctx context.Context) error 
 			SubscriptionID:      subscription.ID,
 			EmployeeCount:       employeeCount,
 			ActiveEmployeeCount: employeeCount,
-			RecordedAt:          time.Now(),
+			RecordedAt:          time.Now().UTC(),
 		}
 
 		if err := uc.xenditRepo.CreateSubscriptionUsage(ctx, usage); err != nil {
@@ -210,7 +210,7 @@ func (uc *SubscriptionUseCase) createRenewalInvoice(ctx context.Context, subscri
 	var amount decimal.Decimal
 
 	if subscription.NextBillingDate != nil {
-		now := time.Now()
+		now := time.Now().UTC()
 		daysSinceLastBilling := int(now.Sub(*subscription.NextBillingDate).Hours() / 24)
 
 		if daysSinceLastBilling >= 350 {
@@ -232,8 +232,8 @@ func (uc *SubscriptionUseCase) createRenewalInvoice(ctx context.Context, subscri
 		Amount:             amount,
 		Currency:           "IDR",
 		Status:             enums.CheckoutInitiated,
-		InitiatedAt:        time.Now(),
-		ExpiresAt:          func() *time.Time { t := time.Now().Add(7 * 24 * time.Hour); return &t }(), // 7 days to pay
+		InitiatedAt:        time.Now().UTC(),
+		ExpiresAt:          func() *time.Time { t := time.Now().UTC().Add(7 * 24 * time.Hour); return &t }(), // 7 days to pay
 	}
 
 	if err := uc.xenditRepo.CreateCheckoutSession(ctx, checkoutSession); err != nil {

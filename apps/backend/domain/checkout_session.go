@@ -53,7 +53,7 @@ func (cs *CheckoutSession) IsExpired() bool {
 }
 
 func (cs *CheckoutSession) MarkAsCompleted(subscriptionID uint, paymentTransactionID *uint) {
-	now := time.Now()
+	now := time.Now().UTC()
 	cs.Status = enums.CheckoutCompleted
 	cs.CompletedAt = &now
 	cs.SubscriptionID = &subscriptionID

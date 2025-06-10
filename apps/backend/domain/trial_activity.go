@@ -5,21 +5,21 @@ import (
 )
 
 type TrialActivity struct {
-	ID                uint         `gorm:"primaryKey"`
-	SubscriptionID    uint         `gorm:"not null"`
-	Subscription      Subscription `gorm:"foreignKey:SubscriptionID"`
-	UserID            uint         `gorm:"not null"`
-	User              User         `gorm:"foreignKey:UserID"`
+	ID             uint         `gorm:"primaryKey"`
+	SubscriptionID uint         `gorm:"not null"`
+	Subscription   Subscription `gorm:"foreignKey:SubscriptionID"`
+	UserID         uint         `gorm:"not null"`
+	User           User         `gorm:"foreignKey:UserID"`
 
-	EmployeesAdded    int          `gorm:"type:int;default:0;not null"`
-	FeaturesUsed      string       `gorm:"type:text"`
-	LastActivityDate  *time.Time   `gorm:"type:timestamp"`
+	EmployeesAdded   int        `gorm:"type:int;default:0;not null"`
+	FeaturesUsed     string     `gorm:"type:text"`
+	LastActivityDate *time.Time `gorm:"type:timestamp"`
 
-	ConvertedToPaid   bool         `gorm:"type:boolean;default:false;not null"`
-	ConversionDate    *time.Time   `gorm:"type:timestamp"`
+	ConvertedToPaid bool       `gorm:"type:boolean;default:false;not null"`
+	ConversionDate  *time.Time `gorm:"type:timestamp"`
 
-	CreatedAt         time.Time    `gorm:"autoCreateTime"`
-	UpdatedAt         time.Time    `gorm:"autoUpdateTime"`
+	CreatedAt time.Time `gorm:"autoCreateTime"`
+	UpdatedAt time.Time `gorm:"autoUpdateTime"`
 }
 
 func (ta *TrialActivity) TableName() string {
@@ -32,7 +32,7 @@ func (ta *TrialActivity) AddFeatureUsage(featureCode string) {
 }
 
 func (ta *TrialActivity) MarkAsConverted() {
-	now := time.Now()
+	now := time.Now().UTC()
 	ta.ConvertedToPaid = true
 	ta.ConversionDate = &now
 }

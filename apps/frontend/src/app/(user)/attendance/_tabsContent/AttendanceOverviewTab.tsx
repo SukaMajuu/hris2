@@ -56,9 +56,104 @@ const getStatusStyle = (status: string) => {
 	}
 };
 
-// Function to get display status
 const getDisplayStatus = (status: string): string => {
 	return statusMapping[status as keyof typeof statusMapping] || status;
+};
+
+const formatDecimalHoursToTime = (decimalHours: number | string): string => {
+	const hours = Number(decimalHours);
+	if (isNaN(hours)) return "-";
+
+	const totalSeconds = Math.round(hours * 3600);
+	const h = Math.floor(totalSeconds / 3600);
+	const m = Math.floor((totalSeconds % 3600) / 60);
+	const s = totalSeconds % 60;
+
+	return `${h}h${m}m${s}s`;
+};
+
+const formatTimeToLocal = (
+	utcTime: string | null,
+	dateStr?: string
+): string => {
+	if (!utcTime) return "-";
+
+	try {
+		let date: Date;
+
+		if (utcTime.includes(" ") || utcTime.includes("T")) {
+			if (utcTime.includes("T")) {
+				date = new Date(utcTime);
+			} else {
+				const isoString = utcTime.replace(" ", "T") + "Z";
+				date = new Date(isoString);
+			}
+		} else {
+			const recordDate =
+				dateStr || new Date().toISOString().split("T")[0];
+			const dateTimeString = `${recordDate}T${utcTime}Z`;
+			date = new Date(dateTimeString);
+		}
+
+		if (isNaN(date.getTime())) {
+			console.error("Invalid date:", utcTime);
+			return utcTime;
+		}
+
+		const formatted = date.toLocaleString("en-US", {
+			year: "numeric",
+			month: "short",
+			day: "2-digit",
+			hour: "2-digit",
+			minute: "2-digit",
+			second: "2-digit",
+			timeZoneName: "short",
+		});
+
+		return formatted;
+	} catch (error) {
+		console.error("Error formatting time:", error, "Input:", utcTime);
+		return utcTime || "-";
+	}
+};
+
+const formatTimeOnly = (utcTime: string | null, dateStr?: string): string => {
+	if (!utcTime) return "-";
+
+	try {
+		let date: Date;
+
+		if (utcTime.includes(" ") || utcTime.includes("T")) {
+			if (utcTime.includes("T")) {
+				date = new Date(utcTime);
+			} else {
+				const isoString = utcTime.replace(" ", "T") + "Z";
+				date = new Date(isoString);
+			}
+		} else {
+			const recordDate =
+				dateStr || new Date().toISOString().split("T")[0];
+			const dateTimeString = `${recordDate}T${utcTime}Z`;
+			date = new Date(dateTimeString);
+		}
+
+		if (isNaN(date.getTime())) {
+			console.error("Invalid date in formatTimeOnly:", utcTime);
+			return utcTime;
+		}
+
+		const formatted = date.toLocaleTimeString("en-US", {
+			hour: "2-digit",
+			minute: "2-digit",
+			second: "2-digit",
+			hour12: false,
+		});
+
+		return formatted;
+	} catch (error) {
+		console.error("Error formatting time only:", error, "Input:", utcTime);
+		return utcTime || "-";
+	}
 };
 
 export default function AttendanceOverviewTab() {
@@ -82,13 +177,11 @@ export default function AttendanceOverviewTab() {
 	const [dialogTitle, setDialogTitle] = useState("Add Attendance Data");
 	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 
-	// Filter component state
 	const [filters, setFilters] = useState({
 		date: "",
 		attendanceStatus: "",
 	});
 
-	// Apply filters to the data
 	const filteredData = useMemo(() => {
 		return filterAttendanceData(checkClockData, filters);
 	}, [checkClockData, filters]);
@@ -143,7 +236,6 @@ export default function AttendanceOverviewTab() {
 		if (data.attendance_type === "clock-in" && data.clock_in_request) {
 			clockIn(data.clock_in_request, {
 				onSuccess: () => {
-					console.log("Clock-in successful");
 					setOpenDialog(false);
 					reset();
 				},
@@ -157,7 +249,6 @@ export default function AttendanceOverviewTab() {
 		) {
 			clockOut(data.clock_out_request, {
 				onSuccess: () => {
-					console.log("Clock-out successful");
 					setOpenDialog(false);
 					reset();
 				},
@@ -168,7 +259,6 @@ export default function AttendanceOverviewTab() {
 		}
 	};
 
-	// Filter handler functions
 	const handleApplyFilters = (newFilters: {
 		date?: string;
 		attendanceStatus?: string;
@@ -200,7 +290,6 @@ export default function AttendanceOverviewTab() {
 		const now = new Date();
 		const currentDate = now.toISOString().split("T")[0];
 
-		// Get work schedule ID from employee or use default if not assigned
 		const employeeWorkScheduleId = workScheduleId || 1;
 
 		if (action === "clock-in") {
@@ -226,7 +315,6 @@ export default function AttendanceOverviewTab() {
 
 		setDialogTitle(title);
 
-		// Get current location after setting initial values
 		if (navigator.geolocation) {
 			navigator.geolocation.getCurrentPosition(
 				(position) => {
@@ -282,17 +370,23 @@ export default function AttendanceOverviewTab() {
 				},
 			},
 			{
-				header: "Check-In",
+				header: "Clock In",
 				accessorKey: "clock_in",
 				cell: ({ row }) => {
-					return row.original.clock_in || "-";
+					return formatTimeOnly(
+						row.original.clock_in,
+						row.original.date
+					);
 				},
 			},
 			{
-				header: "Check-Out",
+				header: "Clock Out",
 				accessorKey: "clock_out",
 				cell: ({ row }) => {
-					return row.original.clock_out || "-";
+					return formatTimeOnly(
+						row.original.clock_out,
+						row.original.date
+					);
 				},
 			},
 			{
@@ -309,7 +403,7 @@ export default function AttendanceOverviewTab() {
 				accessorKey: "work_hours",
 				cell: ({ row }) => {
 					return row.original.work_hours
-						? `${row.original.work_hours}h`
+						? formatDecimalHoursToTime(row.original.work_hours)
 						: "-";
 				},
 			},
@@ -478,7 +572,10 @@ export default function AttendanceOverviewTab() {
 											Check-In
 										</p>
 										<p className="text-slate-700">
-											{selectedData.clock_in || "-"}
+											{formatTimeToLocal(
+												selectedData.clock_in,
+												selectedData.date
+											)}
 										</p>
 									</div>
 									<div>
@@ -486,7 +583,10 @@ export default function AttendanceOverviewTab() {
 											Check-Out
 										</p>
 										<p className="text-slate-700">
-											{selectedData.clock_out || "-"}
+											{formatTimeToLocal(
+												selectedData.clock_out,
+												selectedData.date
+											)}
 										</p>
 									</div>
 									<div>
@@ -495,7 +595,9 @@ export default function AttendanceOverviewTab() {
 										</p>
 										<p className="text-slate-700">
 											{selectedData.work_hours
-												? `${selectedData.work_hours}h`
+												? formatDecimalHoursToTime(
+														selectedData.work_hours
+												  )
 												: "-"}
 										</p>
 									</div>

@@ -216,9 +216,9 @@ func (uc *WorkScheduleUseCase) UpdateByUser(
 				if detail.LocationID == nil {
 					return nil, fmt.Errorf("location ID is required for WFO work type detail")
 				}
-				_, err := uc.locationRepo.GetByID(ctx, *detail.LocationID)
+				_, err := uc.locationRepo.GetByIDAndUser(ctx, *detail.LocationID, userID)
 				if err != nil {
-					return nil, fmt.Errorf("invalid location ID %d for WFO detail: %w", *detail.LocationID, err)
+					return nil, fmt.Errorf("invalid location ID %d for WFO detail or location does not belong to user: %w", *detail.LocationID, err)
 				}
 			}
 		}

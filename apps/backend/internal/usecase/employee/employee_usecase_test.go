@@ -1429,10 +1429,11 @@ func TestEmployeeUseCase_BulkImport(t *testing.T) {
 				// Second call: get actual subordinates to check recursively
 				var mockEmployees []*domain.Employee
 				for i := range tt.expectedSuccessfulIDs {
-					// Use a safer approach to generate unique IDs without integer conversion
-					empID := uint(100 + i)
-					// Additional safety check for large values
-					if i > 900 {
+					// Use a safer approach to generate unique IDs with proper bounds checking
+					var empID uint
+					if i <= 900 { // Safe range check before conversion
+						empID = uint(100) + uint(i)
+					} else {
 						empID = uint(100) // Fallback for edge cases
 					}
 					mockEmployees = append(mockEmployees, &domain.Employee{
@@ -1451,10 +1452,11 @@ func TestEmployeeUseCase_BulkImport(t *testing.T) {
 
 				// Third call: for each subordinate, check if they have subordinates (should be 0)
 				for i := range tt.expectedSuccessfulIDs {
-					// Use a safer approach to generate unique IDs without integer conversion
-					empID := uint(100 + i)
-					// Additional safety check for large values
-					if i > 900 {
+					// Use a safer approach to generate unique IDs with proper bounds checking
+					var empID uint
+					if i <= 900 { // Safe range check before conversion
+						empID = uint(100) + uint(i)
+					} else {
 						empID = uint(100) // Fallback for edge cases
 					}
 					mockEmployeeRepo.On("List", ctx,

@@ -108,7 +108,7 @@ func (r *Router) Setup() *gin.Engine {
 				locations.GET("", r.locationHandler.ListLocations)
 				locations.GET("/:id", r.locationHandler.GetLocationByID)
 				locations.PUT("/:id", r.locationHandler.UpdateLocation)
-				locations.DELETE("/:id", r.locationHandler.DeleteLocation)
+				locations.PATCH("/:id", r.locationHandler.DeleteLocation)
 			}
 
 			workScheduleRoutes := api.Group("/work-schedules")
@@ -118,7 +118,7 @@ func (r *Router) Setup() *gin.Engine {
 				workScheduleRoutes.GET("/:id", r.workScheduleHandler.GetWorkSchedule)
 				workScheduleRoutes.GET("/:id/edit", r.workScheduleHandler.GetWorkScheduleForEdit)
 				workScheduleRoutes.PUT("/:id", r.workScheduleHandler.UpdateWorkSchedule)
-				workScheduleRoutes.DELETE("/:id", r.workScheduleHandler.DeleteWorkSchedule)
+				workScheduleRoutes.PATCH("/:id", r.workScheduleHandler.DeleteWorkSchedule)
 			}
 
 			attendances := api.Group("/attendances")

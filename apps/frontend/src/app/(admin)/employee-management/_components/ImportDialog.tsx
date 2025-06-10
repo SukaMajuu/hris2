@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Upload, Download, AlertCircle, CheckCircle, X } from 'lucide-react';
+import { Upload, Download, AlertCircle, CheckCircle, X, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -15,6 +15,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { parseEmployeeCSV, downloadCSVTemplate } from '@/utils/csvImport';
 import { parseEmployeeExcel, downloadExcelTemplate } from '@/utils/excelImport';
 import { EmployeeService, type BulkImportResult } from '@/services/employee.service';
+import { useSubscriptionLimit } from '@/hooks/useSubscriptionLimit';
 import { toast } from 'sonner';
 
 interface ImportDialogProps {
@@ -48,6 +49,8 @@ export function ImportDialog({ open, onOpenChange, onImportComplete }: ImportDia
   const [importResult, setImportResult] = useState<BulkImportResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const employeeService = new EmployeeService();
+
+  const { limitInfo, checkCanAddEmployees, getAddEmployeeErrorMessage } = useSubscriptionLimit();
 
   const handleFileSelect = async (selectedFile: File) => {
     setFile(selectedFile);
@@ -104,7 +107,22 @@ export function ImportDialog({ open, onOpenChange, onImportComplete }: ImportDia
   };
 
   const handleImport = async () => {
-    if (!file) return;
+    if (!file || !importPreview) return;
+
+    if (!checkCanAddEmployees(importPreview.validRows)) {
+      const errorMessage = getAddEmployeeErrorMessage(importPreview.validRows);
+      toast.error('Cannot Import - Employee Limit Exceeded', {
+        description: errorMessage,
+        action: {
+          label: 'Upgrade Plan',
+          onClick: () => {
+            window.open('/subscription?view=seat', '_blank');
+          },
+        },
+        duration: 10000,
+      });
+      return;
+    }
 
     setIsImporting(true);
     try {
@@ -179,6 +197,9 @@ export function ImportDialog({ open, onOpenChange, onImportComplete }: ImportDia
       importPreview.duplicates.niks.length > 0 ||
       importPreview.duplicates.employeeCodes.length > 0);
 
+  const canImport = importPreview && !hasErrors && checkCanAddEmployees(importPreview.validRows);
+  const limitExceeded = importPreview && !checkCanAddEmployees(importPreview.validRows);
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className='max-h-[80vh] max-w-4xl overflow-y-auto'>
@@ -195,13 +216,55 @@ export function ImportDialog({ open, onOpenChange, onImportComplete }: ImportDia
         </DialogHeader>
 
         <div className='space-y-6'>
+          {/* Employee Limit Information */}
+          <Alert>
+            <Users className='h-4 w-4' />
+            <AlertDescription>
+              <div className='flex items-center justify-between'>
+                <span>
+                  Current employees:{' '}
+                  <strong>
+                    {limitInfo.currentCount} / {limitInfo.maxCount}
+                  </strong>
+                  {limitInfo.tierInfo && (
+                    <span className='ml-2 text-sm text-gray-600'>
+                      ({limitInfo.planName} - {limitInfo.tierInfo.minEmployees}-
+                      {limitInfo.tierInfo.maxEmployees} tier)
+                    </span>
+                  )}
+                </span>
+                <Badge
+                  variant={
+                    limitInfo.canAddCount > 10
+                      ? 'default'
+                      : limitInfo.canAddCount > 0
+                        ? 'secondary'
+                        : 'destructive'
+                  }
+                >
+                  {limitInfo.canAddCount} remaining
+                </Badge>
+              </div>
+            </AlertDescription>
+          </Alert>
+
           {/* Template Downloads */}
           <div className='flex gap-2'>
-            <Button variant='outline' size='sm' onClick={downloadCSVTemplate}>
+            <Button
+              variant='outline'
+              size='sm'
+              onClick={downloadCSVTemplate}
+              className='cursor-pointer'
+            >
               <Download className='mr-2 h-4 w-4' />
               Download CSV Template
             </Button>
-            <Button variant='outline' size='sm' onClick={downloadExcelTemplate}>
+            <Button
+              variant='outline'
+              size='sm'
+              onClick={downloadExcelTemplate}
+              className='cursor-pointer'
+            >
               <Download className='mr-2 h-4 w-4' />
               Download Excel Template
             </Button>
@@ -209,7 +272,7 @@ export function ImportDialog({ open, onOpenChange, onImportComplete }: ImportDia
 
           {/* File Upload Area */}
           <div
-            className='rounded-lg border-2 border-dashed border-gray-300 p-8 text-center transition-colors hover:border-gray-400'
+            className='cursor-pointer rounded-lg border-2 border-dashed border-gray-300 p-8 text-center transition-colors hover:border-gray-400'
             onDrop={handleDrop}
             onDragOver={handleDragOver}
           >
@@ -218,7 +281,7 @@ export function ImportDialog({ open, onOpenChange, onImportComplete }: ImportDia
               <p className='text-lg font-medium'>Drop your file here or</p>
               <Button
                 variant='outline'
-                className='mt-2'
+                className='mt-2 cursor-pointer'
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isProcessing}
               >
@@ -333,7 +396,6 @@ export function ImportDialog({ open, onOpenChange, onImportComplete }: ImportDia
                         {importPreview.errors.slice(0, 1000).map((error, index) => {
                           let errorText = '';
 
-                          // Format specific error messages for better readability
                           if (
                             error.field === 'nik' &&
                             error.message.includes('already registered')
@@ -386,6 +448,30 @@ export function ImportDialog({ open, onOpenChange, onImportComplete }: ImportDia
                   )}
                 </div>
               )}
+
+              {/* Limit Exceeded Warning */}
+              {limitExceeded && (
+                <Alert variant='destructive'>
+                  <AlertCircle className='h-4 w-4' />
+                  <AlertDescription>
+                    Cannot import {importPreview.validRows} employees. Your {limitInfo.planName}{' '}
+                    plan ({limitInfo.tierInfo.minEmployees}-{limitInfo.tierInfo.maxEmployees}{' '}
+                    employees tier) only allows {limitInfo.maxCount} total employees. You currently
+                    have {limitInfo.currentCount} employees and can only add {limitInfo.canAddCount}{' '}
+                    more.
+                    <div className='mt-2'>
+                      <Button
+                        variant='outline'
+                        size='sm'
+                        onClick={() => window.open('/subscription?view=seat', '_blank')}
+                        className='cursor-pointer'
+                      >
+                        Upgrade Plan
+                      </Button>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
             </div>
           )}
 
@@ -429,7 +515,6 @@ export function ImportDialog({ open, onOpenChange, onImportComplete }: ImportDia
                           {failedRow.errors.map((error, errorIndex) => {
                             let errorText = '';
 
-                            // Format specific error messages for better readability
                             if (
                               error.field === 'nik' &&
                               error.message.includes('already registered')
@@ -504,11 +589,20 @@ export function ImportDialog({ open, onOpenChange, onImportComplete }: ImportDia
 
           {/* Action Buttons */}
           <div className='flex justify-end gap-2'>
-            <Button variant='outline' onClick={handleClose} disabled={isImporting}>
+            <Button
+              variant='outline'
+              onClick={handleClose}
+              disabled={isImporting}
+              className='cursor-pointer'
+            >
               {importResult ? 'Close' : 'Cancel'}
             </Button>
             {importPreview && !hasErrors && !importResult && (
-              <Button onClick={handleImport} disabled={isImporting}>
+              <Button
+                onClick={handleImport}
+                disabled={!canImport || isImporting}
+                className='min-w-[120px] cursor-pointer'
+              >
                 {isImporting ? (
                   <>
                     <div className='mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent'></div>
@@ -526,6 +620,7 @@ export function ImportDialog({ open, onOpenChange, onImportComplete }: ImportDia
                   onOpenChange(false);
                   resetDialog();
                 }}
+                className='cursor-pointer'
               >
                 View Updated List
               </Button>

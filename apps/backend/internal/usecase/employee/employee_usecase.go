@@ -14,9 +14,10 @@ import (
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
 	dtoemployee "github.com/SukaMajuu/hris/apps/backend/domain/dto/employee"
+	"github.com/SukaMajuu/hris/apps/backend/domain/enums"
 	"github.com/SukaMajuu/hris/apps/backend/domain/interfaces"
 	storage "github.com/supabase-community/storage-go"
-	"github.com/supabase-community/supabase-go"
+	supa "github.com/supabase-community/supabase-go"
 	"gorm.io/gorm"
 )
 
@@ -35,18 +36,24 @@ const (
 type EmployeeUseCase struct {
 	employeeRepo   interfaces.EmployeeRepository
 	authRepo       interfaces.AuthRepository
-	supabaseClient *supabase.Client
+	xenditRepo     interfaces.XenditRepository
+	supabaseClient *supa.Client
+	db             *gorm.DB
 }
 
 func NewEmployeeUseCase(
 	employeeRepo interfaces.EmployeeRepository,
 	authRepo interfaces.AuthRepository,
-	supabaseClient *supabase.Client,
+	xenditRepo interfaces.XenditRepository,
+	supabaseClient *supa.Client,
+	db *gorm.DB,
 ) *EmployeeUseCase {
 	return &EmployeeUseCase{
 		employeeRepo:   employeeRepo,
 		authRepo:       authRepo,
+		xenditRepo:     xenditRepo,
 		supabaseClient: supabaseClient,
+		db:             db,
 	}
 }
 
@@ -95,6 +102,11 @@ func (uc *EmployeeUseCase) Create(ctx context.Context, employee *domain.Employee
 		log.Printf("EmployeeUseCase: Create called for employee. FirstName: %s, UserEmail: (not provided), CreatorEmployeeID: %d", employee.FirstName, creatorEmployeeID)
 	}
 
+	if err := uc.checkEmployeeLimit(ctx, creatorEmployeeID); err != nil {
+		log.Printf("EmployeeUseCase: Employee limit check failed: %v", err)
+		return nil, err
+	}
+
 	employee.ManagerID = &creatorEmployeeID
 
 	if employee.User.Password == "" {
@@ -107,8 +119,152 @@ func (uc *EmployeeUseCase) Create(ctx context.Context, employee *domain.Employee
 		return nil, fmt.Errorf("failed to create employee and user: %w", err)
 	}
 
+	if err := uc.updateSubscriptionEmployeeCount(ctx, creatorEmployeeID); err != nil {
+		log.Printf("EmployeeUseCase: Warning - failed to update subscription employee count: %v", err)
+
+	}
+
 	log.Printf("EmployeeUseCase: Successfully created employee with ID %d and User ID %d, Manager ID %d", employee.ID, employee.User.ID, *employee.ManagerID)
 	return employee, nil
+}
+
+func (uc *EmployeeUseCase) checkEmployeeLimit(ctx context.Context, creatorEmployeeID uint) error {
+
+	creatorEmployee, err := uc.employeeRepo.GetByID(ctx, creatorEmployeeID)
+	if err != nil {
+		return fmt.Errorf("failed to get creator employee: %w", err)
+	}
+
+	adminUserID, err := uc.findAdminUserID(ctx, creatorEmployee)
+	if err != nil {
+		return fmt.Errorf("failed to find admin user: %w", err)
+	}
+
+	currentCount, err := uc.getCurrentEmployeeCount(ctx, adminUserID)
+	if err != nil {
+		return fmt.Errorf("failed to get current employee count: %w", err)
+	}
+
+	subscription, err := uc.xenditRepo.GetSubscriptionByAdminUserID(ctx, adminUserID)
+	if err != nil {
+
+		log.Printf("EmployeeUseCase: Subscription not found for admin %d, using default limits. Error: %v", adminUserID, err)
+
+		maxEmployees := 100
+
+		if currentCount >= maxEmployees {
+			return fmt.Errorf("employee limit reached: maximum %d employees allowed, currently have %d employees", maxEmployees, currentCount)
+		}
+
+		log.Printf("EmployeeUseCase: Employee limit check passed (fallback) - Current: %d, Max: %d", currentCount, maxEmployees)
+		return nil
+	}
+
+	maxEmployees := subscription.SeatPlan.MaxEmployees
+
+	if currentCount >= maxEmployees {
+		return fmt.Errorf("employee limit reached: your %s plan (%d-%d employees tier) allows maximum %d employees, currently have %d employees",
+			subscription.SubscriptionPlan.Name,
+			subscription.SeatPlan.MinEmployees,
+			subscription.SeatPlan.MaxEmployees,
+			maxEmployees,
+			currentCount)
+	}
+
+	log.Printf("EmployeeUseCase: Employee limit check passed - Current: %d, Max: %d, Plan: %s (%d-%d tier)",
+		currentCount, maxEmployees, subscription.SubscriptionPlan.Name,
+		subscription.SeatPlan.MinEmployees, subscription.SeatPlan.MaxEmployees)
+
+	return nil
+}
+
+func (uc *EmployeeUseCase) getCurrentEmployeeCount(ctx context.Context, adminUserID uint) (int, error) {
+
+	adminUser, err := uc.authRepo.GetUserByID(ctx, adminUserID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get admin user: %w", err)
+	}
+
+	if adminUser.Role != enums.RoleAdmin {
+		return 0, fmt.Errorf("user is not an admin")
+	}
+
+	adminEmployee, err := uc.employeeRepo.GetByUserID(ctx, adminUserID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get admin employee: %w", err)
+	}
+
+	filters := map[string]interface{}{
+		"manager_id": adminEmployee.ID,
+	}
+
+	_, totalCount, err := uc.employeeRepo.List(ctx, filters, domain.PaginationParams{
+		Page:     1,
+		PageSize: 1,
+	})
+	if err != nil {
+		return 0, fmt.Errorf("failed to count employees: %w", err)
+	}
+
+	return int(totalCount) + 1, nil
+}
+
+func (uc *EmployeeUseCase) updateSubscriptionEmployeeCount(ctx context.Context, creatorEmployeeID uint) error {
+
+	creatorEmployee, err := uc.employeeRepo.GetByID(ctx, creatorEmployeeID)
+	if err != nil {
+		return fmt.Errorf("failed to get creator employee: %w", err)
+	}
+
+	adminUserID, err := uc.findAdminUserID(ctx, creatorEmployee)
+	if err != nil {
+		return fmt.Errorf("failed to find admin user: %w", err)
+	}
+
+	subscription, err := uc.xenditRepo.GetSubscriptionByAdminUserID(ctx, adminUserID)
+	if err != nil {
+
+		log.Printf("EmployeeUseCase: Subscription not found for admin %d, skipping count update. Error: %v", adminUserID, err)
+		return nil
+	}
+
+	currentCount, err := uc.getCurrentEmployeeCount(ctx, adminUserID)
+	if err != nil {
+		return fmt.Errorf("failed to get current employee count: %w", err)
+	}
+
+	subscription.CurrentEmployeeCount = currentCount
+	if err := uc.xenditRepo.UpdateSubscription(ctx, subscription); err != nil {
+		return fmt.Errorf("failed to update subscription: %w", err)
+	}
+
+	log.Printf("EmployeeUseCase: Updated subscription employee count to %d", currentCount)
+	return nil
+}
+
+func (uc *EmployeeUseCase) findAdminUserID(ctx context.Context, employee *domain.Employee) (uint, error) {
+	if employee.User.ID == 0 {
+		emp, err := uc.employeeRepo.GetByID(ctx, employee.ID)
+		if err != nil {
+			return 0, fmt.Errorf("failed to get employee with user info: %w", err)
+		}
+		employee = emp
+	}
+
+	if employee.User.Role == enums.RoleAdmin {
+		return employee.User.ID, nil
+	}
+
+	if employee.ManagerID == nil {
+		return 0, fmt.Errorf("employee has no manager and is not admin")
+	}
+
+	manager, err := uc.employeeRepo.GetByID(ctx, *employee.ManagerID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get manager employee: %w", err)
+	}
+
+	return uc.findAdminUserID(ctx, manager)
 }
 
 func (uc *EmployeeUseCase) GetByID(ctx context.Context, id uint) (*dtoemployee.EmployeeResponseDTO, error) {
@@ -235,7 +391,6 @@ func (uc *EmployeeUseCase) Update(ctx context.Context, employee *domain.Employee
 		}
 	}
 
-	// Log the WorkScheduleID value right before repository update
 	var preUpdateWorkScheduleID string
 	if existingEmployee.WorkScheduleID != nil {
 		preUpdateWorkScheduleID = fmt.Sprintf("%d", *existingEmployee.WorkScheduleID)
@@ -250,11 +405,10 @@ func (uc *EmployeeUseCase) Update(ctx context.Context, employee *domain.Employee
 		return nil, fmt.Errorf("failed to update employee ID %d: %w", employee.ID, err)
 	}
 
-	// Refresh the employee with updated relationships
 	updatedEmployee, err := uc.employeeRepo.GetByID(ctx, existingEmployee.ID)
 	if err != nil {
 		log.Printf("EmployeeUseCase: Error refreshing employee ID %d after update: %v", existingEmployee.ID, err)
-		// Return the existing employee if refresh fails, but log the error
+
 		return existingEmployee, nil
 	}
 
@@ -357,6 +511,21 @@ func (uc *EmployeeUseCase) updateEmployeeFields(existing *domain.Employee, updat
 func (uc *EmployeeUseCase) BulkImport(ctx context.Context, employees []*domain.Employee, creatorEmployeeID uint) ([]uint, []EmployeeImportError) {
 	log.Printf("EmployeeUseCase: BulkImport called for %d employees by creator %d", len(employees), creatorEmployeeID)
 
+	if err := uc.checkBulkEmployeeLimit(ctx, creatorEmployeeID, len(employees)); err != nil {
+		log.Printf("EmployeeUseCase: Bulk import employee limit check failed: %v", err)
+
+		var errors []EmployeeImportError
+		for i := range employees {
+			errors = append(errors, EmployeeImportError{
+				Row:     i + 2,
+				Field:   "employee_limit",
+				Message: err.Error(),
+				Value:   "",
+			})
+		}
+		return []uint{}, errors
+	}
+
 	var successfulIDs []uint
 	var errors []EmployeeImportError
 
@@ -381,40 +550,144 @@ func (uc *EmployeeUseCase) BulkImport(ctx context.Context, employees []*domain.E
 		log.Printf("EmployeeUseCase: Successfully created employee %s with ID %d", employee.FirstName, employee.ID)
 	}
 
+	if len(successfulIDs) > 0 {
+		if err := uc.updateSubscriptionEmployeeCount(ctx, creatorEmployeeID); err != nil {
+			log.Printf("EmployeeUseCase: Warning - failed to update subscription employee count after bulk import: %v", err)
+		}
+	}
+
 	log.Printf("EmployeeUseCase: BulkImport completed. Success: %d, Errors: %d", len(successfulIDs), len(errors))
 	return successfulIDs, errors
+}
+
+func (uc *EmployeeUseCase) checkBulkEmployeeLimit(ctx context.Context, creatorEmployeeID uint, employeeCount int) error {
+
+	creatorEmployee, err := uc.employeeRepo.GetByID(ctx, creatorEmployeeID)
+	if err != nil {
+		return fmt.Errorf("failed to get creator employee: %w", err)
+	}
+
+	adminUserID, err := uc.findAdminUserID(ctx, creatorEmployee)
+	if err != nil {
+		return fmt.Errorf("failed to find admin user: %w", err)
+	}
+
+	currentCount, err := uc.getCurrentEmployeeCount(ctx, adminUserID)
+	if err != nil {
+		return fmt.Errorf("failed to get current employee count: %w", err)
+	}
+
+	subscription, err := uc.xenditRepo.GetSubscriptionByAdminUserID(ctx, adminUserID)
+	if err != nil {
+
+		log.Printf("EmployeeUseCase: Subscription not found for admin %d during bulk import, using default limits. Error: %v", adminUserID, err)
+
+		maxEmployees := 100
+
+		if currentCount+employeeCount > maxEmployees {
+			return fmt.Errorf("bulk import would exceed employee limit: maximum %d employees allowed, currently have %d employees, trying to add %d more", maxEmployees, currentCount, employeeCount)
+		}
+
+		log.Printf("EmployeeUseCase: Bulk employee limit check passed (fallback) - Current: %d, Adding: %d, Max: %d", currentCount, employeeCount, maxEmployees)
+		return nil
+	}
+
+	maxEmployees := subscription.SeatPlan.MaxEmployees
+
+	if currentCount+employeeCount > maxEmployees {
+		return fmt.Errorf("bulk import would exceed employee limit: your %s plan (%d-%d employees tier) allows maximum %d employees, currently have %d employees, trying to add %d more",
+			subscription.SubscriptionPlan.Name,
+			subscription.SeatPlan.MinEmployees,
+			subscription.SeatPlan.MaxEmployees,
+			maxEmployees,
+			currentCount, employeeCount)
+	}
+
+	log.Printf("EmployeeUseCase: Bulk employee limit check passed - Current: %d, Adding: %d, Max: %d, Plan: %s (%d-%d tier)",
+		currentCount, employeeCount, maxEmployees, subscription.SubscriptionPlan.Name,
+		subscription.SeatPlan.MinEmployees, subscription.SeatPlan.MaxEmployees)
+
+	return nil
 }
 
 func (uc *EmployeeUseCase) BulkImportWithTransaction(ctx context.Context, employees []*domain.Employee, creatorEmployeeID uint) ([]uint, []EmployeeImportError) {
 	log.Printf("EmployeeUseCase: BulkImportWithTransaction called for %d employees by creator %d", len(employees), creatorEmployeeID)
 
-	validationErrors := uc.preValidateEmployees(ctx, employees)
+	if err := uc.checkBulkEmployeeLimit(ctx, creatorEmployeeID, len(employees)); err != nil {
+		log.Printf("EmployeeUseCase: Bulk import employee limit check failed: %v", err)
 
+		var errors []EmployeeImportError
+		for i := range employees {
+			errors = append(errors, EmployeeImportError{
+				Row:     i + 2,
+				Field:   "employee_limit",
+				Message: err.Error(),
+				Value:   "",
+			})
+		}
+		return []uint{}, errors
+	}
+
+	log.Printf("EmployeeUseCase: Starting comprehensive pre-validation for %d employees", len(employees))
+
+	validationErrors := uc.preValidateEmployees(ctx, employees)
 	if len(validationErrors) > 0 {
-		log.Printf("EmployeeUseCase: BulkImportWithTransaction failed validation. Found %d errors", len(validationErrors))
+		log.Printf("EmployeeUseCase: Pre-validation failed with %d errors", len(validationErrors))
 		return nil, validationErrors
 	}
 
-	log.Printf("EmployeeUseCase: All employees passed validation. Starting transaction import...")
+	comprehensiveErrors := uc.comprehensivePreValidation(ctx, employees)
+	if len(comprehensiveErrors) > 0 {
+		log.Printf("EmployeeUseCase: Comprehensive validation failed with %d errors", len(comprehensiveErrors))
+		return nil, comprehensiveErrors
+	}
+
+	log.Printf("EmployeeUseCase: All validations passed. Starting employee creation...")
 
 	var successfulIDs []uint
+	var allErrors []EmployeeImportError
 
 	for i, employee := range employees {
 		log.Printf("EmployeeUseCase: Processing employee %d/%d: %s", i+1, len(employees), employee.FirstName)
 
 		employee.ManagerID = &creatorEmployeeID
 
+		if employee.User.Password == "" {
+			employee.User.Password = defaultPassword
+		}
+
+		lastMinuteErrors := uc.lastMinuteValidation(ctx, employee, i+2)
+		if len(lastMinuteErrors) > 0 {
+			log.Printf("EmployeeUseCase: Last-minute validation failed for employee %s", employee.FirstName)
+			allErrors = append(allErrors, lastMinuteErrors...)
+
+			break
+		}
+
 		err := uc.authRepo.RegisterEmployeeUser(ctx, &employee.User, employee)
 		if err != nil {
-			log.Printf("EmployeeUseCase: Error creating employee %s: %v", employee.FirstName, err)
-			importError := uc.convertToImportError(err, employee, i+2)
 
-			log.Printf("EmployeeUseCase: BulkImportWithTransaction failed on employee %d. Aborting entire import.", i+1)
-			return nil, []EmployeeImportError{importError}
+			log.Printf("EmployeeUseCase: UNEXPECTED ERROR creating employee %s after validation passed: %v", employee.FirstName, err)
+			importError := uc.convertToImportError(err, employee, i+2)
+			allErrors = append(allErrors, importError)
+
+			log.Printf("EmployeeUseCase: BulkImportWithTransaction failed on employee %d. Cannot rollback auth operations.", i+1)
+			break
 		}
 
 		successfulIDs = append(successfulIDs, employee.ID)
 		log.Printf("EmployeeUseCase: Successfully created employee %s with ID %d", employee.FirstName, employee.ID)
+	}
+
+	if len(allErrors) > 0 {
+		log.Printf("EmployeeUseCase: BulkImportWithTransaction failed with %d errors. No employees should be imported.", len(allErrors))
+		return nil, allErrors
+	}
+
+	if len(successfulIDs) > 0 {
+		if err := uc.updateSubscriptionEmployeeCount(ctx, creatorEmployeeID); err != nil {
+			log.Printf("EmployeeUseCase: Warning - failed to update subscription employee count after bulk import: %v", err)
+		}
 	}
 
 	log.Printf("EmployeeUseCase: BulkImportWithTransaction completed successfully. All %d employees imported", len(successfulIDs))
@@ -755,6 +1028,13 @@ func (uc *EmployeeUseCase) Resign(ctx context.Context, id uint) error {
 		return fmt.Errorf("failed to update employee resignation status: %w", err)
 	}
 
+	if employee.ManagerID != nil {
+		if err := uc.updateSubscriptionEmployeeCount(ctx, *employee.ManagerID); err != nil {
+			log.Printf("EmployeeUseCase: Warning - failed to update subscription employee count after resignation: %v", err)
+
+		}
+	}
+
 	log.Printf("EmployeeUseCase: Successfully resigned employee with ID %d", id)
 	return nil
 }
@@ -1027,4 +1307,182 @@ func (uc *EmployeeUseCase) GetHireDateRange(ctx context.Context, managerID uint)
 		managerID, earliest, latest)
 
 	return earliest, latest, nil
+}
+
+func (uc *EmployeeUseCase) SyncSubscriptionEmployeeCount(ctx context.Context, adminUserID uint) error {
+	log.Printf("EmployeeUseCase: SyncSubscriptionEmployeeCount called for admin user ID: %d", adminUserID)
+
+	subscription, err := uc.xenditRepo.GetSubscriptionByAdminUserID(ctx, adminUserID)
+	if err != nil {
+		return fmt.Errorf("failed to get subscription: %w", err)
+	}
+
+	currentCount, err := uc.getCurrentEmployeeCount(ctx, adminUserID)
+	if err != nil {
+		return fmt.Errorf("failed to get current employee count: %w", err)
+	}
+
+	subscription.CurrentEmployeeCount = currentCount
+	if err := uc.xenditRepo.UpdateSubscription(ctx, subscription); err != nil {
+		return fmt.Errorf("failed to update subscription: %w", err)
+	}
+
+	log.Printf("EmployeeUseCase: Synced subscription employee count to %d for admin user %d", currentCount, adminUserID)
+	return nil
+}
+
+func (uc *EmployeeUseCase) comprehensivePreValidation(ctx context.Context, employees []*domain.Employee) []EmployeeImportError {
+	var errors []EmployeeImportError
+
+	log.Printf("EmployeeUseCase: Starting comprehensive validation for %d employees", len(employees))
+
+	for i, employee := range employees {
+		rowNum := i + 2
+
+		if employee.User.Email != "" {
+			if !uc.isValidEmailFormat(employee.User.Email) {
+				errors = append(errors, EmployeeImportError{
+					Row:      rowNum,
+					Field:    "email",
+					Message:  fmt.Sprintf("Invalid email format: %s", employee.User.Email),
+					Value:    employee.User.Email,
+					Employee: employee,
+				})
+			}
+		}
+
+		if employee.User.Phone != "" {
+			if !uc.isValidPhoneFormat(employee.User.Phone) {
+				errors = append(errors, EmployeeImportError{
+					Row:      rowNum,
+					Field:    "phone",
+					Message:  fmt.Sprintf("Invalid phone format: %s", employee.User.Phone),
+					Value:    employee.User.Phone,
+					Employee: employee,
+				})
+			}
+		}
+
+		if employee.NIK != nil && *employee.NIK != "" {
+			if !uc.isValidNIKFormat(*employee.NIK) {
+				errors = append(errors, EmployeeImportError{
+					Row:      rowNum,
+					Field:    "nik",
+					Message:  fmt.Sprintf("Invalid NIK format: %s", *employee.NIK),
+					Value:    *employee.NIK,
+					Employee: employee,
+				})
+			}
+		}
+
+		if employee.PositionName != "" {
+			if !uc.isValidPositionName(employee.PositionName) {
+				errors = append(errors, EmployeeImportError{
+					Row:      rowNum,
+					Field:    "position_name",
+					Message:  fmt.Sprintf("Invalid or unsupported position: %s", employee.PositionName),
+					Value:    employee.PositionName,
+					Employee: employee,
+				})
+			}
+		}
+
+		if employee.DateOfBirth != nil {
+
+			if employee.DateOfBirth.After(time.Now()) {
+				errors = append(errors, EmployeeImportError{
+					Row:      rowNum,
+					Field:    "date_of_birth",
+					Message:  "Date of birth cannot be in the future",
+					Value:    employee.DateOfBirth.Format("2006-01-02"),
+					Employee: employee,
+				})
+			}
+		}
+
+		if employee.HireDate != nil {
+			if employee.HireDate.After(time.Now().AddDate(0, 0, 1)) {
+				errors = append(errors, EmployeeImportError{
+					Row:      rowNum,
+					Field:    "hire_date",
+					Message:  "Hire date cannot be more than 1 day in the future",
+					Value:    employee.HireDate.Format("2006-01-02"),
+					Employee: employee,
+				})
+			}
+		}
+	}
+
+	if len(errors) > 0 {
+		log.Printf("EmployeeUseCase: Comprehensive validation found %d errors", len(errors))
+	} else {
+		log.Printf("EmployeeUseCase: Comprehensive validation passed for all %d employees", len(employees))
+	}
+
+	return errors
+}
+
+func (uc *EmployeeUseCase) isValidEmailFormat(email string) bool {
+
+	return strings.Contains(email, "@") && strings.Contains(email, ".") && len(email) > 5
+}
+
+func (uc *EmployeeUseCase) isValidPhoneFormat(phone string) bool {
+
+	if len(phone) < 8 || len(phone) > 20 {
+		return false
+	}
+
+	return strings.HasPrefix(phone, "+") || strings.HasPrefix(phone, "0") || strings.HasPrefix(phone, "8")
+}
+
+func (uc *EmployeeUseCase) isValidNIKFormat(nik string) bool {
+
+	if len(nik) != 16 {
+		return false
+	}
+
+	for _, char := range nik {
+		if char < '0' || char > '9' {
+			return false
+		}
+	}
+	return true
+}
+
+func (uc *EmployeeUseCase) isValidPositionName(positionName string) bool {
+
+	return len(strings.TrimSpace(positionName)) > 0
+}
+
+func (uc *EmployeeUseCase) lastMinuteValidation(ctx context.Context, employee *domain.Employee, rowNum int) []EmployeeImportError {
+	var errors []EmployeeImportError
+
+	if employee.User.Email != "" {
+		existingUser, err := uc.authRepo.GetUserByEmail(ctx, employee.User.Email)
+		if err == nil && existingUser != nil {
+			errors = append(errors, EmployeeImportError{
+				Row:      rowNum,
+				Field:    "email",
+				Message:  fmt.Sprintf("Email '%s' was just registered by another process", employee.User.Email),
+				Value:    employee.User.Email,
+				Employee: employee,
+			})
+		}
+	}
+
+	if employee.NIK != nil && *employee.NIK != "" {
+		existingEmployee, err := uc.employeeRepo.GetByNIK(ctx, *employee.NIK)
+		if err == nil && existingEmployee != nil {
+			errors = append(errors, EmployeeImportError{
+				Row:      rowNum,
+				Field:    "nik",
+				Message:  fmt.Sprintf("NIK '%s' was just registered by another process", *employee.NIK),
+				Value:    *employee.NIK,
+				Employee: employee,
+			})
+		}
+	}
+
+	return errors
 }

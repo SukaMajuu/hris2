@@ -13,6 +13,7 @@ import (
 	"github.com/SukaMajuu/hris/apps/backend/internal/usecase/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	supa "github.com/supabase-community/supabase-go"
 	"gorm.io/gorm"
 )
 
@@ -128,7 +129,10 @@ func TestEmployeeUseCase_List(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockEmployeeRepo := new(mocks.EmployeeRepository)
 			mockAuthRepo := new(mocks.AuthRepository)
-			uc := NewEmployeeUseCase(mockEmployeeRepo, mockAuthRepo, nil)
+			mockXenditRepo := new(mocks.XenditRepository)
+			mockSupabaseClient := &supa.Client{}
+			mockDB := &gorm.DB{}
+			uc := NewEmployeeUseCase(mockEmployeeRepo, mockAuthRepo, mockXenditRepo, mockSupabaseClient, mockDB)
 
 			mockEmployeeRepo.On("List", ctx, filters, paginationParams).
 				Return(tt.mockRepoEmployees, tt.mockRepoTotalItems, tt.mockRepoError).Once()
@@ -259,12 +263,43 @@ func TestEmployeeUseCase_Create(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockEmployeeRepo := new(mocks.EmployeeRepository)
 			mockAuthRepo := new(mocks.AuthRepository)
-			uc := NewEmployeeUseCase(mockEmployeeRepo, mockAuthRepo, nil)
+			mockXenditRepo := new(mocks.XenditRepository)
+			mockSupabaseClient := &supa.Client{}
+			mockDB := &gorm.DB{}
+			uc := NewEmployeeUseCase(mockEmployeeRepo, mockAuthRepo, mockXenditRepo, mockSupabaseClient, mockDB)
+
+			// Mock checkEmployeeLimit flow
+			if tt.mockRegisterError == nil {
+				// Mock creator employee
+				creatorEmployee := &domain.Employee{
+					ID: creatorEmployeeID,
+					User: domain.User{
+						ID:   creatorEmployeeID,
+						Role: "admin",
+					},
+				}
+				mockEmployeeRepo.On("GetByID", ctx, creatorEmployeeID).Return(creatorEmployee, nil).Once()
+
+				// Mock admin user
+				adminUser := &domain.User{
+					ID:   creatorEmployeeID,
+					Role: "admin",
+				}
+				mockAuthRepo.On("GetUserByID", ctx, creatorEmployeeID).Return(adminUser, nil).Once()
+
+				// Mock admin employee for count
+				mockEmployeeRepo.On("GetByUserID", ctx, creatorEmployeeID).Return(creatorEmployee, nil).Once()
+
+				// Mock current employee count
+				mockEmployeeRepo.On("List", ctx, mock.Anything, mock.Anything).Return([]*domain.Employee{}, int64(0), nil).Once()
+
+				// Mock subscription not found (use default limits)
+				mockXenditRepo.On("GetSubscriptionByAdminUserID", ctx, creatorEmployeeID).Return(nil, errors.New("subscription not found")).Once()
+			}
 
 			mockAuthRepo.On("RegisterEmployeeUser", ctx, mock.AnythingOfType("*domain.User"), mock.AnythingOfType("*domain.Employee")).
 				Run(func(args mock.Arguments) {
 					if tt.mockRegisterError == nil {
-
 						user := args.Get(1).(*domain.User)
 						employee := args.Get(2).(*domain.Employee)
 						if tt.expectedEmployee != nil {
@@ -302,6 +337,8 @@ func TestEmployeeUseCase_Create(t *testing.T) {
 			}
 
 			mockAuthRepo.AssertExpectations(t)
+			mockEmployeeRepo.AssertExpectations(t)
+			mockXenditRepo.AssertExpectations(t)
 		})
 	}
 }
@@ -369,7 +406,10 @@ func TestEmployeeUseCase_GetByID(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockEmployeeRepo := new(mocks.EmployeeRepository)
 			mockAuthRepo := new(mocks.AuthRepository)
-			uc := NewEmployeeUseCase(mockEmployeeRepo, mockAuthRepo, nil)
+			mockXenditRepo := new(mocks.XenditRepository)
+			mockSupabaseClient := &supa.Client{}
+			mockDB := &gorm.DB{}
+			uc := NewEmployeeUseCase(mockEmployeeRepo, mockAuthRepo, mockXenditRepo, mockSupabaseClient, mockDB)
 
 			mockEmployeeRepo.On("GetByID", ctx, tt.inputID).
 				Return(tt.mockEmployee, tt.mockError).Once()
@@ -450,7 +490,10 @@ func TestEmployeeUseCase_GetEmployeeByUserID(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockEmployeeRepo := new(mocks.EmployeeRepository)
 			mockAuthRepo := new(mocks.AuthRepository)
-			uc := NewEmployeeUseCase(mockEmployeeRepo, mockAuthRepo, nil)
+			mockXenditRepo := new(mocks.XenditRepository)
+			mockSupabaseClient := &supa.Client{}
+			mockDB := &gorm.DB{}
+			uc := NewEmployeeUseCase(mockEmployeeRepo, mockAuthRepo, mockXenditRepo, mockSupabaseClient, mockDB)
 
 			mockEmployeeRepo.On("GetByUserID", ctx, tt.inputUserID).
 				Return(tt.mockEmployee, tt.mockError).Once()
@@ -526,7 +569,10 @@ func TestEmployeeUseCase_GetByNIK(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockEmployeeRepo := new(mocks.EmployeeRepository)
 			mockAuthRepo := new(mocks.AuthRepository)
-			uc := NewEmployeeUseCase(mockEmployeeRepo, mockAuthRepo, nil)
+			mockXenditRepo := new(mocks.XenditRepository)
+			mockSupabaseClient := &supa.Client{}
+			mockDB := &gorm.DB{}
+			uc := NewEmployeeUseCase(mockEmployeeRepo, mockAuthRepo, mockXenditRepo, mockSupabaseClient, mockDB)
 
 			mockEmployeeRepo.On("GetByNIK", ctx, tt.inputNIK).
 				Return(tt.mockEmployee, tt.mockError).Once()
@@ -602,7 +648,10 @@ func TestEmployeeUseCase_GetByEmployeeCode(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockEmployeeRepo := new(mocks.EmployeeRepository)
 			mockAuthRepo := new(mocks.AuthRepository)
-			uc := NewEmployeeUseCase(mockEmployeeRepo, mockAuthRepo, nil)
+			mockXenditRepo := new(mocks.XenditRepository)
+			mockSupabaseClient := &supa.Client{}
+			mockDB := &gorm.DB{}
+			uc := NewEmployeeUseCase(mockEmployeeRepo, mockAuthRepo, mockXenditRepo, mockSupabaseClient, mockDB)
 
 			mockEmployeeRepo.On("GetByEmployeeCode", ctx, tt.inputCode).
 				Return(tt.mockEmployee, tt.mockError).Once()
@@ -675,7 +724,10 @@ func TestEmployeeUseCase_GetUserByEmail(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockEmployeeRepo := new(mocks.EmployeeRepository)
 			mockAuthRepo := new(mocks.AuthRepository)
-			uc := NewEmployeeUseCase(mockEmployeeRepo, mockAuthRepo, nil)
+			mockXenditRepo := new(mocks.XenditRepository)
+			mockSupabaseClient := &supa.Client{}
+			mockDB := &gorm.DB{}
+			uc := NewEmployeeUseCase(mockEmployeeRepo, mockAuthRepo, mockXenditRepo, mockSupabaseClient, mockDB)
 
 			mockAuthRepo.On("GetUserByEmail", ctx, tt.inputEmail).
 				Return(tt.mockUser, tt.mockError).Once()
@@ -745,7 +797,10 @@ func TestEmployeeUseCase_GetUserByPhone(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockEmployeeRepo := new(mocks.EmployeeRepository)
 			mockAuthRepo := new(mocks.AuthRepository)
-			uc := NewEmployeeUseCase(mockEmployeeRepo, mockAuthRepo, nil)
+			mockXenditRepo := new(mocks.XenditRepository)
+			mockSupabaseClient := &supa.Client{}
+			mockDB := &gorm.DB{}
+			uc := NewEmployeeUseCase(mockEmployeeRepo, mockAuthRepo, mockXenditRepo, mockSupabaseClient, mockDB)
 
 			mockAuthRepo.On("GetUserByPhone", ctx, tt.inputPhone).
 				Return(tt.mockUser, tt.mockError).Once()
@@ -913,7 +968,10 @@ func TestEmployeeUseCase_Update(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockEmployeeRepo := new(mocks.EmployeeRepository)
 			mockAuthRepo := new(mocks.AuthRepository)
-			uc := NewEmployeeUseCase(mockEmployeeRepo, mockAuthRepo, nil)
+			mockXenditRepo := new(mocks.XenditRepository)
+			mockSupabaseClient := &supa.Client{}
+			mockDB := &gorm.DB{}
+			uc := NewEmployeeUseCase(mockEmployeeRepo, mockAuthRepo, mockXenditRepo, mockSupabaseClient, mockDB)
 
 			mockEmployeeRepo.On("GetByID", ctx, employeeID).
 				Return(tt.mockGetByIDEmployee, tt.mockGetByIDError).Once()
@@ -1070,7 +1128,10 @@ func TestEmployeeUseCase_Resign(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockEmployeeRepo := new(mocks.EmployeeRepository)
 			mockAuthRepo := new(mocks.AuthRepository)
-			uc := NewEmployeeUseCase(mockEmployeeRepo, mockAuthRepo, nil)
+			mockXenditRepo := new(mocks.XenditRepository)
+			mockSupabaseClient := &supa.Client{}
+			mockDB := &gorm.DB{}
+			uc := NewEmployeeUseCase(mockEmployeeRepo, mockAuthRepo, mockXenditRepo, mockSupabaseClient, mockDB)
 
 			mockEmployeeRepo.On("GetByID", ctx, tt.inputID).
 				Return(tt.mockEmployee, tt.mockGetError).Once()
@@ -1158,7 +1219,10 @@ func TestEmployeeUseCase_BulkImport(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockEmployeeRepo := new(mocks.EmployeeRepository)
 			mockAuthRepo := new(mocks.AuthRepository)
-			uc := NewEmployeeUseCase(mockEmployeeRepo, mockAuthRepo, nil)
+			mockXenditRepo := new(mocks.XenditRepository)
+			mockSupabaseClient := &supa.Client{}
+			mockDB := &gorm.DB{}
+			uc := NewEmployeeUseCase(mockEmployeeRepo, mockAuthRepo, mockXenditRepo, mockSupabaseClient, mockDB)
 
 			for i := range tt.inputEmployees {
 				mockRegisterCall := mockAuthRepo.On("RegisterEmployeeUser", ctx, mock.AnythingOfType("*domain.User"), mock.AnythingOfType("*domain.Employee"))
@@ -1256,7 +1320,10 @@ func TestEmployeeUseCase_GetStatisticsByManager(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockEmployeeRepo := new(mocks.EmployeeRepository)
 			mockAuthRepo := new(mocks.AuthRepository)
-			uc := NewEmployeeUseCase(mockEmployeeRepo, mockAuthRepo, nil)
+			mockXenditRepo := new(mocks.XenditRepository)
+			mockSupabaseClient := &supa.Client{}
+			mockDB := &gorm.DB{}
+			uc := NewEmployeeUseCase(mockEmployeeRepo, mockAuthRepo, mockXenditRepo, mockSupabaseClient, mockDB)
 
 			if tt.mockStatistics != nil {
 				mockEmployeeRepo.On("GetStatisticsWithTrendsByManager", ctx, tt.inputManagerID).
@@ -1349,7 +1416,10 @@ func TestEmployeeUseCase_GetStatisticsByManagerAndMonth(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockEmployeeRepo := new(mocks.EmployeeRepository)
 			mockAuthRepo := new(mocks.AuthRepository)
-			uc := NewEmployeeUseCase(mockEmployeeRepo, mockAuthRepo, nil)
+			mockXenditRepo := new(mocks.XenditRepository)
+			mockSupabaseClient := &supa.Client{}
+			mockDB := &gorm.DB{}
+			uc := NewEmployeeUseCase(mockEmployeeRepo, mockAuthRepo, mockXenditRepo, mockSupabaseClient, mockDB)
 
 			if tt.mockStatistics != nil {
 				mockEmployeeRepo.On("GetStatisticsWithTrendsByManagerAndMonth", ctx, tt.inputManagerID, tt.inputMonth).
@@ -1442,7 +1512,10 @@ func TestEmployeeUseCase_GetHireDateRange(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockEmployeeRepo := new(mocks.EmployeeRepository)
 			mockAuthRepo := new(mocks.AuthRepository)
-			uc := NewEmployeeUseCase(mockEmployeeRepo, mockAuthRepo, nil)
+			mockXenditRepo := new(mocks.XenditRepository)
+			mockSupabaseClient := &supa.Client{}
+			mockDB := &gorm.DB{}
+			uc := NewEmployeeUseCase(mockEmployeeRepo, mockAuthRepo, mockXenditRepo, mockSupabaseClient, mockDB)
 
 			mockEmployeeRepo.On("GetHireDateRange", ctx, tt.inputManagerID).
 				Return(tt.mockEarliest, tt.mockLatest, tt.mockError).Once()
@@ -1467,4 +1540,720 @@ func TestEmployeeUseCase_GetHireDateRange(t *testing.T) {
 
 func floatPtr(f float64) *float64 {
 	return &f
+}
+
+func TestEmployeeUseCase_BulkImportWithTransaction(t *testing.T) {
+	ctx := context.Background()
+	creatorEmployeeID := uint(1)
+
+	employees := []*domain.Employee{
+		{
+			FirstName:    "John",
+			PositionName: "Developer",
+			User: domain.User{
+				Email: "john@example.com",
+			},
+		},
+		{
+			FirstName:    "Jane",
+			PositionName: "Designer",
+			User: domain.User{
+				Email: "jane@example.com",
+			},
+		},
+	}
+
+	tests := []struct {
+		name                     string
+		inputEmployees           []*domain.Employee
+		mockPreValidationErrors  []EmployeeImportError
+		mockRegisterErrors       []error
+		expectedSuccessfulIDs    []uint
+		expectedErrorCount       int
+		expectPreValidationError bool
+	}{
+		{
+			name:                     "all employees successful",
+			inputEmployees:           employees,
+			mockPreValidationErrors:  nil,
+			mockRegisterErrors:       []error{nil, nil},
+			expectedSuccessfulIDs:    []uint{1, 2},
+			expectedErrorCount:       0,
+			expectPreValidationError: false,
+		},
+		{
+			name:           "pre-validation fails",
+			inputEmployees: employees,
+			mockPreValidationErrors: []EmployeeImportError{
+				{
+					Row:     2,
+					Field:   "email",
+					Message: "Email is required",
+					Value:   "",
+				},
+			},
+			mockRegisterErrors:       nil,
+			expectedSuccessfulIDs:    nil,
+			expectedErrorCount:       1,
+			expectPreValidationError: true,
+		},
+		{
+			name:                     "one employee fails",
+			inputEmployees:           employees,
+			mockPreValidationErrors:  nil,
+			mockRegisterErrors:       []error{nil, errors.New("duplicate email")},
+			expectedSuccessfulIDs:    nil,
+			expectedErrorCount:       1,
+			expectPreValidationError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockEmployeeRepo := new(mocks.EmployeeRepository)
+			mockAuthRepo := new(mocks.AuthRepository)
+			mockXenditRepo := new(mocks.XenditRepository)
+			mockSupabaseClient := &supa.Client{}
+			mockDB := &gorm.DB{}
+			uc := NewEmployeeUseCase(mockEmployeeRepo, mockAuthRepo, mockXenditRepo, mockSupabaseClient, mockDB)
+
+			// Mock checkBulkEmployeeLimit flow
+			if !tt.expectPreValidationError {
+				creatorEmployee := &domain.Employee{
+					ID: creatorEmployeeID,
+					User: domain.User{
+						ID:   creatorEmployeeID,
+						Role: "admin",
+					},
+				}
+				mockEmployeeRepo.On("GetByID", ctx, creatorEmployeeID).Return(creatorEmployee, nil).Once()
+				mockAuthRepo.On("GetUserByID", ctx, creatorEmployeeID).Return(&domain.User{
+					ID:   creatorEmployeeID,
+					Role: "admin",
+				}, nil).Once()
+				mockEmployeeRepo.On("GetByUserID", ctx, creatorEmployeeID).Return(creatorEmployee, nil).Once()
+				mockEmployeeRepo.On("List", ctx, mock.Anything, mock.Anything).Return([]*domain.Employee{}, int64(0), nil).Once()
+				mockXenditRepo.On("GetSubscriptionByAdminUserID", ctx, creatorEmployeeID).Return(nil, errors.New("subscription not found")).Once()
+
+				// Mock validation checks
+				for _, emp := range tt.inputEmployees {
+					mockAuthRepo.On("GetUserByEmail", ctx, emp.User.Email).Return(nil, errors.New("user not found")).Maybe()
+				}
+			}
+
+			// Mock register calls if needed
+			if !tt.expectPreValidationError && tt.mockRegisterErrors != nil {
+				for i := range tt.inputEmployees {
+					mockRegisterCall := mockAuthRepo.On("RegisterEmployeeUser", ctx, mock.AnythingOfType("*domain.User"), mock.AnythingOfType("*domain.Employee"))
+
+					if i < len(tt.mockRegisterErrors) && tt.mockRegisterErrors[i] == nil {
+						empID := uint(i + 1)
+						mockRegisterCall.Run(func(args mock.Arguments) {
+							employee := args.Get(2).(*domain.Employee)
+							employee.ID = empID
+						})
+					}
+
+					if i < len(tt.mockRegisterErrors) {
+						mockRegisterCall.Return(tt.mockRegisterErrors[i]).Once()
+					} else {
+						mockRegisterCall.Return(nil).Once()
+					}
+				}
+			}
+
+			successfulIDs, importErrors := uc.BulkImportWithTransaction(ctx, tt.inputEmployees, creatorEmployeeID)
+
+			if tt.expectPreValidationError || len(tt.mockRegisterErrors) > 0 && tt.mockRegisterErrors[1] != nil {
+				assert.Equal(t, tt.expectedErrorCount, len(importErrors))
+				assert.Nil(t, successfulIDs)
+			} else {
+				assert.Equal(t, len(tt.expectedSuccessfulIDs), len(successfulIDs))
+				assert.Equal(t, tt.expectedErrorCount, len(importErrors))
+
+				for i, expectedID := range tt.expectedSuccessfulIDs {
+					assert.Equal(t, expectedID, successfulIDs[i])
+				}
+			}
+
+			mockAuthRepo.AssertExpectations(t)
+			mockEmployeeRepo.AssertExpectations(t)
+			mockXenditRepo.AssertExpectations(t)
+		})
+	}
+}
+
+func TestEmployeeUseCase_SyncSubscriptionEmployeeCount(t *testing.T) {
+	ctx := context.Background()
+	adminUserID := uint(1)
+
+	tests := []struct {
+		name                  string
+		inputAdminUserID      uint
+		mockSubscription      *domain.Subscription
+		mockSubscriptionError error
+		mockCurrentCount      int
+		mockCurrentCountError error
+		mockUpdateError       error
+		expectedErrorMsg      string
+	}{
+		{
+			name:             "successful sync",
+			inputAdminUserID: adminUserID,
+			mockSubscription: &domain.Subscription{
+				ID:                   1,
+				CurrentEmployeeCount: 5,
+			},
+			mockSubscriptionError: nil,
+			mockCurrentCount:      10,
+			mockCurrentCountError: nil,
+			mockUpdateError:       nil,
+			expectedErrorMsg:      "",
+		},
+		{
+			name:                  "subscription not found",
+			inputAdminUserID:      adminUserID,
+			mockSubscription:      nil,
+			mockSubscriptionError: errors.New("subscription not found"),
+			expectedErrorMsg:      "failed to get subscription: subscription not found",
+		},
+		{
+			name:             "get current count error",
+			inputAdminUserID: adminUserID,
+			mockSubscription: &domain.Subscription{
+				ID: 1,
+			},
+			mockSubscriptionError: nil,
+			mockCurrentCountError: errors.New("count error"),
+			expectedErrorMsg:      "failed to get current employee count: count error",
+		},
+		{
+			name:             "update error",
+			inputAdminUserID: adminUserID,
+			mockSubscription: &domain.Subscription{
+				ID: 1,
+			},
+			mockSubscriptionError: nil,
+			mockCurrentCount:      10,
+			mockCurrentCountError: nil,
+			mockUpdateError:       errors.New("update error"),
+			expectedErrorMsg:      "failed to update subscription: update error",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockEmployeeRepo := new(mocks.EmployeeRepository)
+			mockAuthRepo := new(mocks.AuthRepository)
+			mockXenditRepo := new(mocks.XenditRepository)
+			mockSupabaseClient := &supa.Client{}
+			mockDB := &gorm.DB{}
+			uc := NewEmployeeUseCase(mockEmployeeRepo, mockAuthRepo, mockXenditRepo, mockSupabaseClient, mockDB)
+
+			mockXenditRepo.On("GetSubscriptionByAdminUserID", ctx, tt.inputAdminUserID).
+				Return(tt.mockSubscription, tt.mockSubscriptionError).Once()
+
+			if tt.mockSubscriptionError == nil {
+				// Mock getCurrentEmployeeCount flow
+				adminUser := &domain.User{
+					ID:   tt.inputAdminUserID,
+					Role: "admin",
+				}
+				mockAuthRepo.On("GetUserByID", ctx, tt.inputAdminUserID).Return(adminUser, tt.mockCurrentCountError).Maybe()
+
+				if tt.mockCurrentCountError == nil {
+					adminEmployee := &domain.Employee{
+						ID:     tt.inputAdminUserID,
+						UserID: tt.inputAdminUserID,
+					}
+					mockEmployeeRepo.On("GetByUserID", ctx, tt.inputAdminUserID).Return(adminEmployee, nil).Maybe()
+					mockEmployeeRepo.On("List", ctx, mock.Anything, mock.Anything).Return([]*domain.Employee{}, int64(tt.mockCurrentCount-1), nil).Maybe()
+
+					if tt.mockUpdateError != nil {
+						mockXenditRepo.On("UpdateSubscription", ctx, mock.AnythingOfType("*domain.Subscription")).
+							Return(tt.mockUpdateError).Once()
+					} else {
+						mockXenditRepo.On("UpdateSubscription", ctx, mock.AnythingOfType("*domain.Subscription")).
+							Run(func(args mock.Arguments) {
+								subscription := args.Get(1).(*domain.Subscription)
+								assert.Equal(t, tt.mockCurrentCount, subscription.CurrentEmployeeCount)
+							}).
+							Return(nil).Once()
+					}
+				}
+			}
+
+			err := uc.SyncSubscriptionEmployeeCount(ctx, tt.inputAdminUserID)
+
+			if tt.expectedErrorMsg != "" {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tt.expectedErrorMsg)
+			} else {
+				assert.NoError(t, err)
+			}
+
+			mockXenditRepo.AssertExpectations(t)
+			mockAuthRepo.AssertExpectations(t)
+			mockEmployeeRepo.AssertExpectations(t)
+		})
+	}
+}
+
+func TestEmployeeUseCase_ValidationHelpers(t *testing.T) {
+	mockEmployeeRepo := new(mocks.EmployeeRepository)
+	mockAuthRepo := new(mocks.AuthRepository)
+	mockXenditRepo := new(mocks.XenditRepository)
+	mockSupabaseClient := &supa.Client{}
+	mockDB := &gorm.DB{}
+	uc := NewEmployeeUseCase(mockEmployeeRepo, mockAuthRepo, mockXenditRepo, mockSupabaseClient, mockDB)
+
+	t.Run("isValidEmailFormat", func(t *testing.T) {
+		tests := []struct {
+			email    string
+			expected bool
+		}{
+			{"test@example.com", true},
+			{"user@domain.org", true},
+			{"invalid-email", false},
+			{"@domain.com", false},
+			{"user@", false},
+			{"", false},
+		}
+
+		for _, tt := range tests {
+			result := uc.isValidEmailFormat(tt.email)
+			assert.Equal(t, tt.expected, result, "Email: %s", tt.email)
+		}
+	})
+
+	t.Run("isValidPhoneFormat", func(t *testing.T) {
+		tests := []struct {
+			phone    string
+			expected bool
+		}{
+			{"+628123456789", true},
+			{"081234567890", true},
+			{"8123456789", true},
+			{"123", false},
+			{"", false},
+			{"12345678901234567890123", false},
+		}
+
+		for _, tt := range tests {
+			result := uc.isValidPhoneFormat(tt.phone)
+			assert.Equal(t, tt.expected, result, "Phone: %s", tt.phone)
+		}
+	})
+
+	t.Run("isValidNIKFormat", func(t *testing.T) {
+		tests := []struct {
+			nik      string
+			expected bool
+		}{
+			{"1234567890123456", true},
+			{"0000000000000000", true},
+			{"123456789012345", false},   // 15 digits
+			{"12345678901234567", false}, // 17 digits
+			{"123456789012345a", false},  // contains letter
+			{"", false},
+		}
+
+		for _, tt := range tests {
+			result := uc.isValidNIKFormat(tt.nik)
+			assert.Equal(t, tt.expected, result, "NIK: %s", tt.nik)
+		}
+	})
+
+	t.Run("isValidPositionName", func(t *testing.T) {
+		tests := []struct {
+			position string
+			expected bool
+		}{
+			{"Developer", true},
+			{"Senior Manager", true},
+			{"   ", false},
+			{"", false},
+		}
+
+		for _, tt := range tests {
+			result := uc.isValidPositionName(tt.position)
+			assert.Equal(t, tt.expected, result, "Position: %s", tt.position)
+		}
+	})
+}
+
+func TestEmployeeUseCase_ComprehensivePreValidation(t *testing.T) {
+	ctx := context.Background()
+	futureDate := time.Now().AddDate(1, 0, 0) // 1 year in future
+	pastDate := time.Now().AddDate(-25, 0, 0) // 25 years ago
+
+	employees := []*domain.Employee{
+		{
+			FirstName:    "John",
+			PositionName: "Developer",
+			User: domain.User{
+				Email: "invalid-email",
+				Phone: "123", // invalid phone
+			},
+			NIK:         stringPtr("123"), // invalid NIK
+			DateOfBirth: &futureDate,      // future date
+		},
+		{
+			FirstName:    "Jane",
+			PositionName: "Designer",
+			User: domain.User{
+				Email: "jane@example.com",
+				Phone: "+628123456789",
+			},
+			NIK:         stringPtr("1234567890123456"),
+			DateOfBirth: &pastDate,
+		},
+	}
+
+	mockEmployeeRepo := new(mocks.EmployeeRepository)
+	mockAuthRepo := new(mocks.AuthRepository)
+	mockXenditRepo := new(mocks.XenditRepository)
+	mockSupabaseClient := &supa.Client{}
+	mockDB := &gorm.DB{}
+	uc := NewEmployeeUseCase(mockEmployeeRepo, mockAuthRepo, mockXenditRepo, mockSupabaseClient, mockDB)
+
+	errors := uc.comprehensivePreValidation(ctx, employees)
+
+	// Should have multiple validation errors for the first employee
+	assert.Greater(t, len(errors), 0)
+
+	// Check specific error types
+	foundEmailError := false
+	foundPhoneError := false
+	foundNIKError := false
+	foundDateError := false
+
+	for _, err := range errors {
+		if err.Field == "email" && strings.Contains(err.Message, "Invalid email format") {
+			foundEmailError = true
+		}
+		if err.Field == "phone" && strings.Contains(err.Message, "Invalid phone format") {
+			foundPhoneError = true
+		}
+		if err.Field == "nik" && strings.Contains(err.Message, "Invalid NIK format") {
+			foundNIKError = true
+		}
+		if err.Field == "date_of_birth" && strings.Contains(err.Message, "cannot be in the future") {
+			foundDateError = true
+		}
+	}
+
+	assert.True(t, foundEmailError, "Should have email validation error")
+	assert.True(t, foundPhoneError, "Should have phone validation error")
+	assert.True(t, foundNIKError, "Should have NIK validation error")
+	assert.True(t, foundDateError, "Should have date validation error")
+}
+
+func TestEmployeeUseCase_UpdateEmployeeFields(t *testing.T) {
+	mockEmployeeRepo := new(mocks.EmployeeRepository)
+	mockAuthRepo := new(mocks.AuthRepository)
+	mockXenditRepo := new(mocks.XenditRepository)
+	mockSupabaseClient := &supa.Client{}
+	mockDB := &gorm.DB{}
+	uc := NewEmployeeUseCase(mockEmployeeRepo, mockAuthRepo, mockXenditRepo, mockSupabaseClient, mockDB)
+
+	existingEmployee := &domain.Employee{
+		ID:             1,
+		FirstName:      "John",
+		LastName:       stringPtr("Doe"),
+		EmployeeCode:   stringPtr("EMP001"),
+		PositionName:   "Developer",
+		WorkScheduleID: uintPtr(1),
+		User: domain.User{
+			Email: "john@example.com",
+			Phone: "+1234567890",
+		},
+	}
+
+	updateEmployee := &domain.Employee{
+		FirstName:      "John Updated",
+		LastName:       stringPtr("Doe Updated"),
+		EmployeeCode:   stringPtr("EMP002"),
+		PositionName:   "Senior Developer",
+		WorkScheduleID: uintPtr(2),
+		User: domain.User{
+			Email: "john.updated@example.com",
+			Phone: "+1234567891",
+		},
+	}
+
+	uc.updateEmployeeFields(existingEmployee, updateEmployee)
+
+	// Verify all fields were updated
+	assert.Equal(t, "John Updated", existingEmployee.FirstName)
+	assert.Equal(t, "Doe Updated", *existingEmployee.LastName)
+	assert.Equal(t, "EMP002", *existingEmployee.EmployeeCode)
+	assert.Equal(t, "Senior Developer", existingEmployee.PositionName)
+	assert.Equal(t, uint(2), *existingEmployee.WorkScheduleID)
+	assert.Equal(t, "john.updated@example.com", existingEmployee.User.Email)
+	assert.Equal(t, "+1234567891", existingEmployee.User.Phone)
+}
+
+func TestEmployeeUseCase_ConvertToImportError(t *testing.T) {
+	mockEmployeeRepo := new(mocks.EmployeeRepository)
+	mockAuthRepo := new(mocks.AuthRepository)
+	mockXenditRepo := new(mocks.XenditRepository)
+	mockSupabaseClient := &supa.Client{}
+	mockDB := &gorm.DB{}
+	uc := NewEmployeeUseCase(mockEmployeeRepo, mockAuthRepo, mockXenditRepo, mockSupabaseClient, mockDB)
+
+	employee := &domain.Employee{
+		FirstName: "John",
+		LastName:  stringPtr("Doe"),
+		User: domain.User{
+			Email: "john@example.com",
+			Phone: "+1234567890",
+		},
+		NIK:          stringPtr("1234567890123456"),
+		EmployeeCode: stringPtr("EMP001"),
+	}
+
+	tests := []struct {
+		name          string
+		inputError    error
+		expectedField string
+		expectedMsg   string
+	}{
+		{
+			name:          "email duplicate error",
+			inputError:    errors.New("duplicate key value violates unique constraint \"uni_users_email\""),
+			expectedField: "email",
+			expectedMsg:   "Email 'john@example.com' is already used by another employee",
+		},
+		{
+			name:          "phone duplicate error",
+			inputError:    errors.New("duplicate key value violates unique constraint \"uni_users_phone\""),
+			expectedField: "phone",
+			expectedMsg:   "Phone number '+1234567890' is already used by another employee",
+		},
+		{
+			name:          "NIK duplicate error",
+			inputError:    errors.New("duplicate key value violates unique constraint \"uni_employees_nik\""),
+			expectedField: "nik",
+			expectedMsg:   "NIK '1234567890123456' is already registered for another employee",
+		},
+		{
+			name:          "employee code duplicate error",
+			inputError:    errors.New("duplicate key value violates unique constraint \"uni_employees_employee_code\""),
+			expectedField: "employee_code",
+			expectedMsg:   "Employee code 'EMP001' is already used",
+		},
+		{
+			name:          "invalid email format",
+			inputError:    errors.New("invalid email format"),
+			expectedField: "email",
+			expectedMsg:   "Invalid email format 'john@example.com'",
+		},
+		{
+			name:          "phone format error",
+			inputError:    errors.New("phone number format error"),
+			expectedField: "phone",
+			expectedMsg:   "Invalid phone format '+1234567890'. Use international format like +628123456789",
+		},
+		{
+			name:          "connection error",
+			inputError:    errors.New("connection timeout"),
+			expectedField: "general",
+			expectedMsg:   "Failed to connect to database. Please try again in a few moments",
+		},
+		{
+			name:          "general error",
+			inputError:    errors.New("some unknown error"),
+			expectedField: "general",
+			expectedMsg:   "Failed to create account for employee 'John Doe'. Please check the data entered",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := uc.convertToImportError(tt.inputError, employee, 2)
+
+			assert.Equal(t, 2, result.Row)
+			assert.Equal(t, tt.expectedField, result.Field)
+			assert.Contains(t, result.Message, tt.expectedMsg)
+			assert.Equal(t, employee, result.Employee)
+		})
+	}
+}
+
+func TestEmployeeUseCase_ValidateRequiredFields(t *testing.T) {
+	mockEmployeeRepo := new(mocks.EmployeeRepository)
+	mockAuthRepo := new(mocks.AuthRepository)
+	mockXenditRepo := new(mocks.XenditRepository)
+	mockSupabaseClient := &supa.Client{}
+	mockDB := &gorm.DB{}
+	uc := NewEmployeeUseCase(mockEmployeeRepo, mockAuthRepo, mockXenditRepo, mockSupabaseClient, mockDB)
+
+	tests := []struct {
+		name           string
+		employee       *domain.Employee
+		expectedErrors int
+		expectedFields []string
+	}{
+		{
+			name: "all fields valid",
+			employee: &domain.Employee{
+				FirstName:    "John",
+				PositionName: "Developer",
+				User: domain.User{
+					Email: "john@example.com",
+				},
+			},
+			expectedErrors: 0,
+			expectedFields: []string{},
+		},
+		{
+			name: "missing email",
+			employee: &domain.Employee{
+				FirstName:    "John",
+				PositionName: "Developer",
+				User:         domain.User{},
+			},
+			expectedErrors: 1,
+			expectedFields: []string{"email"},
+		},
+		{
+			name: "missing first name",
+			employee: &domain.Employee{
+				FirstName:    "",
+				PositionName: "Developer",
+				User: domain.User{
+					Email: "john@example.com",
+				},
+			},
+			expectedErrors: 1,
+			expectedFields: []string{"first_name"},
+		},
+		{
+			name: "missing position name",
+			employee: &domain.Employee{
+				FirstName:    "John",
+				PositionName: "",
+				User: domain.User{
+					Email: "john@example.com",
+				},
+			},
+			expectedErrors: 1,
+			expectedFields: []string{"position_name"},
+		},
+		{
+			name: "all fields missing",
+			employee: &domain.Employee{
+				FirstName:    "",
+				PositionName: "",
+				User:         domain.User{},
+			},
+			expectedErrors: 3,
+			expectedFields: []string{"email", "first_name", "position_name"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			errors := uc.validateRequiredFields(tt.employee, 2)
+
+			assert.Equal(t, tt.expectedErrors, len(errors))
+
+			if tt.expectedErrors > 0 {
+				foundFields := make(map[string]bool)
+				for _, err := range errors {
+					foundFields[err.Field] = true
+					assert.Equal(t, 2, err.Row)
+					assert.Equal(t, tt.employee, err.Employee)
+				}
+
+				for _, field := range tt.expectedFields {
+					assert.True(t, foundFields[field], "Expected error for field: %s", field)
+				}
+			}
+		})
+	}
+}
+
+func TestEmployeeUseCase_CheckBatchDuplicates(t *testing.T) {
+	mockEmployeeRepo := new(mocks.EmployeeRepository)
+	mockAuthRepo := new(mocks.AuthRepository)
+	mockXenditRepo := new(mocks.XenditRepository)
+	mockSupabaseClient := &supa.Client{}
+	mockDB := &gorm.DB{}
+	uc := NewEmployeeUseCase(mockEmployeeRepo, mockAuthRepo, mockXenditRepo, mockSupabaseClient, mockDB)
+
+	employees := []*domain.Employee{
+		{
+			User: domain.User{
+				Email: "john@example.com",
+				Phone: "+1234567890",
+			},
+			NIK:          stringPtr("1234567890123456"),
+			EmployeeCode: stringPtr("EMP001"),
+		},
+		{
+			User: domain.User{
+				Email: "john@example.com", // duplicate email
+				Phone: "+1234567891",
+			},
+			NIK:          stringPtr("1234567890123457"),
+			EmployeeCode: stringPtr("EMP002"),
+		},
+		{
+			User: domain.User{
+				Email: "jane@example.com",
+				Phone: "+1234567890", // duplicate phone
+			},
+			NIK:          stringPtr("1234567890123456"), // duplicate NIK
+			EmployeeCode: stringPtr("EMP001"),           // duplicate employee code
+		},
+	}
+
+	tests := []struct {
+		name           string
+		employeeIndex  int
+		expectedErrors int
+		expectedFields []string
+	}{
+		{
+			name:           "first employee - no duplicates",
+			employeeIndex:  0,
+			expectedErrors: 0,
+			expectedFields: []string{},
+		},
+		{
+			name:           "second employee - duplicate email",
+			employeeIndex:  1,
+			expectedErrors: 1,
+			expectedFields: []string{"email"},
+		},
+		{
+			name:           "third employee - multiple duplicates",
+			employeeIndex:  2,
+			expectedErrors: 3,
+			expectedFields: []string{"phone", "nik", "employee_code"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			errors := uc.checkBatchDuplicates(employees[tt.employeeIndex], employees, tt.employeeIndex)
+
+			assert.Equal(t, tt.expectedErrors, len(errors))
+
+			if tt.expectedErrors > 0 {
+				foundFields := make(map[string]bool)
+				for _, err := range errors {
+					foundFields[err.Field] = true
+					assert.Equal(t, tt.employeeIndex+2, err.Row) // Row numbers start from 2
+					assert.Equal(t, employees[tt.employeeIndex], err.Employee)
+				}
+
+				for _, field := range tt.expectedFields {
+					assert.True(t, foundFields[field], "Expected error for field: %s", field)
+				}
+			}
+		})
+	}
 }

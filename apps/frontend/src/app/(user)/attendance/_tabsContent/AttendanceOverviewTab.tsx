@@ -557,6 +557,10 @@ export default function AttendanceOverviewTab() {
                         : '-'}
                     </p>
                   </div>
+				  <div>
+                    <p className='text-xs font-medium text-slate-500'>Leave Type</p>
+                    <p className='text-slate-700'>{selectedData.status}</p>
+                  </div>
                 </div>
               </div>
             </div>

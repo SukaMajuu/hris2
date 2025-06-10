@@ -19,13 +19,13 @@ export function filterAttendanceData(
 			if (itemDate !== filterDate) {
 				return false;
 			}
-		}
-		// Attendance Status filter
+		}		// Attendance Status filter
 		if (filters.attendanceStatus && filters.attendanceStatus !== "all") {
 			// Map filter values to data values
 			const statusMapping: { [key: string]: string } = {
 				"Present": "on_time",
 				"Late": "late", 
+				"Early Leave": "early_leave",
 				"Absent": "absent",
 				"On Leave": "leave"
 			};

@@ -21,9 +21,15 @@ export default function AddWorkSchedulePage() {
 		// Navigation
 		handleCancel,
 	} = useAddWorkSchedule();
-
 	if (isLoadingLocations) {
-		return <div>Loading locations...</div>;
+		return (
+			<main className="flex min-h-screen items-center justify-center">
+				<div className="text-center">
+					<div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600"></div>
+					<p className="text-slate-500 dark:text-slate-400">Loading locations...</p>
+				</div>
+			</main>
+		);
 	}
 
 	return (

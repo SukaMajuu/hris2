@@ -70,9 +70,15 @@ export default function CheckClockEmployeeTab() {
 				cell: ({ row }) => {
 					const currentPage = serverPagination.currentPage;
 					const pageSize = serverPagination.pageSize;
-					return (currentPage - 1) * pageSize + row.index + 1;
+					return (
+						<div className="flex items-center justify-center text-center">
+							<div className="text-xs md:text-sm">
+								{(currentPage - 1) * pageSize + row.index + 1}
+							</div>
+						</div>
+					);
 				},
-				meta: { className: "w-[80px] max-w-[80px]" },
+				meta: { className: "w-[50px] md:w-[80px] text-center" },
 				enableSorting: false,
 				enableColumnFilter: false,
 			},
@@ -84,21 +90,38 @@ export default function CheckClockEmployeeTab() {
 				filterFn: "includesString",
 				cell: ({ row }) => {
 					const employee = row.original.employee;
-					if (!employee) return "Unknown Employee";
-					return `${employee.first_name || ""} ${
-						employee.last_name || ""
-					}`.trim();
+					if (!employee) return (
+						<div className="flex items-center justify-center">
+							<div className="max-w-[120px] truncate text-center text-xs md:max-w-[180px] md:text-sm">
+								Unknown Employee
+							</div>
+						</div>
+					);
+					const fullName = `${employee.first_name || ""} ${employee.last_name || ""}`.trim();
+					return (
+						<div className="flex items-center justify-center">
+							<div className="max-w-[120px] truncate text-center text-xs md:max-w-[180px] md:text-sm">
+								{fullName}
+							</div>
+						</div>
+					);
 				},
+				meta: { className: "w-[120px] md:w-[180px] text-center" },
 			},
 			{
 				header: "Position",
 				accessorKey: "employee.position_name",
 				cell: ({ row }) => {
+					const position = row.original.employee?.position_name || "Unknown Position";
 					return (
-						row.original.employee?.position_name ||
-						"Unknown Position"
+						<div className="flex items-center justify-center">
+							<div className="max-w-[100px] truncate text-center text-xs md:max-w-[150px] md:text-sm">
+								{position}
+							</div>
+						</div>
 					);
 				},
+				meta: { className: "w-[100px] md:w-[150px] text-center" },
 			},
 			{
 				header: "Work Schedule",
@@ -107,20 +130,27 @@ export default function CheckClockEmployeeTab() {
 					const workSchedule = row.original.work_schedule;
 					if (!workSchedule) {
 						return (
-							<div className="flex items-center justify-center gap-2 text-red-600">
-								<AlertCircle className="h-4 w-4" />
-								<span className="font-medium">
-									Not Assigned
-								</span>
+							<div className="flex items-center justify-center">
+								<div className="flex items-center gap-1 text-red-600 text-xs md:text-sm">
+									<AlertCircle className="h-3 w-3 md:h-4 md:w-4" />
+									<span className="font-medium truncate max-w-[80px] md:max-w-[120px]">
+										Not Assigned
+									</span>
+								</div>
 							</div>
 						);
 					}
 					return (
-						<span className="font-medium text-green-700">
-							{workSchedule.name}
-						</span>
+						<div className="flex items-center justify-center">
+							<div className="max-w-[100px] truncate text-center text-xs md:max-w-[140px] md:text-sm">
+								<span className="font-medium text-green-700">
+									{workSchedule.name}
+								</span>
+							</div>
+						</div>
 					);
 				},
+				meta: { className: "w-[100px] md:w-[140px] text-center" },
 			},
 			{
 				header: "Work Type",
@@ -129,13 +159,20 @@ export default function CheckClockEmployeeTab() {
 					const workType = row.original.work_schedule?.work_type;
 					if (!workType) {
 						return (
-							<span className="text-gray-500 italic text-sm">
-								No Schedule
-							</span>
+							<div className="flex items-center justify-center">
+								<span className="text-gray-500 italic text-xs md:text-sm">
+									No Schedule
+								</span>
+							</div>
 						);
 					}
-					return <WorkTypeBadge workType={workType as WorkType} />;
+					return (
+						<div className="flex items-center justify-center">
+							<WorkTypeBadge workType={workType as WorkType} />
+						</div>
+					);
 				},
+				meta: { className: "w-[80px] md:w-[120px] text-center" },
 			},
 			{
 				header: "Action",
@@ -143,37 +180,40 @@ export default function CheckClockEmployeeTab() {
 				cell: ({ row }) => {
 					const hasWorkSchedule = !!row.original.work_schedule_id;
 					return (
-						<div className="flex justify-center gap-2">
+						<div className="flex flex-col justify-center gap-1 md:flex-row">
 							{hasWorkSchedule ? (
 								<Button
 									size="sm"
 									variant="outline"
-									className="h-9 px-3 bg-[#FFA500] text-white hover:bg-[#E69500] border-none hover:cursor-pointer"
+									className="h-7 w-full cursor-pointer bg-[#FFA500] px-1 text-xs hover:cursor-pointer hover:bg-[#E69500] border-none text-white md:h-8 md:w-auto md:px-2"
 									onClick={(e) => {
 										e.stopPropagation();
 										handleEdit(row.original.employee_id);
 									}}
 								>
-									<Edit className="h-4 w-4 mr-1" />
-									Edit Schedule
+									<Edit className="mr-0 h-3 w-3 md:mr-1" />
+									<span className="hidden md:inline">Edit Schedule</span>
+									<span className="md:hidden">Edit</span>
 								</Button>
 							) : (
 								<Button
 									size="sm"
 									variant="outline"
-									className="h-9 px-3 bg-[#6B9AC4] text-white hover:bg-[#5A89B3] border-none hover:cursor-pointer"
+									className="h-7 w-full cursor-pointer bg-[#6B9AC4] px-1 text-xs hover:cursor-pointer hover:bg-[#5A89B3] border-none text-white md:h-8 md:w-auto md:px-2"
 									onClick={(e) => {
 										e.stopPropagation();
 										handleEdit(row.original.employee_id);
 									}}
 								>
-									<UserPlus className="h-4 w-4 mr-1" />
-									Assign Schedule
+									<UserPlus className="mr-0 h-3 w-3 md:mr-1" />
+									<span className="hidden md:inline">Assign Schedule</span>
+									<span className="md:hidden">Assign</span>
 								</Button>
 							)}
 						</div>
 					);
 				},
+				meta: { className: "w-[90px] md:w-[160px] text-center" },
 				enableSorting: false,
 				enableColumnFilter: false,
 			},
@@ -311,19 +351,39 @@ export default function CheckClockEmployeeTab() {
 					}}
 					currentFilters={filters}
 					isVisible={showAdvancedFilter}
-				/>
-
-				{isLoading ? (
+				/>				{isLoading ? (
 					<div className="flex justify-center items-center py-8">
-						<div className="text-slate-500 dark:text-slate-400">
-							Loading employee work schedules...
+						<div className="text-center">
+							<div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600"></div>
+							<p>Loading employee work schedules...</p>
 						</div>
 					</div>
 				) : error ? (
 					<div className="flex justify-center items-center py-8">
-						<div className="text-red-500 dark:text-red-400">
-							Error loading employee work schedules:{" "}
-							{error.message}
+						<div className="text-center">
+							<div className="mb-4 text-red-500">
+								<svg
+									className="mx-auto mb-2 h-12 w-12"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<path
+										strokeLinecap="round"
+										strokeLinejoin="round"
+										strokeWidth={2}
+										d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+									/>
+								</svg>
+							</div>
+							<p className="font-medium text-red-600">Error loading data</p>
+							<p className="mt-1 text-sm text-gray-600">{error.message}</p>
+							<button
+								onClick={() => window.location.reload()}
+								className="mt-4 rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+							>
+								Retry
+							</button>
 						</div>
 					</div>
 				) : (

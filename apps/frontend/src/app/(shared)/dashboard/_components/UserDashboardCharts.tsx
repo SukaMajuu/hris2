@@ -22,6 +22,7 @@ import { ChevronDown } from 'lucide-react';
 import { FeatureGuard } from '@/components/subscription/FeatureGuard';
 import { FEATURE_CODES } from '@/const/features';
 import { useUserDashboard } from '../_hooks/useUserDashboard';
+import { calculateWorkingDaysInMonth } from '@/utils/workingDays';
 
 interface UserDashboardChartsProps {
   selectedMonth: string;
@@ -96,16 +97,12 @@ export function UserDashboardCharts({
                       Premium
                     </span>
                   )}
-                </div>{' '}
-                <div className='mt-2 flex items-center text-sm text-gray-600'>
+                </div>{' '}                <div className='mt-2 flex items-center text-sm text-gray-600'>
                   <span className='mr-2 inline-block h-2 w-2 rounded-full bg-green-500'></span>
                   Total Working Days:{' '}
                   {isLoadingMonthlyStats
                     ? '...'
-                    : (monthlyStats?.on_time || 0) +
-                        (monthlyStats?.late || 0) +
-                        (monthlyStats?.leave || 0) +
-                        (monthlyStats?.absent || 0) || 0}
+                    : calculateWorkingDaysInMonth(selectedMonth)}
                 </div>{' '}
               </div>
               {/* Custom Month/Year Dropdown with Auto-scroll */}

@@ -63,11 +63,10 @@ export function AttendanceTable() {
       {
         header: 'Status',
         accessorKey: 'status',
-        meta: { className: 'w-[120px] text-center' },
-        cell: ({ row }) => (
+        meta: { className: 'w-[120px] text-center' },        cell: ({ row }) => (
           <Badge
             className={
-              row.original.status === 'On Time'
+              row.original.status === 'Ontime'
                 ? 'bg-[#34d399] text-white'
                 : row.original.status === 'Early Leave'
                   ? 'bg-[#fbbf24] text-white'

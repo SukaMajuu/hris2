@@ -36,10 +36,11 @@ import { Badge } from "@/components/ui/badge";
 // Status mapping for user-friendly display
 const statusMapping = {
 	late: "Late",
-	on_time: "On Time",
+	ontime: "Ontime",
+	on_time: "Ontime", // Keep both for backward compatibility
 	early_leave: "Early Leave",
 	absent: "Absent",
-	leave: "On Leave",
+	leave: "Leave",
 } as const;
 
 // Status color mapping
@@ -47,6 +48,7 @@ const getStatusStyle = (status: string) => {
 	switch (status) {
 		case "late":
 			return "bg-red-600";
+		case "ontime":
 		case "on_time":
 			return "bg-green-600";
 		case "early_leave":

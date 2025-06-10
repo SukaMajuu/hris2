@@ -1,5 +1,5 @@
 import { Card, CardContent } from '@/components/ui/card';
-import { Filter, Search } from 'lucide-react';
+import { RefreshCw, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -213,14 +213,13 @@ export default function CheckClockApprovalTab() {
                   className='w-full rounded-md border-slate-300 bg-white pl-10 text-slate-700 placeholder-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:placeholder-slate-500'
                   placeholder='Search by employee name...'
                 />
-              </div>
-              <Button
+              </div>              <Button
                 variant='outline'
                 className='gap-2 rounded-md border-slate-300 bg-white px-4 py-2 text-slate-700 hover:bg-slate-50 hover:text-slate-800 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-200'
                 onClick={() => refetch()}
                 disabled={isLoading}
               >
-                <Filter className='h-4 w-4' />
+                <RefreshCw className='h-4 w-4' />
                 {isLoading ? 'Loading...' : 'Refresh'}
               </Button>
             </div>

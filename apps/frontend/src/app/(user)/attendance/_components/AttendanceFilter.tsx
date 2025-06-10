@@ -144,8 +144,8 @@ export function AttendanceFilter({
                     className='cursor-pointer rounded-sm px-3 py-2 transition-colors duration-150 hover:bg-green-50 dark:hover:bg-green-950'
                   >
                     <div className='flex w-full items-center gap-3'>
-                      <CheckCircle className='h-4 w-4 flex-shrink-0 text-green-500' />
-                      <span className='font-medium text-green-700 dark:text-green-300'>
+                      <CheckCircle className='h-4 w-4 flex-shrink-0 text-yellow-500' />
+                      <span className='font-medium text-green-700 dark:text-yellow-300'>
                         Early Leave
                       </span>
                     </div>

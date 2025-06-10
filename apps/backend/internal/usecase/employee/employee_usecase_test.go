@@ -293,8 +293,15 @@ func TestEmployeeUseCase_Create(t *testing.T) {
 				// Mock admin employee for count
 				mockEmployeeRepo.On("GetByUserID", ctx, creatorEmployeeID).Return(creatorEmployee, nil).Once()
 
-				// Mock current employee count
-				mockEmployeeRepo.On("List", ctx, mock.Anything, mock.Anything).Return([]*domain.Employee{}, int64(0), nil).Once()
+				// Mock current employee count - recursive counting needs 2 calls to List
+				// First call: count direct subordinates
+				mockEmployeeRepo.On("List", ctx,
+					map[string]interface{}{
+						"manager_id":        creatorEmployeeID,
+						"employment_status": true,
+					},
+					domain.PaginationParams{Page: 1, PageSize: 1}).
+					Return([]*domain.Employee{}, int64(0), nil).Once()
 
 				// Mock subscription with proper structure to avoid nil pointer panic
 				mockSubscription := &domain.Subscription{
@@ -316,7 +323,36 @@ func TestEmployeeUseCase_Create(t *testing.T) {
 				mockEmployeeRepo.On("GetByID", ctx, creatorEmployeeID).Return(creatorEmployee, nil).Once()
 				mockAuthRepo.On("GetUserByID", ctx, creatorEmployeeID).Return(adminUser, nil).Once()
 				mockEmployeeRepo.On("GetByUserID", ctx, creatorEmployeeID).Return(creatorEmployee, nil).Once()
-				mockEmployeeRepo.On("List", ctx, mock.Anything, mock.Anything).Return([]*domain.Employee{}, int64(1), nil).Once()
+
+				// After creation, there should be 1 employee (the newly created one)
+				// First call: count direct subordinates
+				mockEmployeeRepo.On("List", ctx,
+					map[string]interface{}{
+						"manager_id":        creatorEmployeeID,
+						"employment_status": true,
+					},
+					domain.PaginationParams{Page: 1, PageSize: 1}).
+					Return([]*domain.Employee{}, int64(1), nil).Once()
+
+				// Second call: get the actual subordinates to check if they have subordinates
+				mockEmployee := &domain.Employee{ID: 999, ManagerID: &creatorEmployeeID}
+				mockEmployeeRepo.On("List", ctx,
+					map[string]interface{}{
+						"manager_id":        creatorEmployeeID,
+						"employment_status": true,
+					},
+					domain.PaginationParams{Page: 1, PageSize: 1}).
+					Return([]*domain.Employee{mockEmployee}, int64(1), nil).Once()
+
+				// Third call: check if the newly created employee has subordinates (should be 0)
+				mockEmployeeRepo.On("List", ctx,
+					map[string]interface{}{
+						"manager_id":        uint(999),
+						"employment_status": true,
+					},
+					domain.PaginationParams{Page: 1, PageSize: 1}).
+					Return([]*domain.Employee{}, int64(0), nil).Once()
+
 				mockXenditRepo.On("GetSubscriptionByAdminUserID", ctx, creatorEmployeeID).Return(mockSubscription, nil).Once()
 				mockXenditRepo.On("UpdateSubscription", ctx, mock.AnythingOfType("*domain.Subscription")).Return(nil).Once()
 			} else {
@@ -340,8 +376,14 @@ func TestEmployeeUseCase_Create(t *testing.T) {
 				// Mock admin employee for count
 				mockEmployeeRepo.On("GetByUserID", ctx, creatorEmployeeID).Return(creatorEmployee, nil).Once()
 
-				// Mock current employee count
-				mockEmployeeRepo.On("List", ctx, mock.Anything, mock.Anything).Return([]*domain.Employee{}, int64(0), nil).Once()
+				// Mock current employee count - recursive counting needs at least 1 call to List
+				mockEmployeeRepo.On("List", ctx,
+					map[string]interface{}{
+						"manager_id":        creatorEmployeeID,
+						"employment_status": true,
+					},
+					domain.PaginationParams{Page: 1, PageSize: 1}).
+					Return([]*domain.Employee{}, int64(0), nil).Once()
 
 				// Mock subscription with proper structure to avoid nil pointer panic
 				mockSubscription := &domain.Subscription{
@@ -1309,8 +1351,14 @@ func TestEmployeeUseCase_BulkImport(t *testing.T) {
 			// Mock admin employee for count
 			mockEmployeeRepo.On("GetByUserID", ctx, creatorEmployeeID).Return(creatorEmployee, nil).Once()
 
-			// Mock current employee count
-			mockEmployeeRepo.On("List", ctx, mock.Anything, mock.Anything).Return([]*domain.Employee{}, int64(0), nil).Once()
+			// Mock current employee count - recursive counting needs specific parameter matching
+			mockEmployeeRepo.On("List", ctx,
+				map[string]interface{}{
+					"manager_id":        creatorEmployeeID,
+					"employment_status": true,
+				},
+				domain.PaginationParams{Page: 1, PageSize: 1}).
+				Return([]*domain.Employee{}, int64(0), nil).Once()
 
 			// Mock subscription with proper structure
 			mockSubscription := &domain.Subscription{
@@ -1367,7 +1415,45 @@ func TestEmployeeUseCase_BulkImport(t *testing.T) {
 				mockEmployeeRepo.On("GetByID", ctx, creatorEmployeeID).Return(creatorEmployee, nil).Once()
 				mockAuthRepo.On("GetUserByID", ctx, creatorEmployeeID).Return(adminUser, nil).Once()
 				mockEmployeeRepo.On("GetByUserID", ctx, creatorEmployeeID).Return(creatorEmployee, nil).Once()
-				mockEmployeeRepo.On("List", ctx, mock.Anything, mock.Anything).Return([]*domain.Employee{}, int64(len(tt.expectedSuccessfulIDs)), nil).Once()
+
+				// After successful creation, count recursively
+				// First call: count direct subordinates
+				mockEmployeeRepo.On("List", ctx,
+					map[string]interface{}{
+						"manager_id":        creatorEmployeeID,
+						"employment_status": true,
+					},
+					domain.PaginationParams{Page: 1, PageSize: 1}).
+					Return([]*domain.Employee{}, int64(len(tt.expectedSuccessfulIDs)), nil).Once()
+
+				// Second call: get actual subordinates to check recursively
+				var mockEmployees []*domain.Employee
+				for i := range tt.expectedSuccessfulIDs {
+					mockEmployees = append(mockEmployees, &domain.Employee{
+						ID:        uint(100 + i), // Use different IDs to avoid conflicts
+						ManagerID: &creatorEmployeeID,
+					})
+				}
+
+				mockEmployeeRepo.On("List", ctx,
+					map[string]interface{}{
+						"manager_id":        creatorEmployeeID,
+						"employment_status": true,
+					},
+					domain.PaginationParams{Page: 1, PageSize: len(tt.expectedSuccessfulIDs)}).
+					Return(mockEmployees, int64(len(tt.expectedSuccessfulIDs)), nil).Once()
+
+				// Third call: for each subordinate, check if they have subordinates (should be 0)
+				for i := range tt.expectedSuccessfulIDs {
+					mockEmployeeRepo.On("List", ctx,
+						map[string]interface{}{
+							"manager_id":        uint(100 + i),
+							"employment_status": true,
+						},
+						domain.PaginationParams{Page: 1, PageSize: 1}).
+						Return([]*domain.Employee{}, int64(0), nil).Once()
+				}
+
 				mockXenditRepo.On("GetSubscriptionByAdminUserID", ctx, creatorEmployeeID).Return(mockSubscription, nil).Once()
 				mockXenditRepo.On("UpdateSubscription", ctx, mock.AnythingOfType("*domain.Subscription")).Return(nil).Once()
 			}

@@ -1428,18 +1428,13 @@ func TestEmployeeUseCase_BulkImport(t *testing.T) {
 
 				// Second call: get actual subordinates to check recursively
 				var mockEmployees []*domain.Employee
-				for i := range tt.expectedSuccessfulIDs {
-					// Use a safer approach to generate unique IDs with proper bounds checking
-					var empID uint
-					if i <= 900 { // Safe range check before conversion
-						empID = 100 + uint(i)
-					} else {
-						empID = uint(100) // Fallback for edge cases
-					}
+				baseEmpID := uint(100)
+				for range tt.expectedSuccessfulIDs {
 					mockEmployees = append(mockEmployees, &domain.Employee{
-						ID:        empID, // Use different IDs to avoid conflicts
+						ID:        baseEmpID, // Use different IDs to avoid conflicts
 						ManagerID: &creatorEmployeeID,
 					})
+					baseEmpID++ // Increment for next employee
 				}
 
 				mockEmployeeRepo.On("List", ctx,
@@ -1451,21 +1446,16 @@ func TestEmployeeUseCase_BulkImport(t *testing.T) {
 					Return(mockEmployees, int64(len(tt.expectedSuccessfulIDs)), nil).Once()
 
 				// Third call: for each subordinate, check if they have subordinates (should be 0)
-				for i := range tt.expectedSuccessfulIDs {
-					// Use a safer approach to generate unique IDs with proper bounds checking
-					var empID uint
-					if i <= 900 { // Safe range check before conversion
-						empID = 100 + uint(i)
-					} else {
-						empID = uint(100) // Fallback for edge cases
-					}
+				checkEmpID := uint(100)
+				for range tt.expectedSuccessfulIDs {
 					mockEmployeeRepo.On("List", ctx,
 						map[string]interface{}{
-							"manager_id":        empID,
+							"manager_id":        checkEmpID,
 							"employment_status": true,
 						},
 						domain.PaginationParams{Page: 1, PageSize: 1}).
 						Return([]*domain.Employee{}, int64(0), nil).Once()
+					checkEmpID++ // Increment for next employee
 				}
 
 				mockXenditRepo.On("GetSubscriptionByAdminUserID", ctx, creatorEmployeeID).Return(mockSubscription, nil).Once()

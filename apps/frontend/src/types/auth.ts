@@ -17,6 +17,7 @@ export interface RegisterCredentials {
 export interface AuthResponse {
 	access_token: string;
 	user: User;
+	is_new_user?: boolean;
 }
 
 export interface GoogleAuthResponse extends AuthResponse {

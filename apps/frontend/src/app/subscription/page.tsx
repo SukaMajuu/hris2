@@ -60,8 +60,9 @@ function SubscriptionPageContent() {
 
 	return (
 		<div className="container mx-auto min-h-[95vh] flex flex-col gap-12">
-			{/* Only show Go Back link if user has existing subscription */}
-			{userSubscription?.subscription_plan && (
+			{/* Show different navigation based on user subscription status */}
+			{userSubscription?.subscription_plan ? (
+				// User has subscription - show go back to settings
 				<div className="mb-8">
 					<Link
 						href="/settings"
@@ -71,9 +72,16 @@ function SubscriptionPageContent() {
 						Go Back
 					</Link>
 				</div>
-			)}
-			{!userSubscription?.subscription_plan && (
-				<div className="h-12 flex items-center">
+			) : (
+				// User doesn't have subscription - show back to welcome and logout
+				<div className="h-12 flex items-center justify-between">
+					<Link
+						href="/welcome"
+						className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center"
+					>
+						<ArrowLeftIcon className="w-4 h-4 mr-1" />
+						Kembali ke Welcome
+					</Link>
 					<Button
 						onClick={logout}
 						disabled={isLoggingOut}

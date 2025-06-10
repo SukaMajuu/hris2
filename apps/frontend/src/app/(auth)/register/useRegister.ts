@@ -14,6 +14,7 @@ export const useRegister = () => {
 	const [isLoading, setIsLoading] = useState(false);
 	const router = useRouter();
 	const setUser = useAuthStore((state) => state.setUser);
+	const setIsNewUser = useAuthStore((state) => state.setIsNewUser);
 
 	const registerMutation = useRegisterMutation();
 
@@ -34,8 +35,14 @@ export const useRegister = () => {
 		try {
 			const response = await registerMutation.mutateAsync(data);
 			setUser(response.user);
-			router.push("/dashboard");
-			toast.success("Registration successful! Welcome to HRIS.");
+			if (response.is_new_user) {
+				setIsNewUser(true);
+				router.push("/welcome");
+				toast.success("Registration successful! Welcome to HRIS.");
+			} else {
+				router.push("/dashboard");
+				toast.success("Login successful! Welcome back.");
+			}
 		} catch (error) {
 			let errorMessage = "Registration failed. Please try again.";
 

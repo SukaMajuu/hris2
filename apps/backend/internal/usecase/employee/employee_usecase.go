@@ -36,7 +36,7 @@ const (
 type EmployeeUseCase struct {
 	employeeRepo   interfaces.EmployeeRepository
 	authRepo       interfaces.AuthRepository
-	xenditRepo     interfaces.XenditRepository
+	paymentRepo    interfaces.PaymentRepository
 	supabaseClient *supa.Client
 	db             *gorm.DB
 }
@@ -44,14 +44,14 @@ type EmployeeUseCase struct {
 func NewEmployeeUseCase(
 	employeeRepo interfaces.EmployeeRepository,
 	authRepo interfaces.AuthRepository,
-	xenditRepo interfaces.XenditRepository,
+	paymentRepo interfaces.PaymentRepository,
 	supabaseClient *supa.Client,
 	db *gorm.DB,
 ) *EmployeeUseCase {
 	return &EmployeeUseCase{
 		employeeRepo:   employeeRepo,
 		authRepo:       authRepo,
-		xenditRepo:     xenditRepo,
+		paymentRepo:    paymentRepo,
 		supabaseClient: supabaseClient,
 		db:             db,
 	}
@@ -145,7 +145,7 @@ func (uc *EmployeeUseCase) checkEmployeeLimit(ctx context.Context, creatorEmploy
 		return fmt.Errorf("failed to get current employee count: %w", err)
 	}
 
-	subscription, err := uc.xenditRepo.GetSubscriptionByAdminUserID(ctx, adminUserID)
+	subscription, err := uc.paymentRepo.GetSubscriptionByAdminUserID(ctx, adminUserID)
 	if err != nil {
 
 		log.Printf("EmployeeUseCase: Subscription not found for admin %d, using default limits. Error: %v", adminUserID, err)
@@ -255,7 +255,7 @@ func (uc *EmployeeUseCase) updateSubscriptionEmployeeCount(ctx context.Context, 
 		return fmt.Errorf("failed to find admin user: %w", err)
 	}
 
-	subscription, err := uc.xenditRepo.GetSubscriptionByAdminUserID(ctx, adminUserID)
+	subscription, err := uc.paymentRepo.GetSubscriptionByAdminUserID(ctx, adminUserID)
 	if err != nil {
 
 		log.Printf("EmployeeUseCase: Subscription not found for admin %d, skipping count update. Error: %v", adminUserID, err)
@@ -268,7 +268,7 @@ func (uc *EmployeeUseCase) updateSubscriptionEmployeeCount(ctx context.Context, 
 	}
 
 	subscription.CurrentEmployeeCount = currentCount
-	if err := uc.xenditRepo.UpdateSubscription(ctx, subscription); err != nil {
+	if err := uc.paymentRepo.UpdateSubscription(ctx, subscription); err != nil {
 		return fmt.Errorf("failed to update subscription: %w", err)
 	}
 
@@ -611,7 +611,7 @@ func (uc *EmployeeUseCase) checkBulkEmployeeLimit(ctx context.Context, creatorEm
 		return fmt.Errorf("failed to get current employee count: %w", err)
 	}
 
-	subscription, err := uc.xenditRepo.GetSubscriptionByAdminUserID(ctx, adminUserID)
+	subscription, err := uc.paymentRepo.GetSubscriptionByAdminUserID(ctx, adminUserID)
 	if err != nil {
 
 		log.Printf("EmployeeUseCase: Subscription not found for admin %d during bulk import, using default limits. Error: %v", adminUserID, err)
@@ -1346,7 +1346,7 @@ func (uc *EmployeeUseCase) GetHireDateRange(ctx context.Context, managerID uint)
 func (uc *EmployeeUseCase) SyncSubscriptionEmployeeCount(ctx context.Context, adminUserID uint) error {
 	log.Printf("EmployeeUseCase: SyncSubscriptionEmployeeCount called for admin user ID: %d", adminUserID)
 
-	subscription, err := uc.xenditRepo.GetSubscriptionByAdminUserID(ctx, adminUserID)
+	subscription, err := uc.paymentRepo.GetSubscriptionByAdminUserID(ctx, adminUserID)
 	if err != nil {
 		return fmt.Errorf("failed to get subscription: %w", err)
 	}
@@ -1357,7 +1357,7 @@ func (uc *EmployeeUseCase) SyncSubscriptionEmployeeCount(ctx context.Context, ad
 	}
 
 	subscription.CurrentEmployeeCount = currentCount
-	if err := uc.xenditRepo.UpdateSubscription(ctx, subscription); err != nil {
+	if err := uc.paymentRepo.UpdateSubscription(ctx, subscription); err != nil {
 		return fmt.Errorf("failed to update subscription: %w", err)
 	}
 

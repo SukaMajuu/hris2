@@ -8,6 +8,8 @@ import FullPageLoader from "@/components/ui/full-page-loader";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, LogOut } from "lucide-react";
 import { useLogout } from "@/app/(auth)/logout/useLogout";
+import { usePathname } from "next/navigation";
+import { redirect } from "next/navigation";
 
 interface SubscriptionGuardProps {
 	children: React.ReactNode;
@@ -22,6 +24,7 @@ export function SubscriptionGuard({
 }: SubscriptionGuardProps) {
 	const router = useRouter();
 	const { logout, isLoading: isLoggingOut } = useLogout();
+	const pathname = usePathname();
 
 	const {
 		hasActiveSubscription,
@@ -29,6 +32,8 @@ export function SubscriptionGuard({
 		isAdmin,
 		userSubscription,
 		isFetchingSubscription,
+		isNewUser,
+		isEligibleForTrial,
 	} = useSubscriptionStatus();
 
 	useEffect(() => {
@@ -36,7 +41,12 @@ export function SubscriptionGuard({
 			return;
 		}
 
-		if (isAdmin && !hasActiveSubscription && !isFetchingSubscription) {
+		if (
+			isAdmin &&
+			!hasActiveSubscription &&
+			!isFetchingSubscription &&
+			!isNewUser
+		) {
 			if (
 				userSubscription === null ||
 				(userSubscription && !hasActiveSubscription)
@@ -57,14 +67,27 @@ export function SubscriptionGuard({
 		router,
 		adminRedirectTo,
 		showToast,
+		isNewUser,
 	]);
 
 	if (isLoading) {
 		return <FullPageLoader />;
 	}
 
-	if (isAdmin && !hasActiveSubscription && userSubscription !== undefined) {
-		return <FullPageLoader />;
+	if (pathname === "/subscription" || pathname === "/welcome") {
+		return <>{children}</>;
+	}
+
+	if (
+		isAdmin &&
+		(isNewUser || isEligibleForTrial) &&
+		pathname !== "/subscription"
+	) {
+		redirect("/welcome");
+	}
+
+	if (isAdmin && !hasActiveSubscription) {
+		redirect("/subscription");
 	}
 
 	if (!isAdmin && !hasActiveSubscription && userSubscription !== undefined) {

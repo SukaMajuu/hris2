@@ -23,7 +23,6 @@ import (
 	"golang.org/x/text/language"
 )
 
-// Field type constants for validation
 const (
 	FieldTypeEmail        = "email"
 	FieldTypeNIK          = "nik"

@@ -143,6 +143,7 @@ func TestRegisterAdminWithForm(t *testing.T) {
 				mockEmployeeRepo,
 				mockJWTService,
 				testConfig,
+				nil,
 			)
 
 			mockAuthRepo.On("RegisterAdminWithForm", mock.Anything,
@@ -291,6 +292,7 @@ func TestLoginWithIdentifier(t *testing.T) {
 				mockEmployeeRepo,
 				mockJWTService,
 				testConfig,
+				nil,
 			)
 
 			if strings.Contains(tt.identifier, "@") {
@@ -534,6 +536,7 @@ func TestRefreshToken(t *testing.T) {
 				mockEmployeeRepo,
 				mockJWTService,
 				testConfig,
+				nil,
 			)
 
 			if tt.refreshToken != "" {
@@ -691,6 +694,7 @@ func TestRegisterAdminWithGoogle(t *testing.T) {
 				mockEmployeeRepo,
 				mockJWTService,
 				testConfig,
+				nil,
 			)
 
 			if tt.token != "" {
@@ -832,6 +836,7 @@ func TestLoginWithGoogle(t *testing.T) {
 				mockEmployeeRepo,
 				mockJWTService,
 				testConfig,
+				nil,
 			)
 
 			if tt.token != "" {

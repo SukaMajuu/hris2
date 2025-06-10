@@ -172,7 +172,7 @@ function NavContent({ menuItems, footerItems, pathname }: NavContentProps) {
   );
 }
 
-const hideLayoutForPaths = ['/subscription', '/subscription/checkout', '/payment', '/payment/process', '/payment/pending', '/payment/success', '/payment/failed'];
+const hideLayoutForPaths = ['/subscription', '/subscription/checkout', '/payment', '/payment/process', '/payment/pending', '/payment/success', '/payment/failed', '/welcome'];
 
 export default function MainLayout({ children }: MainLayoutProps) {
   const pathname = usePathname();
@@ -185,7 +185,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
   const role = (user?.role as Role) || 'admin';
 
-  const shouldHideLayout = hideLayoutForPaths.includes(pathname) || !hasActiveSubscription;
+  const shouldHideLayout = hideLayoutForPaths.includes(pathname) || (!hasActiveSubscription && pathname !== '/welcome');
 
   const getPageTitle = () => {
     const allMenuItems = [...getMainMenuItemsByRole(role), ...getFooterItemsByRole(role)];

@@ -25,6 +25,7 @@ import { AttendanceStatistics } from './_components/AttendanceStatistics';
 import { AttendanceTable } from './_components/AttendanceTable';
 import { UserDashboardCharts } from './_components/UserDashboardCharts';
 import { FeatureGuard } from '@/components/subscription/FeatureGuard';
+import { TrialBanner } from '@/components/subscription/TrialBanner';
 import { FEATURE_CODES } from '@/const/features';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { useEmployeeMonthlyStatistics } from '@/api/queries/attendance.queries';
@@ -77,6 +78,9 @@ export default function DashboardPage() {
 
   return (
     <div className='flex flex-col gap-6'>
+      {/* Trial Banner - shows for all users with trial status */}
+      <TrialBanner />
+
       {isAdminDashboard ? (
         <FeatureGuard feature={FEATURE_CODES.ADMIN_DASHBOARD}>
           <>

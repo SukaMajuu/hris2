@@ -42,8 +42,8 @@ type CheckoutSessionResponse struct {
 	IsTrialCheckout  bool                      `json:"is_trial_checkout"`
 	Amount           decimal.Decimal           `json:"amount"`
 	Currency         string                    `json:"currency"`
-	XenditInvoiceID  *string                   `json:"xendit_invoice_id,omitempty"`
-	XenditInvoiceURL *string                   `json:"xendit_invoice_url,omitempty"`
+	PaymentToken     *string                   `json:"payment_token,omitempty"`
+	PaymentURL       *string                   `json:"payment_url,omitempty"`
 	SubscriptionPlan *SubscriptionPlanResponse `json:"subscription_plan,omitempty"`
 	SeatPlan         *SeatPlanResponse         `json:"seat_plan,omitempty"`
 	InitiatedAt      time.Time                 `json:"initiated_at"`
@@ -71,15 +71,17 @@ type SubscriptionResponse struct {
 }
 
 type PaymentTransactionResponse struct {
-	ID              uint                `json:"id"`
-	XenditInvoiceID *string             `json:"xendit_invoice_id,omitempty"`
-	Amount          decimal.Decimal     `json:"amount"`
-	Currency        string              `json:"currency"`
-	Status          enums.PaymentStatus `json:"status"`
-	PaymentMethod   *string             `json:"payment_method,omitempty"`
-	Description     string              `json:"description"`
-	PaidAt          *time.Time          `json:"paid_at,omitempty"`
-	CreatedAt       time.Time           `json:"created_at"`
+	ID            uint                `json:"id"`
+	TransactionID *string             `json:"transaction_id,omitempty"`
+	OrderID       string              `json:"order_id"`
+	Amount        decimal.Decimal     `json:"amount"`
+	Currency      string              `json:"currency"`
+	Status        enums.PaymentStatus `json:"status"`
+	PaymentMethod *string             `json:"payment_method,omitempty"`
+	PaymentType   *string             `json:"payment_type,omitempty"`
+	Description   string              `json:"description"`
+	PaidAt        *time.Time          `json:"paid_at,omitempty"`
+	CreatedAt     time.Time           `json:"created_at"`
 }
 
 type CustomerBillingInfoResponse struct {
@@ -153,16 +155,16 @@ func ToSeatPlanResponse(seatPlan *domain.SeatPlan) *SeatPlanResponse {
 
 func ToCheckoutSessionResponse(session *domain.CheckoutSession) *CheckoutSessionResponse {
 	response := &CheckoutSessionResponse{
-		SessionID:        session.SessionID,
-		Status:           session.Status,
-		IsTrialCheckout:  session.IsTrialCheckout,
-		Amount:           session.Amount,
-		Currency:         session.Currency,
-		XenditInvoiceID:  session.XenditInvoiceID,
-		XenditInvoiceURL: session.XenditInvoiceURL,
-		InitiatedAt:      session.InitiatedAt,
-		ExpiresAt:        session.ExpiresAt,
-		CompletedAt:      session.CompletedAt,
+		SessionID:       session.SessionID,
+		Status:          session.Status,
+		IsTrialCheckout: session.IsTrialCheckout,
+		Amount:          session.Amount,
+		Currency:        session.Currency,
+		PaymentToken:    session.PaymentToken,
+		PaymentURL:      session.PaymentURL,
+		InitiatedAt:     session.InitiatedAt,
+		ExpiresAt:       session.ExpiresAt,
+		CompletedAt:     session.CompletedAt,
 	}
 
 	if session.SubscriptionPlan.ID != 0 {
@@ -211,15 +213,17 @@ func ToSubscriptionResponse(subscription *domain.Subscription) *SubscriptionResp
 
 func ToPaymentTransactionResponse(transaction *domain.PaymentTransaction) *PaymentTransactionResponse {
 	return &PaymentTransactionResponse{
-		ID:              transaction.ID,
-		XenditInvoiceID: transaction.XenditInvoiceID,
-		Amount:          transaction.Amount,
-		Currency:        transaction.Currency,
-		Status:          transaction.Status,
-		PaymentMethod:   transaction.PaymentMethod,
-		Description:     transaction.Description,
-		PaidAt:          transaction.PaidAt,
-		CreatedAt:       transaction.CreatedAt,
+		ID:            transaction.ID,
+		TransactionID: transaction.TransactionID,
+		OrderID:       transaction.OrderID,
+		Amount:        transaction.Amount,
+		Currency:      transaction.Currency,
+		Status:        transaction.Status,
+		PaymentMethod: transaction.PaymentMethod,
+		PaymentType:   transaction.PaymentType,
+		Description:   transaction.Description,
+		PaidAt:        transaction.PaidAt,
+		CreatedAt:     transaction.CreatedAt,
 	}
 }
 

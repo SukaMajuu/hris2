@@ -8,6 +8,7 @@ import {
 	InitiateTrialCheckoutRequest,
 	InitiatePaidCheckoutRequest,
 	CompleteTrialCheckoutRequest,
+	InitiatePaidCheckoutResponse,
 } from "@/types/subscription";
 
 class SubscriptionService {
@@ -58,9 +59,9 @@ class SubscriptionService {
 	// Initiate paid checkout
 	async initiatePaidCheckout(
 		request: InitiatePaidCheckoutRequest
-	): Promise<CheckoutSession> {
+	): Promise<InitiatePaidCheckoutResponse> {
 		const response = await this.apiService.post<
-			ApiResponse<CheckoutSession>
+			ApiResponse<InitiatePaidCheckoutResponse>
 		>("/api/subscription/checkout/paid", request);
 		return response.data.data;
 	}
@@ -73,6 +74,13 @@ class SubscriptionService {
 			ApiResponse<UserSubscription>
 		>("/api/subscription/checkout/complete-trial", request);
 		return response.data.data;
+	}
+
+	// Activate trial for user
+	async activateTrial(): Promise<void> {
+		await this.apiService.post<ApiResponse<null>>(
+			"/api/subscription/trial/activate"
+		);
 	}
 }
 

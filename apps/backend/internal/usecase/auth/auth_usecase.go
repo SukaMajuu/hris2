@@ -17,10 +17,11 @@ import (
 )
 
 type AuthUseCase struct {
-	authRepo     interfaces.AuthRepository
-	employeeRepo interfaces.EmployeeRepository
-	jwtService   jwt.Service
-	config       *config.Config
+	authRepo       interfaces.AuthRepository
+	employeeRepo   interfaces.EmployeeRepository
+	jwtService     jwt.Service
+	config         *config.Config
+	subscriptionUC interfaces.SubscriptionUseCase
 }
 
 func NewAuthUseCase(
@@ -28,12 +29,14 @@ func NewAuthUseCase(
 	employeeRepo interfaces.EmployeeRepository,
 	jwtService jwt.Service,
 	config *config.Config,
+	subscriptionUC interfaces.SubscriptionUseCase,
 ) *AuthUseCase {
 	return &AuthUseCase{
-		authRepo:     authRepo,
-		employeeRepo: employeeRepo,
-		jwtService:   jwtService,
-		config:       config,
+		authRepo:       authRepo,
+		employeeRepo:   employeeRepo,
+		jwtService:     jwtService,
+		config:         config,
+		subscriptionUC: subscriptionUC,
 	}
 }
 

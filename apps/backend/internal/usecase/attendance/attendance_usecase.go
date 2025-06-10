@@ -18,17 +18,20 @@ type AttendanceUseCase struct {
 	attendanceRepo   interfaces.AttendanceRepository
 	employeeRepo     interfaces.EmployeeRepository
 	workScheduleRepo interfaces.WorkScheduleRepository
+	leaveRequestRepo interfaces.LeaveRequestRepository
 }
 
 func NewAttendanceUseCase(
 	attendanceRepo interfaces.AttendanceRepository,
 	employeeRepo interfaces.EmployeeRepository,
 	workScheduleRepo interfaces.WorkScheduleRepository,
+	leaveRequestRepo interfaces.LeaveRequestRepository,
 ) *AttendanceUseCase {
 	return &AttendanceUseCase{
 		attendanceRepo:   attendanceRepo,
 		employeeRepo:     employeeRepo,
 		workScheduleRepo: workScheduleRepo,
+		leaveRequestRepo: leaveRequestRepo,
 	}
 }
 

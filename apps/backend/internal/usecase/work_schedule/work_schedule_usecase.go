@@ -53,6 +53,7 @@ func toWorkScheduleDetailResponseDTO(detail domain.WorkScheduleDetail) *dtoworks
 		CheckOutStart:  formatTimeToStringPtr(detail.CheckoutStart), // Corrected casing
 		CheckOutEnd:    formatTimeToStringPtr(detail.CheckoutEnd),   // Corrected casing
 		LocationID:     detail.LocationID,
+		IsActive:       detail.IsActive,
 	}
 
 	if detail.Location != nil {
@@ -118,6 +119,45 @@ func (uc *WorkScheduleUseCase) Create(ctx context.Context, workSchedule *domain.
 	return toWorkScheduleResponseDTO(createdWorkSchedule), nil
 }
 
+// ListByUser returns a paginated list of work schedules owned by the specified user.
+func (uc *WorkScheduleUseCase) ListByUser(ctx context.Context, userID uint, paginationParams domain.PaginationParams) (*dtoworkschedule.WorkScheduleListResponseData, error) {
+	workSchedules, totalItems, err := uc.workScheduleRepo.ListByUser(ctx, userID, paginationParams)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list work schedules by user from repository: %w", err)
+	}
+
+	// Convert to DTOs
+	responseDTOs := make([]*dtoworkschedule.WorkScheduleResponseDTO, len(workSchedules))
+	for i, ws := range workSchedules {
+		responseDTOs[i] = toWorkScheduleResponseDTO(ws)
+	}
+
+	// Calculate pagination
+	totalPages := 0
+	if paginationParams.PageSize > 0 {
+		totalPages = int(math.Ceil(float64(totalItems) / float64(paginationParams.PageSize)))
+	}
+	if totalPages < 1 && totalItems > 0 {
+		totalPages = 1
+	} else if totalItems == 0 {
+		totalPages = 0
+	}
+
+	response := &dtoworkschedule.WorkScheduleListResponseData{
+		Items: responseDTOs,
+		Pagination: domain.Pagination{
+			TotalItems:  totalItems,
+			TotalPages:  totalPages,
+			CurrentPage: paginationParams.Page,
+			PageSize:    paginationParams.PageSize,
+			HasNextPage: paginationParams.Page < totalPages,
+			HasPrevPage: paginationParams.Page > 1 && paginationParams.Page <= totalPages,
+		},
+	}
+
+	return response, nil
+}
+
 func (uc *WorkScheduleUseCase) List(ctx context.Context, paginationParams domain.PaginationParams) (*dtoworkschedule.WorkScheduleListResponseData, error) {
 	workSchedules, totalItems, err := uc.workScheduleRepo.ListWithPagination(ctx, paginationParams)
 	if err != nil {
@@ -140,6 +180,73 @@ func (uc *WorkScheduleUseCase) List(ctx context.Context, paginationParams domain
 			HasPrevPage: paginationParams.Page > 1,
 		},
 	}, nil
+}
+
+// GetByIDAndUser returns a work schedule by ID if it's owned by the specified user.
+func (uc *WorkScheduleUseCase) GetByIDAndUser(ctx context.Context, id uint, userID uint) (*dtoworkschedule.WorkScheduleResponseDTO, error) {
+	workSchedule, err := uc.workScheduleRepo.GetByIDAndUser(ctx, id, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get work schedule by ID and user: %w", err)
+	}
+	return toWorkScheduleResponseDTO(workSchedule), nil
+}
+
+// GetByIDForEditByUser returns a work schedule by ID with all details (including inactive) for editing, if owned by user.
+func (uc *WorkScheduleUseCase) GetByIDForEditByUser(ctx context.Context, id uint, userID uint) (*dtoworkschedule.WorkScheduleResponseDTO, error) {
+	workSchedule, err := uc.workScheduleRepo.GetByIDWithAllDetailsByUser(ctx, id, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get work schedule for edit by user: %w", err)
+	}
+	return toWorkScheduleResponseDTO(workSchedule), nil
+}
+
+// UpdateByUser updates an existing work schedule with its details if owned by user.
+func (uc *WorkScheduleUseCase) UpdateByUser(
+	ctx context.Context,
+	id uint,
+	userID uint,
+	workSchedule *domain.WorkSchedule,
+	details []*domain.WorkScheduleDetail,
+	toDeleteIDs []uint,
+) (*dtoworkschedule.WorkScheduleResponseDTO, error) {
+	// Validate LocationID for WFO details if locationRepo is available
+	if uc.locationRepo != nil {
+		for _, detail := range details {
+			if detail.WorktypeDetail == enums.WorkTypeWFO {
+				if detail.LocationID == nil {
+					return nil, fmt.Errorf("location ID is required for WFO work type detail")
+				}
+				_, err := uc.locationRepo.GetByIDAndUser(ctx, *detail.LocationID, userID)
+				if err != nil {
+					return nil, fmt.Errorf("invalid location ID %d for WFO detail or location does not belong to user: %w", *detail.LocationID, err)
+				}
+			}
+		}
+	}
+
+	workSchedule.Details = nil // Clear details from main object as they are passed separately
+
+	err := uc.workScheduleRepo.UpdateByUser(ctx, id, userID, workSchedule, details, toDeleteIDs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update work schedule by user: %w", err)
+	}
+
+	// Fetch updated work schedule
+	updatedWorkSchedule, err := uc.workScheduleRepo.GetByIDAndUser(ctx, id, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch updated work schedule: %w", err)
+	}
+
+	return toWorkScheduleResponseDTO(updatedWorkSchedule), nil
+}
+
+// DeleteByUser soft deletes a work schedule if owned by user.
+func (uc *WorkScheduleUseCase) DeleteByUser(ctx context.Context, id uint, userID uint) error {
+	err := uc.workScheduleRepo.DeleteByUser(ctx, id, userID)
+	if err != nil {
+		return fmt.Errorf("failed to delete work schedule by user: %w", err)
+	}
+	return nil
 }
 
 // Update updates an existing work schedule with its details.
@@ -190,11 +297,21 @@ func (uc *WorkScheduleUseCase) Update(
 	return toWorkScheduleResponseDTO(updatedWorkSchedule), nil
 }
 
-// GetByID retrieves a work schedule by ID with all its details
+// GetByID retrieves a work schedule by ID with active details only
 func (uc *WorkScheduleUseCase) GetByID(ctx context.Context, id uint) (*dtoworkschedule.WorkScheduleResponseDTO, error) {
 	workSchedule, err := uc.workScheduleRepo.GetByIDWithDetails(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get work schedule by ID %d: %w", id, err)
+	}
+
+	return toWorkScheduleResponseDTO(workSchedule), nil
+}
+
+// GetByIDForEdit retrieves a work schedule by ID with all details (active and inactive) for editing
+func (uc *WorkScheduleUseCase) GetByIDForEdit(ctx context.Context, id uint) (*dtoworkschedule.WorkScheduleResponseDTO, error) {
+	workSchedule, err := uc.workScheduleRepo.GetByIDWithAllDetails(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get work schedule by ID %d for editing: %w", id, err)
 	}
 
 	return toWorkScheduleResponseDTO(workSchedule), nil

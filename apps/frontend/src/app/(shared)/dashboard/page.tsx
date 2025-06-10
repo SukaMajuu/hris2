@@ -25,8 +25,10 @@ import { AttendanceStatistics } from './_components/AttendanceStatistics';
 import { AttendanceTable } from './_components/AttendanceTable';
 import { UserDashboardCharts } from './_components/UserDashboardCharts';
 import { FeatureGuard } from '@/components/subscription/FeatureGuard';
+import { TrialBanner } from '@/components/subscription/TrialBanner';
 import { FEATURE_CODES } from '@/const/features';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
+import { useEmployeeMonthlyStatistics } from '@/api/queries/attendance.queries';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
 
@@ -53,7 +55,15 @@ export default function DashboardPage() {
     isLoadingHireDateRange,
   } = useDashboardData();
 
-  // If user doesn't have access to either dashboard, show upgrade prompt
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+  const currentMonth = currentDate.getMonth() + 1;
+
+  const { data: monthlyStats, isLoading: isLoadingMonthlyStats } = useEmployeeMonthlyStatistics(
+    currentYear,
+    currentMonth,
+  );
+
   if (!isAdminDashboard && !isEmployeeDashboard) {
     const requiredFeature =
       role === 'admin' ? FEATURE_CODES.ADMIN_DASHBOARD : FEATURE_CODES.EMPLOYEE_DASHBOARD;
@@ -68,6 +78,9 @@ export default function DashboardPage() {
 
   return (
     <div className='flex flex-col gap-6'>
+      {/* Trial Banner - shows for all users with trial status */}
+      <TrialBanner />
+
       {isAdminDashboard ? (
         <FeatureGuard feature={FEATURE_CODES.ADMIN_DASHBOARD}>
           <>
@@ -103,7 +116,7 @@ export default function DashboardPage() {
                 description={`Update: ${new Date().toLocaleString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}`}
               />
               <StatCard
-                label='Resigned Employees'
+                label='Total Resigned Employees'
                 value={
                   isLoadingStatsOverall
                     ? '...'
@@ -146,27 +159,33 @@ export default function DashboardPage() {
             <div className='mb-2 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4'>
               <StatCard
                 label='Work Hours'
-                value='120h 54m'
+                value={
+                  isLoadingMonthlyStats
+                    ? '...'
+                    : monthlyStats?.total_work_hours
+                      ? `${Math.floor(monthlyStats.total_work_hours)}h ${Math.floor((monthlyStats.total_work_hours % 1) * 60)}m`
+                      : '0h 0m'
+                }
                 icon={<Clock className='h-5 w-5' />}
-                description={`Update: ${new Date().toLocaleString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}`}
+                description={`${new Date(currentYear, currentMonth - 1).toLocaleString('en-US', { month: 'long', year: 'numeric' })}`}
               />
               <StatCard
                 label='On Time'
-                value='20'
+                value={isLoadingMonthlyStats ? '...' : monthlyStats?.on_time?.toString() || '0'}
                 icon={<CheckCircle className='h-5 w-5' />}
-                description={`Update: ${new Date().toLocaleString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}`}
+                description={`${new Date(currentYear, currentMonth - 1).toLocaleString('en-US', { month: 'long', year: 'numeric' })}`}
               />
               <StatCard
                 label='Late'
-                value='5'
+                value={isLoadingMonthlyStats ? '...' : monthlyStats?.late?.toString() || '0'}
                 icon={<AlertCircle className='h-5 w-5' />}
-                description={`Update: ${new Date().toLocaleString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}`}
+                description={`${new Date(currentYear, currentMonth - 1).toLocaleString('en-US', { month: 'long', year: 'numeric' })}`}
               />
               <StatCard
                 label='Absent'
-                value='10'
+                value={isLoadingMonthlyStats ? '...' : monthlyStats?.absent?.toString() || '0'}
                 icon={<XCircle className='h-5 w-5' />}
-                description={`Update: ${new Date().toLocaleString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}`}
+                description={`${new Date(currentYear, currentMonth - 1).toLocaleString('en-US', { month: 'long', year: 'numeric' })}`}
               />
             </div>
           </FeatureGuard>

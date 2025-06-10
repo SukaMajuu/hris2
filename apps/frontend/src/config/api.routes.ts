@@ -7,8 +7,9 @@ export const API_ROUTES = {
       logout: '/auth/logout',
       refresh: '/auth/refresh',
       password: {
-        change: '/auth/password/change',
         reset: '/auth/password/reset',
+        change: '/auth/password/change',
+        update: '/auth/password/update',
       },
     },
     api: {
@@ -30,6 +31,7 @@ export const API_ROUTES = {
         hireDateRange: '/api/employees/hire-date-range',
         bulkImport: '/api/employees/bulk-import',
         resign: (id: number) => `/api/employees/${id}/status`,
+        resetPassword: (id: number) => `/api/employees/${id}/reset-password`,
         me: '/api/employees/me',
         documents: {
           base: '/api/employees/documents',
@@ -50,6 +52,7 @@ export const API_ROUTES = {
         base: '/api/work-schedules',
         list: '/api/work-schedules',
         detail: (id: number) => `/api/work-schedules/${id}`,
+        edit: (id: number) => `/api/work-schedules/${id}/edit`,
         create: '/api/work-schedules',
         update: (id: number) => `/api/work-schedules/${id}`,
         delete: (id: number) => `/api/work-schedules/${id}`,
@@ -99,6 +102,8 @@ export const API_ROUTES = {
         clockIn: '/api/attendances/clock-in',
         clockOut: '/api/attendances/clock-out',
         statistics: '/api/attendances/statistics',
+        monthlyStatistics: (year?: number, month?: number) =>
+          `/api/attendances/statistics/monthly${year && month ? `?year=${year}&month=${month}` : ''}`,
         today: '/api/attendances/today',
         byEmployee: (employeeId: number) => `/api/attendances/employees/${employeeId}`,
       },

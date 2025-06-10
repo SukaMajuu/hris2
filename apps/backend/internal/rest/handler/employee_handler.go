@@ -23,7 +23,6 @@ import (
 	"golang.org/x/text/language"
 )
 
-// Field type constants for validation
 const (
 	FieldTypeEmail        = "email"
 	FieldTypeNIK          = "nik"
@@ -824,4 +823,26 @@ func (h *EmployeeHandler) UpdateCurrentUserProfile(c *gin.Context) {
 
 	respDTO := domainEmployeeDTO.ToEmployeeResponseDTO(updatedEmployee)
 	response.Success(c, http.StatusOK, "Current user profile updated successfully", respDTO)
+}
+
+func (h *EmployeeHandler) ResetEmployeePassword(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		response.BadRequest(c, "Invalid employee ID format", err)
+		return
+	}
+
+	err = h.employeeUseCase.ResetEmployeePassword(c.Request.Context(), uint(id))
+	if err != nil {
+		if errors.Is(err, domain.ErrEmployeeNotFound) {
+			response.NotFound(c, "Employee not found", err)
+			return
+		}
+		log.Printf("EmployeeHandler: Error resetting password for employee ID %d: %v", id, err)
+		response.InternalServerError(c, fmt.Errorf("failed to reset employee password"))
+		return
+	}
+
+	response.Success(c, http.StatusOK, "Password reset email sent successfully", nil)
 }

@@ -175,7 +175,7 @@ export class EmployeeService {
   async getEmployeeStats(month?: string): Promise<EmployeeStatsData> {
     const params = month ? `?month=${encodeURIComponent(month)}` : '';
     const response = await this.api.get<ApiResponse<EmployeeStatsData>>(
-      `${API_ROUTES.v1.api.employees.list}/statistics${params}`,
+      `${API_ROUTES.v1.api.employees.statistics}${params}`,
     );
     return response.data.data;
   }
@@ -189,6 +189,10 @@ export class EmployeeService {
 
   async resignEmployee(id: number): Promise<void> {
     await this.api.patch(API_ROUTES.v1.api.employees.resign(id));
+  }
+
+  async resetEmployeePassword(id: number): Promise<void> {
+    await this.api.post(API_ROUTES.v1.api.employees.resetPassword(id));
   }
 
   async validateUniqueField(
@@ -300,7 +304,6 @@ export class EmployeeService {
   async updateEmployee(id: number, data: UpdateEmployeeRequest): Promise<Employee> {
     const formData = new FormData();
 
-    // Add all fields to FormData
     Object.entries(data).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
         if (key === 'photo_file' && value instanceof File) {
@@ -334,7 +337,6 @@ export class EmployeeService {
   async updateCurrentUserProfile(data: UpdateEmployeeRequest): Promise<Employee> {
     const formData = new FormData();
 
-    // Add all fields to FormData
     Object.entries(data).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
         if (key === 'photo_file' && value instanceof File) {

@@ -16,6 +16,8 @@ export const queryKeys = {
     google: ['auth', 'google'] as const,
     logout: ['auth', 'logout'] as const,
     passwordResetRequest: ['auth', 'passwordResetRequest'] as const,
+    passwordChange: ['auth', 'passwordChange'] as const,
+    passwordUpdate: ['auth', 'passwordUpdate'] as const,
   },
   users: {
     list: ['users', 'list'] as const,
@@ -98,13 +100,18 @@ export const queryKeys = {
     seatPlans: (planId: number) => ['subscription', 'seatPlans', planId] as const,
     userSubscription: ['subscription', 'userSubscription'] as const,
     checkoutSession: (sessionId: string) => ['subscription', 'checkoutSession', sessionId] as const,
-  },
-  attendance: {
+  },  attendance: {
     all: ['attendance'],
-    list: () => [...queryKeys.attendance.all, 'list'],
+    list: (page?: number, pageSize?: number) => [...queryKeys.attendance.all, 'list', page, pageSize],
     detail: (id: number) => [...queryKeys.attendance.all, 'detail', id],
-    byEmployee: (employeeId: number) => [...queryKeys.attendance.all, 'employee', employeeId],
+    byEmployee: (employeeId: number, page?: number, pageSize?: number) => [...queryKeys.attendance.all, 'employee', employeeId, page, pageSize],
     statistics: () => [...queryKeys.attendance.all, 'statistics'],
+    monthlyStatistics: (year?: number, month?: number) => [
+      ...queryKeys.attendance.all,
+      'monthlyStatistics',
+      year,
+      month,
+    ],
     recent: () => [...queryKeys.attendance.all, 'recent'],
   },
 } as const;

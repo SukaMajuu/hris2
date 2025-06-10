@@ -31,13 +31,18 @@ import {
 	getFilterSummary,
 } from "../_utils/attendanceFilters";
 import { Attendance, AttendanceFormData } from "@/types/attendance";
+import { LeaveRequest, LeaveRequestFilters } from "@/types/leave-request";
 import { Badge } from "@/components/ui/badge";
+import { formatWorkHours, formatTime } from "@/utils/time";
 
 // Status mapping for user-friendly display
 const statusMapping = {
 	late: "Late",
-	on_time: "On Time",
+	ontime: "Ontime",
+	on_time: "Ontime", // Keep both for backward compatibility
 	early_leave: "Early Leave",
+	absent: "Absent",
+	leave: "Leave",
 } as const;
 
 // Status color mapping
@@ -45,21 +50,149 @@ const getStatusStyle = (status: string) => {
 	switch (status) {
 		case "late":
 			return "bg-red-600";
+		case "ontime":
 		case "on_time":
 			return "bg-green-600";
 		case "early_leave":
 			return "bg-yellow-600";
 		case "absent":
 			return "bg-gray-600";
+		case "leave":
+			return "bg-purple-600";
 		default:
 			return "bg-gray-600";
 	}
 };
 
-// Function to get display status
 const getDisplayStatus = (status: string): string => {
 	return statusMapping[status as keyof typeof statusMapping] || status;
 };
+
+const formatDecimalHoursToTime = (decimalHours: number | string): string => {
+	const hours = Number(decimalHours);
+	if (isNaN(hours)) return "-";
+
+	const totalSeconds = Math.round(hours * 3600);
+	const h = Math.floor(totalSeconds / 3600);
+	const m = Math.floor((totalSeconds % 3600) / 60);
+	const s = totalSeconds % 60;
+
+	return `${h}h${m}m${s}s`;
+};
+
+const formatTimeToLocal = (
+	utcTime: string | null,
+	dateStr?: string
+): string => {
+	if (!utcTime) return "-";
+
+	try {
+		let date: Date;
+
+		if (utcTime.includes(" ") || utcTime.includes("T")) {
+			if (utcTime.includes("T")) {
+				date = new Date(utcTime);
+			} else {
+				const isoString = utcTime.replace(" ", "T") + "Z";
+				date = new Date(isoString);
+			}
+		} else {
+			const recordDate =
+				dateStr || new Date().toISOString().split("T")[0];
+			const dateTimeString = `${recordDate}T${utcTime}Z`;
+			date = new Date(dateTimeString);
+		}
+
+		if (isNaN(date.getTime())) {
+			console.error("Invalid date:", utcTime);
+			return utcTime;
+		}
+
+		const formatted = date.toLocaleString("en-US", {
+			year: "numeric",
+			month: "short",
+			day: "2-digit",
+			hour: "2-digit",
+			minute: "2-digit",
+			second: "2-digit",
+			timeZoneName: "short",
+		});
+
+		return formatted;
+	} catch (error) {
+		console.error(
+			"Error formatting time to local:",
+			error,
+			"Input:",
+			utcTime
+		);
+		return utcTime || "-";
+	}
+};
+
+const formatTimeOnly = (utcTime: string | null, dateStr?: string): string => {
+	if (!utcTime) return "-";
+
+	try {
+		let date: Date;
+
+		if (utcTime.includes(" ") || utcTime.includes("T")) {
+			if (utcTime.includes("T")) {
+				date = new Date(utcTime);
+			} else {
+				const isoString = utcTime.replace(" ", "T") + "Z";
+				date = new Date(isoString);
+			}
+		} else {
+			const recordDate =
+				dateStr || new Date().toISOString().split("T")[0];
+			const dateTimeString = `${recordDate}T${utcTime}Z`;
+			date = new Date(dateTimeString);
+		}
+
+		if (isNaN(date.getTime())) {
+			console.error("Invalid date in formatTimeOnly:", utcTime);
+			return utcTime;
+		}
+
+		const formatted = date.toLocaleTimeString("en-US", {
+			hour: "2-digit",
+			minute: "2-digit",
+			second: "2-digit",
+			hour12: false,
+		});
+
+		return formatted;
+	} catch (error) {
+		console.error("Error formatting time only:", error, "Input:", utcTime);
+		return utcTime || "-";
+	}
+};
+
+  
+// Helper function to format leave type for display
+const formatLeaveType = (leaveType: string): string => {
+	return leaveType.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+};
+
+// Helper function to get status badge for leave requests
+const getLeaveStatusBadge = (status: string) => {
+	switch (status.toLowerCase()) {
+		case 'approved':
+			return <Badge className="bg-green-600 text-white">Approved</Badge>;
+		case 'rejected':
+			return <Badge className="bg-red-600 text-white">Rejected</Badge>;
+		case 'waiting_approval':
+		case 'waiting approval':
+			return <Badge className="bg-yellow-600 text-white">Waiting Approval</Badge>;
+		default:
+			return <Badge className="bg-gray-600 text-white">{status}</Badge>;
+	}
+};
+
+// Removed formatDecimalHoursToTime - using formatWorkHours from utils instead
+
+// Removed formatTimeToLocal - using formatTime from utils for consistency
 
 export default function AttendanceOverviewTab() {
 	const {
@@ -76,19 +209,146 @@ export default function AttendanceOverviewTab() {
 	const [openSheet, setOpenSheet] = useState(false);
 	const [selectedData, setSelectedData] = useState<Attendance | null>(null);
 	const [openDialog, setOpenDialog] = useState(false);
-	const [dialogActionType, setDialogActionType] = useState<
-		"clock-in" | "clock-out"
-	>("clock-in");
-	const [dialogTitle, setDialogTitle] = useState("Add Attendance Data");
+  const [dialogActionType, setDialogActionType] = useState<'clock-in' | 'clock-out'>('clock-in');
+	const [dialogTitle, setDialogTitle] = useState('Add Attendance Data');
 	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  	const [filters, setFilters] = useState({
+		date: '',
+		attendanceStatus: '',
+	});	
+    
+  const filteredData = useMemo(() => {
+		return filterAttendanceData(checkClockData, filters);
+	}, [checkClockData, filters]);
+  
+  // Fetch leave requests only when an attendance record is selected
+	const selectedDateForLeave = selectedData?.date ? selectedData.date.split('T')[0] : null;
+	
+	// Only fetch leave requests when we have a selected date and the status is leave
+	const shouldFetchLeaveRequests = selectedData?.status === 'leave' && selectedDateForLeave;
+	
+	const leaveRequestFilters = useMemo((): Omit<LeaveRequestFilters, 'employee_id'> | undefined => {
+		if (!shouldFetchLeaveRequests) return undefined;
+		
+		// Don't filter by date in API call, let client-side filtering handle the date overlap logic
+		return {};
+	}, [shouldFetchLeaveRequests]);
 
-	// Filter component state
-	const [filters, setFilters] = useState({
-		date: "",
-		attendanceStatus: "",
-	});
+	const { data: leaveRequestsData, isLoading: isLoadingLeaveRequests } = useMyLeaveRequests(
+		1, // page
+		100, // pageSize
+		shouldFetchLeaveRequests ? leaveRequestFilters : undefined
+	);
 
-	// Apply filters to the data
+	// Filter leave requests that overlap with the selected attendance date
+	const filteredLeaveRequests = useMemo(() => {
+		if (!leaveRequestsData?.items || !selectedDateForLeave || selectedData?.status !== 'leave') {
+			return [];
+		}
+		
+		const selectedDate = new Date(selectedDateForLeave);
+		return leaveRequestsData.items.filter((request: LeaveRequest) => {
+			const startDate = new Date(request.start_date);
+			const endDate = new Date(request.end_date);
+			// Check if the selected date falls within the leave request period
+			return selectedDate >= startDate && selectedDate <= endDate;
+		});
+	}, [leaveRequestsData, selectedDateForLeave, selectedData?.status]);
+
+  // Add time validation for check-in button
+	const isWithinCheckInTime = useMemo(() => {
+		if (!workSchedule || workSchedule.work_type === "WFA") return true;
+
+		const today = new Date().toLocaleDateString("en-US", {
+			weekday: "long",
+		});
+		const todaySchedule = workSchedule.details?.find((detail) =>
+			detail.work_days?.includes(today)
+		);
+
+		if (!todaySchedule) return true;
+
+		const now = new Date();
+		const currentTime = now.toTimeString().split(" ")[0] || "00:00:00";
+
+		const checkinStartUTC = todaySchedule.checkin_start;
+		const checkinEndUTC = todaySchedule.checkin_end;
+
+		if (!checkinStartUTC || !checkinEndUTC) return true;
+
+		// Convert UTC schedule times to local time for comparison
+		const todayDate = new Date().toISOString().split("T")[0];
+		const startDateTime = new Date(`${todayDate}T${checkinStartUTC}Z`);
+		const endDateTime = new Date(`${todayDate}T${checkinEndUTC}Z`);
+
+		const checkinStartLocal =
+			startDateTime.toTimeString().split(" ")[0] || "00:00:00";
+		const checkinEndLocal =
+			endDateTime.toTimeString().split(" ")[0] || "23:59:59";
+
+		return (
+			currentTime >= checkinStartLocal && currentTime <= checkinEndLocal
+		);
+	}, [workSchedule]);
+
+	// Check if user has clocked in today and can clock out
+	const canClockOut = useMemo(() => {
+		if (!currentEmployee) return false;
+
+		const today = new Date().toISOString().split("T")[0];
+
+		// Find today's attendance record
+		const todayAttendance = checkClockData.find(
+			(record) =>
+				record.date === today && record.clock_in && !record.clock_out
+		);
+
+		return !!todayAttendance; // Can clock out only if clocked in today and haven't clocked out yet
+	}, [checkClockData, currentEmployee]);
+
+	// Check if clock-out would be early
+	const isEarlyClockOut = useMemo(() => {
+		if (!workSchedule || workSchedule.work_type === "WFA" || !canClockOut)
+			return false;
+
+		const today = new Date().toLocaleDateString("en-US", {
+			weekday: "long",
+		});
+		const todaySchedule = workSchedule.details?.find((detail) =>
+			detail.work_days?.includes(today)
+		);
+
+		if (!todaySchedule?.checkout_start) return false;
+
+		const now = new Date();
+		const currentTime = now.toTimeString().split(" ")[0] || "00:00:00";
+
+		// Convert UTC checkout time to local
+		const todayDate = new Date().toISOString().split("T")[0];
+		const checkoutStartDateTime = new Date(
+			`${todayDate}T${todaySchedule.checkout_start}Z`
+		);
+		const checkoutStartLocal =
+			checkoutStartDateTime.toTimeString().split(" ")[0] || "00:00:00";
+
+		return currentTime < checkoutStartLocal;
+	}, [workSchedule, canClockOut]);
+
+	// Check if user has already clocked out today
+	const hasAlreadyClockedOut = useMemo(() => {
+		if (!currentEmployee) return false;
+
+		const today = new Date().toISOString().split("T")[0];
+
+		// Find today's attendance record that has both clock_in and clock_out
+		const todayAttendance = checkClockData.find(
+			(record) =>
+				record.date === today && record.clock_in && record.clock_out
+		);
+
+		return !!todayAttendance; // User has already clocked out if there's a complete record for today
+	}, [checkClockData, currentEmployee]);
+
 	const filteredData = useMemo(() => {
 		return filterAttendanceData(checkClockData, filters);
 	}, [checkClockData, filters]);
@@ -143,7 +403,6 @@ export default function AttendanceOverviewTab() {
 		if (data.attendance_type === "clock-in" && data.clock_in_request) {
 			clockIn(data.clock_in_request, {
 				onSuccess: () => {
-					console.log("Clock-in successful");
 					setOpenDialog(false);
 					reset();
 				},
@@ -157,7 +416,6 @@ export default function AttendanceOverviewTab() {
 		) {
 			clockOut(data.clock_out_request, {
 				onSuccess: () => {
-					console.log("Clock-out successful");
 					setOpenDialog(false);
 					reset();
 				},
@@ -168,7 +426,6 @@ export default function AttendanceOverviewTab() {
 		}
 	};
 
-	// Filter handler functions
 	const handleApplyFilters = (newFilters: {
 		date?: string;
 		attendanceStatus?: string;
@@ -200,7 +457,6 @@ export default function AttendanceOverviewTab() {
 		const now = new Date();
 		const currentDate = now.toISOString().split("T")[0];
 
-		// Get work schedule ID from employee or use default if not assigned
 		const employeeWorkScheduleId = workScheduleId || 1;
 
 		if (action === "clock-in") {
@@ -226,7 +482,6 @@ export default function AttendanceOverviewTab() {
 
 		setDialogTitle(title);
 
-		// Get current location after setting initial values
 		if (navigator.geolocation) {
 			navigator.geolocation.getCurrentPosition(
 				(position) => {
@@ -261,9 +516,15 @@ export default function AttendanceOverviewTab() {
 			{
 				header: "No.",
 				cell: ({ row, table }) => {
-					const pageIdx = table.getState().pagination.pageIndex;
-					const pgSize = table.getState().pagination.pageSize;
-					return pageIdx * pgSize + row.index + 1;
+					const { pageIndex, pageSize } = table.getState().pagination;
+					// Gunakan row index yang benar dalam konteks halaman saat ini
+					const currentPageRows = table.getRowModel().rows;
+					const rowIndexInPage = currentPageRows.findIndex(
+						(r) => r.id === row.id
+					);
+					const rowNumber = pageIndex * pageSize + rowIndexInPage + 1;
+
+					return rowNumber;
 				},
 				meta: {
 					className: "max-w-[80px]",
@@ -273,8 +534,13 @@ export default function AttendanceOverviewTab() {
 				header: "Date",
 				accessorKey: "date",
 				cell: ({ row }) => {
-					const date = new Date(row.original.date);
-					return date.toLocaleDateString("en-US", {
+					// Combine UTC date and clock_in time to get the actual local date
+					const dateStr = row.original.date;
+					const timeStr = row.original.clock_in || "00:00:00";
+					const utcDateTime = `${dateStr}T${timeStr}Z`;
+					const localDate = new Date(utcDateTime);
+
+					return localDate.toLocaleDateString("en-US", {
 						year: "numeric",
 						month: "long",
 						day: "2-digit",
@@ -282,17 +548,23 @@ export default function AttendanceOverviewTab() {
 				},
 			},
 			{
-				header: "Check-In",
+				header: "Clock In",
 				accessorKey: "clock_in",
 				cell: ({ row }) => {
-					return row.original.clock_in || "-";
+					return formatTimeOnly(
+						row.original.clock_in,
+						row.original.date
+					);
 				},
 			},
 			{
-				header: "Check-Out",
+				header: "Clock Out",
 				accessorKey: "clock_out",
 				cell: ({ row }) => {
-					return row.original.clock_out || "-";
+					return formatTimeOnly(
+						row.original.clock_out,
+						row.original.date
+					);
 				},
 			},
 			{
@@ -309,7 +581,7 @@ export default function AttendanceOverviewTab() {
 				accessorKey: "work_hours",
 				cell: ({ row }) => {
 					return row.original.work_hours
-						? `${row.original.work_hours}h`
+						? formatDecimalHoursToTime(row.original.work_hours)
 						: "-";
 				},
 			},
@@ -342,7 +614,7 @@ export default function AttendanceOverviewTab() {
 							handleViewDetails(Number(row.original.id))
 						}
 					>
-						<Eye className="h-4 w-4 mr-1" />
+						<Eye className="mr-1 h-4 w-4" />
 						View
 					</Button>
 				),
@@ -379,28 +651,67 @@ export default function AttendanceOverviewTab() {
 							<div className="flex flex-wrap gap-2">
 								<Button
 									variant="outline"
-									className="gap-2 border-green-500 bg-green-500 text-white hover:bg-green-600"
+									className="gap-2 border-green-500 bg-green-500 text-white hover:bg-green-600 disabled:bg-gray-400 disabled:border-gray-400"
 									onClick={() =>
 										openDialogHandler("clock-in")
 									}
-									disabled={isClockingIn || !currentEmployee}
+									disabled={
+										isClockingIn ||
+										!currentEmployee ||
+										!isWithinCheckInTime
+									}
+									title={
+										!isWithinCheckInTime
+											? "Clock-in is not available at this time"
+											: ""
+									}
 								>
 									<LogIn className="h-4 w-4" />
 									{isClockingIn
 										? "Clocking In..."
+										: !isWithinCheckInTime
+										? "Clock In (Disabled)"
 										: "Clock In"}
 								</Button>
 								<Button
 									variant="outline"
-									className="gap-2 border-red-500 bg-red-500 text-white hover:bg-red-600"
+									className={`gap-2 border-red-500 text-white hover:bg-red-600 ${
+										canClockOut && !hasAlreadyClockedOut
+											? "bg-red-500"
+											: "bg-gray-400 border-gray-400"
+									} ${
+										isEarlyClockOut && !hasAlreadyClockedOut
+											? "bg-orange-500 border-orange-500 hover:bg-orange-600"
+											: ""
+									}`}
 									onClick={() =>
 										openDialogHandler("clock-out")
 									}
-									disabled={isClockingOut || !currentEmployee}
+									disabled={
+										isClockingOut ||
+										!currentEmployee ||
+										!canClockOut ||
+										hasAlreadyClockedOut
+									}
+									title={
+										hasAlreadyClockedOut
+											? "You have already clocked out today"
+											: !canClockOut
+											? "You must clock in first before you can clock out"
+											: isEarlyClockOut
+											? "Early clock-out will be marked as early leave"
+											: ""
+									}
 								>
 									<LogOut className="h-4 w-4" />
 									{isClockingOut
 										? "Clocking Out..."
+										: hasAlreadyClockedOut
+										? "Already Clocked Out"
+										: !canClockOut
+										? "Clock Out (Disabled)"
+										: isEarlyClockOut
+										? "Clock Out (Early)"
 										: "Clock Out"}
 								</Button>
 							</div>
@@ -419,7 +730,7 @@ export default function AttendanceOverviewTab() {
 
 					{/* Filter Summary */}
 					{(filters.date || filters.attendanceStatus) && (
-						<div className="mb-4 p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
+						<div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-950">
 							<div className="flex items-center justify-between">
 								<div className="flex items-center gap-2">
 									<Filter className="h-4 w-4 text-blue-600 dark:text-blue-400" />
@@ -456,13 +767,21 @@ export default function AttendanceOverviewTab() {
 						<div className="mx-2 space-y-6 text-sm sm:mx-4">
 							<div className="mb-6 rounded-lg bg-white p-6 shadow-md">
 								<h3 className="mb-1 text-lg font-bold text-slate-700">
-									{new Date(
-										selectedData.date
-									).toLocaleDateString("en-US", {
-										year: "numeric",
-										month: "long",
-										day: "2-digit",
-									})}
+									{(() => {
+										const dateStr = selectedData.date;
+										const timeStr =
+											selectedData.clock_in || "00:00:00";
+										const utcDateTime = `${dateStr}T${timeStr}Z`;
+										const localDate = new Date(utcDateTime);
+										return localDate.toLocaleDateString(
+											"en-US",
+											{
+												year: "numeric",
+												month: "long",
+												day: "2-digit",
+											}
+										);
+									})()}
 								</h3>
 								<p className="text-sm text-slate-500">
 									Attendance Record
@@ -478,7 +797,10 @@ export default function AttendanceOverviewTab() {
 											Check-In
 										</p>
 										<p className="text-slate-700">
-											{selectedData.clock_in || "-"}
+											{formatTimeToLocal(
+												selectedData.clock_in,
+												selectedData.date
+											)}
 										</p>
 									</div>
 									<div>
@@ -486,7 +808,10 @@ export default function AttendanceOverviewTab() {
 											Check-Out
 										</p>
 										<p className="text-slate-700">
-											{selectedData.clock_out || "-"}
+											{formatTimeToLocal(
+												selectedData.clock_out,
+												selectedData.date
+											)}
 										</p>
 									</div>
 									<div>
@@ -495,7 +820,9 @@ export default function AttendanceOverviewTab() {
 										</p>
 										<p className="text-slate-700">
 											{selectedData.work_hours
-												? `${selectedData.work_hours}h`
+												? formatDecimalHoursToTime(
+														selectedData.work_hours
+												  )
 												: "-"}
 										</p>
 									</div>
@@ -520,6 +847,63 @@ export default function AttendanceOverviewTab() {
 									</div>
 								</div>
 							</div>
+							{/* Leave Information - hanya tampil jika status adalah leave */}
+							{selectedData.status === 'leave' && (
+								<div className='rounded-lg bg-white p-6 shadow-md'>
+									<h4 className='text-md mb-4 border-b pb-2 font-semibold text-slate-700'>
+										Leave Information
+										<span className='ml-2 text-xs text-slate-500'>
+											for {new Date(selectedData.date).toLocaleDateString()}
+										</span>
+									</h4>
+									{isLoadingLeaveRequests ? (
+										<div className='text-center py-4'>
+											<p className='text-slate-500'>Loading leave requests...</p>
+										</div>
+									) : filteredLeaveRequests.length > 0 ? (
+										<div className='space-y-4'>
+											{filteredLeaveRequests.map((leaveRequest, index) => (
+												<div key={leaveRequest.id} className='border-b border-gray-200 pb-4 last:border-b-0'>
+													<div className='grid grid-cols-1 gap-x-6 gap-y-4 md:grid-cols-2'>
+														<div>
+															<p className='text-xs font-medium text-slate-500'>Leave Type</p>
+															<p className='text-slate-700'>
+																{formatLeaveType(leaveRequest.leave_type)}
+															</p>
+														</div>
+														<div>
+															<p className='text-xs font-medium text-slate-500'>Status</p>
+															<div className='mt-1'>
+																{getLeaveStatusBadge(leaveRequest.status)}
+															</div>
+														</div>														
+														<div className='md:col-span-2'>
+															<p className='text-xs font-medium text-slate-500'>Employee Note</p>
+															<p className='text-slate-700'>
+																{leaveRequest.employee_note || 'No note provided'}
+															</p>
+														</div>
+														{leaveRequest.admin_note && (
+															<div className='md:col-span-2'>
+																<p className='text-xs font-medium text-slate-500'>Admin Note</p>
+																<p className='text-slate-700'>
+																	{leaveRequest.admin_note}
+																</p>
+															</div>
+														)}													
+													</div>
+												</div>
+											))}
+										</div>
+									) : (
+										<div className='text-center py-4'>
+											<p className='text-slate-500'>
+												No leave requests found for this date
+											</p>
+										</div>
+									)}
+								</div>
+							)}
 						</div>
 					)}
 				</SheetContent>
@@ -534,6 +918,7 @@ export default function AttendanceOverviewTab() {
 				formMethods={form}
 				onSubmit={onSubmit}
 				workSchedule={workSchedule}
+				hasAlreadyClockedOut={hasAlreadyClockedOut}
 			/>
 		</>
 	);

@@ -10,8 +10,9 @@ import { DataTable } from "@/components/dataTable";
 import { PaginationComponent } from "@/components/pagination";
 import { PageSizeComponent } from "@/components/pageSize";
 import { AttendanceDetailSheet } from "../_components/AttendanceDetailSheet";
-import { LeaveRequestDetailSheet } from "../_components/LeaveRequestDetailSheet";
 import { AddAttendanceDialog } from "../_components/AddAttendanceDialog";
+import { CheckClockOverviewFilter } from "../_components/CheckClockOverviewFilter";
+import { formatWorkHours, formatTime } from "@/utils/time";
 import * as React from "react";
 import {
 	ColumnDef,
@@ -24,6 +25,7 @@ import {
 import { LeaveRequest } from "@/types/leave-request";
 
 // Combined interface for table display (matching the hook)
+// NOTE: Now only handles attendance records, including those auto-created from approved leave requests
 interface CombinedAttendanceData {
 	id: number;
 	employee_id: number;
@@ -47,7 +49,7 @@ interface CombinedAttendanceData {
 	status: string;
 	created_at: string;
 	updated_at: string;
-	type: "attendance" | "leave_request";
+	type: "attendance"; // Only attendance type now
 	leave_type?: string;
 	originalLeaveRequest?: LeaveRequest;
 }
@@ -64,23 +66,37 @@ export default function CheckClockOverviewTab() {
 		employeeList,
 		nameFilter,
 		setNameFilter,
+		filters,
+		applyFilters,
+		resetFilters,
 		isLoading,
 		error,
 		createAttendance,
 		isCreating,
 	} = useCheckClockOverview();
 
+	// Debug: Log data information
+	React.useEffect(() => {
+		console.log('=== CheckClock Debug Info ===');
+		console.log('Total Records:', totalRecords);
+		console.log('Total Pages:', totalPages);
+		console.log('Current Page:', page);
+		console.log('Page Size:', pageSize);
+		console.log('Overview Data Length:', overviewData?.length || 0);
+		console.log('Overview Data:', overviewData);
+		console.log('Is Loading:', isLoading);
+		console.log('Error:', error);
+		console.log('Name Filter:', nameFilter);
+		console.log('Filters:', filters);
+		console.log('===============================');
+	}, [overviewData, totalRecords, totalPages, page, pageSize, isLoading, error, nameFilter, filters]);
 	const [openSheet, setOpenSheet] = React.useState(false);
 	const [
 		selectedData,
 		setSelectedData,
 	] = React.useState<CombinedAttendanceData | null>(null);
-	const [openLeaveSheet, setOpenLeaveSheet] = React.useState(false);
-	const [
-		selectedLeaveRequest,
-		setSelectedLeaveRequest,
-	] = React.useState<LeaveRequest | null>(null);
 	const [openDialog, setOpenDialog] = React.useState(false);
+	const [showFilters, setShowFilters] = React.useState(false);
 
 	const [pagination, setPagination] = React.useState<PaginationState>({
 		pageIndex: page - 1,
@@ -93,44 +109,15 @@ export default function CheckClockOverviewTab() {
 			pageSize: pageSize,
 		});
 	}, [page, pageSize]);
-
 	const handleViewDetails = React.useCallback(
 		(id: number) => {
 			const data = overviewData.find((item) => item.id === id);
 			if (data) {
-				if (
-					data.type === "leave_request" &&
-					data.originalLeaveRequest
-				) {
-					// Use original leave request data
-					setSelectedLeaveRequest(data.originalLeaveRequest);
-					setOpenLeaveSheet(true);
-				} else if (data.type === "leave_request") {
-					// Fallback: Convert CombinedAttendanceData to LeaveRequest
-					const leaveRequest: LeaveRequest = {
-						id: data.id,
-						employee_id: data.employee_id,
-						employee_name:
-							data.employee?.first_name +
-							(data.employee?.last_name
-								? ` ${data.employee.last_name}`
-								: ""),
-						position_name: data.employee?.position_name || "",
-						leave_type: data.leave_type as any,
-						start_date: data.date,
-						end_date: data.date,
-						duration: 0,
-						status: data.status as any,
-						created_at: data.created_at,
-						updated_at: data.updated_at,
-					};
-					setSelectedLeaveRequest(leaveRequest);
-					setOpenLeaveSheet(true);
-				} else {
-					// For attendance records
-					setSelectedData(data);
-					setOpenSheet(true);
-				}
+				// All data are now attendance records
+				// If it's a leave attendance (status="leave"), show attendance details
+				// which will automatically fetch and display related leave request information
+				setSelectedData(data);
+				setOpenSheet(true);
 			}
 		},
 		[overviewData]
@@ -144,90 +131,81 @@ export default function CheckClockOverviewTab() {
 				accessorKey: "employee.name",
 				cell: ({ row }) => {
 					const employee = row.original.employee;
+					const fullName = `${employee?.first_name || ""} ${employee?.last_name || ""}`.trim();
 					return (
-						<div>
-							{employee?.first_name} {employee?.last_name || ""}
+						<div className="flex items-center justify-center">
+							<div className="max-w-[120px] truncate text-center text-xs md:max-w-[180px] md:text-sm">
+								{fullName}
+							</div>
 						</div>
 					);
 				},
+				meta: { className: "w-[120px] md:w-[180px] text-center" },
 			},
 			{
 				header: "Date",
 				accessorKey: "date",
 				cell: ({ row }) => {
 					const date = new Date(row.original.date);
-					return date.toLocaleDateString("en-US", {
+					const formattedDate = date.toLocaleDateString("en-US", {
 						year: "numeric",
 						month: "long",
 						day: "2-digit",
 					});
+					return (
+						<div className="flex items-center justify-center">
+							<div className="max-w-[100px] truncate text-center text-xs md:max-w-[140px] md:text-sm">
+								{formattedDate}
+							</div>
+						</div>
+					);
 				},
+				meta: { className: "w-[100px] md:w-[140px] text-center" },
 			},
 			{
 				header: "Clock In",
 				accessorKey: "clock_in",
 				cell: ({ row }) => {
-					if (row.original.type === "leave_request") return "-";
-
-					const clockIn = row.original.clock_in;
-					if (!clockIn) return "-";
-
-					// Handle HH:MM:SS format
-					if (clockIn.match(/^\d{2}:\d{2}:\d{2}$/)) {
-						return clockIn.substring(0, 5);
-					}
-
-					try {
-						const time = new Date(clockIn);
-						return time.toLocaleTimeString("en-US", {
-							hour: "2-digit",
-							minute: "2-digit",
-							hour12: false,
-						});
-					} catch {
-						return clockIn.substring(0, 5);
-					}
+					const clockIn = formatTime(row.original.clock_in);
+					return (
+						<div className="flex items-center justify-center">
+							<div className="text-center text-xs md:text-sm">
+								{clockIn}
+							</div>
+						</div>
+					);
 				},
+				meta: { className: "w-[80px] md:w-[100px] text-center" },
 			},
 			{
 				header: "Clock Out",
 				accessorKey: "clock_out",
 				cell: ({ row }) => {
-					if (row.original.type === "leave_request") return "-";
-
-					const clockOut = row.original.clock_out;
-					if (!clockOut) return "-";
-
-					// Handle HH:MM:SS format
-					if (clockOut.match(/^\d{2}:\d{2}:\d{2}$/)) {
-						return clockOut.substring(0, 5);
-					}
-
-					try {
-						const time = new Date(clockOut);
-						return time.toLocaleTimeString("en-US", {
-							hour: "2-digit",
-							minute: "2-digit",
-							hour12: false,
-						});
-					} catch {
-						return clockOut.substring(0, 5);
-					}
+					const clockOut = formatTime(row.original.clock_out);
+					return (
+						<div className="flex items-center justify-center">
+							<div className="text-center text-xs md:text-sm">
+								{clockOut}
+							</div>
+						</div>
+					);
 				},
+				meta: { className: "w-[80px] md:w-[100px] text-center" },
 			},
 			{
 				header: "Work Hours",
 				accessorKey: "work_hours",
 				cell: ({ row }) => {
-					if (row.original.type === "leave_request") return "-";
-
-					const hours = row.original.work_hours;
-					if (!hours) return "-";
-
-					const wholeHours = Math.floor(hours);
-					const minutes = Math.round((hours - wholeHours) * 60);
-					return `${wholeHours}h ${minutes}m`;
+					const workHours = formatWorkHours(row.original.work_hours);
+					return (
+						<div className="flex items-center justify-center">
+							<div className="text-center text-xs md:text-sm">
+								{workHours}
+							</div>
+						</div>
+					);
 				},
+				meta: { className: "w-[80px] md:w-[120px] text-center" },
 			},
 			{
 				header: "Status",
@@ -240,87 +218,69 @@ export default function CheckClockOverviewTab() {
 						| "outline" = "default";
 					let displayText: string = row.original.status;
 
-					// Handle leave request statuses
-					if (row.original.type === "leave_request") {
-						variant = "outline";
-						switch (row.original.status) {
-							case "sick_leave":
-								displayText = "Sick Leave";
-								break;
-							case "compassionate_leave":
-								displayText = "Compassionate Leave";
-								break;
-							case "maternity_leave":
-								displayText = "Maternity Leave";
-								break;
-							case "annual_leave":
-								displayText = "Annual Leave";
-								break;
-							case "marriage_leave":
-								displayText = "Marriage Leave";
-								break;
-							default:
-								displayText = "Leave";
-								break;
-						}
-					} else {
-						// Handle attendance statuses
-						switch (row.original.status) {
-							case "late":
-								variant = "destructive";
-								displayText = "Late";
-								break;
-							case "early_leave":
-								variant = "outline";
-								displayText = "Early Leave";
-								break;
-							case "absent":
-								variant = "secondary";
-								displayText = "Absent";
-								break;
-							case "leave":
-								variant = "outline";
-								displayText = "Leave";
-								break;
-							case "on_time":
-							default:
-								variant = "default";
-								displayText = "On Time";
-								break;
-						}
+					// Handle attendance statuses - only show 5 specific types
+					switch (row.original.status) {
+						case "late":
+							variant = "destructive";
+							displayText = "Late";
+							break;
+						case "early_leave":
+							variant = "outline";
+							displayText = "Early Leave";
+							break;
+						case "absent":
+							variant = "secondary";
+							displayText = "Absent";
+							break;
+						case "leave":
+							variant = "outline";
+							displayText = "Leave";
+							break;
+						case "ontime":
+						case "on_time":
+						default:
+							variant = "default";
+							displayText = "Ontime";
+							break;
 					}
 
 					return (
-						<Badge
-							variant={variant}
-							className="text-sm font-medium"
-						>
-							{displayText}
-						</Badge>
+						<div className="flex items-center justify-center">
+							<Badge
+								variant={variant}
+								className="text-xs font-medium md:text-sm max-w-[100px] md:max-w-[140px] truncate"
+							>
+								{displayText}
+							</Badge>
+						</div>
 					);
 				},
+				meta: { className: "w-[100px] md:w-[140px] text-center" },
 			},
 			{
 				header: "Details",
 				id: "details",
 				cell: ({ row }) => (
-					<Button
-						variant="default"
-						size="sm"
-						className="bg-blue-500 hover:bg-blue-600 text-white px-6"
-						onClick={() => handleViewDetails(row.original.id)}
-					>
-						<Eye className="h-4 w-4 mr-1" />
-						View
-					</Button>
+					<div className="flex items-center justify-center">
+						<Button
+							variant="default"
+							size="sm"
+							className="h-7 w-full cursor-pointer bg-blue-500 px-1 text-xs hover:cursor-pointer hover:bg-blue-600 text-white md:h-8 md:w-auto md:px-2"
+							onClick={() => handleViewDetails(row.original.id)}
+						>
+							<Eye className="mr-0 h-3 w-3 md:mr-1 md:h-4 md:w-4" />
+							<span className="hidden md:inline">View</span>
+							<span className="md:hidden">View</span>
+						</Button>
+					</div>
 				),
+				meta: { className: "w-[80px] md:w-[100px] text-center" },
 				enableSorting: false,
 				enableColumnFilter: false,
 			},
 		],
 		[handleViewDetails]
 	);
-
 	const finalColumns = React.useMemo<ColumnDef<CombinedAttendanceData>[]>(
 		() => [
 			{
@@ -328,9 +288,15 @@ export default function CheckClockOverviewTab() {
 				id: "no",
 				cell: ({ row, table }) => {
 					const { pageIndex, pageSize } = table.getState().pagination;
-					return pageIndex * pageSize + row.index + 1;
+					return (
+						<div className="flex items-center justify-center text-center">
+							<div className="text-xs md:text-sm">
+								{pageIndex * pageSize + row.index + 1}
+							</div>
+						</div>
+					);
 				},
-				meta: { className: "max-w-[80px] w-[80px]" },
+				meta: { className: "w-[50px] md:w-[80px] text-center" },
 				enableSorting: false,
 				enableColumnFilter: false,
 			},
@@ -338,7 +304,6 @@ export default function CheckClockOverviewTab() {
 		],
 		[baseColumns]
 	);
-
 	const table = useReactTable<CombinedAttendanceData>({
 		data: overviewData,
 		columns: finalColumns,
@@ -357,6 +322,16 @@ export default function CheckClockOverviewTab() {
 		manualPagination: true,
 		pageCount: totalPages,
 	});
+
+	// Debug: Log table data
+	React.useEffect(() => {
+		console.log('=== Table Debug Info ===');
+		console.log('Table Data Length:', table.getFilteredRowModel().rows.length);
+		console.log('Table Total Row Count:', table.getRowCount());
+		console.log('Table Page Count:', table.getPageCount());
+		console.log('Current Pagination State:', table.getState().pagination);
+		console.log('========================');
+	}, [table, overviewData]);
 
 	if (error) {
 		return (
@@ -402,31 +377,58 @@ export default function CheckClockOverviewTab() {
 									placeholder="Search by employee name..."
 									disabled={isLoading}
 								/>
-							</div>
-							<Button
+							</div>							<Button
 								variant="outline"
 								className="gap-2 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-800 dark:hover:text-slate-200 px-4 py-2 rounded-md"
-								onClick={() => {
-									/* readonly, do nothing */
-								}}
+								onClick={() => setShowFilters(!showFilters)}
 								disabled={isLoading}
 							>
 								<Filter className="h-4 w-4" />
 								Filter
 							</Button>
-						</div>
-					</header>
+						</div>					</header>
+
+					{/* Filter Component */}
+					<CheckClockOverviewFilter
+						onApplyFilters={applyFilters}
+						onResetFilters={resetFilters}
+						currentFilters={filters}
+						isVisible={showFilters}
+					/>
 
 					{isLoading ? (
 						<div className="flex justify-center items-center py-8">
-							<div className="text-slate-500 dark:text-slate-400">
-								Loading attendance data...
+							<div className="text-center">
+								<div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600"></div>
+								<p>Loading attendance data...</p>
 							</div>
 						</div>
 					) : error ? (
 						<div className="flex justify-center items-center py-8">
-							<div className="text-red-500 dark:text-red-400">
-								Error loading attendance data: {error}
+							<div className="text-center">
+								<div className="mb-4 text-red-500">
+									<svg
+										className="mx-auto mb-2 h-12 w-12"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+									>
+										<path
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											strokeWidth={2}
+											d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+										/>
+									</svg>
+								</div>
+								<p className="font-medium text-red-600">Error loading data</p>
+								<p className="mt-1 text-sm text-gray-600">{error}</p>
+								<button
+									onClick={() => window.location.reload()}
+									className="mt-4 rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+								>
+									Retry
+								</button>
 							</div>
 						</div>
 					) : (
@@ -439,20 +441,11 @@ export default function CheckClockOverviewTab() {
 						</div>
 					)}
 				</CardContent>
-			</Card>
-
-			{/* Attendance Detail Sheet */}
+			</Card>			{/* Attendance Detail Sheet */}
 			<AttendanceDetailSheet
 				open={openSheet}
 				onOpenChange={setOpenSheet}
 				selectedData={selectedData as any}
-			/>
-
-			{/* Leave Request Detail Sheet */}
-			<LeaveRequestDetailSheet
-				open={openLeaveSheet}
-				onOpenChange={setOpenLeaveSheet}
-				leaveRequest={selectedLeaveRequest}
 			/>
 
 			{/* Add Attendance Dialog */}

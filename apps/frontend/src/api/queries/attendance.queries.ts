@@ -2,10 +2,10 @@ import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '../query-keys';
 import { attendanceService } from '@/services/attendance.service';
 
-export const useAttendances = () => {
+export const useAttendances = (page: number = 1, pageSize: number = 1000) => {
   return useQuery({
-    queryKey: queryKeys.attendance.list(),
-    queryFn: () => attendanceService.getAttendances(),
+    queryKey: queryKeys.attendance.list(page, pageSize),
+    queryFn: () => attendanceService.getAttendances(page, pageSize),
   });
 };
 
@@ -33,10 +33,18 @@ export const useAttendanceById = (id: number) => {
   });
 };
 
-export const useAttendancesByEmployee = (employeeId: number) => {
+export const useAttendancesByEmployee = (employeeId: number, page: number = 1, pageSize: number = 1000) => {
   return useQuery({
-    queryKey: queryKeys.attendance.byEmployee(employeeId),
-    queryFn: () => attendanceService.getAttendancesByEmployee(employeeId),
+    queryKey: queryKeys.attendance.byEmployee(employeeId, page, pageSize),
+    queryFn: () => attendanceService.getAttendancesByEmployee(employeeId, page, pageSize),
     enabled: !!employeeId,
+  });
+};
+
+export const useEmployeeMonthlyStatistics = (year?: number, month?: number) => {
+  return useQuery({
+    queryKey: queryKeys.attendance.monthlyStatistics(year, month),
+    queryFn: () => attendanceService.getEmployeeMonthlyStatistics(year, month),
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };

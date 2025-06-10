@@ -26,7 +26,6 @@ export default function AssignWorkScheduleEmployee({
 		isDataLoading,
 		handleSubmit,
 	} = useAssignWorkSchedule(id);
-
 	if (isDataLoading) {
 		return (
 			<FeatureGuard feature={FEATURE_CODES.CHECK_CLOCK_SYSTEM}>
@@ -40,10 +39,8 @@ export default function AssignWorkScheduleEmployee({
 					</Card>
 					<div className="flex items-center justify-center py-8">
 						<div className="text-center">
-							<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-							<p className="mt-2 text-gray-600">
-								Loading employee data...
-							</p>
+							<div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600"></div>
+							<p>Loading employee data...</p>
 						</div>
 					</div>
 				</div>

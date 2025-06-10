@@ -19,15 +19,18 @@ export function filterAttendanceData(
 			if (itemDate !== filterDate) {
 				return false;
 			}
-		}
-
-		// Attendance Status filter
-		if (filters.attendanceStatus) {
-			// Map "Present" filter value to "On Time" in the data
-			const statusToMatch =
-				filters.attendanceStatus === "Present"
-					? "On Time"
-					: filters.attendanceStatus;
+		}		// Attendance Status filter
+		if (filters.attendanceStatus && filters.attendanceStatus !== "all") {
+			// Map filter values to data values
+			const statusMapping: { [key: string]: string } = {
+				"Ontime": "ontime",
+				"Late": "late", 
+				"Early Leave": "early_leave",
+				"Absent": "absent",
+				"Leave": "leave"
+			};
+			
+			const statusToMatch = statusMapping[filters.attendanceStatus] || filters.attendanceStatus;
 			if (item.status !== statusToMatch) {
 				return false;
 			}

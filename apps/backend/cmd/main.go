@@ -18,11 +18,12 @@ import (
 	employeeUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/employee"
 	leaveRequestUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/leave_request"
 	locationUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/location"
-	subscriptionUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/subscription"
+	"github.com/SukaMajuu/hris/apps/backend/internal/usecase/subscription"
 	workScheduleUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/work_schedule"
 	"github.com/SukaMajuu/hris/apps/backend/pkg/config"
 	"github.com/SukaMajuu/hris/apps/backend/pkg/database"
 	"github.com/SukaMajuu/hris/apps/backend/pkg/jwt"
+	"github.com/SukaMajuu/hris/apps/backend/pkg/midtrans"
 	xenditService "github.com/SukaMajuu/hris/apps/backend/pkg/xendit"
 	"github.com/supabase-community/supabase-go"
 	swaggerFiles "github.com/swaggo/files"
@@ -55,26 +56,38 @@ func main() {
 	leaveRequestRepo := leave_request.NewPostgresRepository(db)
 	xenditRepo := xendit.NewXenditRepository(db)
 	xenditClient := xenditService.NewXenditClient(&cfg.Xendit)
+	midtransClient := midtrans.NewClient(&cfg.Midtrans)
 	documentRepo := document.NewPostgresRepository(db)
 
 	jwtService := jwt.NewJWTService(cfg)
+
+	subscriptionUseCase := subscription.NewSubscriptionUseCase(
+		xenditRepo,
+		xenditClient,
+		employeeRepo,
+		authRepo,
+	)
 
 	authUseCase := authUseCase.NewAuthUseCase(
 		authRepo,
 		employeeRepo,
 		jwtService,
 		cfg,
+		subscriptionUseCase,
 	)
 	employeeUseCase := employeeUseCase.NewEmployeeUseCase(
 		employeeRepo,
 		authRepo,
+		xenditRepo,
 		supabaseClient,
+		db,
 	)
 
 	attendanceUseCase := attendanceUseCase.NewAttendanceUseCase(
 		attendanceRepo,
 		employeeRepo,
 		workScheduleRepo,
+		leaveRequestRepo,
 	)
 
 	locationUseCase := locationUseCase.NewLocationUseCase(locationRepo)
@@ -84,25 +97,30 @@ func main() {
 		locationRepo,
 	)
 
-	subscriptionUseCase := subscriptionUseCase.NewSubscriptionUseCase(
-		xenditRepo,
-		xenditClient,
-		employeeRepo,
-		authRepo,
-	)
+	midtransSubscriptionUseCase := subscription.NewMidtransSubscriptionUseCase(xenditRepo, midtransClient, employeeRepo, authRepo, cfg)
 	documentUseCase := documentUseCase.NewDocumentUseCase(
 		documentRepo,
 		employeeRepo,
 		supabaseClient,
 	)
-
 	leaveRequestUseCase := leaveRequestUseCase.NewLeaveRequestUseCase(
 		leaveRequestRepo,
 		employeeRepo,
+		attendanceRepo,
 		supabaseClient,
 	)
 
-	router := rest.NewRouter(authUseCase, employeeUseCase, locationUseCase, workScheduleUseCase, subscriptionUseCase, documentUseCase, leaveRequestUseCase, attendanceUseCase)
+	router := rest.NewRouter(
+		authUseCase,
+		employeeUseCase,
+		attendanceUseCase,
+		locationUseCase,
+		leaveRequestUseCase,
+		workScheduleUseCase,
+		documentUseCase,
+		subscriptionUseCase,
+		midtransSubscriptionUseCase,
+	)
 
 	ginRouter := router.Setup()
 

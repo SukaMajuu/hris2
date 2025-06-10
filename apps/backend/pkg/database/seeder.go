@@ -288,6 +288,12 @@ func seedLocations(db *gorm.DB) error {
 		return nil
 	}
 
+	// Get admin user to assign as creator
+	var adminUser domain.User
+	if err := db.Where("role = ?", enums.RoleAdmin).First(&adminUser).Error; err != nil {
+		return fmt.Errorf("failed to find admin user: %w", err)
+	}
+
 	locations := []domain.Location{
 		{
 			Name:          "Head Office",
@@ -295,6 +301,7 @@ func seedLocations(db *gorm.DB) error {
 			Latitude:      -6.208763,
 			Longitude:     106.845599,
 			RadiusM:       100,
+			CreatedBy:     adminUser.ID,
 		},
 		{
 			Name:          "Branch Office Bandung",
@@ -302,6 +309,7 @@ func seedLocations(db *gorm.DB) error {
 			Latitude:      -6.921831,
 			Longitude:     107.607048,
 			RadiusM:       150,
+			CreatedBy:     adminUser.ID,
 		},
 		{
 			Name:          "Remote Work Location",
@@ -309,6 +317,7 @@ func seedLocations(db *gorm.DB) error {
 			Latitude:      0.0,
 			Longitude:     0.0,
 			RadiusM:       0,
+			CreatedBy:     adminUser.ID,
 		},
 	}
 
@@ -328,6 +337,12 @@ func seedWorkSchedules(db *gorm.DB) error {
 		return nil
 	}
 
+	// Get admin user to assign as creator
+	var adminUser domain.User
+	if err := db.Where("role = ?", enums.RoleAdmin).First(&adminUser).Error; err != nil {
+		return fmt.Errorf("failed to find admin user: %w", err)
+	}
+
 	// Get locations - check if they exist first
 	var headOffice, branchOffice, remoteLocation domain.Location
 	if err := db.Where("name = ?", "Head Office").First(&headOffice).Error; err != nil {
@@ -345,11 +360,11 @@ func seedWorkSchedules(db *gorm.DB) error {
 		t := time.Date(0, 1, 1, hour, minute, 0, 0, time.Local)
 		return &t
 	}
-
 	workSchedules := []domain.WorkSchedule{
 		{
-			Name:     "Standard Office Hours",
-			WorkType: enums.WorkTypeWFO,
+			Name:      "Standard Office Hours",
+			WorkType:  enums.WorkTypeWFO,
+			CreatedBy: adminUser.ID, // Set the admin user ID who creates the work schedule
 			Details: []domain.WorkScheduleDetail{
 				{
 					WorktypeDetail: enums.WorkTypeWFO,
@@ -365,8 +380,9 @@ func seedWorkSchedules(db *gorm.DB) error {
 			},
 		},
 		{
-			Name:     "Flexible Remote Work",
-			WorkType: enums.WorkTypeWFA,
+			Name:      "Flexible Remote Work",
+			WorkType:  enums.WorkTypeWFA,
+			CreatedBy: adminUser.ID, // Set the admin user ID who creates the work schedule
 			Details: []domain.WorkScheduleDetail{
 				{
 					WorktypeDetail: enums.WorkTypeWFA,
@@ -382,8 +398,9 @@ func seedWorkSchedules(db *gorm.DB) error {
 			},
 		},
 		{
-			Name:     "Hybrid Work Schedule",
-			WorkType: enums.WorkTypeHybrid,
+			Name:      "Hybrid Work Schedule",
+			WorkType:  enums.WorkTypeHybrid,
+			CreatedBy: adminUser.ID, // Set the admin user ID who creates the work schedule
 			Details: []domain.WorkScheduleDetail{
 				{
 					WorktypeDetail: enums.WorkTypeWFO,

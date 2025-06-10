@@ -24,6 +24,7 @@ type AuthRepository interface {
 
 	// Password Management
 	ChangePassword(ctx context.Context, userID uint, oldPassword, newPassword string) error
+	UpdateUserPassword(ctx context.Context, userID uint, accessToken, oldPassword, newPassword string) error
 	ResetPassword(ctx context.Context, email string) error
 
 	// Common operations

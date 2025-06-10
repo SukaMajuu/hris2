@@ -46,7 +46,7 @@ func TestAttendanceUseCase_Create(t *testing.T) {
 	tests := []struct {
 		name             string
 		reqDTO           *attendance.CreateAttendanceRequestDTO
-		mockSetup        func(*mocks.AttendanceRepository, *mocks.EmployeeRepository, *mocks.WorkScheduleRepository)
+		mockSetup        func(*mocks.AttendanceRepository, *mocks.EmployeeRepository, *mocks.WorkScheduleRepository, *mocks.LeaveRequestRepository)
 		expectedError    bool
 		expectedErrorMsg string
 	}{
@@ -58,7 +58,7 @@ func TestAttendanceUseCase_Create(t *testing.T) {
 				Date:           date,
 				ClockIn:        &clockInTime,
 			},
-			mockSetup: func(attendanceRepo *mocks.AttendanceRepository, employeeRepo *mocks.EmployeeRepository, workScheduleRepo *mocks.WorkScheduleRepository) {
+			mockSetup: func(attendanceRepo *mocks.AttendanceRepository, employeeRepo *mocks.EmployeeRepository, workScheduleRepo *mocks.WorkScheduleRepository, leaveRequestRepo *mocks.LeaveRequestRepository) {
 				employeeRepo.On("GetByID", ctx, uint(1)).Return(mockEmployee, nil)
 				workScheduleRepo.On("GetByIDWithDetails", ctx, uint(1)).Return(mockWorkSchedule, nil)
 				attendanceRepo.On("GetByEmployeeAndDate", ctx, uint(1), date).Return(nil, gorm.ErrRecordNotFound)
@@ -78,7 +78,7 @@ func TestAttendanceUseCase_Create(t *testing.T) {
 				Date:           date,
 				ClockIn:        &clockInTime,
 			},
-			mockSetup: func(attendanceRepo *mocks.AttendanceRepository, employeeRepo *mocks.EmployeeRepository, workScheduleRepo *mocks.WorkScheduleRepository) {
+			mockSetup: func(attendanceRepo *mocks.AttendanceRepository, employeeRepo *mocks.EmployeeRepository, workScheduleRepo *mocks.WorkScheduleRepository, leaveRequestRepo *mocks.LeaveRequestRepository) {
 				employeeRepo.On("GetByID", ctx, uint(999)).Return(nil, gorm.ErrRecordNotFound)
 			},
 			expectedError:    true,
@@ -92,7 +92,7 @@ func TestAttendanceUseCase_Create(t *testing.T) {
 				Date:           date,
 				ClockIn:        &clockInTime,
 			},
-			mockSetup: func(attendanceRepo *mocks.AttendanceRepository, employeeRepo *mocks.EmployeeRepository, workScheduleRepo *mocks.WorkScheduleRepository) {
+			mockSetup: func(attendanceRepo *mocks.AttendanceRepository, employeeRepo *mocks.EmployeeRepository, workScheduleRepo *mocks.WorkScheduleRepository, leaveRequestRepo *mocks.LeaveRequestRepository) {
 				employeeRepo.On("GetByID", ctx, uint(1)).Return(mockEmployee, nil)
 				workScheduleRepo.On("GetByIDWithDetails", ctx, uint(999)).Return(nil, gorm.ErrRecordNotFound)
 			},
@@ -107,7 +107,7 @@ func TestAttendanceUseCase_Create(t *testing.T) {
 				Date:           date,
 				ClockIn:        &clockInTime,
 			},
-			mockSetup: func(attendanceRepo *mocks.AttendanceRepository, employeeRepo *mocks.EmployeeRepository, workScheduleRepo *mocks.WorkScheduleRepository) {
+			mockSetup: func(attendanceRepo *mocks.AttendanceRepository, employeeRepo *mocks.EmployeeRepository, workScheduleRepo *mocks.WorkScheduleRepository, leaveRequestRepo *mocks.LeaveRequestRepository) {
 				employeeRepo.On("GetByID", ctx, uint(1)).Return(mockEmployee, nil)
 				workScheduleRepo.On("GetByIDWithDetails", ctx, uint(1)).Return(mockWorkSchedule, nil)
 				attendanceRepo.On("GetByEmployeeAndDate", ctx, uint(1), date).Return(mockAttendance, nil)
@@ -122,10 +122,11 @@ func TestAttendanceUseCase_Create(t *testing.T) {
 			attendanceRepo := &mocks.AttendanceRepository{}
 			employeeRepo := &mocks.EmployeeRepository{}
 			workScheduleRepo := &mocks.WorkScheduleRepository{}
+			leaveRequestRepo := &mocks.LeaveRequestRepository{}
 
-			tt.mockSetup(attendanceRepo, employeeRepo, workScheduleRepo)
+			tt.mockSetup(attendanceRepo, employeeRepo, workScheduleRepo, leaveRequestRepo)
 
-			uc := NewAttendanceUseCase(attendanceRepo, employeeRepo, workScheduleRepo)
+			uc := NewAttendanceUseCase(attendanceRepo, employeeRepo, workScheduleRepo, leaveRequestRepo)
 			result, err := uc.Create(ctx, tt.reqDTO)
 
 			if tt.expectedError {
@@ -141,6 +142,7 @@ func TestAttendanceUseCase_Create(t *testing.T) {
 			attendanceRepo.AssertExpectations(t)
 			employeeRepo.AssertExpectations(t)
 			workScheduleRepo.AssertExpectations(t)
+			leaveRequestRepo.AssertExpectations(t)
 		})
 	}
 }
@@ -152,8 +154,7 @@ func TestAttendanceUseCase_GetByID(t *testing.T) {
 	lastName := "Doe"
 
 	mockWorkSchedule := &domain.WorkSchedule{
-		ID:   1,
-		Name: "Standard Schedule",
+		ID: 1,
 	}
 
 	mockEmployee := &domain.Employee{
@@ -203,10 +204,11 @@ func TestAttendanceUseCase_GetByID(t *testing.T) {
 			attendanceRepo := &mocks.AttendanceRepository{}
 			employeeRepo := &mocks.EmployeeRepository{}
 			workScheduleRepo := &mocks.WorkScheduleRepository{}
+			leaveRequestRepo := &mocks.LeaveRequestRepository{}
 
 			tt.mockSetup(attendanceRepo)
 
-			uc := NewAttendanceUseCase(attendanceRepo, employeeRepo, workScheduleRepo)
+			uc := NewAttendanceUseCase(attendanceRepo, employeeRepo, workScheduleRepo, leaveRequestRepo)
 			result, err := uc.GetByID(ctx, tt.attendanceID)
 
 			if tt.expectedError {
@@ -231,8 +233,7 @@ func TestAttendanceUseCase_List(t *testing.T) {
 	lastName := "Doe"
 
 	mockWorkSchedule := &domain.WorkSchedule{
-		ID:   1,
-		Name: "Standard Schedule",
+		ID: 1,
 	}
 
 	mockEmployee := &domain.Employee{
@@ -289,10 +290,11 @@ func TestAttendanceUseCase_List(t *testing.T) {
 			attendanceRepo := &mocks.AttendanceRepository{}
 			employeeRepo := &mocks.EmployeeRepository{}
 			workScheduleRepo := &mocks.WorkScheduleRepository{}
+			leaveRequestRepo := &mocks.LeaveRequestRepository{}
 
 			tt.mockSetup(attendanceRepo)
 
-			uc := NewAttendanceUseCase(attendanceRepo, employeeRepo, workScheduleRepo)
+			uc := NewAttendanceUseCase(attendanceRepo, employeeRepo, workScheduleRepo, leaveRequestRepo)
 			result, err := uc.List(ctx, tt.paginationParams)
 
 			if tt.expectedError {
@@ -318,8 +320,7 @@ func TestAttendanceUseCase_ListByEmployee(t *testing.T) {
 	lastName := "Doe"
 
 	mockWorkSchedule := &domain.WorkSchedule{
-		ID:   1,
-		Name: "Standard Schedule",
+		ID: 1,
 	}
 
 	mockEmployee := &domain.Employee{
@@ -380,10 +381,11 @@ func TestAttendanceUseCase_ListByEmployee(t *testing.T) {
 			attendanceRepo := &mocks.AttendanceRepository{}
 			employeeRepo := &mocks.EmployeeRepository{}
 			workScheduleRepo := &mocks.WorkScheduleRepository{}
+			leaveRequestRepo := &mocks.LeaveRequestRepository{}
 
 			tt.mockSetup(attendanceRepo, employeeRepo)
 
-			uc := NewAttendanceUseCase(attendanceRepo, employeeRepo, workScheduleRepo)
+			uc := NewAttendanceUseCase(attendanceRepo, employeeRepo, workScheduleRepo, leaveRequestRepo)
 			result, err := uc.ListByEmployee(ctx, tt.employeeID, tt.paginationParams)
 
 			if tt.expectedError {

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"strconv"
 
 	subscriptionDTO "github.com/SukaMajuu/hris/apps/backend/internal/rest/dto/subscription"
@@ -10,12 +11,23 @@ import (
 )
 
 type SubscriptionHandler struct {
-	subscriptionUseCase *subscriptionUseCase.SubscriptionUseCase
+	subscriptionUseCase         *subscriptionUseCase.SubscriptionUseCase
+	midtransSubscriptionUseCase *subscriptionUseCase.MidtransSubscriptionUseCase
 }
 
 func NewSubscriptionHandler(subscriptionUseCase *subscriptionUseCase.SubscriptionUseCase) *SubscriptionHandler {
 	return &SubscriptionHandler{
 		subscriptionUseCase: subscriptionUseCase,
+	}
+}
+
+func NewSubscriptionHandlerWithMidtrans(
+	subscriptionUseCase *subscriptionUseCase.SubscriptionUseCase,
+	midtransSubscriptionUseCase *subscriptionUseCase.MidtransSubscriptionUseCase,
+) *SubscriptionHandler {
+	return &SubscriptionHandler{
+		subscriptionUseCase:         subscriptionUseCase,
+		midtransSubscriptionUseCase: midtransSubscriptionUseCase,
 	}
 }
 
@@ -84,6 +96,24 @@ func (h *SubscriptionHandler) InitiatePaidCheckout(c *gin.Context) {
 		return
 	}
 
+	// Use Midtrans for paid checkout if available, otherwise fall back to regular use case
+	if h.midtransSubscriptionUseCase != nil {
+		checkoutResponse, err := h.midtransSubscriptionUseCase.InitiatePaidCheckout(
+			c.Request.Context(),
+			userID.(uint),
+			req.SubscriptionPlanID,
+			req.SeatPlanID,
+			req.IsMonthly,
+		)
+		if err != nil {
+			response.InternalServerError(c, err)
+			return
+		}
+		response.OK(c, "Paid checkout initiated successfully", checkoutResponse)
+		return
+	}
+
+	// Fallback to regular subscription use case (Xendit)
 	checkoutResponse, err := h.subscriptionUseCase.InitiatePaidCheckout(
 		c.Request.Context(),
 		userID.(uint),
@@ -171,4 +201,76 @@ func (h *SubscriptionHandler) ProcessWebhook(c *gin.Context) {
 	}
 
 	response.OK(c, "Webhook processed successfully", nil)
+}
+
+func (h *SubscriptionHandler) ProcessTripayWebhook(c *gin.Context) {
+	// Get signature from header
+	signature := c.GetHeader("X-Callback-Signature")
+	if signature == "" {
+		response.BadRequest(c, "Missing X-Callback-Signature header", nil)
+		return
+	}
+
+	// Read raw body for signature validation
+	body, err := c.GetRawData()
+	if err != nil {
+		response.BadRequest(c, "Failed to read request body", err)
+		return
+	}
+
+	// Parse JSON payload
+	var webhookData map[string]interface{}
+	if err := json.Unmarshal(body, &webhookData); err != nil {
+		response.BadRequest(c, "Invalid JSON payload", err)
+		return
+	}
+
+	// Process webhook with signature validation
+	if err := h.subscriptionUseCase.ProcessTripayWebhook(c.Request.Context(), webhookData, signature, string(body)); err != nil {
+		response.InternalServerError(c, err)
+		return
+	}
+
+	response.OK(c, "Tripay webhook processed successfully", nil)
+}
+
+func (h *SubscriptionHandler) ProcessMidtransWebhook(c *gin.Context) {
+	// Read raw body for signature validation
+	body, err := c.GetRawData()
+	if err != nil {
+		response.BadRequest(c, "Failed to read request body", err)
+		return
+	}
+
+	// Parse JSON payload
+	var notification map[string]interface{}
+	if err := json.Unmarshal(body, &notification); err != nil {
+		response.BadRequest(c, "Invalid JSON payload", err)
+		return
+	}
+
+	// Process Midtrans webhook notification using the regular subscription use case
+	// (which already has ProcessMidtransWebhook implemented)
+	if err := h.subscriptionUseCase.ProcessMidtransWebhook(c.Request.Context(), notification); err != nil {
+		response.InternalServerError(c, err)
+		return
+	}
+
+	response.OK(c, "Midtrans webhook processed successfully", nil)
+}
+
+func (h *SubscriptionHandler) ActivateTrial(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User ID not found in context", nil)
+		return
+	}
+
+	err := h.subscriptionUseCase.CreateAutomaticTrialForPremiumUser(c.Request.Context(), userID.(uint))
+	if err != nil {
+		response.InternalServerError(c, err)
+		return
+	}
+
+	response.OK(c, "Trial activated successfully", nil)
 }

@@ -153,7 +153,6 @@ func (h *DocumentHandler) GetDocumentsByEmployee(c *gin.Context) {
 	response.Success(c, http.StatusOK, "Employee documents retrieved successfully", respDTOs)
 }
 
-// Helper functions
 func (h *DocumentHandler) getUserIDFromContext(c *gin.Context) (uint, error) {
 	userIDCtx, exists := c.Get("userID")
 	if !exists {

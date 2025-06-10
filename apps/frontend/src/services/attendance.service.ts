@@ -17,6 +17,16 @@ export interface AttendanceStatistics {
   total_employees: number;
 }
 
+export interface EmployeeMonthlyStatistics {
+  on_time: number;
+  late: number;
+  absent: number;
+  leave: number;
+  total_work_hours: number;
+  year: number;
+  month: number;
+}
+
 export interface RecentAttendance {
   id: number;
   name: string;
@@ -49,13 +59,14 @@ class AttendanceService {
       request,
     );
     return response.data.data;
-  }
-
-  // Get all attendances
-  async getAttendances(): Promise<Attendance[]> {
+  }  // Get all attendances
+  async getAttendances(page: number = 1, pageSize: number = 100): Promise<Attendance[]> {
+    const url = `${API_ROUTES.v1.api.attendances.list}?page=${page}&page_size=${pageSize}`;
+    
     const response = await this.apiService.get<
       ApiResponse<{ items: Attendance[]; pagination: any }>
-    >(API_ROUTES.v1.api.attendances.list);
+    >(url);
+    
     return response.data.data.items;
   }
 
@@ -65,13 +76,13 @@ class AttendanceService {
       API_ROUTES.v1.api.attendances.detail(id),
     );
     return response.data.data;
-  }
-
-  // Get attendances by employee ID
-  async getAttendancesByEmployee(employeeId: number): Promise<Attendance[]> {
+  }  // Get attendances by employee ID
+  async getAttendancesByEmployee(employeeId: number, page: number = 1, pageSize: number = 1000): Promise<Attendance[]> {
     const response = await this.apiService.get<
       ApiResponse<{ items: Attendance[]; pagination: any }>
-    >(API_ROUTES.v1.api.attendances.byEmployee(employeeId));
+    >(API_ROUTES.v1.api.attendances.byEmployee(employeeId), {
+      params: { page, page_size: pageSize }
+    });
     return response.data.data.items;
   }
 
@@ -97,13 +108,26 @@ class AttendanceService {
   async deleteAttendance(id: number): Promise<void> {
     await this.apiService.delete(API_ROUTES.v1.api.attendances.delete(id));
   }
-
   // Get attendance statistics for dashboard
   async getAttendanceStatistics(): Promise<AttendanceStatistics> {
     const response = await this.apiService.get<ApiResponse<AttendanceStatistics>>(
       API_ROUTES.v1.api.attendances.statistics,
     );
     return response.data.data;
+  }  // Get employee monthly statistics for dashboard
+  async getEmployeeMonthlyStatistics(
+    year?: number,
+    month?: number,
+  ): Promise<EmployeeMonthlyStatistics> {
+    const url = API_ROUTES.v1.api.attendances.monthlyStatistics(year, month);
+    
+    try {
+      const response = await this.apiService.get<ApiResponse<EmployeeMonthlyStatistics>>(url);
+      return response.data.data;
+    } catch (error) {
+      console.error('AttendanceService: Error fetching monthly statistics:', error);
+      throw error;
+    }
   }
 
   // Get recent attendances for dashboard table (limit 5)
@@ -130,11 +154,11 @@ class AttendanceService {
         : undefined,
     }));
   }
-
   private formatStatus(status: string): string {
     switch (status.toLowerCase()) {
       case 'on_time':
-        return 'On Time';
+      case 'ontime':
+        return 'Ontime';
       case 'late':
         return 'Late';
       case 'early_leave':

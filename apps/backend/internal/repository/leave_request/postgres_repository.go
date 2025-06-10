@@ -3,6 +3,7 @@ package leave_request
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
 	"github.com/SukaMajuu/hris/apps/backend/domain/interfaces"
@@ -38,7 +39,7 @@ func (r *PostgresRepository) GetByEmployeeID(ctx context.Context, employeeID uin
 	var totalItems int64
 
 	query := r.db.WithContext(ctx).Model(&domain.LeaveRequest{}).Where("employee_id = ?", employeeID)
-	
+
 	if err := query.Count(&totalItems).Error; err != nil {
 		return nil, 0, err
 	}
@@ -71,6 +72,7 @@ func (r *PostgresRepository) List(ctx context.Context, filters map[string]interf
 	var totalItems int64
 
 	query := r.db.WithContext(ctx).Model(&domain.LeaveRequest{})
+
 	// Apply filters
 	for key, value := range filters {
 		switch key {
@@ -84,6 +86,10 @@ func (r *PostgresRepository) List(ctx context.Context, filters map[string]interf
 			query = query.Where("start_date >= ?", value)
 		case "end_date_lte":
 			query = query.Where("end_date <= ?", value)
+		case "manager_id":
+			// Join with employees table to filter by manager
+			query = query.Joins("JOIN employees ON leave_requests.employee_id = employees.id").
+				Where("employees.manager_id = ?", value)
 		default:
 			query = query.Where(fmt.Sprintf("%s = ?", key), value)
 		}
@@ -94,7 +100,7 @@ func (r *PostgresRepository) List(ctx context.Context, filters map[string]interf
 	}
 
 	offset := (pagination.Page - 1) * pagination.PageSize
-	if err := query.Order("created_at DESC").Offset(offset).Limit(pagination.PageSize).Preload("Employee").Find(&leaveRequests).Error; err != nil {
+	if err := query.Order("leave_requests.created_at DESC").Offset(offset).Limit(pagination.PageSize).Preload("Employee").Find(&leaveRequests).Error; err != nil {
 		return nil, 0, err
 	}
 
@@ -117,4 +123,18 @@ func (r *PostgresRepository) UpdateStatus(ctx context.Context, id uint, status d
 		return domain.ErrLeaveRequestNotFound
 	}
 	return nil
+}
+
+func (r *PostgresRepository) HasApprovedLeaveForDate(ctx context.Context, employeeID uint, date time.Time) (bool, error) {
+	var count int64
+
+	if err := r.db.WithContext(ctx).
+		Model(&domain.LeaveRequest{}).
+		Where("employee_id = ? AND status = ? AND start_date <= ? AND end_date >= ?",
+			employeeID, domain.LeaveStatusApproved, date, date).
+		Count(&count).Error; err != nil {
+		return false, fmt.Errorf("failed to check approved leave for employee %d: %w", employeeID, err)
+	}
+
+	return count > 0, nil
 }

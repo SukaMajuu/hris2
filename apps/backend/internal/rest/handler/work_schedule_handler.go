@@ -3,6 +3,7 @@ package handler
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
 	"github.com/SukaMajuu/hris/apps/backend/domain/enums"
@@ -27,6 +28,18 @@ func (h *WorkScheduleHandler) CreateWorkSchedule(c *gin.Context) {
 	var req workSheduleDTO.CreateWorkScheduleRequest
 	if bindAndValidate(c, &req) {
 		// bindAndValidate likely sends a response on error
+		return
+	}
+
+	// Get userID from context (set by auth middleware)
+	userIDCtx, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User ID not found in context", fmt.Errorf("missing userID in context"))
+		return
+	}
+	userID, ok := userIDCtx.(uint)
+	if !ok {
+		response.InternalServerError(c, fmt.Errorf("invalid user ID type in context"))
 		return
 	}
 
@@ -58,13 +71,15 @@ func (h *WorkScheduleHandler) CreateWorkSchedule(c *gin.Context) {
 			CheckoutStart:  checkoutStart,
 			CheckoutEnd:    checkoutEnd,
 			LocationID:     detailDTO.LocationID,
+			IsActive:       detailDTO.IsActive == nil || *detailDTO.IsActive, // Default to true if not provided for new details
 		}
 		domainDetails = append(domainDetails, domainDetail)
 	}
 
 	domainWorkSchedule := &domain.WorkSchedule{
-		Name:     req.Name,
-		WorkType: enums.WorkType(req.WorkType),
+		Name:      req.Name,
+		WorkType:  enums.WorkType(req.WorkType),
+		CreatedBy: userID, // Set the admin user ID who creates the work schedule
 		// Details are passed as a separate argument to the use case,
 		// so domain.WorkSchedule.Details will be populated by the repository layer if needed.
 	}
@@ -86,6 +101,18 @@ func (h *WorkScheduleHandler) ListWorkSchedules(c *gin.Context) {
 		return
 	}
 
+	// Get userID from context (set by auth middleware)
+	userIDCtx, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User ID not found in context", fmt.Errorf("missing userID in context"))
+		return
+	}
+	userID, ok := userIDCtx.(uint)
+	if !ok {
+		response.InternalServerError(c, fmt.Errorf("invalid user ID type in context"))
+		return
+	}
+
 	paginationParams := domain.PaginationParams{
 		Page:     queryDTO.Page,
 		PageSize: queryDTO.PageSize,
@@ -99,8 +126,8 @@ func (h *WorkScheduleHandler) ListWorkSchedules(c *gin.Context) {
 		paginationParams.PageSize = 10 // Default page size
 	}
 
-	// Correctly assign the two return values from h.workScheduleUseCase.List
-	responseData, err := h.workScheduleUseCase.List(c.Request.Context(), paginationParams)
+	// Use ListByUser to only show work schedules created by the authenticated user
+	responseData, err := h.workScheduleUseCase.ListByUser(c.Request.Context(), userID, paginationParams)
 	if err != nil {
 		// Pass the error directly to response.InternalServerError
 		response.InternalServerError(c, fmt.Errorf("failed to list work schedules: %w", err))
@@ -123,6 +150,18 @@ func (h *WorkScheduleHandler) UpdateWorkSchedule(c *gin.Context) {
 
 	var req workSheduleDTO.UpdateWorkScheduleRequest
 	if bindAndValidate(c, &req) {
+		return
+	}
+
+	// Get userID from context (set by auth middleware)
+	userIDCtx, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User ID not found in context", fmt.Errorf("missing userID in context"))
+		return
+	}
+	userID, ok := userIDCtx.(uint)
+	if !ok {
+		response.InternalServerError(c, fmt.Errorf("invalid user ID type in context"))
 		return
 	}
 
@@ -152,6 +191,7 @@ func (h *WorkScheduleHandler) UpdateWorkSchedule(c *gin.Context) {
 			CheckoutStart:  checkoutStart,
 			CheckoutEnd:    checkoutEnd,
 			LocationID:     detailDTO.LocationID,
+			IsActive:       detailDTO.IsActive == nil || *detailDTO.IsActive, // Use provided value or default to true if not provided
 		}
 
 		// Set ID if it's an existing detail
@@ -161,13 +201,12 @@ func (h *WorkScheduleHandler) UpdateWorkSchedule(c *gin.Context) {
 
 		domainDetails = append(domainDetails, domainDetail)
 	}
-
 	domainWorkSchedule := &domain.WorkSchedule{
 		Name:     req.Name,
 		WorkType: enums.WorkType(req.WorkType),
 	}
 
-	updatedWorkSchedule, err := h.workScheduleUseCase.Update(c.Request.Context(), id, domainWorkSchedule, domainDetails, req.ToDelete)
+	updatedWorkSchedule, err := h.workScheduleUseCase.UpdateByUser(c.Request.Context(), id, userID, domainWorkSchedule, domainDetails, req.ToDelete)
 	if err != nil {
 		response.BadRequest(c, err.Error(), nil)
 		return
@@ -186,13 +225,56 @@ func (h *WorkScheduleHandler) GetWorkSchedule(c *gin.Context) {
 	}
 	id := uint(idUint64)
 
-	workSchedule, err := h.workScheduleUseCase.GetByID(c.Request.Context(), id)
+	// Get userID from context (set by auth middleware)
+	userIDCtx, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User ID not found in context", fmt.Errorf("missing userID in context"))
+		return
+	}
+	userID, ok := userIDCtx.(uint)
+	if !ok {
+		response.InternalServerError(c, fmt.Errorf("invalid user ID type in context"))
+		return
+	}
+
+	workSchedule, err := h.workScheduleUseCase.GetByIDAndUser(c.Request.Context(), id, userID)
 	if err != nil {
 		response.NotFound(c, err.Error(), nil)
 		return
 	}
 
 	response.OK(c, "Work schedule retrieved successfully", workSchedule)
+}
+
+func (h *WorkScheduleHandler) GetWorkScheduleForEdit(c *gin.Context) {
+	// Get ID from URL parameter
+	idParam := c.Param("id")
+	idUint64, err := strconv.ParseUint(idParam, 10, 32)
+	if err != nil {
+		response.BadRequest(c, "Invalid work schedule ID", nil)
+		return
+	}
+	id := uint(idUint64)
+
+	// Get userID from context (set by auth middleware)
+	userIDCtx, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User ID not found in context", fmt.Errorf("missing userID in context"))
+		return
+	}
+	userID, ok := userIDCtx.(uint)
+	if !ok {
+		response.InternalServerError(c, fmt.Errorf("invalid user ID type in context"))
+		return
+	}
+
+	workSchedule, err := h.workScheduleUseCase.GetByIDForEditByUser(c.Request.Context(), id, userID)
+	if err != nil {
+		response.NotFound(c, err.Error(), nil)
+		return
+	}
+
+	response.OK(c, "Work schedule retrieved for editing successfully", workSchedule)
 }
 
 func (h *WorkScheduleHandler) DeleteWorkSchedule(c *gin.Context) {
@@ -205,10 +287,23 @@ func (h *WorkScheduleHandler) DeleteWorkSchedule(c *gin.Context) {
 	}
 	id := uint(idUint64)
 
-	err = h.workScheduleUseCase.Delete(c.Request.Context(), id)
+	// Get userID from context (set by auth middleware)
+	userIDCtx, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User ID not found in context", fmt.Errorf("missing userID in context"))
+		return
+	}
+	userID, ok := userIDCtx.(uint)
+	if !ok {
+		response.InternalServerError(c, fmt.Errorf("invalid user ID type in context"))
+		return
+	}
+
+	err = h.workScheduleUseCase.DeleteByUser(c.Request.Context(), id, userID)
 	if err != nil {
-		// Check if it's a not found error
-		if fmt.Sprintf("%v", err) == fmt.Sprintf("work schedule with ID %d not found", id) {
+		// Check if it's a not found error by looking for specific error messages
+		errMsg := err.Error()
+		if strings.Contains(errMsg, "not found") || strings.Contains(errMsg, "already deleted") {
 			response.NotFound(c, err.Error(), nil)
 			return
 		}

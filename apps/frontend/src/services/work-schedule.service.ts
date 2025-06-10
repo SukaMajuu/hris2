@@ -30,6 +30,14 @@ export class WorkScheduleService {
 		return response.data.data;
 	}
 
+	async getByIdForEdit(id: number): Promise<WorkSchedule> {
+		// Use API_ROUTES for the edit endpoint that returns all details (active and inactive)
+		const response = await this.api.get<{ data: WorkSchedule }>(
+			API_ROUTES.v1.api.workSchedules.edit(id)
+		);
+		return response.data.data;
+	}
+
 	async create(data: WorkSchedule): Promise<WorkSchedule> {
 		// Use API_ROUTES for the endpoint
 		const response = await this.api.post<{ data: WorkSchedule }>(
@@ -47,10 +55,9 @@ export class WorkScheduleService {
 		);
 		return response.data.data;
 	}
-
 	async delete(id: number): Promise<void> {
-		// Use API_ROUTES for the endpoint
-		await this.api.delete(API_ROUTES.v1.api.workSchedules.delete(id));
+		// Use API_ROUTES for the endpoint with PATCH method for soft delete
+		await this.api.patch(API_ROUTES.v1.api.workSchedules.delete(id));
 	}
 }
 

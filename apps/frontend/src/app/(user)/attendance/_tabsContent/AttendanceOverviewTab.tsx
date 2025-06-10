@@ -32,7 +32,7 @@ import {
 } from "../_utils/attendanceFilters";
 import { Attendance, AttendanceFormData } from "@/types/attendance";
 import { Badge } from "@/components/ui/badge";
-import { formatWorkHours } from "@/utils/time";
+import { formatWorkHours, formatTime } from "@/utils/time";
 
 // Status mapping for user-friendly display
 const statusMapping = {
@@ -65,101 +65,9 @@ const getDisplayStatus = (status: string): string => {
 	return statusMapping[status as keyof typeof statusMapping] || status;
 };
 
-const formatDecimalHoursToTime = (decimalHours: number | string): string => {
-	const hours = Number(decimalHours);
-	if (isNaN(hours)) return "-";
+// Removed formatDecimalHoursToTime - using formatWorkHours from utils instead
 
-	const totalSeconds = Math.round(hours * 3600);
-	const h = Math.floor(totalSeconds / 3600);
-	const m = Math.floor((totalSeconds % 3600) / 60);
-	const s = totalSeconds % 60;
-
-	return `${h}h${m}m${s}s`;
-};
-
-const formatTimeToLocal = (
-	utcTime: string | null,
-	dateStr?: string
-): string => {
-	if (!utcTime) return "-";
-
-	try {
-		let date: Date;
-
-		if (utcTime.includes(" ") || utcTime.includes("T")) {
-			if (utcTime.includes("T")) {
-				date = new Date(utcTime);
-			} else {
-				const isoString = utcTime.replace(" ", "T") + "Z";
-				date = new Date(isoString);
-			}
-		} else {
-			const recordDate =
-				dateStr || new Date().toISOString().split("T")[0];
-			const dateTimeString = `${recordDate}T${utcTime}Z`;
-			date = new Date(dateTimeString);
-		}
-
-		if (isNaN(date.getTime())) {
-			console.error("Invalid date:", utcTime);
-			return utcTime;
-		}
-
-		const formatted = date.toLocaleString("en-US", {
-			year: "numeric",
-			month: "short",
-			day: "2-digit",
-			hour: "2-digit",
-			minute: "2-digit",
-			second: "2-digit",
-			timeZoneName: "short",
-		});
-
-		return formatted;
-	} catch (error) {
-		console.error("Error formatting time:", error, "Input:", utcTime);
-		return utcTime || "-";
-	}
-};
-
-const formatTimeOnly = (utcTime: string | null, dateStr?: string): string => {
-	if (!utcTime) return "-";
-
-	try {
-		let date: Date;
-
-		if (utcTime.includes(" ") || utcTime.includes("T")) {
-			if (utcTime.includes("T")) {
-				date = new Date(utcTime);
-			} else {
-				const isoString = utcTime.replace(" ", "T") + "Z";
-				date = new Date(isoString);
-			}
-		} else {
-			const recordDate =
-				dateStr || new Date().toISOString().split("T")[0];
-			const dateTimeString = `${recordDate}T${utcTime}Z`;
-			date = new Date(dateTimeString);
-		}
-
-		if (isNaN(date.getTime())) {
-			console.error("Invalid date in formatTimeOnly:", utcTime);
-			return utcTime;
-		}
-
-		const formatted = date.toLocaleTimeString("en-US", {
-			hour: "2-digit",
-			minute: "2-digit",
-			second: "2-digit",
-			hour12: false,
-		});
-
-		return formatted;
-	} catch (error) {
-		console.error("Error formatting time only:", error, "Input:", utcTime);
-		return utcTime || "-";
-	}
-};
+// Removed formatTimeToLocal - using formatTime from utils for consistency
 
 export default function AttendanceOverviewTab() {
 	const {
@@ -378,20 +286,14 @@ export default function AttendanceOverviewTab() {
 				header: "Clock In",
 				accessorKey: "clock_in",
 				cell: ({ row }) => {
-					return formatTimeOnly(
-						row.original.clock_in,
-						row.original.date
-					);
+					return formatTime(row.original.clock_in);
 				},
 			},
 			{
 				header: "Clock Out",
 				accessorKey: "clock_out",
 				cell: ({ row }) => {
-					return formatTimeOnly(
-						row.original.clock_out,
-						row.original.date
-					);
+					return formatTime(row.original.clock_out);
 				},
 			},
 			{
@@ -407,9 +309,7 @@ export default function AttendanceOverviewTab() {
 				header: "Work Hours",
 				accessorKey: "work_hours",
 				cell: ({ row }) => {
-					return row.original.work_hours
-						? formatDecimalHoursToTime(row.original.work_hours)
-						: "-";
+					return formatWorkHours(row.original.work_hours);
 				},
 			},
 			{
@@ -571,16 +471,12 @@ export default function AttendanceOverviewTab() {
 								<h4 className="text-md mb-4 border-b pb-2 font-semibold text-slate-700">
 									Time Information
 								</h4>
-								<div className="grid grid-cols-1 gap-x-6 gap-y-4 md:grid-cols-2">
-									<div>
+								<div className="grid grid-cols-1 gap-x-6 gap-y-4 md:grid-cols-2">									<div>
 										<p className="text-xs font-medium text-slate-500">
 											Check-In
 										</p>
 										<p className="text-slate-700">
-											{formatTimeToLocal(
-												selectedData.clock_in,
-												selectedData.date
-											)}
+											{formatTime(selectedData.clock_in)}
 										</p>
 									</div>
 									<div>
@@ -588,10 +484,7 @@ export default function AttendanceOverviewTab() {
 											Check-Out
 										</p>
 										<p className="text-slate-700">
-											{formatTimeToLocal(
-												selectedData.clock_out,
-												selectedData.date
-											)}
+											{formatTime(selectedData.clock_out)}
 										</p>
 									</div>
 									<div>
@@ -599,11 +492,7 @@ export default function AttendanceOverviewTab() {
 											Work Hours
 										</p>
 										<p className="text-slate-700">
-											{selectedData.work_hours
-												? formatDecimalHoursToTime(
-														selectedData.work_hours
-												  )
-												: "-"}
+											{formatWorkHours(selectedData.work_hours)}
 										</p>
 									</div>
 									<div>

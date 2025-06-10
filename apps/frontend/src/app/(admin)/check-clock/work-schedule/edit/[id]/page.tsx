@@ -30,9 +30,15 @@ export default function EditWorkSchedulePage() {
 		// Navigation
 		handleCancel,
 	} = useEditWorkSchedule(id);
-
 	if (isLoadingWorkSchedule || isLoadingLocations) {
-		return <div className="p-8 text-center">Loading...</div>;
+		return (
+			<main className="flex min-h-screen items-center justify-center">
+				<div className="text-center">
+					<div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600"></div>
+					<p className="text-slate-500 dark:text-slate-400">Loading work schedule data...</p>
+				</div>
+			</main>
+		);
 	}
 
 	if (workScheduleError || !workSchedule) {

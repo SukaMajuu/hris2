@@ -311,19 +311,39 @@ export default function CheckClockEmployeeTab() {
 					}}
 					currentFilters={filters}
 					isVisible={showAdvancedFilter}
-				/>
-
-				{isLoading ? (
+				/>				{isLoading ? (
 					<div className="flex justify-center items-center py-8">
-						<div className="text-slate-500 dark:text-slate-400">
-							Loading employee work schedules...
+						<div className="text-center">
+							<div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600"></div>
+							<p>Loading employee work schedules...</p>
 						</div>
 					</div>
 				) : error ? (
 					<div className="flex justify-center items-center py-8">
-						<div className="text-red-500 dark:text-red-400">
-							Error loading employee work schedules:{" "}
-							{error.message}
+						<div className="text-center">
+							<div className="mb-4 text-red-500">
+								<svg
+									className="mx-auto mb-2 h-12 w-12"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<path
+										strokeLinecap="round"
+										strokeLinejoin="round"
+										strokeWidth={2}
+										d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+									/>
+								</svg>
+							</div>
+							<p className="font-medium text-red-600">Error loading data</p>
+							<p className="mt-1 text-sm text-gray-600">{error.message}</p>
+							<button
+								onClick={() => window.location.reload()}
+								className="mt-4 rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+							>
+								Retry
+							</button>
 						</div>
 					</div>
 				) : (

@@ -223,17 +223,41 @@ export default function CheckClockApprovalTab() {
                 {isLoading ? 'Loading...' : 'Refresh'}
               </Button>
             </div>
-            {error && (
-              <div className='text-sm text-red-500'>
-                Error loading leave requests: {error.message}
-              </div>
-            )}
-          </header>
-
-          {/* Table */}
+          </header>{/* Table */}
           {isLoading ? (
             <div className='flex h-32 items-center justify-center'>
-              <div className='text-slate-500'>Loading leave requests...</div>
+              <div className='text-center'>
+                <div className='mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600'></div>
+                <p>Loading leave requests...</p>
+              </div>
+            </div>
+          ) : error ? (
+            <div className='flex h-32 items-center justify-center'>
+              <div className='text-center'>
+                <div className='mb-4 text-red-500'>
+                  <svg
+                    className='mx-auto mb-2 h-12 w-12'
+                    fill='none'
+                    stroke='currentColor'
+                    viewBox='0 0 24 24'
+                  >
+                    <path
+                      strokeLinecap='round'
+                      strokeLinejoin='round'
+                      strokeWidth={2}
+                      d='M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
+                    />
+                  </svg>
+                </div>
+                <p className='font-medium text-red-600'>Error loading data</p>
+                <p className='mt-1 text-sm text-gray-600'>{error.message}</p>
+                <button
+                  onClick={() => window.location.reload()}
+                  className='mt-4 rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700'
+                >
+                  Retry
+                </button>
+              </div>
             </div>
           ) : (
             <DataTable table={table} />

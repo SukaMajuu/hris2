@@ -9,8 +9,18 @@ import {
   SelectContent,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Pencil, KeyRound, CheckCircle, XCircle, Loader2 } from 'lucide-react';
-import React from 'react';
+import React, { useState } from 'react';
 
 interface ValidationState {
   isValidating: boolean;
@@ -62,6 +72,9 @@ interface EmployeeInformationProps {
   };
   hasValidationErrors: () => boolean;
   validateDateOfBirth: (date: string) => boolean;
+  // Reset password loading state
+  isResettingPassword?: boolean;
+  onResetPasswordComplete?: () => void;
 }
 
 const EmployeeInformation: React.FC<EmployeeInformationProps> = ({
@@ -102,7 +115,27 @@ const EmployeeInformation: React.FC<EmployeeInformationProps> = ({
   validationStates,
   hasValidationErrors,
   validateDateOfBirth,
+  isResettingPassword,
+  onResetPasswordComplete,
 }) => {
+  const [isConfirmingReset, setIsConfirmingReset] = useState(false);
+
+  const handleConfirmResetPassword = async () => {
+    setIsConfirmingReset(false);
+    await handleResetPassword();
+    if (onResetPasswordComplete) {
+      onResetPasswordComplete();
+    }
+  };
+
+  const handleResetPasswordClick = () => {
+    if (!email) {
+      // Show error toast instead of opening dialog
+      return;
+    }
+    setIsConfirmingReset(true);
+  };
+
   return (
     <div className='grid grid-cols-1 gap-6 xl:grid-cols-2'>
       <Card className='border border-slate-100 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900'>
@@ -547,13 +580,70 @@ const EmployeeInformation: React.FC<EmployeeInformationProps> = ({
             </CardTitle>
           </CardHeader>
           <CardContent className='flex justify-start p-6'>
-            <Button variant='destructive' onClick={handleResetPassword} className='cursor-pointer'>
-              <KeyRound className='mr-2 h-4 w-4' />
-              Reset Password
+            <Button
+              variant='destructive'
+              onClick={handleResetPasswordClick}
+              disabled={isResettingPassword || !email}
+              className='cursor-pointer'
+              title={
+                !email
+                  ? 'Employee must have an email address to reset password'
+                  : 'Reset password for this employee'
+              }
+            >
+              {isResettingPassword ? (
+                <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+              ) : (
+                <KeyRound className='mr-2 h-4 w-4' />
+              )}
+              {isResettingPassword ? 'Sending...' : 'Reset Password'}
             </Button>
+            {!email && (
+              <p className='mt-2 text-xs text-amber-600 dark:text-amber-400'>
+                Employee must have an email address to reset password
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
+
+      {isConfirmingReset && (
+        <AlertDialog open={isConfirmingReset} onOpenChange={setIsConfirmingReset}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirm Reset Password</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to reset the password for{' '}
+                <strong>
+                  {firstName} {lastName}
+                </strong>
+                ?
+                <br />A password reset email will be sent to <strong>{email}</strong>.
+                <br />
+                <br />
+                This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isResettingPassword}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleConfirmResetPassword}
+                disabled={isResettingPassword}
+                className='bg-red-600 hover:bg-red-700'
+              >
+                {isResettingPassword ? (
+                  <>
+                    <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                    Sending...
+                  </>
+                ) : (
+                  'Send Reset Email'
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </div>
   );
 };

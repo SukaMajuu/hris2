@@ -98,6 +98,7 @@ func (r *Router) Setup() *gin.Engine {
 				employee.POST("/bulk-import", r.employeeHandler.BulkImportEmployees)
 				employee.PATCH("/:id", r.employeeHandler.UpdateEmployee)
 				employee.PATCH("/:id/status", r.employeeHandler.ResignEmployee) // Employee document routes nested under employee routes
+				employee.POST("/:id/reset-password", r.employeeHandler.ResetEmployeePassword)
 				employee.POST("/:id/documents", r.documentHandler.UploadDocumentForEmployee)
 				employee.GET("/:id/documents", r.documentHandler.GetDocumentsByEmployee)
 			}

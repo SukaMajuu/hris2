@@ -30,6 +30,7 @@ export const API_ROUTES = {
         hireDateRange: '/api/employees/hire-date-range',
         bulkImport: '/api/employees/bulk-import',
         resign: (id: number) => `/api/employees/${id}/status`,
+        resetPassword: (id: number) => `/api/employees/${id}/reset-password`,
         me: '/api/employees/me',
         documents: {
           base: '/api/employees/documents',

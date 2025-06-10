@@ -132,3 +132,9 @@ export const useUpdateCurrentUserProfile = () => {
     },
   });
 };
+
+export const useResetEmployeePassword = () => {
+  return useMutation({
+    mutationFn: (employeeId: number) => employeeService.resetEmployeePassword(employeeId),
+  });
+};

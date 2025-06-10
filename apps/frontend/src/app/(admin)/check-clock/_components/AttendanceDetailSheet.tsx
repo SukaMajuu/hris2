@@ -8,6 +8,7 @@ import {
 	SheetTitle,
 } from "@/components/ui/sheet";
 import { Attendance } from "@/types/attendance";
+import { formatWorkHours } from "@/utils/time";
 
 interface AttendanceDetailSheetProps {
 	open: boolean;
@@ -74,20 +75,15 @@ export function AttendanceDetailSheet({
 										Work Hours
 									</p>
 									<p className="text-slate-700">
-										{selectedData.work_hours
-											? `${selectedData.work_hours.toFixed(
-													2
-											  )} hours`
-											: "-"}
+										{formatWorkHours(selectedData.work_hours)}
 									</p>
 								</div>
 								<div>
 									<p className="text-xs font-medium text-slate-500">
 										Status
-									</p>
-									<p className="text-slate-700">
-										{selectedData.status === "on_time"
-											? "On Time"
+									</p>									<p className="text-slate-700">
+										{selectedData.status === "on_time" || selectedData.status === "ontime"
+											? "Ontime"
 											: selectedData.status === "late"
 											? "Late"
 											: selectedData.status ===

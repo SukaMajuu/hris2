@@ -13,6 +13,7 @@ import {
 } from '@/schemas/employee.schema';
 import { useCreateEmployee } from '@/api/mutations/employee.mutations';
 import { toast } from 'sonner';
+import { useSubscriptionLimit } from '@/hooks/useSubscriptionLimit';
 
 const getTodaysDate = (): string => {
   const today = new Date();
@@ -87,6 +88,7 @@ export function useAddEmployeeForm() {
   const router = useRouter();
 
   const createEmployeeMutation = useCreateEmployee();
+  const { checkCanAddEmployees, getAddEmployeeErrorMessage } = useSubscriptionLimit();
 
   const form = useForm<FormEmployeeData>({
     resolver: zodResolver(employeeFormSchema),
@@ -132,51 +134,42 @@ export function useAddEmployeeForm() {
         }
       }
     } else {
-      // Handle numeric-only fields
       let processedValue = value;
 
       if (name === 'nik') {
-        // Only allow numbers for NIK, max 16 digits
         processedValue = value.replace(/\D/g, '').slice(0, 16);
       } else if (name === 'phoneNumber') {
-        // Allow + at the beginning and numbers only
         if (value.startsWith('+')) {
           processedValue = '+' + value.slice(1).replace(/\D/g, '');
         } else if (value === '') {
           processedValue = '';
         } else {
-          // If user types without +, add + and keep only numbers
           processedValue = '+' + value.replace(/\D/g, '');
         }
       } else if (name === 'bankAccountNumber') {
-        // Only allow numbers for bank account number
         processedValue = value.replace(/\D/g, '');
       } else if (name === 'dateOfBirth') {
-        // Validate date of birth
         if (value) {
           const selectedDate = new Date(value);
           const today = new Date();
           const minDate = new Date();
-          minDate.setFullYear(today.getFullYear() - 100); // 100 years ago
+          minDate.setFullYear(today.getFullYear() - 100);
 
-          // Check if date is in the future
           if (selectedDate > today) {
             toast.error('Date of birth cannot be in the future');
-            return; // Don't update the value
+            return;
           }
 
-          // Check if date is too old (more than 100 years ago)
           if (selectedDate < minDate) {
             toast.error('Date of birth cannot be more than 100 years ago');
-            return; // Don't update the value
+            return;
           }
 
-          // Check if date is today or very recent (less than 16 years ago for work eligibility)
           const minWorkAge = new Date();
           minWorkAge.setFullYear(today.getFullYear() - 16);
           if (selectedDate > minWorkAge) {
             toast.error('Employee must be at least 16 years old');
-            return; // Don't update the value
+            return;
           }
         }
         processedValue = value;
@@ -210,7 +203,6 @@ export function useAddEmployeeForm() {
   const handleNextStep = async () => {
     console.log('HandleNextStep called for step:', activeStep);
 
-    // Check for real-time validation errors on step 1 (Personal Information)
     if (activeStep === 1 && hasRealtimeValidationErrors) {
       console.log('Cannot proceed: Real-time validation errors detected');
       return;
@@ -271,6 +263,19 @@ export function useAddEmployeeForm() {
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
 
+    if (!checkCanAddEmployees(1)) {
+      const errorMessage = getAddEmployeeErrorMessage(1);
+      toast.error('Employee Limit Reached', {
+        description: errorMessage,
+        action: {
+          label: 'Upgrade Plan',
+          onClick: () => router.push('/subscription?view=seat'),
+        },
+        duration: 10000,
+      });
+      return;
+    }
+
     try {
       const validData = employeeFormSchema.parse(getValues());
 
@@ -329,25 +334,45 @@ export function useAddEmployeeForm() {
     } catch (error) {
       console.error('Form submission error:', error);
 
-      const errorMessage =
-        error instanceof Error ? error.message : 'Failed to create employee. Please try again.';
+      let errorMessage = 'Failed to create employee. Please try again.';
 
-      toast.error(errorMessage);
+      if (error instanceof Error && error.message.includes('employee limit')) {
+        errorMessage = error.message;
+        toast.error(errorMessage, {
+          duration: 8000,
+          position: 'top-center',
+          dismissible: true,
+          action: {
+            label: 'Upgrade Plan',
+            onClick: () => {
+              router.push('/subscription?view=package');
+            },
+          },
+          style: {
+            maxWidth: '600px',
+            fontSize: '15px',
+            padding: '16px 20px',
+            textAlign: 'center',
+            fontWeight: '500',
+            borderRadius: '12px',
+            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.15)',
+          },
+        });
+      } else {
+        toast.error(errorMessage);
+      }
     }
   };
 
   const goToStep = async (stepNumber: number) => {
-    // Only allow going back to previous steps, not forward to incomplete steps
     if (stepNumber <= activeStep) {
       setActiveStep(stepNumber);
       return;
     }
 
-    // Check if we can proceed forward step by step
     let canProceed = true;
 
     for (let step = activeStep; step < stepNumber; step++) {
-      // Check for real-time validation errors on step 1 (Personal Information)
       if (step === 1 && hasRealtimeValidationErrors) {
         console.log('Cannot proceed: Real-time validation errors detected');
         canProceed = false;
@@ -386,7 +411,6 @@ export function useAddEmployeeForm() {
     if (canProceed) {
       setActiveStep(stepNumber);
     } else {
-      // Show a toast to inform user about validation errors
       toast.error(
         'Please complete and fix all validation errors in the current step before proceeding',
       );

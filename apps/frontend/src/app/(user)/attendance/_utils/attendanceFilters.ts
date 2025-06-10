@@ -23,11 +23,11 @@ export function filterAttendanceData(
 		if (filters.attendanceStatus && filters.attendanceStatus !== "all") {
 			// Map filter values to data values
 			const statusMapping: { [key: string]: string } = {
-				"Present": "on_time",
+				"Ontime": "ontime",
 				"Late": "late", 
 				"Early Leave": "early_leave",
 				"Absent": "absent",
-				"On Leave": "leave"
+				"Leave": "leave"
 			};
 			
 			const statusToMatch = statusMapping[filters.attendanceStatus] || filters.attendanceStatus;

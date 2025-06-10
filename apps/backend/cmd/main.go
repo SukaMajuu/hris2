@@ -68,7 +68,9 @@ func main() {
 	employeeUseCase := employeeUseCase.NewEmployeeUseCase(
 		employeeRepo,
 		authRepo,
+		xenditRepo,
 		supabaseClient,
+		db,
 	)
 
 	attendanceUseCase := attendanceUseCase.NewAttendanceUseCase(

@@ -37,10 +37,18 @@ interface CombinedAttendanceData {
 	originalLeaveRequest?: LeaveRequest; // Store original leave request data
 }
 
+interface FilterOptions {
+	employeeName?: string;
+	dateFrom?: string;
+	dateTo?: string;
+	status?: string;
+}
+
 export function useCheckClockOverview() {
 	const [page, setPage] = useState(1);
 	const [pageSize, setPageSize] = useState(10);
 	const [nameFilter, setNameFilter] = useState("");
+	const [filters, setFilters] = useState<FilterOptions>({});
 
 	const {
 		data: attendances,
@@ -149,17 +157,66 @@ export function useCheckClockOverview() {
 			(a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
 		);
 	}, [attendances, leaveRequestsData, employeesData]);
-
 	const filteredData = useMemo(() => {
-		if (!nameFilter) return overviewData;
-		return overviewData.filter((item) =>
-			item.employee
-				? `${item.employee.first_name} ${item.employee.last_name || ""}`
-						.toLowerCase()
-						.includes(nameFilter.toLowerCase())
-				: false
-		);
-	}, [overviewData, nameFilter]);
+		let filtered = overviewData;
+
+		// Employee name filter
+		if (nameFilter) {
+			filtered = filtered.filter((item) =>
+				item.employee
+					? `${item.employee.first_name} ${item.employee.last_name || ""}`
+							.toLowerCase()
+							.includes(nameFilter.toLowerCase())
+					: false
+			);
+		}
+
+		// Advanced filters
+		if (filters.employeeName) {
+			filtered = filtered.filter((item) =>
+				item.employee
+					? `${item.employee.first_name} ${item.employee.last_name || ""}`
+							.toLowerCase()
+							.includes(filters.employeeName!.toLowerCase())
+					: false
+			);
+		}
+
+		// Date range filter
+		if (filters.dateFrom) {
+			filtered = filtered.filter((item) => {
+				const itemDate = new Date(item.date);
+				const fromDate = new Date(filters.dateFrom!);
+				return itemDate >= fromDate;
+			});
+		}
+
+		if (filters.dateTo) {
+			filtered = filtered.filter((item) => {
+				const itemDate = new Date(item.date);
+				const toDate = new Date(filters.dateTo!);
+				return itemDate <= toDate;
+			});
+		}
+
+		// Status filter
+		if (filters.status) {
+			filtered = filtered.filter((item) => {
+				const statusToMatch = filters.status!.toLowerCase();
+				
+				// For leave requests, check the leave_type or status
+				if (item.type === "leave_request") {
+					const leaveType = item.leave_type?.toLowerCase() || item.status?.toLowerCase();
+					return leaveType === statusToMatch;
+				}
+				
+				// For attendance records, check the status
+				return item.status?.toLowerCase() === statusToMatch;
+			});
+		}
+
+		return filtered;
+	}, [overviewData, nameFilter, filters]);
 
 	const paginatedData = useMemo(() => {
 		const startIndex = (page - 1) * pageSize;
@@ -183,7 +240,6 @@ export function useCheckClockOverview() {
 			throw error;
 		}
 	};
-
 	const createLeaveRequest = async (employeeId: number, data: any) => {
 		try {
 			await createLeaveRequestMutation.mutateAsync({ employeeId, data });
@@ -193,6 +249,16 @@ export function useCheckClockOverview() {
 		}
 	};
 
+	// Filter management functions
+	const applyFilters = (newFilters: FilterOptions) => {
+		setFilters(newFilters);
+		setPage(1); // Reset to first page when applying filters
+	};
+
+	const resetFilters = () => {
+		setFilters({});
+		setPage(1);
+	};
 	return {
 		page,
 		setPage,
@@ -204,6 +270,9 @@ export function useCheckClockOverview() {
 		employeeList,
 		nameFilter,
 		setNameFilter,
+		filters,
+		applyFilters,
+		resetFilters,
 		isLoading:
 			isLoadingAttendances ||
 			isLoadingEmployees ||

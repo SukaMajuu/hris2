@@ -70,7 +70,7 @@ class LocationService {
 
 	public async deleteLocation(id: string): Promise<ApiResponse<null>> {
 		const url = API_ROUTES.v1.api.locations.delete(id);
-		const response = await this.apiService.delete<ApiResponse<null>>(url);
+		const response = await this.apiService.patch<ApiResponse<null>>(url);
 		return response.data;
 	}
 }

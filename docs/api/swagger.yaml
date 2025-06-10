@@ -2994,191 +2994,189 @@ paths:
                                         type: string
                                         example: "Failed to create check clock setting"
 
-
-
-        /api/attendances/check-in:
-            post:
-                tags: [Attendance]
-                summary: Employee check-in
-                requestBody:
-                    required: true
+    /api/attendances/check-in:
+        post:
+            tags: [Attendance]
+            summary: Employee check-in
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/AttendanceCheckInRequest"
+            responses:
+                201:
+                    description: Check-in recorded successfully
                     content:
                         application/json:
                             schema:
-                                $ref: "#/components/schemas/AttendanceCheckInRequest"
-                responses:
-                    201:
-                        description: Check-in recorded successfully
-                        content:
-                            application/json:
-                                schema:
-                                    allOf:
-                                        - $ref: "#/components/schemas/Attendance"
-                    400:
-                        description: Invalid request
+                                allOf:
+                                    - $ref: "#/components/schemas/Attendance"
+                400:
+                    description: Invalid request
 
-        /api/attendances/check-out:
-            post:
-                tags: [Attendance]
-                summary: Employee check-out
-                description: Record check-out for an employee. The system will find the existing attendance record by employee ID and date.
-                requestBody:
-                    required: true
+    /api/attendances/check-out:
+        post:
+            tags: [Attendance]
+            summary: Employee check-out
+            description: Record check-out for an employee. The system will find the existing attendance record by employee ID and date.
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/AttendanceCheckOutRequest"
+            responses:
+                200:
+                    description: Check-out recorded successfully
                     content:
                         application/json:
                             schema:
-                                $ref: "#/components/schemas/AttendanceCheckOutRequest"
-                responses:
-                    200:
-                        description: Check-out recorded successfully
-                        content:
-                            application/json:
-                                schema:
-                                    allOf:
-                                        - $ref: "#/components/schemas/Attendance"
-                    400:
-                        description: Invalid request
-                    404:
-                        description: No attendance record found for the employee on the specified date
+                                allOf:
+                                    - $ref: "#/components/schemas/Attendance"
+                400:
+                    description: Invalid request
+                404:
+                    description: No attendance record found for the employee on the specified date
 
-        /api/attendances:
-            get:
-                tags: [Attendance]
-                summary: Get all attendance records with pagination
-                description: Retrieve a paginated list of all attendance records in the system.
-                parameters:
-                    - in: query
-                      name: page
-                      schema:
-                          type: integer
-                          minimum: 1
-                          default: 1
-                      description: Page number for pagination.
-                      example: 1
-                    - in: query
-                      name: page_size
-                      schema:
-                          type: integer
-                          minimum: 1
-                          maximum: 100
-                          default: 10
-                      description: Number of items per page.
-                      example: 10
-                responses:
-                    200:
-                        description: List of attendance records retrieved successfully
-                        content:
-                            application/json:
-                                schema:
-                                    type: object
-                                    properties:
-                                        status:
-                                            type: integer
-                                            example: 200
-                                        message:
-                                            type: string
-                                            example: "Attendance records retrieved successfully"
-                                        data:
-                                            type: object
-                                            properties:
+    /api/attendances:
+        get:
+            tags: [Attendance]
+            summary: Get all attendance records with pagination
+            description: Retrieve a paginated list of all attendance records in the system.
+            parameters:
+                - in: query
+                  name: page
+                  schema:
+                      type: integer
+                      minimum: 1
+                      default: 1
+                  description: Page number for pagination.
+                  example: 1
+                - in: query
+                  name: page_size
+                  schema:
+                      type: integer
+                      minimum: 1
+                      maximum: 100
+                      default: 10
+                  description: Number of items per page.
+                  example: 10
+            responses:
+                200:
+                    description: List of attendance records retrieved successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "Attendance records retrieved successfully"
+                                    data:
+                                        type: object
+                                        properties:
+                                            items:
+                                                type: array
                                                 items:
-                                                    type: array
-                                                    items:
-                                                        $ref: "#/components/schemas/Attendance"
-                                                pagination:
-                                                    type: object
-                                                    properties:
-                                                        total_items:
-                                                            type: integer
-                                                            format: int64
-                                                            example: 100
-                                                        total_pages:
-                                                            type: integer
-                                                            example: 10
-                                                        current_page:
-                                                            type: integer
-                                                            example: 1
-                                                        page_size:
-                                                            type: integer
-                                                            example: 10
-                    400:
-                        description: Invalid request parameters
-                    500:
-                        description: Internal server error
+                                                    $ref: "#/components/schemas/Attendance"
+                                            pagination:
+                                                type: object
+                                                properties:
+                                                    total_items:
+                                                        type: integer
+                                                        format: int64
+                                                        example: 100
+                                                    total_pages:
+                                                        type: integer
+                                                        example: 10
+                                                    current_page:
+                                                        type: integer
+                                                        example: 1
+                                                    page_size:
+                                                        type: integer
+                                                        example: 10
+                400:
+                    description: Invalid request parameters
+                500:
+                    description: Internal server error
 
-        /api/attendances/employees/{employee_id}:
-            get:
-                tags: [Attendance]
-                summary: Get attendance records by employee ID with pagination
-                description: Retrieve a paginated list of attendance records for a specific employee.
-                parameters:
-                    - in: path
-                      name: employee_id
-                      required: true
-                      schema:
-                          type: integer
-                      description: The ID of the employee
-                      example: 1
-                    - in: query
-                      name: page
-                      schema:
-                          type: integer
-                          minimum: 1
-                          default: 1
-                      description: Page number for pagination.
-                      example: 1
-                    - in: query
-                      name: page_size
-                      schema:
-                          type: integer
-                          minimum: 1
-                          maximum: 100
-                          default: 10
-                      description: Number of items per page.
-                      example: 10
-                responses:
-                    200:
-                        description: Employee attendance records retrieved successfully
-                        content:
-                            application/json:
-                                schema:
-                                    type: object
-                                    properties:
-                                        status:
-                                            type: integer
-                                            example: 200
-                                        message:
-                                            type: string
-                                            example: "Employee attendance records retrieved successfully"
-                                        data:
-                                            type: object
-                                            properties:
+    /api/attendances/employees/{employee_id}:
+        get:
+            tags: [Attendance]
+            summary: Get attendance records by employee ID with pagination
+            description: Retrieve a paginated list of attendance records for a specific employee.
+            parameters:
+                - in: path
+                  name: employee_id
+                  required: true
+                  schema:
+                      type: integer
+                  description: The ID of the employee
+                  example: 1
+                - in: query
+                  name: page
+                  schema:
+                      type: integer
+                      minimum: 1
+                      default: 1
+                  description: Page number for pagination.
+                  example: 1
+                - in: query
+                  name: page_size
+                  schema:
+                      type: integer
+                      minimum: 1
+                      maximum: 100
+                      default: 10
+                  description: Number of items per page.
+                  example: 10
+            responses:
+                200:
+                    description: Employee attendance records retrieved successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    status:
+                                        type: integer
+                                        example: 200
+                                    message:
+                                        type: string
+                                        example: "Employee attendance records retrieved successfully"
+                                    data:
+                                        type: object
+                                        properties:
+                                            items:
+                                                type: array
                                                 items:
-                                                    type: array
-                                                    items:
-                                                        $ref: "#/components/schemas/Attendance"
-                                                pagination:
-                                                    type: object
-                                                    properties:
-                                                        total_items:
-                                                            type: integer
-                                                            format: int64
-                                                            example: 50
-                                                        total_pages:
-                                                            type: integer
-                                                            example: 5
-                                                        current_page:
-                                                            type: integer
-                                                            example: 1
-                                                        page_size:
-                                                            type: integer
-                                                            example: 10
-                    400:
-                        description: Invalid request parameters
-                    404:
-                        description: Employee not found
-                    500:
-                        description: Internal server error
+                                                    $ref: "#/components/schemas/Attendance"
+                                            pagination:
+                                                type: object
+                                                properties:
+                                                    total_items:
+                                                        type: integer
+                                                        format: int64
+                                                        example: 50
+                                                    total_pages:
+                                                        type: integer
+                                                        example: 5
+                                                    current_page:
+                                                        type: integer
+                                                        example: 1
+                                                    page_size:
+                                                        type: integer
+                                                        example: 10
+                400:
+                    description: Invalid request parameters
+                404:
+                    description: Employee not found
+                500:
+                    description: Internal server error
 
         #
         #    /attendance/logs:

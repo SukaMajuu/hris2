@@ -98,6 +98,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 			"role":       registeredUser.Role,
 			"last_login": registeredUser.LastLoginAt,
 		},
+		"is_new_user": true,
 	})
 }
 
@@ -127,6 +128,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 			"role":       user.Role,
 			"last_login": user.LastLoginAt,
 		},
+		"is_new_user": false,
 	})
 }
 
@@ -137,12 +139,14 @@ func (h *AuthHandler) GoogleLogin(c *gin.Context) {
 	}
 
 	user, accessToken, refreshToken, err := h.authUseCase.LoginWithGoogle(c.Request.Context(), req.Token)
+	isNewUser := false
 	if err != nil {
 		user, accessToken, refreshToken, err = h.authUseCase.RegisterAdminWithGoogle(c.Request.Context(), req.Token)
 		if err != nil {
 			response.InternalServerError(c, fmt.Errorf("google authentication process failed: %w", err))
 			return
 		}
+		isNewUser = true
 	}
 
 	h.setRefreshTokenCookie(c, refreshToken, false)
@@ -155,6 +159,7 @@ func (h *AuthHandler) GoogleLogin(c *gin.Context) {
 			"role":       user.Role,
 			"last_login": user.LastLoginAt,
 		},
+		"is_new_user": isNewUser,
 	})
 }
 

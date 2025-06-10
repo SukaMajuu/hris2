@@ -44,6 +44,13 @@ export interface UserSubscription {
 	is_auto_renew: boolean;
 	current_employee_count: number;
 	max_employee_count: number;
+	is_trial_used: boolean;
+	is_in_trial: boolean;
+	trial_start_date: string | null;
+	trial_end_date: string | null;
+	remaining_trial_days: number | null;
+	created_at: string;
+	updated_at: string;
 }
 
 export interface ApiResponse<T> {
@@ -64,6 +71,19 @@ export interface CheckoutSession {
 	initiated_at: string;
 	expires_at: string | null;
 	completed_at: string | null;
+}
+
+export interface InvoiceResponse {
+	id: string;
+	invoice_url: string;
+	amount: number;
+	currency: string;
+	expiry_date: string;
+}
+
+export interface InitiatePaidCheckoutResponse {
+	checkout_session: CheckoutSession;
+	invoice: InvoiceResponse;
 }
 
 // Request types for API calls

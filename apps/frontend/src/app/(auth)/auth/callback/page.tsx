@@ -15,6 +15,7 @@ export default function AuthCallbackPage() {
 	const router = useRouter();
 	const setUser = useAuthStore((state) => state.setUser);
 	const setIsLoading = useAuthStore((state) => state.setIsLoading);
+	const setIsNewUser = useAuthStore((state) => state.setIsNewUser);
 	const [message, setMessage] = useState("Auth Callback: Initializing...");
 	const googleAuthMutation = useGoogleAuthMutation();
 	const hasProcessed = useRef(false);
@@ -79,17 +80,28 @@ export default function AuthCallbackPage() {
 
 				// Set user in auth store
 				setUser(authResponse.user);
-				setMessage(
-					"Authentication successful! Redirecting to dashboard..."
-				);
 
-				// Show success toast
-				toast.success("Google authentication successful!");
-
-				// Ensure auth state is properly set before redirecting
-				setTimeout(() => {
-					router.replace("/dashboard");
-				}, 1000);
+				// Check if this is a new user and redirect appropriately
+				if (authResponse.is_new_user) {
+					setIsNewUser(true);
+					setMessage(
+						"Registration successful! Redirecting to welcome screen..."
+					);
+					toast.success(
+						"Google registration successful! Welcome to HRIS."
+					);
+					setTimeout(() => {
+						router.replace("/welcome");
+					}, 1000);
+				} else {
+					setMessage(
+						"Authentication successful! Redirecting to dashboard..."
+					);
+					toast.success("Google authentication successful!");
+					setTimeout(() => {
+						router.replace("/dashboard");
+					}, 1000);
+				}
 			} catch (error) {
 				console.error("[AuthCallback] Authentication error:", error);
 
@@ -128,7 +140,7 @@ export default function AuthCallbackPage() {
 		};
 
 		handleAuthCallback();
-	}, [router, setUser, setIsLoading, googleAuthMutation]);
+	}, [router, setUser, setIsLoading, setIsNewUser, googleAuthMutation]);
 
 	return (
 		<div

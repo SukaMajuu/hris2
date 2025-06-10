@@ -26,28 +26,41 @@ type Router struct {
 	documentHandler     *handler.DocumentHandler
 	leaveRequestHandler *handler.LeaveRequestHandler
 	attendanceHandler   *handler.AttendanceHandler
+	cronHandler         *handler.CronHandler
 }
 
 func NewRouter(
-	authUseCase *auth.AuthUseCase,
-	employeeUseCase *employee.EmployeeUseCase,
-	locationUseCase *location.LocationUseCase,
-	workScheduleUseCase *work_Schedule.WorkScheduleUseCase,
-	subscriptionUseCase *subscription.SubscriptionUseCase,
-	documentUseCase *document.DocumentUseCase,
-	leaveRequestUseCase *leave_request.LeaveRequestUseCase,
-	attendanceUseCase *attendance.AttendanceUseCase,
+	authUC *auth.AuthUseCase,
+	employeeUC *employee.EmployeeUseCase,
+	attendanceUC *attendance.AttendanceUseCase,
+	locationUC *location.LocationUseCase,
+	leaveRequestUC *leave_request.LeaveRequestUseCase,
+	workScheduleUC *work_Schedule.WorkScheduleUseCase,
+	documentUC *document.DocumentUseCase,
+	subscriptionUC *subscription.SubscriptionUseCase,
+	midtransSubscriptionUC *subscription.MidtransSubscriptionUseCase,
 ) *Router {
+	authHandler := handler.NewAuthHandler(authUC)
+	employeeHandler := handler.NewEmployeeHandler(employeeUC)
+	attendanceHandler := handler.NewAttendanceHandler(attendanceUC, employeeUC)
+	leaveRequestHandler := handler.NewLeaveRequestHandler(leaveRequestUC)
+	workScheduleHandler := handler.NewWorkScheduleHandler(workScheduleUC)
+	locationHandler := handler.NewLocationHandler(locationUC)
+	documentHandler := handler.NewDocumentHandler(documentUC)
+	subscriptionHandler := handler.NewSubscriptionHandlerWithMidtrans(subscriptionUC, midtransSubscriptionUC)
+	cronHandler := handler.NewCronHandler(subscriptionUC, attendanceUC)
+
 	return &Router{
-		authHandler:         handler.NewAuthHandler(authUseCase),
-		authMiddleware:      middleware.NewAuthMiddleware(authUseCase, employeeUseCase),
-		employeeHandler:     handler.NewEmployeeHandler(employeeUseCase),
-		locationHandler:     handler.NewLocationHandler(locationUseCase),
-		workScheduleHandler: handler.NewWorkScheduleHandler(workScheduleUseCase),
-		subscriptionHandler: handler.NewSubscriptionHandler(subscriptionUseCase),
-		documentHandler:     handler.NewDocumentHandler(documentUseCase),
-		leaveRequestHandler: handler.NewLeaveRequestHandler(leaveRequestUseCase),
-		attendanceHandler:   handler.NewAttendanceHandler(attendanceUseCase, employeeUseCase),
+		authHandler:         authHandler,
+		locationHandler:     locationHandler,
+		authMiddleware:      middleware.NewAuthMiddleware(authUC, employeeUC),
+		employeeHandler:     employeeHandler,
+		workScheduleHandler: workScheduleHandler,
+		subscriptionHandler: subscriptionHandler,
+		documentHandler:     documentHandler,
+		leaveRequestHandler: leaveRequestHandler,
+		attendanceHandler:   attendanceHandler,
+		cronHandler:         cronHandler,
 	}
 }
 
@@ -97,7 +110,7 @@ func (r *Router) Setup() *gin.Engine {
 				employee.POST("", r.employeeHandler.CreateEmployee)
 				employee.POST("/bulk-import", r.employeeHandler.BulkImportEmployees)
 				employee.PATCH("/:id", r.employeeHandler.UpdateEmployee)
-				employee.PATCH("/:id/status", r.employeeHandler.ResignEmployee) // Employee document routes nested under employee routes
+				employee.PATCH("/:id/status", r.employeeHandler.ResignEmployee)
 				employee.POST("/:id/documents", r.documentHandler.UploadDocumentForEmployee)
 				employee.GET("/:id/documents", r.documentHandler.GetDocumentsByEmployee)
 			}
@@ -134,6 +147,7 @@ func (r *Router) Setup() *gin.Engine {
 				attendances.POST("/clock-in", r.attendanceHandler.ClockIn)
 				attendances.POST("/clock-out", r.attendanceHandler.ClockOut)
 				attendances.GET("/employees/:employee_id", r.attendanceHandler.ListAttendancesByEmployee)
+				attendances.POST("/test-daily-absent-check", r.attendanceHandler.TestDailyAbsentCheck)
 			}
 
 			documents := api.Group("/documents")
@@ -153,9 +167,9 @@ func (r *Router) Setup() *gin.Engine {
 				leaveRequests.DELETE("/:id", r.leaveRequestHandler.DeleteLeaveRequest)
 
 				// Admin routes (can access all leave requests and update status)
-				leaveRequests.GET("", r.leaveRequestHandler.ListLeaveRequests)                     // Admin only - list all
-				leaveRequests.POST("/admin", r.leaveRequestHandler.CreateLeaveRequestForEmployee)  // Admin only - create for employee
-				leaveRequests.PATCH("/:id/status", r.leaveRequestHandler.UpdateLeaveRequestStatus) // Admin only
+				leaveRequests.GET("", r.leaveRequestHandler.ListLeaveRequests)
+				leaveRequests.POST("/admin", r.leaveRequestHandler.CreateLeaveRequestForEmployee)
+				leaveRequests.PATCH("/:id/status", r.leaveRequestHandler.UpdateLeaveRequestStatus)
 			}
 
 			subscription := api.Group("/subscription")
@@ -167,6 +181,7 @@ func (r *Router) Setup() *gin.Engine {
 				protected := subscription.Group("")
 				{
 					protected.GET("/me", r.subscriptionHandler.GetUserSubscription)
+					protected.POST("/trial/activate", r.subscriptionHandler.ActivateTrial)
 					protected.POST("/checkout/trial", r.subscriptionHandler.InitiateTrialCheckout)
 					protected.POST("/checkout/paid", r.subscriptionHandler.InitiatePaidCheckout)
 					protected.POST("/checkout/complete-trial", r.subscriptionHandler.CompleteTrialCheckout)
@@ -180,8 +195,18 @@ func (r *Router) Setup() *gin.Engine {
 			webhooks.POST("/tripay", r.subscriptionHandler.ProcessTripayWebhook)
 			webhooks.POST("/midtrans", r.subscriptionHandler.ProcessMidtransWebhook)
 		}
+
+		// Cron job endpoints (secured with API key)
+		cron := v1.Group("/cron")
+		cron.Use(middleware.CronAPIKeyAuth())
+		{
+			cron.POST("/check-trial-expiry", r.cronHandler.CheckTrialExpiry)
+			cron.POST("/send-trial-warnings", r.cronHandler.SendTrialWarnings)
+			cron.POST("/process-auto-renewals", r.cronHandler.ProcessAutoRenewals)
+			cron.POST("/update-usage-stats", r.cronHandler.UpdateUsageStatistics)
+			cron.POST("/process-daily-absent-check", r.cronHandler.ProcessDailyAbsentCheck)
+		}
 	}
 
 	return router
-
 }

@@ -5,6 +5,7 @@ import { ROLES, Role } from "@/const/role";
 export function useSubscriptionStatus() {
 	const user = useAuthStore((state) => state.user);
 	const isAuthStoreLoading = useAuthStore((state) => state.isLoading);
+	const isNewUser = useAuthStore((state) => state.isNewUser);
 
 	const {
 		data: userSubscription,
@@ -23,10 +24,19 @@ export function useSubscriptionStatus() {
 
 	const isLoading = isAuthStoreLoading || isLoadingSubscription;
 
-	const shouldShowLayout = hasActiveSubscription;
+	// Check if user is eligible for trial (admin without subscription)
+	// This covers both new users and existing users who haven't activated trial yet
+	const isEligibleForTrial = Boolean(
+		isAdmin && !hasActiveSubscription && userSubscription === null // No subscription found (404 response indicates eligible for trial)
+	);
+
+	// For new users or trial-eligible users, temporarily bypass subscription check
+	const shouldShowLayout =
+		hasActiveSubscription || isNewUser || isEligibleForTrial;
 
 	return {
-		hasActiveSubscription,
+		hasActiveSubscription:
+			hasActiveSubscription || isNewUser || isEligibleForTrial,
 		isLoading,
 		isAdmin,
 		shouldShowLayout,
@@ -34,5 +44,7 @@ export function useSubscriptionStatus() {
 		user,
 		isLoadingSubscription,
 		isFetchingSubscription,
+		isNewUser,
+		isEligibleForTrial,
 	};
 }

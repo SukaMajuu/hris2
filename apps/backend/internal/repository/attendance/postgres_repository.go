@@ -20,7 +20,6 @@ func NewAttendanceRepository(db *gorm.DB) *AttendanceRepository {
 	}
 }
 
-// Create creates a new attendance record
 func (r *AttendanceRepository) Create(ctx context.Context, attendance *domain.Attendance) error {
 	if err := r.db.WithContext(ctx).Create(attendance).Error; err != nil {
 		return fmt.Errorf("failed to create attendance: %w", err)
@@ -28,7 +27,6 @@ func (r *AttendanceRepository) Create(ctx context.Context, attendance *domain.At
 	return nil
 }
 
-// GetByID retrieves an attendance record by ID with preloaded relationships
 func (r *AttendanceRepository) GetByID(ctx context.Context, id uint) (*domain.Attendance, error) {
 	var attendance domain.Attendance
 	if err := r.db.WithContext(ctx).
@@ -42,7 +40,6 @@ func (r *AttendanceRepository) GetByID(ctx context.Context, id uint) (*domain.At
 	return &attendance, nil
 }
 
-// GetByEmployeeAndDate retrieves an attendance record by employee ID and date
 func (r *AttendanceRepository) GetByEmployeeAndDate(ctx context.Context, employeeID uint, date string) (*domain.Attendance, error) {
 	var attendance domain.Attendance
 
@@ -51,31 +48,27 @@ func (r *AttendanceRepository) GetByEmployeeAndDate(ctx context.Context, employe
 		return nil, fmt.Errorf("invalid date format for GetByEmployeeAndDate: %w", err)
 	}
 
-	// Use DATE() function to compare only the date part, not the full timestamp
 	if err := r.db.WithContext(ctx).
 		Preload("Employee").
 		Where("employee_id = ? AND DATE(date) = DATE(?)", employeeID, parsedDate).
 		First(&attendance).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, gorm.ErrRecordNotFound // Return specific error for not found
+			return nil, gorm.ErrRecordNotFound
 		}
 		return nil, fmt.Errorf("error fetching attendance by employee ID %d and date %s: %w", employeeID, date, err)
 	}
 	return &attendance, nil
 }
 
-// ListByEmployee retrieves attendance records for a specific employee with pagination
 func (r *AttendanceRepository) ListByEmployee(ctx context.Context, employeeID uint, paginationParams domain.PaginationParams) ([]*domain.Attendance, int64, error) {
 	var attendances []*domain.Attendance
 	var total int64
 
 	query := r.db.WithContext(ctx).Model(&domain.Attendance{}).Where("employee_id = ?", employeeID)
 
-	// Count total records
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, fmt.Errorf("failed to count attendances by employee: %w", err)
 	}
-
 	// Get paginated records
 	offset := (paginationParams.Page - 1) * 1000
 	if err := query.Preload("Employee").Offset(offset).Limit(1000).Order("date desc, clock_in desc").Find(&attendances).Error; err != nil {
@@ -85,19 +78,16 @@ func (r *AttendanceRepository) ListByEmployee(ctx context.Context, employeeID ui
 	return attendances, total, nil
 }
 
-// ListAll retrieves all attendance records with pagination
 func (r *AttendanceRepository) ListAll(ctx context.Context, paginationParams domain.PaginationParams) ([]*domain.Attendance, int64, error) {
 	var attendances []*domain.Attendance
 	var total int64
 
 	query := r.db.WithContext(ctx).Model(&domain.Attendance{})
 
-	// Count total records
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, fmt.Errorf("failed to count all attendances: %w", err)
 	}
 
-	// Get paginated records
 	offset := (paginationParams.Page - 1) * paginationParams.PageSize
 	if err := query.Preload("Employee").Offset(offset).Limit(paginationParams.PageSize).Order("date desc, clock_in desc").Find(&attendances).Error; err != nil {
 		return nil, 0, fmt.Errorf("failed to list all attendances: %w", err)
@@ -106,23 +96,19 @@ func (r *AttendanceRepository) ListAll(ctx context.Context, paginationParams dom
 	return attendances, total, nil
 }
 
-// ListByManager retrieves attendance records filtered by manager with pagination
 func (r *AttendanceRepository) ListByManager(ctx context.Context, managerID uint, paginationParams domain.PaginationParams) ([]*domain.Attendance, int64, error) {
 	var attendances []*domain.Attendance
 	var total int64
 
-	// Build base query
 	query := r.db.WithContext(ctx).
 		Table("attendances").
 		Joins("JOIN employees ON attendances.employee_id = employees.id").
 		Where("employees.manager_id = ?", managerID)
 
-	// Count total records
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, fmt.Errorf("failed to count attendances by manager: %w", err)
 	}
 
-	// Get paginated records with preload
 	offset := (paginationParams.Page - 1) * paginationParams.PageSize
 	if err := r.db.WithContext(ctx).
 		Model(&domain.Attendance{}).
@@ -139,7 +125,6 @@ func (r *AttendanceRepository) ListByManager(ctx context.Context, managerID uint
 	return attendances, total, nil
 }
 
-// Update updates an existing attendance record
 func (r *AttendanceRepository) Update(ctx context.Context, attendance *domain.Attendance) error {
 	if err := r.db.WithContext(ctx).Save(attendance).Error; err != nil {
 		return fmt.Errorf("failed to update attendance with ID %d: %w", attendance.ID, err)
@@ -147,7 +132,6 @@ func (r *AttendanceRepository) Update(ctx context.Context, attendance *domain.At
 	return nil
 }
 
-// Delete soft deletes an attendance record
 func (r *AttendanceRepository) Delete(ctx context.Context, id uint) error {
 	if err := r.db.WithContext(ctx).Delete(&domain.Attendance{}, id).Error; err != nil {
 		return fmt.Errorf("failed to delete attendance with ID %d: %w", id, err)
@@ -155,7 +139,6 @@ func (r *AttendanceRepository) Delete(ctx context.Context, id uint) error {
 	return nil
 }
 
-// GetByEmployeeAndDateRange retrieves attendance records for a specific employee within a date range
 func (r *AttendanceRepository) GetByEmployeeAndDateRange(ctx context.Context, employeeID uint, startDate, endDate string) ([]*domain.Attendance, error) {
 	var attendances []*domain.Attendance
 
@@ -180,7 +163,6 @@ func (r *AttendanceRepository) GetByEmployeeAndDateRange(ctx context.Context, em
 	return attendances, nil
 }
 
-// GetByDateRange retrieves all attendance records within a date range
 func (r *AttendanceRepository) GetByDateRange(ctx context.Context, startDate, endDate string) ([]*domain.Attendance, error) {
 	var attendances []*domain.Attendance
 
@@ -205,7 +187,6 @@ func (r *AttendanceRepository) GetByDateRange(ctx context.Context, startDate, en
 	return attendances, nil
 }
 
-// CountByEmployeeAndStatus counts attendance records by employee and status
 func (r *AttendanceRepository) CountByEmployeeAndStatus(ctx context.Context, employeeID uint, status domain.AttendanceStatus) (int64, error) {
 	var count int64
 
@@ -219,7 +200,6 @@ func (r *AttendanceRepository) CountByEmployeeAndStatus(ctx context.Context, emp
 	return count, nil
 }
 
-// GetTodayAttendanceByEmployee gets today's attendance for a specific employee
 func (r *AttendanceRepository) GetTodayAttendanceByEmployee(ctx context.Context, employeeID uint) (*domain.Attendance, error) {
 	var attendance domain.Attendance
 	today := time.Now().Format("2006-01-02")
@@ -237,11 +217,9 @@ func (r *AttendanceRepository) GetTodayAttendanceByEmployee(ctx context.Context,
 	return &attendance, nil
 }
 
-// GetStatistics retrieves attendance statistics for today
 func (r *AttendanceRepository) GetStatistics(ctx context.Context) (onTime, late, earlyLeave, absent, leave, totalAttended, totalEmployees int64, err error) {
 	today := time.Now().Format("2006-01-02")
 
-	// Count each status for today
 	if err = r.db.WithContext(ctx).
 		Model(&domain.Attendance{}).
 		Where("DATE(date) = DATE(?) AND status = ?", today, domain.OnTime).
@@ -279,7 +257,6 @@ func (r *AttendanceRepository) GetStatistics(ctx context.Context) (onTime, late,
 
 	totalAttended = onTime + late + earlyLeave + absent + leave
 
-	// Get total number of active employees
 	if err = r.db.WithContext(ctx).
 		Table("employees").
 		Where("employment_status = ?", true).
@@ -290,11 +267,9 @@ func (r *AttendanceRepository) GetStatistics(ctx context.Context) (onTime, late,
 	return onTime, late, earlyLeave, absent, leave, totalAttended, totalEmployees, nil
 }
 
-// GetStatisticsByManager retrieves attendance statistics for today filtered by manager
 func (r *AttendanceRepository) GetStatisticsByManager(ctx context.Context, managerID uint) (onTime, late, earlyLeave, absent, leave, totalAttended, totalEmployees int64, err error) {
 	today := time.Now().Format("2006-01-02")
 
-	// Count each status for today with separate queries
 	if err = r.db.WithContext(ctx).
 		Table("attendances").
 		Joins("JOIN employees ON attendances.employee_id = employees.id").

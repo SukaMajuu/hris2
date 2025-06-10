@@ -1432,7 +1432,7 @@ func TestEmployeeUseCase_BulkImport(t *testing.T) {
 					// Use a safer approach to generate unique IDs with proper bounds checking
 					var empID uint
 					if i <= 900 { // Safe range check before conversion
-						empID = uint(100) + uint(i)
+						empID = 100 + uint(i)
 					} else {
 						empID = uint(100) // Fallback for edge cases
 					}
@@ -1455,7 +1455,7 @@ func TestEmployeeUseCase_BulkImport(t *testing.T) {
 					// Use a safer approach to generate unique IDs with proper bounds checking
 					var empID uint
 					if i <= 900 { // Safe range check before conversion
-						empID = uint(100) + uint(i)
+						empID = 100 + uint(i)
 					} else {
 						empID = uint(100) // Fallback for edge cases
 					}

@@ -92,7 +92,7 @@ func (es *EmailService) SendTrialActivated(ctx context.Context, user *domain.Use
 		subscription.SeatPlan.MaxEmployees,
 	)
 
-	return es.sendEmail(ctx, user.Email, subject, htmlContent, "")
+	return es.sendEmail(ctx, user.Email, subject, htmlContent)
 }
 
 func (es *EmailService) SendTrialWarning(ctx context.Context, user *domain.User, subscription *domain.Subscription, daysLeft int) error {
@@ -149,7 +149,7 @@ func (es *EmailService) SendTrialWarning(ctx context.Context, user *domain.User,
 		urgencyColor,
 	)
 
-	return es.sendEmail(ctx, user.Email, subject, htmlContent, "")
+	return es.sendEmail(ctx, user.Email, subject, htmlContent)
 }
 
 func (es *EmailService) SendTrialExpired(ctx context.Context, user *domain.User, subscription *domain.Subscription) error {
@@ -197,7 +197,7 @@ func (es *EmailService) SendTrialExpired(ctx context.Context, user *domain.User,
 		user.Email,
 	)
 
-	return es.sendEmail(ctx, user.Email, subject, htmlContent, "")
+	return es.sendEmail(ctx, user.Email, subject, htmlContent)
 }
 
 func (es *EmailService) SendPaymentSuccess(ctx context.Context, user *domain.User, subscription *domain.Subscription) error {
@@ -245,28 +245,30 @@ func (es *EmailService) SendPaymentSuccess(ctx context.Context, user *domain.Use
 		subscription.SeatPlan.MaxEmployees,
 	)
 
-	return es.sendEmail(ctx, user.Email, subject, htmlContent, "")
+	return es.sendEmail(ctx, user.Email, subject, htmlContent)
 }
 
 // Core email sending method
-func (es *EmailService) sendEmail(ctx context.Context, to, subject, htmlContent, textContent string) error {
+func (es *EmailService) sendEmail(ctx context.Context, to, subject, htmlContent string) error {
 	if es.useResend {
-		return es.sendWithResend(ctx, to, subject, htmlContent, textContent)
+		return es.sendWithResend(ctx, to, subject, htmlContent)
 	}
 	return es.sendWithSMTP(to, subject, htmlContent)
 }
 
 // Send email using Resend API (preferred method)
-func (es *EmailService) sendWithResend(ctx context.Context, to, subject, htmlContent, textContent string) error {
+func (es *EmailService) sendWithResend(ctx context.Context, to, subject, htmlContent string) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
 	params := &resend.SendEmailRequest{
 		From:    fmt.Sprintf("%s <%s>", es.config.FromName, es.config.FromEmail),
 		To:      []string{to},
 		Subject: subject,
 		Html:    htmlContent,
-	}
-
-	if textContent != "" {
-		params.Text = textContent
 	}
 
 	sent, err := es.resendClient.Emails.Send(params)

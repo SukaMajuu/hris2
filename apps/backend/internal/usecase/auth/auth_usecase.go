@@ -134,12 +134,6 @@ func (uc *AuthUseCase) RegisterAdminWithForm(ctx context.Context, user *domain.U
 		return nil, "", "", fmt.Errorf("failed to register admin: %w", err)
 	}
 
-	// Remove automatic trial creation - user will choose on welcome screen
-	// if err := uc.subscriptionUC.CreateAutomaticTrialForPremiumUser(ctx, user.ID); err != nil {
-	// 	// Log the error but don't fail the registration - user can manually create trial later
-	// 	log.Printf("Warning: Failed to create automatic trial for user ID %d: %v", user.ID, err)
-	// }
-
 	accessToken, refreshToken, err := uc.issueTokensAndStoreRefresh(ctx, user, false)
 	if err != nil {
 		return nil, "", "", fmt.Errorf("token issuance failed after registration: %w", err)
@@ -156,11 +150,9 @@ func (uc *AuthUseCase) RegisterAdminWithGoogle(ctx context.Context, token string
 	newUser, newEmployee, err := uc.authRepo.RegisterAdminWithGoogle(ctx, token)
 
 	var userToProcess *domain.User
-	var isNewUser bool
 
 	if err == nil {
 		userToProcess = newUser
-		isNewUser = true
 		_ = newEmployee
 	} else if errors.Is(err, domain.ErrEmailAlreadyExists) || errors.Is(err, domain.ErrUserAlreadyExists) {
 		existingUser, loginErr := uc.authRepo.LoginWithGoogle(ctx, token)
@@ -168,22 +160,12 @@ func (uc *AuthUseCase) RegisterAdminWithGoogle(ctx context.Context, token string
 			return nil, "", "", fmt.Errorf("existing user login failed: %w", loginErr)
 		}
 		userToProcess = existingUser
-		isNewUser = false
 	} else {
 		return nil, "", "", fmt.Errorf("failed Google admin registration: %w", err)
 	}
 
 	if userToProcess == nil {
 		return nil, "", "", fmt.Errorf("internal error: user object not available after registration/login attempt")
-	}
-
-	// Automatically create premium trial subscription for new admin users only
-	if isNewUser {
-		// Remove automatic trial creation - user will choose on welcome screen
-		// if err := uc.subscriptionUC.CreateAutomaticTrialForPremiumUser(ctx, userToProcess.ID); err != nil {
-		// 	// Log the error but don't fail the registration - user can manually create trial later
-		// 	log.Printf("Warning: Failed to create automatic trial for user ID %d: %v", userToProcess.ID, err)
-		// }
 	}
 
 	accessToken, refreshToken, err := uc.issueTokensAndStoreRefresh(ctx, userToProcess, false)

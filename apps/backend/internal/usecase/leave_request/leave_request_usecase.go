@@ -16,7 +16,6 @@ import (
 	"github.com/SukaMajuu/hris/apps/backend/domain/interfaces"
 	storage "github.com/supabase-community/storage-go"
 	"github.com/supabase-community/supabase-go"
-	"gorm.io/gorm"
 )
 
 const bucketNameAttachments = "leavereq"
@@ -523,58 +522,6 @@ func (uc *LeaveRequestUseCase) UpdateStatus(ctx context.Context, id uint, status
 	}
 	log.Printf("LeaveRequestUseCase: Successfully updated leave request status to %s for ID %d", string(status), id)
 	return uc.toLeaveRequestResponseDTO(updatedLeaveRequest), nil
-}
-
-// updateAbsentToLeaveStatus creates leave attendance records or updates absent ones for the approved leave period
-func (uc *LeaveRequestUseCase) updateAbsentToLeaveStatus(ctx context.Context, leaveRequest *domain.LeaveRequest) error {
-	// Loop through each day in the leave period
-	currentDate := leaveRequest.StartDate
-	for currentDate.Before(leaveRequest.EndDate) || currentDate.Equal(leaveRequest.EndDate) {
-		dateStr := currentDate.Format("2006-01-02")
-
-		// Check if there's an attendance record for this date
-		attendance, err := uc.attendanceRepo.GetByEmployeeAndDate(ctx, leaveRequest.EmployeeID, dateStr)
-		if err != nil {
-			if err == gorm.ErrRecordNotFound {
-				// No attendance record exists, create a new one with "leave" status
-				newAttendance := &domain.Attendance{
-					EmployeeID: leaveRequest.EmployeeID,
-					Date:       currentDate,
-					Status:     domain.Leave,
-					ClockIn:    nil,
-					ClockOut:   nil,
-					WorkHours:  nil,
-				}
-
-				err = uc.attendanceRepo.Create(ctx, newAttendance)
-				if err != nil {
-					return fmt.Errorf("failed to create leave attendance for employee %d on %s: %w", leaveRequest.EmployeeID, dateStr, err)
-				}
-				log.Printf("✅ Created new leave attendance record for employee %d on %s", leaveRequest.EmployeeID, dateStr)
-
-				currentDate = currentDate.AddDate(0, 0, 1)
-				continue
-			}
-			return fmt.Errorf("failed to check attendance for employee %d on %s: %w", leaveRequest.EmployeeID, dateStr, err)
-		}
-
-		// Attendance record exists - only update if it's "absent"
-		// Don't override if employee actually showed up (on_time, late, etc.)
-		if attendance.Status == domain.Absent {
-			attendance.Status = domain.Leave
-			err = uc.attendanceRepo.Update(ctx, attendance)
-			if err != nil {
-				return fmt.Errorf("failed to update attendance status for employee %d on %s: %w", leaveRequest.EmployeeID, dateStr, err)
-			}
-			log.Printf("✅ Updated attendance status from absent to leave for employee %d on %s", leaveRequest.EmployeeID, dateStr)
-		} else {
-			log.Printf("ℹ️ Employee %d already has attendance status '%s' on %s - not updating", leaveRequest.EmployeeID, attendance.Status, dateStr)
-		}
-
-		currentDate = currentDate.AddDate(0, 0, 1)
-	}
-
-	return nil
 }
 
 func (uc *LeaveRequestUseCase) Delete(ctx context.Context, id uint) error {

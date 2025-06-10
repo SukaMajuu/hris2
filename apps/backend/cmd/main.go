@@ -19,7 +19,6 @@ import (
 	leaveRequestUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/leave_request"
 	locationUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/location"
 	"github.com/SukaMajuu/hris/apps/backend/internal/usecase/subscription"
-	subscriptionUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/subscription"
 	workScheduleUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/work_schedule"
 	"github.com/SukaMajuu/hris/apps/backend/pkg/config"
 	"github.com/SukaMajuu/hris/apps/backend/pkg/database"
@@ -62,7 +61,7 @@ func main() {
 
 	jwtService := jwt.NewJWTService(cfg)
 
-	subscriptionUseCase := subscriptionUseCase.NewSubscriptionUseCase(
+	subscriptionUseCase := subscription.NewSubscriptionUseCase(
 		xenditRepo,
 		xenditClient,
 		employeeRepo,

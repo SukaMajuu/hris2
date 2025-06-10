@@ -565,7 +565,7 @@ func (uc *SubscriptionUseCase) ProcessMidtransWebhook(ctx context.Context, notif
 
 	// Update checkout session status based on Midtrans transaction status
 	switch transactionStatus {
-	case "capture", "settlement":
+	case statusCapture, statusSettlement:
 		// Payment successful
 		checkoutSession.Status = enums.CheckoutCompleted
 		checkoutSession.CompletedAt = func() *time.Time { t := time.Now(); return &t }()
@@ -580,12 +580,12 @@ func (uc *SubscriptionUseCase) ProcessMidtransWebhook(ctx context.Context, notif
 			return fmt.Errorf("failed to activate subscription: %w", err)
 		}
 
-	case "pending":
+	case statusPending:
 		// Payment pending (e.g., bank transfer waiting)
 		checkoutSession.Status = enums.CheckoutPending
 
-	case "deny", "cancel", "expire":
-		// Payment failed or cancelled
+	case statusDeny, statusCancel, statusExpire:
+		// Payment failed or canceled
 		checkoutSession.MarkAsFailed()
 
 	default:

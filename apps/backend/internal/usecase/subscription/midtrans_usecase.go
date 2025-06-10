@@ -14,6 +14,20 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+const (
+	// Subscription billing periods
+	billingMonthly = "Monthly"
+	billingYearly  = "Yearly"
+
+	// Midtrans transaction statuses
+	statusCapture    = "capture"
+	statusSettlement = "settlement"
+	statusPending    = "pending"
+	statusDeny       = "deny"
+	statusCancel     = "cancel"
+	statusExpire     = "expire"
+)
+
 type MidtransSubscriptionUseCase struct {
 	paymentRepo    interfaces.XenditRepository // Reuse existing repository
 	midtransClient interfaces.MidtransClient
@@ -75,9 +89,9 @@ func (uc *MidtransSubscriptionUseCase) InitiatePaidCheckout(ctx context.Context,
 		seatPlan.SubscriptionPlan.Name,
 		func() string {
 			if isMonthly {
-				return "Monthly"
+				return billingMonthly
 			}
-			return "Yearly"
+			return billingYearly
 		}(),
 		seatPlan.MinEmployees,
 		seatPlan.MaxEmployees)
@@ -157,7 +171,7 @@ func (uc *MidtransSubscriptionUseCase) ProcessNotification(ctx context.Context, 
 
 	// Update checkout session status based on Midtrans transaction status
 	switch notification.TransactionStatus {
-	case "capture", "settlement":
+	case statusCapture, statusSettlement:
 		// Payment successful
 		checkoutSession.Status = enums.CheckoutCompleted
 		checkoutSession.CompletedAt = func() *time.Time { t := time.Now(); return &t }()
@@ -167,12 +181,12 @@ func (uc *MidtransSubscriptionUseCase) ProcessNotification(ctx context.Context, 
 			return fmt.Errorf("failed to activate subscription: %w", err)
 		}
 
-	case "pending":
+	case statusPending:
 		// Payment pending (e.g., bank transfer waiting)
 		checkoutSession.Status = enums.CheckoutPending
 
-	case "deny", "cancel", "expire":
-		// Payment failed or cancelled
+	case statusDeny, statusCancel, statusExpire:
+		// Payment failed or canceled
 		checkoutSession.MarkAsFailed()
 
 	default:

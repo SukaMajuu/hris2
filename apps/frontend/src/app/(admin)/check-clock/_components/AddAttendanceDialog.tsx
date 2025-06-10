@@ -50,10 +50,7 @@ import { useCreateLeaveRequestForEmployeeMutation } from "@/api/mutations/leave-
 import { CreateLeaveRequestRequest, LeaveType } from "@/types/leave-request";
 
 const MapComponent = dynamic(
-	() =>
-		import("@/components/MapComponent").then((mod) => ({
-			default: mod.MapComponent,
-		})),
+	() => import("@/components/MapComponent").then((mod) => ({ default: mod.default })),
 	{
 		ssr: false,
 		loading: () => (

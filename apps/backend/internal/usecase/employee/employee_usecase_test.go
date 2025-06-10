@@ -293,8 +293,21 @@ func TestEmployeeUseCase_Create(t *testing.T) {
 				// Mock current employee count
 				mockEmployeeRepo.On("List", ctx, mock.Anything, mock.Anything).Return([]*domain.Employee{}, int64(0), nil).Once()
 
-				// Mock subscription not found (use default limits)
-				mockXenditRepo.On("GetSubscriptionByAdminUserID", ctx, creatorEmployeeID).Return(nil, errors.New("subscription not found")).Once()
+				// Mock subscription with proper structure to avoid nil pointer panic
+				mockSubscription := &domain.Subscription{
+					ID: 1,
+					SeatPlan: domain.SeatPlan{
+						ID:           1,
+						MaxEmployees: 100,
+						MinEmployees: 1,
+					},
+					SubscriptionPlan: domain.SubscriptionPlan{
+						ID:   1,
+						Name: "Basic Plan",
+					},
+					CurrentEmployeeCount: 0,
+				}
+				mockXenditRepo.On("GetSubscriptionByAdminUserID", ctx, creatorEmployeeID).Return(mockSubscription, nil).Once()
 			}
 
 			mockAuthRepo.On("RegisterEmployeeUser", ctx, mock.AnythingOfType("*domain.User"), mock.AnythingOfType("*domain.Employee")).

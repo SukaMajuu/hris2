@@ -20,6 +20,9 @@ func (m *XenditRepository) CreateCheckoutSession(ctx context.Context, session *d
 
 func (m *XenditRepository) GetCheckoutSession(ctx context.Context, sessionID string) (*domain.CheckoutSession, error) {
 	args := m.Called(ctx, sessionID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
 	return args.Get(0).(*domain.CheckoutSession), args.Error(1)
 }
 
@@ -36,11 +39,17 @@ func (m *XenditRepository) CreatePaymentTransaction(ctx context.Context, transac
 
 func (m *XenditRepository) GetPaymentTransaction(ctx context.Context, transactionID uint) (*domain.PaymentTransaction, error) {
 	args := m.Called(ctx, transactionID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
 	return args.Get(0).(*domain.PaymentTransaction), args.Error(1)
 }
 
 func (m *XenditRepository) GetPaymentTransactionByXenditID(ctx context.Context, xenditInvoiceID string) (*domain.PaymentTransaction, error) {
 	args := m.Called(ctx, xenditInvoiceID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
 	return args.Get(0).(*domain.PaymentTransaction), args.Error(1)
 }
 
@@ -57,6 +66,9 @@ func (m *XenditRepository) CreateCustomerBillingInfo(ctx context.Context, billin
 
 func (m *XenditRepository) GetCustomerBillingInfo(ctx context.Context, subscriptionID uint) (*domain.CustomerBillingInfo, error) {
 	args := m.Called(ctx, subscriptionID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
 	return args.Get(0).(*domain.CustomerBillingInfo), args.Error(1)
 }
 
@@ -68,6 +80,9 @@ func (m *XenditRepository) UpdateCustomerBillingInfo(ctx context.Context, billin
 // Subscription operations
 func (m *XenditRepository) GetSubscriptionByAdminUserID(ctx context.Context, adminUserID uint) (*domain.Subscription, error) {
 	args := m.Called(ctx, adminUserID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
 	return args.Get(0).(*domain.Subscription), args.Error(1)
 }
 
@@ -94,6 +109,9 @@ func (m *XenditRepository) GetSeatPlansBySubscriptionPlan(ctx context.Context, s
 
 func (m *XenditRepository) GetSeatPlan(ctx context.Context, seatPlanID uint) (*domain.SeatPlan, error) {
 	args := m.Called(ctx, seatPlanID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
 	return args.Get(0).(*domain.SeatPlan), args.Error(1)
 }
 
@@ -110,5 +128,8 @@ func (m *XenditRepository) UpdateTrialActivity(ctx context.Context, activity *do
 
 func (m *XenditRepository) GetTrialActivityBySubscription(ctx context.Context, subscriptionID uint) (*domain.TrialActivity, error) {
 	args := m.Called(ctx, subscriptionID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
 	return args.Get(0).(*domain.TrialActivity), args.Error(1)
 }

@@ -65,55 +65,104 @@ export default function LocationPage() {
 				cell: ({ row }) => {
 					const currentPage = serverPagination.currentPage;
 					const pageSize = serverPagination.pageSize;
-					return (currentPage - 1) * pageSize + row.index + 1;
+					return (
+						<div className="flex items-center justify-center text-center">
+							{(currentPage - 1) * pageSize + row.index + 1}
+						</div>
+					);
 				},
-				meta: { className: "max-w-[80px] w-[80px]" },
+				meta: { className: "w-[50px] md:w-[80px] text-center" },
+				enableSorting: false,
+				enableColumnFilter: false,
 			},
 			{
 				header: "Location Name",
 				accessorKey: "name",
+				cell: ({ row }) => (
+					<div className="flex items-center justify-center">
+						<div className="max-w-[120px] truncate text-center text-xs md:max-w-[150px] md:text-sm">
+							{row.original.name}
+						</div>
+					</div>
+				),
+				meta: { className: "w-[120px] md:w-[150px] text-center" },
 			},
 			{
 				header: "Address Details",
 				accessorKey: "address_detail",
+				cell: ({ row }) => (
+					<div className="flex items-center justify-center">
+						<div className="max-w-[150px] truncate text-center text-xs md:max-w-[200px] md:text-sm">
+							{row.original.address_detail || "-"}
+						</div>
+					</div>
+				),
+				meta: { className: "w-[150px] md:w-[200px] text-center" },
 			},
 			{
 				header: "Latitude",
 				accessorKey: "latitude",
+				cell: ({ row }) => (
+					<div className="flex items-center justify-center">
+						<div className="max-w-[80px] truncate text-center text-xs md:max-w-[100px] md:text-sm">
+							{row.original.latitude?.toFixed(6) || "-"}
+						</div>
+					</div>
+				),
+				meta: { className: "w-[80px] md:w-[100px] text-center" },
 			},
 			{
 				header: "Longitude",
 				accessorKey: "longitude",
+				cell: ({ row }) => (
+					<div className="flex items-center justify-center">
+						<div className="max-w-[80px] truncate text-center text-xs md:max-w-[100px] md:text-sm">
+							{row.original.longitude?.toFixed(6) || "-"}
+						</div>
+					</div>
+				),
+				meta: { className: "w-[80px] md:w-[100px] text-center" },
 			},
 			{
 				header: "Radius (m)",
 				accessorKey: "radius_m",
+				cell: ({ row }) => (
+					<div className="flex items-center justify-center">
+						<div className="max-w-[70px] truncate text-center text-xs md:max-w-[80px] md:text-sm">
+							{row.original.radius_m || "-"}
+						</div>
+					</div>
+				),
+				meta: { className: "w-[70px] md:w-[80px] text-center" },
 			},
 			{
-				header: "Actions",
+				header: "Action",
 				id: "actions",
 				cell: ({ row }) => (
-					<div className="flex justify-center gap-2">
+					<div className="flex flex-col justify-center gap-1 md:flex-row">
 						<Button
 							size="sm"
-							variant="outline"
-							className="h-9 px-3 bg-blue-500 text-white hover:bg-blue-600 border-none hover:cursor-pointer"
+							variant="default"
+							className="h-7 w-full cursor-pointer bg-[#6B9AC4] px-1 text-xs hover:cursor-pointer hover:bg-[#5A89B3] md:h-8 md:w-auto md:px-2"
 							onClick={() => handleOpenEditDialog(row.original)}
 						>
-							<Edit className="h-4 w-4 mr-1" />
-							Edit
+							<Edit className="mr-0 h-3 w-3 md:mr-1" />
+							<span className="hidden md:inline">Edit</span>
 						</Button>
 						<Button
 							size="sm"
 							variant="destructive"
-							className="h-9 px-3 hover:cursor-pointer"
+							className="h-7 w-full cursor-pointer px-1 text-xs hover:cursor-pointer hover:bg-red-800 md:h-8 md:w-auto md:px-2"
 							onClick={() => handleOpenDeleteDialog(row.original)}
 						>
-							<Trash2 className="h-4 w-4 mr-1" />
-							Delete
+							<Trash2 className="mr-0 h-3 w-3 md:mr-1" />
+							<span className="hidden md:inline">Delete</span>
 						</Button>
 					</div>
 				),
+				meta: { className: "w-[120px] md:w-[180px] text-center" },
+				enableSorting: false,
+				enableColumnFilter: false,
 			},
 		],
 		[
@@ -122,8 +171,8 @@ export default function LocationPage() {
 			serverPagination.currentPage,
 			serverPagination.pageSize,
 		]
-	); 
-	
+	);
+
 	const table = useReactTable<typeof locations[number]>({
 		data: locations,
 		columns,
@@ -208,8 +257,8 @@ export default function LocationPage() {
 									isFilterVisible ? "default" : "outline"
 								}
 								className={`gap-2 ${isFilterVisible
-										? "bg-[#6B9AC4] hover:bg-[#5A89B3]"
-										: "hover:bg-[#5A89B3] hover:text-white"
+									? "bg-[#6B9AC4] hover:bg-[#5A89B3]"
+									: "hover:bg-[#5A89B3] hover:text-white"
 									}`}
 								onClick={handleToggleFilterVisibility}
 							>

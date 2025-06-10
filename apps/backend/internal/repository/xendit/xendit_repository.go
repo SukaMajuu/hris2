@@ -2,17 +2,30 @@ package xendit
 
 import (
 	"context"
+	"time"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
+	"github.com/SukaMajuu/hris/apps/backend/domain/enums"
 	"github.com/SukaMajuu/hris/apps/backend/domain/interfaces"
 	"gorm.io/gorm"
 )
 
+// Repository implements PaymentRepository interface for payment and subscription operations
+// Note: Package name is "xendit" for historical reasons, but this repository is now payment gateway agnostic
 type Repository struct {
 	db *gorm.DB
 }
 
-func NewXenditRepository(db *gorm.DB) interfaces.XenditRepository {
+// NewXenditRepository creates a new payment repository instance
+// Deprecated: Use NewPaymentRepository instead
+func NewXenditRepository(db *gorm.DB) interfaces.PaymentRepository {
+	return &Repository{
+		db: db,
+	}
+}
+
+// NewPaymentRepository creates a new payment repository instance
+func NewPaymentRepository(db *gorm.DB) interfaces.PaymentRepository {
 	return &Repository{
 		db: db,
 	}
@@ -68,7 +81,7 @@ func (r *Repository) GetPaymentTransaction(ctx context.Context, transactionID ui
 	return &transaction, nil
 }
 
-func (r *Repository) GetPaymentTransactionByXenditID(ctx context.Context, xenditInvoiceID string) (*domain.PaymentTransaction, error) {
+func (r *Repository) GetPaymentTransactionByOrderID(ctx context.Context, orderID string) (*domain.PaymentTransaction, error) {
 	var transaction domain.PaymentTransaction
 	if err := r.db.WithContext(ctx).
 		Preload("Subscription").
@@ -77,7 +90,7 @@ func (r *Repository) GetPaymentTransactionByXenditID(ctx context.Context, xendit
 		Preload("Subscription.SubscriptionPlan.PlanFeatures").
 		Preload("Subscription.SubscriptionPlan.PlanFeatures.SubscriptionFeature").
 		Preload("Subscription.SeatPlan").
-		Where("xendit_invoice_id = ?", xenditInvoiceID).
+		Where("order_id = ?", orderID).
 		First(&transaction).Error; err != nil {
 		return nil, err
 	}
@@ -194,4 +207,55 @@ func (r *Repository) GetTrialActivityBySubscription(ctx context.Context, subscri
 		return nil, err
 	}
 	return &activity, nil
+}
+
+// Additional methods for automation and subscription management
+
+func (r *Repository) GetSubscriptionsByStatus(ctx context.Context, status enums.SubscriptionStatus) ([]domain.Subscription, error) {
+	var subscriptions []domain.Subscription
+	if err := r.db.WithContext(ctx).
+		Preload("AdminUser").
+		Preload("SubscriptionPlan").
+		Preload("SubscriptionPlan.PlanFeatures").
+		Preload("SubscriptionPlan.PlanFeatures.SubscriptionFeature").
+		Preload("SeatPlan").
+		Where("status = ?", status).
+		Find(&subscriptions).Error; err != nil {
+		return nil, err
+	}
+	return subscriptions, nil
+}
+
+func (r *Repository) GetSubscriptionsDueForRenewal(ctx context.Context, date time.Time) ([]domain.Subscription, error) {
+	var subscriptions []domain.Subscription
+	if err := r.db.WithContext(ctx).
+		Preload("AdminUser").
+		Preload("SubscriptionPlan").
+		Preload("SubscriptionPlan.PlanFeatures").
+		Preload("SubscriptionPlan.PlanFeatures.SubscriptionFeature").
+		Preload("SeatPlan").
+		Where("next_billing_date <= ? AND status = ? AND is_auto_renew = ?",
+			date, enums.StatusActive, true).
+		Find(&subscriptions).Error; err != nil {
+		return nil, err
+	}
+	return subscriptions, nil
+}
+
+func (r *Repository) CreateSubscriptionUsage(ctx context.Context, usage *domain.SubscriptionUsage) error {
+	if err := r.db.WithContext(ctx).Create(usage).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *Repository) CountEmployeesByManagerID(ctx context.Context, managerID uint) (int, error) {
+	var count int64
+	if err := r.db.WithContext(ctx).
+		Model(&domain.Employee{}).
+		Where("manager_id = ? AND employment_status = ?", managerID, true).
+		Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return int(count), nil
 }

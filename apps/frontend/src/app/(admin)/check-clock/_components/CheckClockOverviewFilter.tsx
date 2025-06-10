@@ -188,9 +188,8 @@ export function CheckClockOverviewFilter({
 										<Clock className="h-4 w-4 text-red-500" />
 										<span>Late</span>
 									</div>
-								</SelectItem>
-								<SelectItem
-									value="early leave"
+								</SelectItem>								<SelectItem
+									value="early_leave"
 									className="flex items-center gap-2"
 								>
 									<div className="flex items-center gap-2">

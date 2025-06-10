@@ -20,6 +20,12 @@ function PaymentFailedContent() {
 	const statusCode = searchParams.get("status_code");
 	const statusMessage = searchParams.get("status_message");
 
+	// Get payment parameters for retry functionality
+	const planId = searchParams.get("planId");
+	const seatPlanId = searchParams.get("seatPlanId");
+	const isMonthly = searchParams.get("isMonthly");
+	const retryAmount = searchParams.get("amount") || amount; // Use amount from payment params or gross_amount
+
 	// Common failure reasons
 	const getFailureReason = (code: string | null) => {
 		const reasons: { [key: string]: string } = {
@@ -33,6 +39,14 @@ function PaymentFailedContent() {
 			"408": "Transaction cancelled by user",
 		};
 		return reasons[code || ""] || "Payment processing failed";
+	};
+
+	// Construct retry URL if we have the necessary parameters
+	const getRetryUrl = () => {
+		if (planId && seatPlanId && retryAmount) {
+			return `/payment/process?planId=${planId}&seatPlanId=${seatPlanId}&isMonthly=${isMonthly}&amount=${retryAmount}`;
+		}
+		return "/subscription/checkout";
 	};
 
 	return (
@@ -149,7 +163,7 @@ function PaymentFailedContent() {
 							className="w-full bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white text-base py-3"
 							asChild
 						>
-							<Link href="/subscription/checkout">
+							<Link href={getRetryUrl()}>
 								<RefreshCw className="h-4 w-4 mr-2" />
 								Try Again
 							</Link>

@@ -3,6 +3,7 @@ package leave_request
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
 	"github.com/SukaMajuu/hris/apps/backend/domain/interfaces"
@@ -122,4 +123,18 @@ func (r *PostgresRepository) UpdateStatus(ctx context.Context, id uint, status d
 		return domain.ErrLeaveRequestNotFound
 	}
 	return nil
+}
+
+func (r *PostgresRepository) HasApprovedLeaveForDate(ctx context.Context, employeeID uint, date time.Time) (bool, error) {
+	var count int64
+
+	if err := r.db.WithContext(ctx).
+		Model(&domain.LeaveRequest{}).
+		Where("employee_id = ? AND status = ? AND start_date <= ? AND end_date >= ?",
+			employeeID, domain.LeaveStatusApproved, date, date).
+		Count(&count).Error; err != nil {
+		return false, fmt.Errorf("failed to check approved leave for employee %d: %w", employeeID, err)
+	}
+
+	return count > 0, nil
 }

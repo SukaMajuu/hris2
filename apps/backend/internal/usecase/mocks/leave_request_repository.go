@@ -2,6 +2,7 @@ package mocks
 
 import (
 	"context"
+	"time"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
 	"github.com/stretchr/testify/mock"
@@ -67,4 +68,9 @@ func (m *LeaveRequestRepository) List(ctx context.Context, filters map[string]in
 func (m *LeaveRequestRepository) UpdateStatus(ctx context.Context, id uint, status domain.LeaveStatus, adminNote *string) error {
 	args := m.Called(ctx, id, status, adminNote)
 	return args.Error(0)
+}
+
+func (m *LeaveRequestRepository) HasApprovedLeaveForDate(ctx context.Context, employeeID uint, date time.Time) (bool, error) {
+	args := m.Called(ctx, employeeID, date)
+	return args.Get(0).(bool), args.Error(1)
 }

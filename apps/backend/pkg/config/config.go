@@ -13,6 +13,8 @@ type Config struct {
 	JWT      JWTConfig
 	Xendit   XenditConfig
 	Midtrans MidtransConfig
+	Email    EmailConfig
+	App      AppConfig
 }
 
 type DatabaseConfig struct {
@@ -28,7 +30,7 @@ type DatabaseConfig struct {
 type SupabaseConfig struct {
 	URL        string
 	Key        string
-	ServiceKey string // Service role key for admin operations
+	ServiceKey string
 }
 
 type ServerConfig struct {
@@ -57,6 +59,23 @@ type MidtransConfig struct {
 	Environment     string
 	BaseURL         string
 	NotificationURL string
+}
+
+type EmailConfig struct {
+	// Resend API configuration (preferred)
+	ResendAPIKey string `json:"resend_api_key"`
+	FromEmail    string `json:"from_email"`
+	FromName     string `json:"from_name"`
+
+	// Legacy SMTP configuration (fallback)
+	SMTPHost     string `json:"smtp_host"`
+	SMTPPort     string `json:"smtp_port"`
+	SMTPUsername string `json:"smtp_username"`
+	SMTPPassword string `json:"smtp_password"`
+}
+
+type AppConfig struct {
+	URL string
 }
 
 func Load() (*Config, error) {
@@ -100,6 +119,18 @@ func Load() (*Config, error) {
 			Environment:     getEnv("MIDTRANS_ENVIRONMENT", "sandbox"),
 			BaseURL:         getEnv("MIDTRANS_BASE_URL", "https://app.sandbox.midtrans.com/snap/v1"),
 			NotificationURL: getEnv("MIDTRANS_NOTIFICATION_URL", ""),
+		},
+		Email: EmailConfig{
+			ResendAPIKey: getEnv("EMAIL_RESEND_API_KEY", ""),
+			FromEmail:    getEnv("EMAIL_FROM_EMAIL", "onboarding@resend.dev"),
+			FromName:     getEnv("EMAIL_FROM_NAME", "HRIS System"),
+			SMTPHost:     getEnv("EMAIL_SMTP_HOST", ""),
+			SMTPPort:     getEnv("EMAIL_SMTP_PORT", ""),
+			SMTPUsername: getEnv("EMAIL_SMTP_USERNAME", ""),
+			SMTPPassword: getEnv("EMAIL_SMTP_PASSWORD", ""),
+		},
+		App: AppConfig{
+			URL: getEnv("APP_URL", "https://hris.sukajaya.id"),
 		},
 	}, nil
 }

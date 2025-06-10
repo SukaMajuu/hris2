@@ -5,7 +5,7 @@ import { useCurrentUserProfileQuery } from "@/api/queries/employee.queries";
 
 export function useCheckClock() {
 	const [page, setPage] = useState(1);
-	const [pageSize, setPageSize] = useState(10);
+	const [pageSize, setPageSize] = useState(1000); // Increased default page size
 
 	// Get current user profile to get employee ID and work schedule
 	const {
@@ -13,12 +13,12 @@ export function useCheckClock() {
 		isLoading: isLoadingProfile,
 	} = useCurrentUserProfileQuery();
 
-	// API calls - fetch attendances for current employee only
+	// API calls - fetch attendances for current employee only with pagination
 	const {
 		data: attendances,
 		isLoading: isLoadingAttendances,
 		error: attendancesError,
-	} = useAttendancesByEmployee(currentEmployee?.id || 0);
+	} = useAttendancesByEmployee(currentEmployee?.id || 0, page, pageSize);
 
 	// Mutations
 	const clockInMutation = useClockIn();
@@ -26,7 +26,6 @@ export function useCheckClock() {
 
 	const totalRecords = attendances?.length || 0;
 	const totalPages = Math.ceil(totalRecords / pageSize);
-
 	// Ensure we always return an array
 	const checkClockData = Array.isArray(attendances) ? attendances : [];
 

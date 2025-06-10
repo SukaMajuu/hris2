@@ -136,3 +136,8 @@ func (m *AuthRepository) UpdateUser(ctx context.Context, user *domain.User) erro
 	args := m.Called(ctx, user)
 	return args.Error(0)
 }
+
+func (m *AuthRepository) UpdateUserPassword(ctx context.Context, userID uint, accessToken, oldPassword, newPassword string) error {
+	args := m.Called(ctx, userID, accessToken, oldPassword, newPassword)
+	return args.Error(0)
+}

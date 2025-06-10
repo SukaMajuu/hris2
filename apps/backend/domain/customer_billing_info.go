@@ -5,8 +5,8 @@ import (
 )
 
 type CustomerBillingInfo struct {
-	ID             uint   `gorm:"primaryKey"`
-	SubscriptionID uint   `gorm:"not null;unique"`
+	ID             uint         `gorm:"primaryKey"`
+	SubscriptionID uint         `gorm:"not null;unique"`
 	Subscription   Subscription `gorm:"foreignKey:SubscriptionID"`
 
 	CompanyName    string  `gorm:"type:varchar(255);not null"`
@@ -23,7 +23,7 @@ type CustomerBillingInfo struct {
 	BankAccountNumber *string `gorm:"type:varchar(100)"`
 	BankAccountHolder *string `gorm:"type:varchar(255)"`
 
-	XenditCustomerID *string `gorm:"type:varchar(255)"`
+	PaymentCustomerID *string `gorm:"type:varchar(255)"`
 
 	CreatedAt time.Time `gorm:"autoCreateTime"`
 	UpdatedAt time.Time `gorm:"autoUpdateTime"`

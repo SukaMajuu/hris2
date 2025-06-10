@@ -29,7 +29,7 @@ const (
 )
 
 type MidtransSubscriptionUseCase struct {
-	paymentRepo    interfaces.XenditRepository // Reuse existing repository
+	paymentRepo    interfaces.PaymentRepository
 	midtransClient interfaces.MidtransClient
 	employeeRepo   interfaces.EmployeeRepository
 	authRepo       interfaces.AuthRepository
@@ -37,7 +37,7 @@ type MidtransSubscriptionUseCase struct {
 }
 
 func NewMidtransSubscriptionUseCase(
-	paymentRepo interfaces.XenditRepository,
+	paymentRepo interfaces.PaymentRepository,
 	midtransClient interfaces.MidtransClient,
 	employeeRepo interfaces.EmployeeRepository,
 	authRepo interfaces.AuthRepository,
@@ -138,9 +138,9 @@ func (uc *MidtransSubscriptionUseCase) InitiatePaidCheckout(ctx context.Context,
 	}
 
 	// Update checkout session with Midtrans info
-	checkoutSession.XenditInvoiceID = &snapResp.Token
-	checkoutSession.XenditInvoiceURL = &snapResp.RedirectURL
-	checkoutSession.XenditExternalID = &orderID
+	checkoutSession.PaymentToken = &snapResp.Token
+	checkoutSession.PaymentURL = &snapResp.RedirectURL
+	checkoutSession.PaymentReference = &orderID
 	checkoutSession.Status = enums.CheckoutPending
 
 	if err := uc.paymentRepo.UpdateCheckoutSession(ctx, checkoutSession); err != nil {

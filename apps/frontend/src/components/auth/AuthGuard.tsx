@@ -16,6 +16,7 @@ const PUBLIC_PAGES = [
 	"/check-email",
 	"/link-expired",
 	"/auth/callback",
+	"/welcome", // Welcome page for onboarding after registration
 ];
 
 interface AuthGuardProps {
@@ -55,6 +56,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
 			isAuthenticated &&
 			isPublicPage &&
 			pathname !== "/" &&
+			pathname !== "/welcome" &&
 			!isCallbackPage
 		) {
 			router.replace("/dashboard");
@@ -87,6 +89,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
 		isAuthenticated &&
 		isPublicPage &&
 		pathname !== "/" &&
+		pathname !== "/welcome" &&
 		!isCallbackPage &&
 		!(isPasswordRecovery && pathname === "/reset-password")
 	) {

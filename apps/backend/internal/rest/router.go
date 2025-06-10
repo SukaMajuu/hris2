@@ -51,6 +51,7 @@ func NewRouter(
 	}
 }
 
+//nolint:funlen
 func (r *Router) Setup() *gin.Engine {
 	router := gin.Default()
 	router.Use(cors.New(cors.Config{

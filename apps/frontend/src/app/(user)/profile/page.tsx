@@ -131,28 +131,31 @@ export default function ProfilePage() {
   const fullName = [firstName, lastName].filter(Boolean).join(' ');
 
   return (
-    <div className='min-h-screen space-y-6 bg-slate-50 p-4 dark:bg-slate-950'>
-      <h1 className='text-2xl font-semibold text-slate-800 dark:text-slate-100'>My Profile</h1>
+    <div className='min-h-screen space-y-4 bg-slate-50 p-3 md:space-y-6 md:p-4 dark:bg-slate-950'>
+      <h1 className='text-xl font-semibold text-slate-800 md:text-2xl dark:text-slate-100'>
+        My Profile
+      </h1>
 
       {/* Profile Overview Card */}
       <Card className='overflow-hidden border border-slate-100 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900'>
-        <CardHeader>
-          <CardTitle className='text-lg font-semibold text-slate-800 dark:text-slate-100'>
+        <CardHeader className='pb-4'>
+          <CardTitle className='text-base font-semibold text-slate-800 md:text-lg dark:text-slate-100'>
             Profile Overview
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className='flex flex-col items-start gap-6 md:flex-row md:items-center'>
+        <CardContent className='pb-6'>
+          <div className='flex flex-col gap-4 md:flex-row md:items-center md:gap-6'>
+            {/* Profile Image */}
             <div className='group relative mx-auto flex-shrink-0 cursor-pointer md:mx-0'>
               <Image
                 src={profileImage || '/logo.png'}
                 alt='Profile Photo'
-                width={120}
-                height={120}
-                className='h-[120px] w-[120px] rounded-full border-4 border-slate-200 object-cover shadow-md dark:border-slate-700'
+                width={100}
+                height={100}
+                className='h-[80px] w-[80px] rounded-full border-4 border-slate-200 object-cover shadow-md md:h-[120px] md:w-[120px] dark:border-slate-700'
               />
               <label className='bg-opacity-50 absolute inset-0 flex cursor-pointer items-center justify-center rounded-full bg-black opacity-0 transition-opacity duration-200 group-hover:opacity-100'>
-                <Pencil className='h-6 w-6 text-white' />
+                <Pencil className='h-4 w-4 text-white md:h-6 md:w-6' />
                 <Input
                   type='file'
                   accept='image/*'
@@ -161,60 +164,70 @@ export default function ProfilePage() {
                 />
               </label>
             </div>
-            <div className='flex-1'>
+
+            {/* Profile Info */}
+            <div className='flex-1 space-y-3'>
               {/* Name item */}
-              <div className='flex items-center justify-between border-b border-slate-200 py-3 dark:border-slate-700'>
+              <div className='flex flex-col gap-1 border-b border-slate-200 pb-3 sm:flex-row sm:items-center sm:justify-between dark:border-slate-700'>
                 <Label
                   htmlFor='profileName'
-                  className='text-sm font-semibold text-slate-600 dark:text-slate-400'
+                  className='text-xs font-semibold text-slate-600 sm:text-sm dark:text-slate-400'
                 >
                   Name
                 </Label>
-                <div className='text-right text-2xl font-bold text-slate-800 dark:text-slate-100'>
+                <div className='text-lg font-bold text-slate-800 sm:text-right sm:text-xl md:text-2xl dark:text-slate-100'>
                   {fullName}
                 </div>
               </div>
+
               {/* Email item */}
-              <div className='flex items-center justify-between border-b border-slate-200 py-3 dark:border-slate-700'>
+              <div className='flex flex-col gap-1 border-b border-slate-200 pb-3 sm:flex-row sm:items-center sm:justify-between dark:border-slate-700'>
                 <Label
                   htmlFor='profileEmail'
-                  className='text-sm font-semibold text-slate-600 dark:text-slate-400'
+                  className='text-xs font-semibold text-slate-600 sm:text-sm dark:text-slate-400'
                 >
                   Email
                 </Label>
-                <div className='text-right text-slate-700 dark:text-slate-300'>{email}</div>
+                <div className='text-sm text-slate-700 sm:text-right sm:text-base dark:text-slate-300'>
+                  {email}
+                </div>
               </div>
+
               {/* Employee Code item */}
-              <div className='flex items-center justify-between border-b border-slate-200 py-3 dark:border-slate-700'>
+              <div className='flex flex-col gap-1 border-b border-slate-200 pb-3 sm:flex-row sm:items-center sm:justify-between dark:border-slate-700'>
                 <Label
                   htmlFor='profileEmployeeCode'
-                  className='text-sm font-semibold text-slate-600 dark:text-slate-400'
+                  className='text-xs font-semibold text-slate-600 sm:text-sm dark:text-slate-400'
                 >
                   Employee Code
                 </Label>
-                <div className='text-right text-slate-700 dark:text-slate-300'>{employeeCode}</div>
+                <div className='text-sm text-slate-700 sm:text-right sm:text-base dark:text-slate-300'>
+                  {employeeCode}
+                </div>
               </div>
+
               {/* Branch item */}
-              <div className='flex items-center justify-between border-b border-slate-200 py-3 dark:border-slate-700'>
+              <div className='flex flex-col gap-1 border-b border-slate-200 pb-3 sm:flex-row sm:items-center sm:justify-between dark:border-slate-700'>
                 <Label
                   htmlFor='profileBranch'
-                  className='text-sm font-semibold text-slate-600 dark:text-slate-400'
+                  className='text-xs font-semibold text-slate-600 sm:text-sm dark:text-slate-400'
                 >
                   Branch
                 </Label>
-                <div className='text-right text-slate-700 dark:text-slate-300'>
+                <div className='text-sm text-slate-700 sm:text-right sm:text-base dark:text-slate-300'>
                   {employee?.branch || 'Not assigned'}
                 </div>
               </div>
+
               {/* Position item */}
-              <div className='flex items-center justify-between py-3'>
+              <div className='flex flex-col gap-1 pb-0 sm:flex-row sm:items-center sm:justify-between'>
                 <Label
                   htmlFor='profilePosition'
-                  className='text-sm font-semibold text-slate-600 dark:text-slate-400'
+                  className='text-xs font-semibold text-slate-600 sm:text-sm dark:text-slate-400'
                 >
                   Position
                 </Label>
-                <div className='text-right text-slate-700 dark:text-slate-300'>
+                <div className='text-sm text-slate-700 sm:text-right sm:text-base dark:text-slate-300'>
                   {employee?.position_name || 'Not assigned'}
                 </div>
               </div>
@@ -224,25 +237,25 @@ export default function ProfilePage() {
       </Card>
 
       {/* Personal and Bank Information Wrapper */}
-      <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
+      <div className='grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6'>
         {/* Personal Information Card */}
         <Card className='border border-slate-100 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900'>
-          <CardHeader className='flex flex-row items-center justify-between'>
-            <CardTitle className='text-lg font-semibold text-slate-800 dark:text-slate-100'>
+          <CardHeader className='flex flex-row items-center justify-between pb-4'>
+            <CardTitle className='text-base font-semibold text-slate-800 md:text-lg dark:text-slate-100'>
               Personal Information
             </CardTitle>
             <Button
               variant='ghost'
               size='sm'
               onClick={() => (editPersonal ? handleCancelEdit() : setEditPersonal(true))}
-              className='cursor-pointer rounded-md px-4 py-2 text-blue-600 transition-colors duration-150 hover:bg-slate-100 hover:text-blue-700 dark:text-blue-400 dark:hover:bg-slate-700/50 dark:hover:text-blue-300'
+              className='cursor-pointer rounded-md px-3 py-2 text-xs text-blue-600 transition-colors duration-150 hover:bg-slate-100 hover:text-blue-700 md:px-4 md:text-sm dark:text-blue-400 dark:hover:bg-slate-700/50 dark:hover:text-blue-300'
             >
-              <Pencil className='mr-2 h-4 w-4' />
+              <Pencil className='mr-1 h-3 w-3 md:mr-2 md:h-4 md:w-4' />
               {editPersonal ? 'Cancel' : 'Edit'}
             </Button>
           </CardHeader>
           <CardContent className='space-y-4'>
-            <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
+            <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6'>
               <div>
                 <Label htmlFor='firstName' className='text-slate-600 dark:text-slate-400'>
                   First Name
@@ -428,13 +441,8 @@ export default function ProfilePage() {
                       : 'border-slate-200 bg-slate-100 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400'
                   }`}
                 />
-                {/* {editPersonal && (
-                  <p className='mt-1 text-xs text-slate-500 dark:text-slate-400'>
-                    Employee must be valid
-                  </p>
-                )} */}
               </div>
-              <div className='md:col-span-2'>
+              <div className='sm:col-span-2'>
                 <Label htmlFor='lastEducation' className='text-slate-600 dark:text-slate-400'>
                   Last Education
                 </Label>
@@ -497,22 +505,22 @@ export default function ProfilePage() {
 
         {/* Bank Account Card */}
         <Card className='border border-slate-100 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900'>
-          <CardHeader className='flex flex-row items-center justify-between'>
-            <CardTitle className='text-lg font-semibold text-slate-800 dark:text-slate-100'>
+          <CardHeader className='flex flex-row items-center justify-between pb-4'>
+            <CardTitle className='text-base font-semibold text-slate-800 md:text-lg dark:text-slate-100'>
               Bank Account
             </CardTitle>
             <Button
               variant='ghost'
               size='sm'
               onClick={() => setEditBank(!editBank)}
-              className='cursor-pointer rounded-md px-4 py-2 text-blue-600 transition-colors duration-150 hover:bg-slate-100 hover:text-blue-700 dark:text-blue-400 dark:hover:bg-slate-700/50 dark:hover:text-blue-300'
+              className='cursor-pointer rounded-md px-3 py-2 text-xs text-blue-600 transition-colors duration-150 hover:bg-slate-100 hover:text-blue-700 md:px-4 md:text-sm dark:text-blue-400 dark:hover:bg-slate-700/50 dark:hover:text-blue-300'
             >
-              <Pencil className='mr-2 h-4 w-4' />
+              <Pencil className='mr-1 h-3 w-3 md:mr-2 md:h-4 md:w-4' />
               {editBank ? 'Cancel' : 'Edit'}
             </Button>
           </CardHeader>
-          <CardContent className='space-y-4 p-6'>
-            <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
+          <CardContent className='space-y-4'>
+            <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
               <div>
                 <Label htmlFor='bankName' className='text-slate-600 dark:text-slate-400'>
                   Bank Name
@@ -545,7 +553,7 @@ export default function ProfilePage() {
                   }`}
                 />
               </div>
-              <div className='md:col-span-2'>
+              <div className='sm:col-span-2'>
                 <Label htmlFor='bankAccountNumber' className='text-slate-600 dark:text-slate-400'>
                   Account Number
                 </Label>
@@ -584,12 +592,12 @@ export default function ProfilePage() {
 
       {/* Change Password Card */}
       <Card className='border border-slate-100 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900'>
-        <CardHeader>
-          <CardTitle className='text-lg font-semibold text-slate-800 dark:text-slate-100'>
+        <CardHeader className='pb-4'>
+          <CardTitle className='text-base font-semibold text-slate-800 md:text-lg dark:text-slate-100'>
             Change Password
           </CardTitle>
         </CardHeader>
-        <CardContent className='space-y-4 p-6'>
+        <CardContent className='space-y-4'>
           <div>
             <Label htmlFor='currentPassword' className='text-slate-600 dark:text-slate-400'>
               Current Password
@@ -624,10 +632,10 @@ export default function ProfilePage() {
             <div className='relative'>
               <Input
                 id='newPassword'
-                type={showNewPassword ? 'text' : 'password'}
+                type='password'
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                className={`mt-1 bg-slate-50 pr-16 dark:bg-slate-800 ${
+                className={`mt-1 bg-slate-50 pr-10 dark:bg-slate-800 ${
                   passwordValidation.isValid === false
                     ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
                     : passwordValidation.isValid === true
@@ -636,9 +644,9 @@ export default function ProfilePage() {
                 }`}
                 placeholder='Enter your new password'
               />
-              {/* Validation icon - positioned left of the eye icon */}
+              {/* Validation icon only */}
               {newPassword && (
-                <div className='absolute inset-y-0 right-8 flex items-center pt-1'>
+                <div className='absolute inset-y-0 right-3 flex items-center pt-1'>
                   {passwordValidation.isValid === true ? (
                     <CheckCircle className='h-4 w-4 text-green-500' />
                   ) : passwordValidation.isValid === false ? (
@@ -646,43 +654,31 @@ export default function ProfilePage() {
                   ) : null}
                 </div>
               )}
-              {/* Password visibility toggle - positioned at the far right */}
-              <button
-                type='button'
-                onClick={() => setShowNewPassword(!showNewPassword)}
-                className='absolute inset-y-0 right-0 flex items-center pt-1 pr-3'
-              >
-                {showNewPassword ? (
-                  <EyeOff className='h-4 w-4 text-slate-500' />
-                ) : (
-                  <Eye className='h-4 w-4 text-slate-500' />
-                )}
-              </button>
             </div>
-            {passwordValidation.message && (
-              <p
-                className={`mt-1 text-xs ${
-                  passwordValidation.isValid === false ? 'text-red-500' : 'text-green-600'
-                }`}
-              >
-                {passwordValidation.message}
-              </p>
-            )}
-            {newPassword && !passwordValidation.message && (
-              <div className='mt-2 space-y-1 text-xs text-slate-500 dark:text-slate-400'>
-                <p>Password requirements:</p>
-                <ul className='ml-4 list-disc space-y-1'>
-                  <li className={newPassword.length >= 8 ? 'text-green-600' : ''}>
-                    At least 8 characters
+            {/* Password requirements */}
+            {newPassword && (
+              <div className='mt-2 space-y-1'>
+                <p className='text-xs text-slate-600 dark:text-slate-400'>Password requirements:</p>
+                <ul className='space-y-1 text-xs'>
+                  <li
+                    className={`flex items-center ${newPassword.length >= 8 ? 'text-green-600' : 'text-red-500'}`}
+                  >
+                    {newPassword.length >= 8 ? '✓' : '✗'} At least 8 characters
                   </li>
-                  <li className={/(?=.*[a-z])/.test(newPassword) ? 'text-green-600' : ''}>
-                    One lowercase letter
+                  <li
+                    className={`flex items-center ${/(?=.*[A-Z])/.test(newPassword) ? 'text-green-600' : 'text-red-500'}`}
+                  >
+                    {/(?=.*[A-Z])/.test(newPassword) ? '✓' : '✗'} One uppercase letter
                   </li>
-                  <li className={/(?=.*[A-Z])/.test(newPassword) ? 'text-green-600' : ''}>
-                    One uppercase letter
+                  <li
+                    className={`flex items-center ${/(?=.*[a-z])/.test(newPassword) ? 'text-green-600' : 'text-red-500'}`}
+                  >
+                    {/(?=.*[a-z])/.test(newPassword) ? '✓' : '✗'} One lowercase letter
                   </li>
-                  <li className={/(?=.*\d)/.test(newPassword) ? 'text-green-600' : ''}>
-                    One number
+                  <li
+                    className={`flex items-center ${/(?=.*\d)/.test(newPassword) ? 'text-green-600' : 'text-red-500'}`}
+                  >
+                    {/(?=.*\d)/.test(newPassword) ? '✓' : '✗'} One number
                   </li>
                 </ul>
               </div>
@@ -696,10 +692,10 @@ export default function ProfilePage() {
             <div className='relative'>
               <Input
                 id='confirmPassword'
-                type={showConfirmPassword ? 'text' : 'password'}
+                type='password'
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className={`mt-1 bg-slate-50 pr-16 dark:bg-slate-800 ${
+                className={`mt-1 bg-slate-50 pr-10 dark:bg-slate-800 ${
                   confirmPasswordValidation.isValid === false
                     ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
                     : confirmPasswordValidation.isValid === true
@@ -708,9 +704,9 @@ export default function ProfilePage() {
                 }`}
                 placeholder='Confirm your new password'
               />
-              {/* Validation icon - positioned left of the eye icon */}
+              {/* Validation icon only */}
               {confirmPassword && (
-                <div className='absolute inset-y-0 right-8 flex items-center pt-1'>
+                <div className='absolute inset-y-0 right-3 flex items-center pt-1'>
                   {confirmPasswordValidation.isValid === true ? (
                     <CheckCircle className='h-4 w-4 text-green-500' />
                   ) : confirmPasswordValidation.isValid === false ? (
@@ -718,18 +714,6 @@ export default function ProfilePage() {
                   ) : null}
                 </div>
               )}
-              {/* Password visibility toggle - positioned at the far right */}
-              <button
-                type='button'
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className='absolute inset-y-0 right-0 flex items-center pt-1 pr-3'
-              >
-                {showConfirmPassword ? (
-                  <EyeOff className='h-4 w-4 text-slate-500' />
-                ) : (
-                  <Eye className='h-4 w-4 text-slate-500' />
-                )}
-              </button>
             </div>
             {confirmPasswordValidation.message && (
               <p className='mt-1 text-xs text-red-500'>{confirmPasswordValidation.message}</p>

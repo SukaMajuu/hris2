@@ -13,6 +13,10 @@ type Location struct {
 	RadiusM       int     `gorm:"not null"` // radius dalam meter
 	IsActive      bool    `gorm:"type:boolean;default:true;not null"`
 
+	// User yang membuat location (admin)
+	CreatedBy uint `gorm:"not null"`
+	User      User `gorm:"foreignKey:CreatedBy"`
+
 	CreatedAt time.Time `gorm:"autoCreateTime"`
 	UpdatedAt time.Time `gorm:"autoUpdateTime"`
 }

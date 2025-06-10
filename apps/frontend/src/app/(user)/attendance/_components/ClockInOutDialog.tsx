@@ -21,10 +21,7 @@ import dynamic from "next/dynamic";
 import { Crosshair } from "lucide-react";
 
 const MapComponent = dynamic(
-	() =>
-		import("@/components/MapComponent").then((mod) => ({
-			default: mod.MapComponent,
-		})),
+	() => import("@/components/MapComponent"),
 	{
 		ssr: false,
 		loading: () => (
@@ -78,7 +75,75 @@ export function ClockInOutDialog({
 	const today = new Date().toLocaleDateString("en-US", { weekday: "long" });
 	const todaySchedule = workSchedule?.details?.find((detail) =>
 		detail.work_days?.includes(today)
-	);	React.useEffect(() => {
+	);	// Function to calculate distance between two coordinates
+	const calculateDistance = React.useCallback((lat1: number, lon1: number, lat2: number, lon2: number): number => {
+		const R = 6371000; // Earth's radius in meters
+		const dLat = (lat2 - lat1) * Math.PI / 180;
+		const dLon = (lon2 - lon1) * Math.PI / 180;
+		const a = 
+			Math.sin(dLat/2) * Math.sin(dLat/2) +
+			Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+			Math.sin(dLon/2) * Math.sin(dLon/2);
+		const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+		return R * c;
+	}, []);
+
+	// Function to get work location from work schedule
+	const getWorkLocation = React.useCallback(() => {
+		if (!workSchedule?.details) return null;
+		
+		// Get today's day name
+		const today = new Date().toLocaleDateString("en-US", { weekday: "long" });
+		
+		// Find work schedule detail that matches today and has location (WFO)
+		const todayDetail = workSchedule.details.find(detail => 
+			detail.work_days?.includes(today) && 
+			detail.worktype_detail === "WFO" && 
+			detail.location
+		);
+		
+		if (todayDetail?.location) {
+			return {
+				latitude: todayDetail.location.latitude,
+				longitude: todayDetail.location.longitude,
+				radius: todayDetail.location.radius_m || 100,
+				name: todayDetail.location.name
+			};
+		}
+		
+		return null;
+	}, [workSchedule?.details]);
+	// Function to validate location against work location
+	const validateLocation = React.useCallback((userLat: number, userLon: number) => {
+		const workLocation = getWorkLocation();
+		
+		if (!workLocation) {
+			// If no work location found, allow the action but show info
+			setLocationValidation({
+				isValid: true,
+				distance: null,
+				message: "No specific work location found for today. Location tracking is disabled.",
+				hasRefreshed: true,
+			});
+			return true;
+		}
+
+		const distance = calculateDistance(userLat, userLon, workLocation.latitude, workLocation.longitude);
+		const isValid = distance <= workLocation.radius;
+
+		setLocationValidation({
+			isValid,
+			distance: Math.round(distance),
+			message: isValid 
+				? `You are within the allowed work location (${workLocation.name}). Distance: ${Math.round(distance)}m`
+				: `You are ${Math.round(distance)}m away from the allowed work location (${workLocation.name}). Maximum allowed distance is ${workLocation.radius}m.`,
+			hasRefreshed: true,
+		});
+
+		return isValid;
+	}, [getWorkLocation, calculateDistance]);
+
+	React.useEffect(() => {
 		// Reset location fetched flag when dialog opens
 		if (open) {
 			locationFetchedRef.current = false;
@@ -103,77 +168,49 @@ export function ClockInOutDialog({
 
 		locationFetchedRef.current = true;
 
-		if (actionType === "clock-in") {
-			navigator.geolocation.getCurrentPosition(
-				(position) => {
+		// Automatically get location and validate it
+		navigator.geolocation.getCurrentPosition(
+			(position) => {
+				const lat = position.coords.latitude;
+				const lon = position.coords.longitude;
+
+				if (actionType === "clock-in") {
 					const currentData = formData.clock_in_request;
 					if (currentData) {
 						setValue("clock_in_request", {
 							...currentData,
-							clock_in_lat: position.coords.latitude,
-							clock_in_long: position.coords.longitude,
+							clock_in_lat: lat,
+							clock_in_long: lon,
 						});
 					}
-				},
-				(error) => {
-					console.error("Error getting location:", error);
-					locationFetchedRef.current = false; // Allow retry on error
-				}
-			);
-		} else {
-			navigator.geolocation.getCurrentPosition(
-				(position) => {
+				} else {
 					const currentData = formData.clock_out_request;
 					if (currentData) {
 						setValue("clock_out_request", {
 							...currentData,
-							clock_out_lat: position.coords.latitude,
-							clock_out_long: position.coords.longitude,
+							clock_out_lat: lat,
+							clock_out_long: lon,
 						});
 					}
-				},
-				(error) => {
-					console.error("Error getting location:", error);
-					locationFetchedRef.current = false; // Allow retry on error
 				}
-			);
-		}
-	}, [open, actionType, isWFA, setValue]);
-	// Function to calculate distance between two coordinates
-	const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-		const R = 6371000; // Earth's radius in meters
-		const dLat = (lat2 - lat1) * Math.PI / 180;
-		const dLon = (lon2 - lon1) * Math.PI / 180;
-		const a = 
-			Math.sin(dLat/2) * Math.sin(dLat/2) +
-			Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-			Math.sin(dLon/2) * Math.sin(dLon/2);
-		const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-		return R * c;
-	};
 
-	// Function to validate location against work location
-	const validateLocation = (userLat: number, userLon: number) => {
-		// Assuming work location coordinates are stored in workSchedule
-		// For demonstration, using dummy coordinates. Replace with actual work location
-		const workLat = -7.3441708; // Example coordinates from the image
-		const workLon = 112.0301014;
-		const maxDistance = 100; // 100 meters as shown in the image
-
-		const distance = calculateDistance(userLat, userLon, workLat, workLon);
-		const isValid = distance <= maxDistance;
-
-		setLocationValidation({
-			isValid,
-			distance: Math.round(distance),
-			message: isValid 
-				? `You are within the allowed work location. Distance: ${Math.round(distance)}m`
-				: `You are ${Math.round(distance)}m away from the allowed work location. Maximum allowed distance is ${maxDistance}m.`,
-			hasRefreshed: true,
-		});
-
-		return isValid;
-	};
+				// Automatically validate location
+				validateLocation(lat, lon);
+			},
+			(error) => {
+				console.error("Error getting location:", error);
+				locationFetchedRef.current = false; // Allow retry on error
+				
+				// Show error message for location failure
+				setLocationValidation({
+					isValid: false,
+					distance: null,
+					message: "Failed to get your current location. Please ensure location services are enabled and try refreshing your location.",
+					hasRefreshed: true,
+				});
+			}
+		);
+	}, [open, actionType, isWFA, setValue, validateLocation]);
 
 	const getCurrentLocation = () => {
 		if (!isWFA && navigator.geolocation) {
@@ -233,8 +270,7 @@ export function ClockInOutDialog({
 	): string => {
 		if (!start && !end) return "Not scheduled";
 		return `${start || "--:--"} - ${end || "--:--"}`;
-	};
-	// Handle form submission with location validation
+	};	// Handle form submission with location validation
 	const handleFormSubmit = (data: AttendanceFormData) => {
 		// If it's WFA, submit directly
 		if (isWFA) {
@@ -242,25 +278,20 @@ export function ClockInOutDialog({
 			return;
 		}
 
-		// If location hasn't been refreshed, submit directly
-		if (!locationValidation.hasRefreshed) {
-			onSubmit(data);
-			return;
+		// If location validation failed, prevent submission and show error
+		if (locationValidation.hasRefreshed && locationValidation.isValid === false) {
+			const distanceKm = Math.round((locationValidation.distance || 0) / 1000 * 100) / 100;
+			toast.error(
+				`Cannot submit attendance: You are ${distanceKm}km away from the allowed work location. Maximum allowed distance is ${Math.round(getWorkLocation()?.radius || 100)}m.`,
+				{
+					duration: 5000,
+				}
+			);
+			return; // Prevent form submission
 		}
 
-		// If location is valid, submit directly
-		if (locationValidation.isValid) {
-			onSubmit(data);
-			return;
-		}
-		// If location is invalid, show toast warning and still submit
-		const distanceKm = Math.round((locationValidation.distance || 0) / 1000 * 100) / 100;
-		toast.error(
-			`Cannot submit attendance: You are ${distanceKm}km away from the allowed work location. Maximum allowed distance is 100m.`,
-			{
-				duration: 5000,
-			}
-		);
+		// If location is valid or no location validation occurred, allow submission
+		onSubmit(data);
 	};
 	return (
 		<>
@@ -407,26 +438,43 @@ export function ClockInOutDialog({
 														? 'text-red-800 dark:text-red-200' 
 														: 'text-green-800 dark:text-green-200'
 												}`}>
-													{locationValidation.isValid === false ? 'Location validation failed' : 'Location validated'}
+													{locationValidation.isValid === false ? 'Location Check Failed' : 'Location Verified'}
 												</h4>
 												<p className={`mt-1 text-sm ${
 													locationValidation.isValid === false 
 														? 'text-red-600 dark:text-red-300' 
 														: 'text-green-600 dark:text-green-300'
 												}`}>
-													{locationValidation.distance && (
-														<>Distance from work location: {locationValidation.distance}m (max: 100m)</>
-													)}
+													{locationValidation.message}
 												</p>
 												{locationValidation.isValid === false && (
-													<p className="mt-2 text-sm text-red-600 dark:text-red-300">
-														You are {locationValidation.distance}m away from the allowed work location. Maximum allowed distance is 100m.
+													<p className="mt-2 text-sm text-red-700 dark:text-red-300 font-medium">
+														Attendance submission is blocked. Please move to the designated work location or contact your supervisor.
 													</p>
 												)}
 											</div>
 										</div>
 									</div>
-								)}								<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+								)}
+
+								{/* Loading state for location validation */}
+								{!isWFA && !locationValidation.hasRefreshed && (
+									<div className="rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20 p-4">
+										<div className="flex items-center gap-3">
+											<div className="flex-shrink-0">
+												<RefreshCw className="h-5 w-5 text-blue-500 animate-spin" />
+											</div>
+											<div className="flex-1">
+												<h4 className="font-medium text-blue-800 dark:text-blue-200">
+													Checking Location
+												</h4>
+												<p className="mt-1 text-sm text-blue-600 dark:text-blue-300">
+													Verifying your current location against work schedule requirements...
+												</p>
+											</div>
+										</div>
+									</div>
+								)}<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 									<div className="space-y-1">
 										<Label
 											htmlFor="latitude"

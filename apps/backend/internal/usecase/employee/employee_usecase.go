@@ -1522,3 +1522,34 @@ func (uc *EmployeeUseCase) lastMinuteValidation(ctx context.Context, employee *d
 
 	return errors
 }
+
+func (uc *EmployeeUseCase) ResetEmployeePassword(ctx context.Context, employeeID uint) error {
+	log.Printf("EmployeeUseCase: ResetEmployeePassword called for employee ID: %d", employeeID)
+
+	// Get employee details including user email
+	employee, err := uc.employeeRepo.GetByID(ctx, employeeID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			log.Printf("EmployeeUseCase: No employee found with ID %d", employeeID)
+			return domain.ErrEmployeeNotFound
+		}
+		log.Printf("EmployeeUseCase: Error getting employee by ID %d from repository: %v", employeeID, err)
+		return fmt.Errorf("failed to get employee by ID %d: %w", employeeID, err)
+	}
+
+	// Check if employee has associated user with email
+	if employee.User.Email == "" {
+		log.Printf("EmployeeUseCase: Employee ID %d has no associated email address", employeeID)
+		return fmt.Errorf("employee has no associated email address for password reset")
+	}
+
+	// Send password reset email using auth repository
+	err = uc.authRepo.ResetPassword(ctx, employee.User.Email)
+	if err != nil {
+		log.Printf("EmployeeUseCase: Error sending password reset email for employee ID %d (email: %s): %v", employeeID, employee.User.Email, err)
+		return fmt.Errorf("failed to send password reset email: %w", err)
+	}
+
+	log.Printf("EmployeeUseCase: Successfully sent password reset email to %s for employee ID %d", employee.User.Email, employeeID)
+	return nil
+}

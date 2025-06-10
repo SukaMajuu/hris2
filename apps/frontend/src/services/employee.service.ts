@@ -191,6 +191,10 @@ export class EmployeeService {
     await this.api.patch(API_ROUTES.v1.api.employees.resign(id));
   }
 
+  async resetEmployeePassword(id: number): Promise<void> {
+    await this.api.post(API_ROUTES.v1.api.employees.resetPassword(id));
+  }
+
   async validateUniqueField(
     field: 'email' | 'nik' | 'employee_code' | 'phone',
     value: string,

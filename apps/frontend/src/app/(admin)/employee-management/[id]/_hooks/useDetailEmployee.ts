@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useEmployeeDetailQuery } from '@/api/queries/employee.queries';
-import { useUpdateEmployee } from '@/api/mutations/employee.mutations';
+import { useUpdateEmployee, useResetEmployeePassword } from '@/api/mutations/employee.mutations';
 import { useDocumentsByEmployee } from '@/api/queries/document.queries';
 import {
   useUploadDocumentForEmployee,
@@ -48,6 +48,7 @@ export function useDetailEmployee(employeeId: number) {
   } = useEmployeeDetailQuery(employeeId, !!employeeId);
 
   const updateEmployeeMutation = useUpdateEmployee();
+  const resetEmployeePasswordMutation = useResetEmployeePassword();
   const { data: documents = [] } = useDocumentsByEmployee(employeeId);
   const uploadDocumentMutation = useUploadDocumentForEmployee();
   const deleteDocumentMutation = useDeleteDocument();
@@ -84,6 +85,9 @@ export function useDetailEmployee(employeeId: number) {
   const [bankAccountHolder, setBankAccountHolder] = useState('');
   const [bankAccountNumber, setBankAccountNumber] = useState('');
   const [editBank, setEditBank] = useState(false);
+
+  // Reset password confirmation state
+  const [isConfirmingReset, setIsConfirmingReset] = useState(false);
 
   // Validation states
   const [validationStates, setValidationStates] = useState({
@@ -602,13 +606,25 @@ export function useDetailEmployee(employeeId: number) {
     }
   }, [employee, bankName, bankAccountHolder, bankAccountNumber, updateEmployeeMutation, toast]);
 
-  const handleResetPassword = useCallback(() => {
-    const newPassword = Math.random().toString(36).slice(-8);
-    console.log(
-      `Password reset requested for employee ${employee?.id}. New temporary password: ${newPassword}`,
-    );
-    alert(`Password has been reset. New temporary password: ${newPassword}`);
-  }, [employee?.id]);
+  const handleResetPassword = useCallback(async () => {
+    if (!employee?.id) {
+      toast.error('Employee ID not found');
+      return;
+    }
+
+    if (!employee?.email) {
+      toast.error('Employee has no email address associated for password reset');
+      return;
+    }
+
+    try {
+      await resetEmployeePasswordMutation.mutateAsync(employee.id);
+      toast.success(`Password reset email sent to ${employee.email}`);
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      toast.error('Failed to send password reset email. Please try again.');
+    }
+  }, [employee?.id, employee?.email, resetEmployeePasswordMutation, toast]);
 
   return {
     initialEmployeeData: employee,
@@ -676,6 +692,10 @@ export function useDetailEmployee(employeeId: number) {
     clearValidation,
     hasValidationErrors,
     validateDateOfBirth,
+
+    // Reset password loading state
+    isResettingPassword: resetEmployeePasswordMutation.isPending,
+    onResetPasswordComplete: () => setIsConfirmingReset(false),
 
     handleProfileImageChange,
     handleAddNewDocument,

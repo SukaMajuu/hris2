@@ -214,7 +214,7 @@ func (h *AttendanceHandler) ListAttendancesByEmployee(c *gin.Context) {
 		response.BadRequest(c, "Invalid query parameters", err)
 		return
 	}
-
+	
 	paginationParams := domain.PaginationParams{
 		Page:     queryDTO.Page,
 		PageSize: queryDTO.PageSize,
@@ -224,7 +224,7 @@ func (h *AttendanceHandler) ListAttendancesByEmployee(c *gin.Context) {
 		paginationParams.Page = 1
 	}
 	if paginationParams.PageSize == 0 {
-		paginationParams.PageSize = 10
+		paginationParams.PageSize = 1000 // Increased default to match frontend expectation
 	}
 
 	attendances, err := h.attendanceUseCase.ListByEmployee(c.Request.Context(), uint(employeeID), paginationParams)

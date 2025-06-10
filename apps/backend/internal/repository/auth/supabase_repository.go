@@ -357,6 +357,43 @@ func (r *supabaseRepository) ChangePassword(ctx context.Context, userID uint, ol
 	return nil
 }
 
+func (r *supabaseRepository) UpdateUserPassword(ctx context.Context, userID uint, accessToken, oldPassword, newPassword string) error {
+	localUser, err := r.GetUserByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if localUser.SupabaseUID == nil || *localUser.SupabaseUID == "" {
+		return fmt.Errorf("user is not linked to a supabase account")
+	}
+	if localUser.Email == "" {
+		return fmt.Errorf("user email is required for password verification")
+	}
+
+	// Verify current password by attempting login
+	session, err := r.client.Auth.SignInWithEmailPassword(localUser.Email, oldPassword)
+	if err != nil {
+		return domain.ErrInvalidCredentials
+	}
+	if session == nil || session.AccessToken == "" {
+		return domain.ErrInvalidCredentials
+	}
+
+	// Use the Supabase access token from the session to update password
+	authedClient := r.client.Auth.WithToken(session.AccessToken)
+
+	// Update password using authenticated client
+	updateReq := types.UpdateUserRequest{
+		Password: &newPassword,
+	}
+
+	_, err = authedClient.UpdateUser(updateReq)
+	if err != nil {
+		return fmt.Errorf("failed to update user password: %w", err)
+	}
+
+	return nil
+}
+
 func (r *supabaseRepository) ResetPassword(ctx context.Context, email string) error {
 	_, err := r.GetUserByEmail(ctx, email)
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {

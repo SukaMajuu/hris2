@@ -64,6 +64,7 @@ func NewRouter(
 	}
 }
 
+//nolint:funlen
 func (r *Router) Setup() *gin.Engine {
 	router := gin.Default()
 	router.Use(cors.New(cors.Config{
@@ -86,8 +87,9 @@ func (r *Router) Setup() *gin.Engine {
 
 			password := auth.Group("/password")
 			{
-				password.POST("/change", r.authMiddleware.Authenticate(), r.authHandler.ChangePassword)
 				password.POST("/reset", r.authHandler.ResetPassword)
+				password.POST("/change", r.authMiddleware.Authenticate(), r.authHandler.ChangePassword)
+				password.PUT("/update", r.authMiddleware.Authenticate(), r.authHandler.UpdateUserPassword)
 			}
 
 			auth.POST("/logout", r.authMiddleware.Authenticate(), r.authHandler.Logout)
@@ -110,7 +112,8 @@ func (r *Router) Setup() *gin.Engine {
 				employee.POST("", r.employeeHandler.CreateEmployee)
 				employee.POST("/bulk-import", r.employeeHandler.BulkImportEmployees)
 				employee.PATCH("/:id", r.employeeHandler.UpdateEmployee)
-				employee.PATCH("/:id/status", r.employeeHandler.ResignEmployee)
+				employee.PATCH("/:id/status", r.employeeHandler.ResignEmployee) // Employee document routes nested under employee routes
+				employee.POST("/:id/reset-password", r.employeeHandler.ResetEmployeePassword)
 				employee.POST("/:id/documents", r.documentHandler.UploadDocumentForEmployee)
 				employee.GET("/:id/documents", r.documentHandler.GetDocumentsByEmployee)
 			}

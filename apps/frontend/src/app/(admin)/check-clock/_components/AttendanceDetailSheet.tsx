@@ -9,6 +9,9 @@ import {
 } from "@/components/ui/sheet";
 import { Attendance } from "@/types/attendance";
 import { formatWorkHours } from "@/utils/time";
+import { useLeaveRequestsQuery } from "@/api/queries/leave-request.queries";
+import { Badge } from "@/components/ui/badge";
+import { LeaveRequest } from "@/types/leave-request";
 
 interface AttendanceDetailSheetProps {
 	open: boolean;
@@ -16,11 +19,54 @@ interface AttendanceDetailSheetProps {
 	selectedData: Attendance | null;
 }
 
+// Helper function to format leave type for display
+const formatLeaveType = (leaveType: string): string => {
+	return leaveType.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+};
+
+// Helper function to get status badge for leave requests
+const getLeaveStatusBadge = (status: string) => {
+	switch (status.toLowerCase()) {
+		case 'approved':
+			return <Badge className="bg-green-600 text-white">Approved</Badge>;
+		case 'rejected':
+			return <Badge className="bg-red-600 text-white">Rejected</Badge>;
+		case 'waiting_approval':
+		case 'waiting approval':
+			return <Badge className="bg-yellow-600 text-white">Waiting Approval</Badge>;
+		default:
+			return <Badge className="bg-gray-600 text-white">{status}</Badge>;
+	}
+};
+
 export function AttendanceDetailSheet({
 	open,
 	onOpenChange,
 	selectedData,
 }: AttendanceDetailSheetProps) {
+	// Fetch leave requests data for admin view
+	const { data: leaveRequestsData, isLoading: isLoadingLeaveRequests } = useLeaveRequestsQuery(
+		1, 
+		100, 
+		selectedData?.employee_id ? { employee_id: selectedData.employee_id } : undefined
+	);
+
+	// Filter leave requests for the specific date when status is 'leave'
+	const filteredLeaveRequests = React.useMemo(() => {
+		if (!selectedData || selectedData.status !== 'leave' || !leaveRequestsData?.items) {
+			return [];
+		}
+
+		const attendanceDate = new Date(selectedData.date);
+		return leaveRequestsData.items.filter((request: LeaveRequest) => {
+			const startDate = new Date(request.start_date);
+			const endDate = new Date(request.end_date);
+			
+			// Check if attendance date falls within leave request date range
+			return attendanceDate >= startDate && attendanceDate <= endDate;
+		});
+	}, [selectedData, leaveRequestsData]);
+
 	return (
 		<Sheet open={open} onOpenChange={onOpenChange}>
 			<SheetContent className="w-[100%] sm:max-w-2xl overflow-y-auto bg-slate-50">
@@ -97,9 +143,7 @@ export function AttendanceDetailSheet({
 									</p>
 								</div>
 							</div>
-						</div>
-
-						<div className="bg-white shadow-md rounded-lg p-6">
+						</div>						<div className="bg-white shadow-md rounded-lg p-6">
 							<h4 className="text-md font-semibold text-slate-700 mb-4 pb-2 border-b">
 								Location Information
 							</h4>
@@ -141,42 +185,142 @@ export function AttendanceDetailSheet({
 									)}
 								</div>
 							</div>
-						</div>
+						</div>						{/* Leave Information - only show when status is leave */}
+						{selectedData.status === 'leave' && (
+							<div className='bg-white shadow-md rounded-lg p-6'>
+								<h4 className='text-md font-semibold text-slate-700 mb-4 pb-2 border-b'>
+									Leave Information
+									<span className='ml-2 text-xs text-slate-500'>
+										for {new Date(selectedData.date).toLocaleDateString()}
+									</span>
+								</h4>
+								{isLoadingLeaveRequests ? (
+									<div className='text-center py-4'>
+										<p className='text-slate-500'>Loading leave requests...</p>
+									</div>
+								) : filteredLeaveRequests.length > 0 ? (
+									<div className='space-y-6'>
+										{filteredLeaveRequests.map((leaveRequest: LeaveRequest) => (
+											<div key={leaveRequest.id} className='border border-gray-200 rounded-lg p-4'>
+												{/* Leave Request Header */}
+												<div className='mb-4 pb-3 border-b border-gray-100'>
+													<div className='flex items-center justify-between'>
+														<h5 className='text-lg font-bold text-slate-700'>
+															{formatLeaveType(leaveRequest.leave_type)}
+														</h5>
+														{getLeaveStatusBadge(leaveRequest.status)}
+													</div>
+													<p className='text-sm text-slate-500 mt-1'>
+														Submitted on {new Date(leaveRequest.created_at).toLocaleDateString()}
+													</p>
+												</div>
 
-						<div className="bg-white shadow-md rounded-lg p-6">
-							<h4 className="text-md font-semibold text-slate-700 mb-4 pb-2 border-b">
-								Support Evidence
-							</h4>
-							{selectedData.status === "leave" ? (
-								<div className="space-y-3">
-									<div className="text-sm">
-										<span className="font-medium text-slate-500">
-											Leave Type:{" "}
-										</span>
-										<span className="text-slate-700">
-											{selectedData.status || "-"}
-										</span>
+												{/* Leave Details Grid */}
+												<div className='grid grid-cols-1 gap-x-6 gap-y-4 md:grid-cols-2'>
+													<div>
+														<p className='text-xs font-medium text-slate-500'>Start Date</p>
+														<p className='text-slate-700'>
+															{new Date(leaveRequest.start_date).toLocaleDateString()}
+														</p>
+													</div>
+													<div>
+														<p className='text-xs font-medium text-slate-500'>End Date</p>
+														<p className='text-slate-700'>
+															{new Date(leaveRequest.end_date).toLocaleDateString()}
+														</p>
+													</div>
+													<div>
+														<p className='text-xs font-medium text-slate-500'>Duration</p>
+														<p className='text-slate-700'>
+															{(() => {
+																const start = new Date(leaveRequest.start_date);
+																const end = new Date(leaveRequest.end_date);
+																const diffTime = Math.abs(end.getTime() - start.getTime());
+																const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+																return `${diffDays} day${diffDays > 1 ? 's' : ''}`;
+															})()}
+														</p>
+													</div>
+													<div>
+														<p className='text-xs font-medium text-slate-500'>Request ID</p>
+														<p className='text-slate-700 font-mono text-sm'>
+															#{leaveRequest.id}
+														</p>
+													</div>
+													<div className='md:col-span-2'>
+														<p className='text-xs font-medium text-slate-500'>Employee Reason</p>
+														<div className='mt-2 p-3 bg-slate-50 rounded-md border'>
+															<p className='text-slate-700 text-sm'>
+																{leaveRequest.employee_note || 'No reason provided'}
+															</p>
+														</div>
+													</div>
+													{leaveRequest.admin_note && (
+														<div className='md:col-span-2'>
+															<p className='text-xs font-medium text-slate-500'>Admin Note</p>
+															<div className='mt-2 p-3 bg-blue-50 rounded-md border border-blue-200'>
+																<p className='text-slate-700 text-sm'>
+																	{leaveRequest.admin_note}
+																</p>
+															</div>
+														</div>
+													)}
+													{leaveRequest.attachment && (
+														<div className='md:col-span-2'>
+															<p className='text-xs font-medium text-slate-500'>Supporting Document</p>
+															<div className='mt-2'>
+																<a
+																	href={leaveRequest.attachment}
+																	target="_blank"
+																	rel="noopener noreferrer"
+																	className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 underline text-sm"
+																>
+																	<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+																		<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+																	</svg>
+																	View Attachment
+																</a>
+															</div>
+														</div>
+													)}
+												</div>
+
+												{/* Request Timeline */}
+												<div className='mt-4 pt-4 border-t border-gray-100'>
+													<p className='text-xs font-medium text-slate-500 mb-2'>Request Timeline</p>
+													<div className='text-xs text-slate-500 space-y-1'>
+														<div className='flex justify-between'>
+															<span>Submitted:</span>
+															<span>{new Date(leaveRequest.created_at).toLocaleString()}</span>
+														</div>
+														{leaveRequest.updated_at && leaveRequest.updated_at !== leaveRequest.created_at && (
+															<div className='flex justify-between'>
+																<span>Last Updated:</span>
+																<span>{new Date(leaveRequest.updated_at).toLocaleString()}</span>
+															</div>
+														)}
+													</div>
+												</div>
+											</div>
+										))}
 									</div>
-									<div className="text-sm">
-										<span className="font-medium text-slate-500">
-											Evidence:{" "}
-										</span>
-										<span className="text-slate-700">
-											-
-										</span>
+								) : (
+									<div className='text-center py-8'>
+										<div className='text-gray-400 mb-2'>
+											<svg className="w-8 h-8 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+											</svg>
+										</div>
+										<p className='text-slate-500 text-sm'>
+											No leave requests found for this date
+										</p>
+										<p className='text-slate-400 text-xs mt-1'>
+											The employee may not have submitted a leave request for this period
+										</p>
 									</div>
-									<p className="text-xs text-slate-400 mt-2">
-										Support evidence is only required for
-										leave/permit attendance types.
-									</p>
-								</div>
-							) : (
-								<span className="text-xs text-slate-500">
-									No support evidence required for this
-									attendance type.
-								</span>
-							)}
-						</div>
+								)}
+							</div>
+						)}
 					</div>
 				)}
 			</SheetContent>

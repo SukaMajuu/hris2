@@ -86,7 +86,6 @@ export default function CheckClockApprovalTab() {
   const handleRejectWithNote = (adminNote: string) => {
     handleReject(adminNote);
   };
-
   const columns = React.useMemo<ColumnDef<ApprovalItem>[]>(
     () => [
       {
@@ -94,9 +93,15 @@ export default function CheckClockApprovalTab() {
         id: 'no',
         cell: ({ row, table }) => {
           const { pageIndex, pageSize } = table.getState().pagination;
-          return pageIndex * pageSize + row.index + 1;
+          return (
+            <div className="flex items-center justify-center text-center">
+              <div className="text-xs md:text-sm">
+                {pageIndex * pageSize + row.index + 1}
+              </div>
+            </div>
+          );
         },
-        meta: { className: 'w-[80px]' },
+        meta: { className: 'w-[50px] md:w-[80px] text-center' },
         enableSorting: false,
         enableColumnFilter: false,
       },
@@ -104,15 +109,29 @@ export default function CheckClockApprovalTab() {
         header: 'Nama',
         accessorKey: 'name',
         enableColumnFilter: true,
+        cell: ({ row }) => {
+          const name = row.original.name;
+          return (
+            <div className="flex items-center justify-center">
+              <div className="max-w-[120px] truncate text-center text-xs md:max-w-[180px] md:text-sm">
+                {name}
+              </div>
+            </div>
+          );
+        },
+        meta: { className: 'w-[120px] md:w-[180px] text-center' },
       },
       {
         header: 'Status Pengajuan',
         accessorKey: 'status',
         cell: ({ row }) => (
-          <Badge variant='outline' className='bg-gray-600 text-white hover:bg-gray-600'>
-            {row.original.status}
-          </Badge>
+          <div className="flex items-center justify-center">
+            <Badge variant='outline' className='bg-gray-600 text-white hover:bg-gray-600 text-xs md:text-sm max-w-[100px] md:max-w-[140px] truncate'>
+              {row.original.status}
+            </Badge>
+          </div>
         ),
+        meta: { className: 'w-[100px] md:w-[140px] text-center' },
       },
       {
         header: 'Approval',
@@ -121,32 +140,40 @@ export default function CheckClockApprovalTab() {
           const item = row.original;
           if (item.approved === null) {
             return (
-              <Button
-                size='sm'
-                variant='outline'
-                className='border-yellow-500 bg-yellow-500 text-white hover:cursor-pointer hover:bg-yellow-600'
-                onClick={(e) => {
-                  e.stopPropagation();
-                  openApprovalModal(item);
-                }}
-              >
-                Need Approval
-              </Button>
+              <div className="flex items-center justify-center">
+                <Button
+                  size='sm'
+                  variant='outline'
+                  className='h-7 w-full cursor-pointer border-yellow-500 bg-yellow-500 px-1 text-xs text-white hover:cursor-pointer hover:bg-yellow-600 md:h-8 md:w-auto md:px-2'
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openApprovalModal(item);
+                  }}
+                >
+                  <span className="hidden md:inline">Need Approval</span>
+                  <span className="md:hidden">Approval</span>
+                </Button>
+              </div>
             );
           } else if (item.approved) {
             return (
-              <Badge variant='outline' className='border-green-200 bg-green-100 text-green-800'>
-                Approved
-              </Badge>
+              <div className="flex items-center justify-center">
+                <Badge variant='outline' className='border-green-200 bg-green-100 text-green-800 text-xs md:text-sm max-w-[80px] md:max-w-[120px] truncate'>
+                  Approved
+                </Badge>
+              </div>
             );
           } else {
             return (
-              <Badge variant='outline' className='border-red-200 bg-red-100 text-red-800'>
-                Rejected
-              </Badge>
+              <div className="flex items-center justify-center">
+                <Badge variant='outline' className='border-red-200 bg-red-100 text-red-800 text-xs md:text-sm max-w-[80px] md:max-w-[120px] truncate'>
+                  Rejected
+                </Badge>
+              </div>
             );
           }
         },
+        meta: { className: 'w-[90px] md:w-[140px] text-center' },
         enableSorting: false,
         enableColumnFilter: false,
       },
@@ -154,18 +181,22 @@ export default function CheckClockApprovalTab() {
         header: 'Details',
         id: 'details',
         cell: ({ row }) => (
-          <Button
-            size='sm'
-            variant='default'
-            className='bg-blue-500 hover:cursor-pointer hover:bg-blue-600'
-            onClick={(e) => {
-              e.stopPropagation();
-              handleSheetViewDetails(row.original.id);
-            }}
-          >
-            Details
-          </Button>
+          <div className="flex items-center justify-center">
+            <Button
+              size='sm'
+              variant='default'
+              className='h-7 w-full cursor-pointer bg-blue-500 px-1 text-xs hover:cursor-pointer hover:bg-blue-600 text-white md:h-8 md:w-auto md:px-2'
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSheetViewDetails(row.original.id);
+              }}
+            >
+              <span className="hidden md:inline">Details</span>
+              <span className="md:hidden">View</span>
+            </Button>
+          </div>
         ),
+        meta: { className: 'w-[80px] md:w-[100px] text-center' },
         enableSorting: false,
         enableColumnFilter: false,
       },
@@ -223,17 +254,41 @@ export default function CheckClockApprovalTab() {
                 {isLoading ? 'Loading...' : 'Refresh'}
               </Button>
             </div>
-            {error && (
-              <div className='text-sm text-red-500'>
-                Error loading leave requests: {error.message}
-              </div>
-            )}
-          </header>
-
-          {/* Table */}
+          </header>{/* Table */}
           {isLoading ? (
             <div className='flex h-32 items-center justify-center'>
-              <div className='text-slate-500'>Loading leave requests...</div>
+              <div className='text-center'>
+                <div className='mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600'></div>
+                <p>Loading leave requests...</p>
+              </div>
+            </div>
+          ) : error ? (
+            <div className='flex h-32 items-center justify-center'>
+              <div className='text-center'>
+                <div className='mb-4 text-red-500'>
+                  <svg
+                    className='mx-auto mb-2 h-12 w-12'
+                    fill='none'
+                    stroke='currentColor'
+                    viewBox='0 0 24 24'
+                  >
+                    <path
+                      strokeLinecap='round'
+                      strokeLinejoin='round'
+                      strokeWidth={2}
+                      d='M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
+                    />
+                  </svg>
+                </div>
+                <p className='font-medium text-red-600'>Error loading data</p>
+                <p className='mt-1 text-sm text-gray-600'>{error.message}</p>
+                <button
+                  onClick={() => window.location.reload()}
+                  className='mt-4 rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700'
+                >
+                  Retry
+                </button>
+              </div>
             </div>
           ) : (
             <DataTable table={table} />

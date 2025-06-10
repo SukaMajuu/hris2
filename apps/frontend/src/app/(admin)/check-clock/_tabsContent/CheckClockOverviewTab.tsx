@@ -131,44 +131,81 @@ export default function CheckClockOverviewTab() {
 				accessorKey: "employee.name",
 				cell: ({ row }) => {
 					const employee = row.original.employee;
+					const fullName = `${employee?.first_name || ""} ${employee?.last_name || ""}`.trim();
 					return (
-						<div>
-							{employee?.first_name} {employee?.last_name || ""}
+						<div className="flex items-center justify-center">
+							<div className="max-w-[120px] truncate text-center text-xs md:max-w-[180px] md:text-sm">
+								{fullName}
+							</div>
 						</div>
 					);
 				},
+				meta: { className: "w-[120px] md:w-[180px] text-center" },
 			},
 			{
 				header: "Date",
 				accessorKey: "date",
 				cell: ({ row }) => {
 					const date = new Date(row.original.date);
-					return date.toLocaleDateString("en-US", {
+					const formattedDate = date.toLocaleDateString("en-US", {
 						year: "numeric",
 						month: "long",
 						day: "2-digit",
 					});
+					return (
+						<div className="flex items-center justify-center">
+							<div className="max-w-[100px] truncate text-center text-xs md:max-w-[140px] md:text-sm">
+								{formattedDate}
+							</div>
+						</div>
+					);
 				},
+				meta: { className: "w-[100px] md:w-[140px] text-center" },
 			},
-			{				header: "Clock In",
+			{
+				header: "Clock In",
 				accessorKey: "clock_in",
 				cell: ({ row }) => {
-					// For leave attendance, clock_in will be null
-					return formatTime(row.original.clock_in);
+					const clockIn = formatTime(row.original.clock_in);
+					return (
+						<div className="flex items-center justify-center">
+							<div className="text-center text-xs md:text-sm">
+								{clockIn}
+							</div>
+						</div>
+					);
 				},
+				meta: { className: "w-[80px] md:w-[100px] text-center" },
 			},
-			{				header: "Clock Out",
+			{
+				header: "Clock Out",
 				accessorKey: "clock_out",
 				cell: ({ row }) => {
-					// For leave attendance, clock_out will be null
-					return formatTime(row.original.clock_out);
+					const clockOut = formatTime(row.original.clock_out);
+					return (
+						<div className="flex items-center justify-center">
+							<div className="text-center text-xs md:text-sm">
+								{clockOut}
+							</div>
+						</div>
+					);
 				},
-			},			{				header: "Work Hours",
+				meta: { className: "w-[80px] md:w-[100px] text-center" },
+			},
+			{
+				header: "Work Hours",
 				accessorKey: "work_hours",
 				cell: ({ row }) => {
-					// For leave attendance, work_hours will be null
-					return formatWorkHours(row.original.work_hours);
+					const workHours = formatWorkHours(row.original.work_hours);
+					return (
+						<div className="flex items-center justify-center">
+							<div className="text-center text-xs md:text-sm">
+								{workHours}
+							</div>
+						</div>
+					);
 				},
+				meta: { className: "w-[80px] md:w-[120px] text-center" },
 			},
 			{
 				header: "Status",
@@ -208,36 +245,42 @@ export default function CheckClockOverviewTab() {
 					}
 
 					return (
-						<Badge
-							variant={variant}
-							className="text-sm font-medium"
-						>
-							{displayText}
-						</Badge>
+						<div className="flex items-center justify-center">
+							<Badge
+								variant={variant}
+								className="text-xs font-medium md:text-sm max-w-[100px] md:max-w-[140px] truncate"
+							>
+								{displayText}
+							</Badge>
+						</div>
 					);
 				},
+				meta: { className: "w-[100px] md:w-[140px] text-center" },
 			},
 			{
 				header: "Details",
 				id: "details",
 				cell: ({ row }) => (
-					<Button
-						variant="default"
-						size="sm"
-						className="bg-blue-500 hover:bg-blue-600 text-white px-6"
-						onClick={() => handleViewDetails(row.original.id)}
-					>
-						<Eye className="h-4 w-4 mr-1" />
-						View
-					</Button>
+					<div className="flex items-center justify-center">
+						<Button
+							variant="default"
+							size="sm"
+							className="h-7 w-full cursor-pointer bg-blue-500 px-1 text-xs hover:cursor-pointer hover:bg-blue-600 text-white md:h-8 md:w-auto md:px-2"
+							onClick={() => handleViewDetails(row.original.id)}
+						>
+							<Eye className="mr-0 h-3 w-3 md:mr-1 md:h-4 md:w-4" />
+							<span className="hidden md:inline">View</span>
+							<span className="md:hidden">View</span>
+						</Button>
+					</div>
 				),
+				meta: { className: "w-[80px] md:w-[100px] text-center" },
 				enableSorting: false,
 				enableColumnFilter: false,
 			},
 		],
 		[handleViewDetails]
 	);
-
 	const finalColumns = React.useMemo<ColumnDef<CombinedAttendanceData>[]>(
 		() => [
 			{
@@ -245,9 +288,15 @@ export default function CheckClockOverviewTab() {
 				id: "no",
 				cell: ({ row, table }) => {
 					const { pageIndex, pageSize } = table.getState().pagination;
-					return pageIndex * pageSize + row.index + 1;
+					return (
+						<div className="flex items-center justify-center text-center">
+							<div className="text-xs md:text-sm">
+								{pageIndex * pageSize + row.index + 1}
+							</div>
+						</div>
+					);
 				},
-				meta: { className: "max-w-[80px] w-[80px]" },
+				meta: { className: "w-[50px] md:w-[80px] text-center" },
 				enableSorting: false,
 				enableColumnFilter: false,
 			},
@@ -349,14 +398,37 @@ export default function CheckClockOverviewTab() {
 
 					{isLoading ? (
 						<div className="flex justify-center items-center py-8">
-							<div className="text-slate-500 dark:text-slate-400">
-								Loading attendance data...
+							<div className="text-center">
+								<div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600"></div>
+								<p>Loading attendance data...</p>
 							</div>
 						</div>
 					) : error ? (
 						<div className="flex justify-center items-center py-8">
-							<div className="text-red-500 dark:text-red-400">
-								Error loading attendance data: {error}
+							<div className="text-center">
+								<div className="mb-4 text-red-500">
+									<svg
+										className="mx-auto mb-2 h-12 w-12"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+									>
+										<path
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											strokeWidth={2}
+											d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+										/>
+									</svg>
+								</div>
+								<p className="font-medium text-red-600">Error loading data</p>
+								<p className="mt-1 text-sm text-gray-600">{error}</p>
+								<button
+									onClick={() => window.location.reload()}
+									className="mt-4 rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+								>
+									Retry
+								</button>
 							</div>
 						</div>
 					) : (

@@ -258,7 +258,7 @@ func seedAdminUser(db *gorm.DB) error {
 		SeatPlanID:           premiumSeatPlan.ID,
 		Status:               enums.StatusTrial,
 		IsTrialUsed:          false,
-		StartDate:            time.Now(),
+		StartDate:            time.Now().UTC(),
 		IsAutoRenew:          true,
 		CurrentEmployeeCount: 1, // Admin employee
 	}
@@ -527,7 +527,7 @@ func seedAttendances(db *gorm.DB) error {
 		return nil
 	}
 
-	now := time.Now()
+	now := time.Now().UTC()
 	var attendances []domain.Attendance
 
 	// Define all attendance statuses to showcase (without Leave)
@@ -596,8 +596,8 @@ func generateAttendanceByStatus(attendance domain.Attendance, date time.Time, st
 	switch status {
 	case domain.OnTime:
 		// Standard work hours: 8:00 AM - 5:00 PM
-		clockIn := time.Date(date.Year(), date.Month(), date.Day(), 8, 0, 0, 0, date.Location())
-		clockOut := time.Date(date.Year(), date.Month(), date.Day(), 17, 0, 0, 0, date.Location())
+		clockIn := time.Date(date.Year(), date.Month(), date.Day(), 8, 0, 0, 0, time.UTC)
+		clockOut := time.Date(date.Year(), date.Month(), date.Day(), 17, 0, 0, 0, time.UTC)
 		// Add small variation (0-15 minutes)
 		clockIn = clockIn.Add(time.Duration(secureRandInt(15)) * time.Minute)
 		clockOut = clockOut.Add(time.Duration(secureRandInt(15)) * time.Minute)
@@ -614,9 +614,9 @@ func generateAttendanceByStatus(attendance domain.Attendance, date time.Time, st
 
 	case domain.Late:
 		// Late arrival: 8:30 AM - 9:30 AM
-		clockIn := time.Date(date.Year(), date.Month(), date.Day(), 8, 30, 0, 0, date.Location())
+		clockIn := time.Date(date.Year(), date.Month(), date.Day(), 8, 30, 0, 0, time.UTC)
 		clockIn = clockIn.Add(time.Duration(secureRandInt(60)) * time.Minute) // 30-90 min late
-		clockOut := time.Date(date.Year(), date.Month(), date.Day(), 17, 30, 0, 0, date.Location())
+		clockOut := time.Date(date.Year(), date.Month(), date.Day(), 17, 30, 0, 0, time.UTC)
 
 		workHours := clockOut.Sub(clockIn).Hours() - 1.0
 

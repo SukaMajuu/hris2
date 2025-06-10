@@ -79,7 +79,7 @@ func (dto *CreateAttendanceRequestDTO) ToDomainAttendance() *domain.Attendance {
 			// Combine the parsed date with the parsed time
 			if !attendance.Date.IsZero() {
 				clockInDateTime := time.Date(attendance.Date.Year(), attendance.Date.Month(), attendance.Date.Day(),
-					parsedTime.Hour(), parsedTime.Minute(), parsedTime.Second(), 0, attendance.Date.Location())
+					parsedTime.Hour(), parsedTime.Minute(), parsedTime.Second(), 0, time.UTC)
 				attendance.ClockIn = &clockInDateTime
 			} else {
 				// If no date is set, log the error instead of silently ignoring
@@ -94,7 +94,7 @@ func (dto *CreateAttendanceRequestDTO) ToDomainAttendance() *domain.Attendance {
 			// Combine the parsed date with the parsed time
 			if !attendance.Date.IsZero() {
 				clockOutDateTime := time.Date(attendance.Date.Year(), attendance.Date.Month(), attendance.Date.Day(),
-					parsedTime.Hour(), parsedTime.Minute(), parsedTime.Second(), 0, attendance.Date.Location())
+					parsedTime.Hour(), parsedTime.Minute(), parsedTime.Second(), 0, time.UTC)
 				attendance.ClockOut = &clockOutDateTime
 			} else {
 				// If no date is set, log the error instead of silently ignoring

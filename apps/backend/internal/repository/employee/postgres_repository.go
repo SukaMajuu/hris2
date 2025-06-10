@@ -85,7 +85,7 @@ func (r *PostgresRepository) Update(ctx context.Context, employee *domain.Employ
 		"work_schedule_id":         employee.WorkScheduleID,
 		"annual_leave_allowance":   employee.AnnualLeaveAllowance,
 		"manager_id":               employee.ManagerID,
-		"updated_at":               time.Now(),
+		"updated_at":               time.Now().UTC(),
 	}
 
 	// Log the WorkScheduleID value being updated

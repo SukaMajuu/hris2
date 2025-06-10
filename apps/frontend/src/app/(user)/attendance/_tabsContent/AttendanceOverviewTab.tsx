@@ -5,8 +5,14 @@ import { useCheckClock } from "../_hooks/useAttendance";
 import { useForm } from "react-hook-form";
 import { DataTable } from "@/components/dataTable";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Filter, LogIn, LogOut, Eye } from "lucide-react";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
+import { Filter, LogIn, LogOut, Eye, Clock, MapPin, Plus } from "lucide-react";
 import { PageSizeComponent } from "@/components/pageSize";
 import { PaginationComponent } from "@/components/pagination";
 import {
@@ -14,6 +20,7 @@ import {
 	SheetContent,
 	SheetHeader,
 	SheetTitle,
+	SheetTrigger,
 } from "@/components/ui/sheet";
 import {
 	ColumnDef,
@@ -23,6 +30,7 @@ import {
 	getFilteredRowModel,
 	PaginationState,
 	ColumnFiltersState,
+	flexRender,
 } from "@tanstack/react-table";
 import { ClockInOutDialog } from "../_components/ClockInOutDialog";
 import { AttendanceFilter } from "../_components/AttendanceFilter";
@@ -34,6 +42,22 @@ import { Attendance, AttendanceFormData } from "@/types/attendance";
 import { LeaveRequest, LeaveRequestFilters } from "@/types/leave-request";
 import { Badge } from "@/components/ui/badge";
 import { useMyLeaveRequests } from "../_hooks/useMyLeaveRequests";
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from "@/components/ui/table";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
+import { formatWorkHours, utcToLocalTime } from "@/utils/timezone";
 
 // Status mapping for user-friendly display
 const statusMapping = {
@@ -68,105 +92,13 @@ const getDisplayStatus = (status: string): string => {
 	return statusMapping[status as keyof typeof statusMapping] || status;
 };
 
+// Helper function to format decimal hours to time format
 const formatDecimalHoursToTime = (decimalHours: number | string): string => {
-	const hours = Number(decimalHours);
-	if (isNaN(hours)) return "-";
-
-	const totalSeconds = Math.round(hours * 3600);
-	const h = Math.floor(totalSeconds / 3600);
-	const m = Math.floor((totalSeconds % 3600) / 60);
-	const s = totalSeconds % 60;
-
-	return `${h}h${m}m${s}s`;
-};
-
-const formatTimeToLocal = (
-	utcTime: string | null,
-	dateStr?: string
-): string => {
-	if (!utcTime) return "-";
-
-	try {
-		let date: Date;
-
-		if (utcTime.includes(" ") || utcTime.includes("T")) {
-			if (utcTime.includes("T")) {
-				date = new Date(utcTime);
-			} else {
-				const isoString = utcTime.replace(" ", "T") + "Z";
-				date = new Date(isoString);
-			}
-		} else {
-			const recordDate =
-				dateStr || new Date().toISOString().split("T")[0];
-			const dateTimeString = `${recordDate}T${utcTime}Z`;
-			date = new Date(dateTimeString);
-		}
-
-		if (isNaN(date.getTime())) {
-			console.error("Invalid date:", utcTime);
-			return utcTime;
-		}
-
-		const formatted = date.toLocaleString("en-US", {
-			year: "numeric",
-			month: "short",
-			day: "2-digit",
-			hour: "2-digit",
-			minute: "2-digit",
-			second: "2-digit",
-			timeZoneName: "short",
-		});
-
-		return formatted;
-	} catch (error) {
-		console.error(
-			"Error formatting time to local:",
-			error,
-			"Input:",
-			utcTime
-		);
-		return utcTime || "-";
-	}
-};
-
-const formatTimeOnly = (utcTime: string | null, dateStr?: string): string => {
-	if (!utcTime) return "-";
-
-	try {
-		let date: Date;
-
-		if (utcTime.includes(" ") || utcTime.includes("T")) {
-			if (utcTime.includes("T")) {
-				date = new Date(utcTime);
-			} else {
-				const isoString = utcTime.replace(" ", "T") + "Z";
-				date = new Date(isoString);
-			}
-		} else {
-			const recordDate =
-				dateStr || new Date().toISOString().split("T")[0];
-			const dateTimeString = `${recordDate}T${utcTime}Z`;
-			date = new Date(dateTimeString);
-		}
-
-		if (isNaN(date.getTime())) {
-			console.error("Invalid date in formatTimeOnly:", utcTime);
-			return utcTime;
-		}
-
-		const formatted = date.toLocaleTimeString("en-US", {
-			hour: "2-digit",
-			minute: "2-digit",
-			second: "2-digit",
-			hour12: false,
-		});
-
-		return formatted;
-	} catch (error) {
-		console.error("Error formatting time only:", error, "Input:", utcTime);
-		return utcTime || "-";
-	}
+	const hours =
+		typeof decimalHours === "string"
+			? parseFloat(decimalHours)
+			: decimalHours;
+	return formatWorkHours(hours);
 };
 
 // Helper function to format leave type for display
@@ -194,10 +126,6 @@ const getLeaveStatusBadge = (status: string) => {
 			return <Badge className="bg-gray-600 text-white">{status}</Badge>;
 	}
 };
-
-// Removed formatDecimalHoursToTime - using formatWorkHours from utils instead
-
-// Removed formatTimeToLocal - using formatTime from utils for consistency
 
 export default function AttendanceOverviewTab() {
 	const {
@@ -566,20 +494,16 @@ export default function AttendanceOverviewTab() {
 				header: "Clock In",
 				accessorKey: "clock_in",
 				cell: ({ row }) => {
-					return formatTimeOnly(
-						row.original.clock_in,
-						row.original.date
-					);
+					const clockIn = row.getValue("clock_in") as string | null;
+					return utcToLocalTime(clockIn);
 				},
 			},
 			{
 				header: "Clock Out",
 				accessorKey: "clock_out",
 				cell: ({ row }) => {
-					return formatTimeOnly(
-						row.original.clock_out,
-						row.original.date
-					);
+					const clockOut = row.getValue("clock_out") as string | null;
+					return utcToLocalTime(clockOut);
 				},
 			},
 			{
@@ -812,9 +736,8 @@ export default function AttendanceOverviewTab() {
 											Check-In
 										</p>
 										<p className="text-slate-700">
-											{formatTimeToLocal(
-												selectedData.clock_in,
-												selectedData.date
+											{utcToLocalTime(
+												selectedData.clock_in
 											)}
 										</p>
 									</div>
@@ -823,9 +746,8 @@ export default function AttendanceOverviewTab() {
 											Check-Out
 										</p>
 										<p className="text-slate-700">
-											{formatTimeToLocal(
-												selectedData.clock_out,
-												selectedData.date
+											{utcToLocalTime(
+												selectedData.clock_out
 											)}
 										</p>
 									</div>

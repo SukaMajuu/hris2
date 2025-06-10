@@ -201,7 +201,6 @@ func (uc *LeaveRequestUseCase) CreateForEmployee(ctx context.Context, leaveReque
 	now := time.Now()
 	leaveRequest.CreatedAt = now
 	leaveRequest.UpdatedAt = now
-
 	// Create the leave request
 	err = uc.leaveRequestRepo.Create(ctx, leaveRequest)
 	if err != nil {
@@ -216,6 +215,15 @@ func (uc *LeaveRequestUseCase) CreateForEmployee(ctx context.Context, leaveReque
 	createdLeaveRequest, err := uc.leaveRequestRepo.GetByID(ctx, leaveRequest.ID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve created leave request: %w", err)
+	}
+
+	// Since this is admin-created and automatically approved, create attendance records
+	err = uc.createLeaveAttendanceRecords(ctx, createdLeaveRequest)
+	if err != nil {
+		log.Printf("Warning: Failed to create attendance records for admin-created leave request ID %d: %v", leaveRequest.ID, err)
+		// Don't fail the entire operation if attendance creation fails
+	} else {
+		log.Printf("LeaveRequestUseCase: Created attendance records for admin-created leave request ID %d", leaveRequest.ID)
 	}
 
 	log.Printf("LeaveRequestUseCase: Successfully created leave request with ID %d for employee ID %d", leaveRequest.ID, leaveRequest.EmployeeID)
@@ -485,10 +493,10 @@ func (uc *LeaveRequestUseCase) UpdateStatus(ctx context.Context, id uint, status
 		return nil, fmt.Errorf("invalid status: %s", string(status))
 	}
 
-	// Get leave request before updating to access employee and dates
+	// Get leave request before updating status to access date information
 	leaveRequest, err := uc.leaveRequestRepo.GetByID(ctx, id)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get leave request: %w", err)
+		return nil, fmt.Errorf("failed to get leave request for status update: %w", err)
 	}
 
 	// Update status
@@ -497,12 +505,14 @@ func (uc *LeaveRequestUseCase) UpdateStatus(ctx context.Context, id uint, status
 		return nil, fmt.Errorf("failed to update leave request status: %w", err)
 	}
 
-	// If approved, create attendance records with "absent" status for the leave duration
+	// If approved, create attendance records with "leave" status for the duration
 	if status == domain.LeaveStatusApproved {
-		err = uc.createAbsentAttendanceRecords(ctx, leaveRequest)
+		err = uc.createLeaveAttendanceRecords(ctx, leaveRequest)
 		if err != nil {
-			log.Printf("Warning: Failed to create absent attendance records for leave request %d: %v", id, err)
+			log.Printf("Warning: Failed to create attendance records for approved leave request ID %d: %v", id, err)
 			// Don't fail the entire operation if attendance creation fails
+		} else {
+			log.Printf("LeaveRequestUseCase: Created attendance records for approved leave request ID %d", id)
 		}
 	}
 
@@ -513,59 +523,6 @@ func (uc *LeaveRequestUseCase) UpdateStatus(ctx context.Context, id uint, status
 	}
 	log.Printf("LeaveRequestUseCase: Successfully updated leave request status to %s for ID %d", string(status), id)
 	return uc.toLeaveRequestResponseDTO(updatedLeaveRequest), nil
-}
-
-// createAbsentAttendanceRecords creates attendance records with "absent" status for approved leave request
-func (uc *LeaveRequestUseCase) createAbsentAttendanceRecords(ctx context.Context, leaveRequest *domain.LeaveRequest) error {
-	log.Printf("Creating absent attendance records for employee %d from %s to %s", 
-		leaveRequest.EmployeeID, 
-		leaveRequest.StartDate.Format("2006-01-02"), 
-		leaveRequest.EndDate.Format("2006-01-02"))
-
-	// Iterate through each date in the leave period
-	currentDate := leaveRequest.StartDate
-	for !currentDate.After(leaveRequest.EndDate) {
-		// Check if attendance record already exists for this date
-		existingAttendance, err := uc.attendanceRepo.GetByEmployeeAndDate(ctx, leaveRequest.EmployeeID, currentDate.Format("2006-01-02"))
-		
-		if err == nil && existingAttendance != nil {
-			// Update existing attendance record to absent status
-			existingAttendance.Status = domain.Absent
-			existingAttendance.ClockIn = nil
-			existingAttendance.ClockOut = nil
-			existingAttendance.WorkHours = nil
-			existingAttendance.ClockInLat = nil
-			existingAttendance.ClockInLong = nil
-			existingAttendance.ClockOutLat = nil
-			existingAttendance.ClockOutLong = nil
-			
-			err = uc.attendanceRepo.Update(ctx, existingAttendance)
-			if err != nil {
-				log.Printf("Failed to update attendance for date %s: %v", currentDate.Format("2006-01-02"), err)
-			} else {
-				log.Printf("Updated existing attendance to absent for employee %d on %s", leaveRequest.EmployeeID, currentDate.Format("2006-01-02"))
-			}
-		} else {
-			// Create new attendance record with absent status
-			newAttendance := &domain.Attendance{
-				EmployeeID: leaveRequest.EmployeeID,
-				Date:       currentDate,
-				Status:     domain.Absent,
-			}
-			
-			err = uc.attendanceRepo.Create(ctx, newAttendance)
-			if err != nil {
-				log.Printf("Failed to create absent attendance for date %s: %v", currentDate.Format("2006-01-02"), err)
-			} else {
-				log.Printf("Created absent attendance for employee %d on %s", leaveRequest.EmployeeID, currentDate.Format("2006-01-02"))
-			}
-		}
-		
-		// Move to next day
-		currentDate = currentDate.AddDate(0, 0, 1)
-	}
-	
-	return nil
 }
 
 func (uc *LeaveRequestUseCase) Delete(ctx context.Context, id uint) error {
@@ -712,4 +669,77 @@ func (uc *LeaveRequestUseCase) getContentTypeFromExtension(filename string) stri
 	default:
 		return mimeTypeOctet
 	}
+}
+
+// createLeaveAttendanceRecords creates attendance records with "leave" status for each day in the leave period
+func (uc *LeaveRequestUseCase) createLeaveAttendanceRecords(ctx context.Context, leaveRequest *domain.LeaveRequest) error {
+	log.Printf("LeaveRequestUseCase: Creating attendance records for leave request ID %d from %s to %s", 
+		leaveRequest.ID, leaveRequest.StartDate.Format("2006-01-02"), leaveRequest.EndDate.Format("2006-01-02"))
+
+	// Iterate through each day in the leave period
+	currentDate := leaveRequest.StartDate
+	for !currentDate.After(leaveRequest.EndDate) {
+		// Skip weekends (Saturday = 6, Sunday = 0)
+		if currentDate.Weekday() == time.Saturday || currentDate.Weekday() == time.Sunday {
+			currentDate = currentDate.AddDate(0, 0, 1)
+			continue
+		}
+
+		// Check if attendance record already exists for this date
+		dateStr := currentDate.Format("2006-01-02")
+		existingAttendance, err := uc.attendanceRepo.GetByEmployeeAndDate(ctx, leaveRequest.EmployeeID, dateStr)
+		
+		if err == nil {
+			// Attendance record exists, update it to "leave" status
+			existingAttendance.Status = domain.Leave
+			existingAttendance.ClockIn = nil
+			existingAttendance.ClockOut = nil
+			existingAttendance.WorkHours = nil
+			existingAttendance.ClockInLat = nil
+			existingAttendance.ClockInLong = nil
+			existingAttendance.ClockOutLat = nil
+			existingAttendance.ClockOutLong = nil
+			existingAttendance.UpdatedAt = time.Now()
+
+			err = uc.attendanceRepo.Update(ctx, existingAttendance)
+			if err != nil {
+				log.Printf("Warning: Failed to update existing attendance record for employee %d on %s: %v", 
+					leaveRequest.EmployeeID, dateStr, err)
+			} else {
+				log.Printf("Updated existing attendance record for employee %d on %s to leave status", 
+					leaveRequest.EmployeeID, dateStr)
+			}
+		} else {
+			// No existing attendance record, create a new one with "leave" status
+			newAttendance := &domain.Attendance{
+				EmployeeID: leaveRequest.EmployeeID,
+				Date:       currentDate,
+				Status:     domain.Leave,
+				ClockIn:    nil,
+				ClockOut:   nil,
+				WorkHours:  nil,
+				ClockInLat: nil,
+				ClockInLong: nil,
+				ClockOutLat: nil,
+				ClockOutLong: nil,
+				CreatedAt:  time.Now(),
+				UpdatedAt:  time.Now(),
+			}
+
+			err = uc.attendanceRepo.Create(ctx, newAttendance)
+			if err != nil {
+				log.Printf("Warning: Failed to create attendance record for employee %d on %s: %v", 
+					leaveRequest.EmployeeID, dateStr, err)
+			} else {
+				log.Printf("Created new attendance record for employee %d on %s with leave status", 
+					leaveRequest.EmployeeID, dateStr)
+			}
+		}
+
+		// Move to next day
+		currentDate = currentDate.AddDate(0, 0, 1)
+	}
+
+	log.Printf("LeaveRequestUseCase: Completed creating/updating attendance records for leave request ID %d", leaveRequest.ID)
+	return nil
 }

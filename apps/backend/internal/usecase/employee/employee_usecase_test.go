@@ -1429,8 +1429,9 @@ func TestEmployeeUseCase_BulkImport(t *testing.T) {
 				// Second call: get actual subordinates to check recursively
 				var mockEmployees []*domain.Employee
 				for i := range tt.expectedSuccessfulIDs {
+					empID := uint(100) + uint(i) // Use safer conversion to avoid gosec warning
 					mockEmployees = append(mockEmployees, &domain.Employee{
-						ID:        uint(100 + i), // Use different IDs to avoid conflicts
+						ID:        empID, // Use different IDs to avoid conflicts
 						ManagerID: &creatorEmployeeID,
 					})
 				}
@@ -1445,9 +1446,10 @@ func TestEmployeeUseCase_BulkImport(t *testing.T) {
 
 				// Third call: for each subordinate, check if they have subordinates (should be 0)
 				for i := range tt.expectedSuccessfulIDs {
+					empID := uint(100) + uint(i) // Use safer conversion to avoid gosec warning
 					mockEmployeeRepo.On("List", ctx,
 						map[string]interface{}{
-							"manager_id":        uint(100 + i),
+							"manager_id":        empID,
 							"employment_status": true,
 						},
 						domain.PaginationParams{Page: 1, PageSize: 1}).

@@ -184,8 +184,7 @@ export default function CheckClockOverviewTab() {
 					if (row.original.type === "leave_request") return "-";
 					return formatTime(row.original.clock_out);
 				},
-			},
-			{
+			},			{
 				header: "Work Hours",
 				accessorKey: "work_hours",
 				cell: ({ row }) => {
@@ -204,54 +203,30 @@ export default function CheckClockOverviewTab() {
 						| "outline" = "default";
 					let displayText: string = row.original.status;
 
-					// Handle leave request statuses
-					if (row.original.type === "leave_request") {
-						variant = "outline";
-						switch (row.original.status) {
-							case "sick_leave":
-								displayText = "Sick Leave";
-								break;
-							case "compassionate_leave":
-								displayText = "Compassionate Leave";
-								break;
-							case "maternity_leave":
-								displayText = "Maternity Leave";
-								break;
-							case "annual_leave":
-								displayText = "Annual Leave";
-								break;
-							case "marriage_leave":
-								displayText = "Marriage Leave";
-								break;
-							default:
-								displayText = "Leave";
-								break;
-						}
-					} else {						// Handle attendance statuses
-						switch (row.original.status) {
-							case "late":
-								variant = "destructive";
-								displayText = "Late";
-								break;
-							case "early_leave":
-								variant = "outline";
-								displayText = "Early Leave";
-								break;
-							case "absent":
-								variant = "secondary";
-								displayText = "Absent";
-								break;
-							case "leave":
-								variant = "outline";
-								displayText = "Leave";
-								break;
-							case "on_time":
-							case "ontime":
-							default:
-								variant = "default";
-								displayText = "Ontime";
-								break;
-						}
+					// Handle attendance statuses - only show 5 specific types
+					switch (row.original.status) {
+						case "late":
+							variant = "destructive";
+							displayText = "Late";
+							break;
+						case "early_leave":
+							variant = "outline";
+							displayText = "Early Leave";
+							break;
+						case "absent":
+							variant = "secondary";
+							displayText = "Absent";
+							break;
+						case "leave":
+							variant = "outline";
+							displayText = "Leave";
+							break;
+						case "ontime":
+						case "on_time":
+						default:
+							variant = "default";
+							displayText = "Ontime";
+							break;
 					}
 
 					return (

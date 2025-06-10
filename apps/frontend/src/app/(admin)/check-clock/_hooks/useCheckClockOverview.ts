@@ -156,9 +156,11 @@ export function useCheckClockOverview() {
 		return combinedData.sort(
 			(a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
 		);
-	}, [attendances, leaveRequestsData, employeesData]);
-	const filteredData = useMemo(() => {
+	}, [attendances, leaveRequestsData, employeesData]);	const filteredData = useMemo(() => {
 		let filtered = overviewData;
+		
+		console.log("Original data count:", filtered.length);
+		console.log("Applied filters:", filters);
 
 		// Employee name filter
 		if (nameFilter) {
@@ -169,6 +171,7 @@ export function useCheckClockOverview() {
 							.includes(nameFilter.toLowerCase())
 					: false
 			);
+			console.log("After name filter:", filtered.length);
 		}
 
 		// Advanced filters
@@ -180,6 +183,7 @@ export function useCheckClockOverview() {
 							.includes(filters.employeeName!.toLowerCase())
 					: false
 			);
+			console.log("After employee name filter:", filtered.length);
 		}
 
 		// Date range filter
@@ -189,6 +193,7 @@ export function useCheckClockOverview() {
 				const fromDate = new Date(filters.dateFrom!);
 				return itemDate >= fromDate;
 			});
+			console.log("After date from filter:", filtered.length);
 		}
 
 		if (filters.dateTo) {
@@ -197,24 +202,57 @@ export function useCheckClockOverview() {
 				const toDate = new Date(filters.dateTo!);
 				return itemDate <= toDate;
 			});
-		}
-
-		// Status filter
+			console.log("After date to filter:", filtered.length);
+		}		// Status filter
 		if (filters.status) {
+			console.log("Filtering by status:", filters.status);
+			console.log("Sample data statuses:", filtered.slice(0, 5).map(item => ({ id: item.id, type: item.type, status: item.status, leave_type: item.leave_type })));
+			
 			filtered = filtered.filter((item) => {
 				const statusToMatch = filters.status!.toLowerCase();
 				
-				// For leave requests, check the leave_type or status
+				// For leave requests, check the leave_type (which becomes the status)
 				if (item.type === "leave_request") {
+					// Leave requests use leave_type as their status
 					const leaveType = item.leave_type?.toLowerCase() || item.status?.toLowerCase();
-					return leaveType === statusToMatch;
+					const matches = leaveType === statusToMatch;
+					if (matches) console.log("Leave request match:", item.id, leaveType, "matches", statusToMatch);
+					return matches;
 				}
 				
-				// For attendance records, check the status
-				return item.status?.toLowerCase() === statusToMatch;
+				// For attendance records, check the status with proper mapping
+				const itemStatus = item.status?.toLowerCase();
+				
+				// Handle status variations and mapping
+				let matches = false;
+				switch (statusToMatch) {
+					case "ontime":
+						matches = itemStatus === "ontime" || itemStatus === "on_time";
+						break;
+					case "early_leave":
+						matches = itemStatus === "early_leave" || itemStatus === "early leave";
+						break;
+					case "late":
+						matches = itemStatus === "late";
+						break;
+					case "absent":
+						matches = itemStatus === "absent";
+						break;
+					case "leave":
+						matches = itemStatus === "leave";
+						break;
+					default:
+						matches = itemStatus === statusToMatch;
+						break;
+				}
+				
+				if (matches) console.log("Attendance match:", item.id, itemStatus, "matches", statusToMatch);
+				return matches;
 			});
+			console.log("After status filter:", filtered.length);
 		}
 
+		console.log("Final filtered data count:", filtered.length);
 		return filtered;
 	}, [overviewData, nameFilter, filters]);
 

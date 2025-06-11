@@ -37,6 +37,9 @@ func (c *Client) CreateSnapTransaction(ctx context.Context, req interfaces.Midtr
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
+	// Debug: Print the exact JSON being sent to Midtrans
+	fmt.Printf("DEBUG MIDTRANS CLIENT: Sending JSON to Midtrans: %s\n", string(reqBody))
+
 	httpReq, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(reqBody))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -62,6 +65,9 @@ func (c *Client) CreateSnapTransaction(ctx context.Context, req interfaces.Midtr
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
+
+	// Debug: Print the exact response from Midtrans
+	fmt.Printf("DEBUG MIDTRANS CLIENT: Response from Midtrans: %s\n", string(body))
 
 	if resp.StatusCode != http.StatusCreated {
 		return nil, fmt.Errorf("midtrans API error [%d]: %s", resp.StatusCode, string(body))

@@ -106,7 +106,7 @@ func (uc *MidtransSubscriptionUseCase) InitiatePaidCheckout(ctx context.Context,
 	snapReq := interfaces.MidtransSnapRequest{
 		TransactionDetails: interfaces.MidtransTransactionDetails{
 			OrderID:     orderID,
-			GrossAmount: amount,
+			GrossAmount: amount.IntPart(),
 		},
 		CustomerDetails: &interfaces.MidtransCustomerDetails{
 			Email: user.Email,
@@ -115,7 +115,7 @@ func (uc *MidtransSubscriptionUseCase) InitiatePaidCheckout(ctx context.Context,
 			{
 				ID:       fmt.Sprintf("HRIS-%d", seatPlanID),
 				Name:     description,
-				Price:    amount,
+				Price:    amount.IntPart(),
 				Quantity: 1,
 				Category: func() *string { s := "Subscription"; return &s }(),
 			},

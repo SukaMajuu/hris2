@@ -68,6 +68,7 @@ export interface CheckoutSession {
 	currency: string;
 	session_type: "trial" | "paid";
 	status: "pending" | "completed" | "expired";
+	payment_url?: string;
 	initiated_at: string;
 	expires_at: string | null;
 	completed_at: string | null;

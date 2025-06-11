@@ -135,6 +135,7 @@ const SeatTierCardComponent: React.FC<SeatTierCardComponentProps> = ({
 			hasActiveSubscription &&
 			userSubscription?.subscription_plan?.id !== tier.planId
 		) {
+			// Plan change - redirect to checkout
 			const params = new URLSearchParams({
 				planId: tier.planId.toString(),
 				seatPlanId: tier.id.toString(),
@@ -144,10 +145,17 @@ const SeatTierCardComponent: React.FC<SeatTierCardComponentProps> = ({
 
 			router.push(`/subscription/checkout?${params.toString()}`);
 		} else if (canUpgradeDowngrade && (isUpgrade || isDowngrade)) {
-			await changeSeat({
-				new_seat_plan_id: tier.id,
-				is_monthly: true,
+			// Seat tier change within same plan - redirect to checkout for preview and payment
+			const params = new URLSearchParams({
+				planId:
+					userSubscription?.subscription_plan?.id?.toString() ||
+					tier.planId.toString(),
+				seatPlanId: tier.id.toString(),
+				isMonthly: "true",
+				upgrade: isUpgrade ? "true" : "false", // Set upgrade flag based on whether it's an upgrade or downgrade
 			});
+
+			router.push(`/subscription/checkout?${params.toString()}`);
 		} else {
 			onSelectSeatTier(tier.planId, tier.id);
 		}

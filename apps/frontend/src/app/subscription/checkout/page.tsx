@@ -117,13 +117,11 @@ function CheckoutPageContent() {
 	}
 
 	const handleContinueToPayment = async () => {
-		if (isProcessingCheckout) return; // Prevent double-click
+		if (isProcessingCheckout) return;
 
 		setIsProcessingCheckout(true);
 
 		try {
-			// If we already have a preset amount (from a previous API call),
-			// skip the API call and go directly to payment
 			if (
 				presetAmount &&
 				(isUpgrade ||
@@ -151,15 +149,12 @@ function CheckoutPageContent() {
 				const response = await processSubscriptionChange();
 
 				if (response?.payment_required) {
-					// Check if we have a checkout session with payment URL (for upgrades/changes)
 					if (response.checkout_session?.payment_url) {
-						// Redirect directly to Midtrans payment URL from the upgrade transaction
 						window.location.href =
 							response.checkout_session.payment_url;
 						return;
 					}
 
-					// Fallback: If no direct payment URL, redirect to payment process page
 					const params = new URLSearchParams({
 						planId: planId.toString(),
 						seatPlanId: seatPlanId.toString(),
@@ -171,7 +166,6 @@ function CheckoutPageContent() {
 							totalAtRenewal.toString(),
 					});
 
-					// Add context flags
 					if (isUpgrade) params.set("upgrade", "true");
 					if (isTrialConversion)
 						params.set("trial_conversion", "true");
@@ -179,7 +173,6 @@ function CheckoutPageContent() {
 					router.push(`/payment/process?${params.toString()}`);
 					return;
 				} else {
-					// No payment required, change was applied immediately
 					toast.success(
 						response?.message ||
 							"Subscription updated successfully!"
@@ -189,7 +182,6 @@ function CheckoutPageContent() {
 				}
 			}
 
-			// For new subscriptions, proceed with normal payment flow
 			const isMonthly = selectedBillingOption?.id === "monthly";
 			const params = new URLSearchParams({
 				planId: planId.toString(),
@@ -210,7 +202,6 @@ function CheckoutPageContent() {
 		}
 	};
 
-	// Get appropriate titles and messaging based on context
 	const getPageTitle = () => {
 		switch (changeContext.type) {
 			case "trial_conversion":

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import {
 	useSubscriptionPlans,
@@ -45,10 +45,12 @@ export const useCheckout = () => {
 	const defaultBillingOption =
 		isMonthlyParam === "false" ? "yearly" : "monthly";
 
-	const [selectedBillingOptionId, setSelectedBillingOptionId] = useState<
-		string
-	>(defaultBillingOption);
+	const [selectedBillingOptionId, setSelectedBillingOptionId] = useState(
+		defaultBillingOption
+	);
 	const [taxRate] = useState(0.0);
+
+	// State for calculated proration amounts
 	const [calculatedAmount, setCalculatedAmount] = useState<number | null>(
 		null
 	);
@@ -56,6 +58,12 @@ export const useCheckout = () => {
 	const [calculationError, setCalculationError] = useState<string | null>(
 		null
 	);
+
+	// Track calculation for different billing periods
+	const [calculatedAmounts, setCalculatedAmounts] = useState<{
+		monthly?: number | null;
+		yearly?: number | null;
+	}>({});
 
 	// Subscription change mutations
 	const changePlanMutation = useChangeSubscriptionPlan();
@@ -138,94 +146,8 @@ export const useCheckout = () => {
 	}, [userSubscription, isTrialConversion, selectedPlan, selectedSeatPlan]);
 
 	// Auto-calculate prorated amount for changes without preset amount
-	useEffect(() => {
-		const shouldCalculateAmount =
-			!presetAmount && // No preset amount in URL
-			!isTrialConversion && // Not a trial conversion
-			changeContext.type !== "new_subscription" && // Not a new subscription
-			planId &&
-			seatPlanId && // Have required IDs
-			!isCalculatingAmount && // Not already calculating
-			calculatedAmount === null && // Haven't calculated yet
-			calculationError === null && // No previous error
-			userSubscription; // Have user subscription data
-
-		if (shouldCalculateAmount) {
-			setIsCalculatingAmount(true);
-			setCalculationError(null);
-
-			const calculateAmount = async () => {
-				try {
-					const isMonthly = defaultBillingOption === "monthly";
-
-					if (changeContext.type === "plan_change") {
-						const request: UpgradeSubscriptionPlanRequest = {
-							new_subscription_plan_id: planId,
-							new_seat_plan_id: seatPlanId,
-							is_monthly: isMonthly,
-						};
-						const response = await previewPlanMutation.mutateAsync(
-							request
-						);
-
-						if (
-							response.requires_payment &&
-							response.proration_amount !== undefined
-						) {
-							setCalculatedAmount(
-								Number(response.proration_amount)
-							);
-						} else {
-							setCalculatedAmount(0);
-						}
-					} else if (changeContext.type === "seat_change") {
-						const request: ChangeSeatPlanRequest = {
-							new_seat_plan_id: seatPlanId,
-							is_monthly: isMonthly,
-						};
-						const response = await previewSeatMutation.mutateAsync(
-							request
-						);
-
-						if (
-							response.requires_payment &&
-							response.proration_amount !== undefined
-						) {
-							setCalculatedAmount(
-								Number(response.proration_amount)
-							);
-						} else {
-							setCalculatedAmount(0);
-						}
-					}
-				} catch (error) {
-					console.error("Failed to auto-calculate amount:", error);
-					const errorMessage =
-						error instanceof Error
-							? error.message
-							: "Unknown error";
-					setCalculationError(errorMessage);
-					// On error, fallback to base price calculation
-					setCalculatedAmount(null);
-				} finally {
-					setIsCalculatingAmount(false);
-				}
-			};
-
-			calculateAmount();
-		}
-	}, [
-		presetAmount,
-		isTrialConversion,
-		changeContext.type,
-		planId,
-		seatPlanId,
-		isCalculatingAmount,
-		calculatedAmount, // Add this to prevent recalculation
-		calculationError, // Add this to prevent retry on error
-		userSubscription,
-		defaultBillingOption,
-	]);
+	// REMOVED: This was causing unnecessary refetches when billing period changes
+	// Instead, we'll use local calculation for billing period changes
 
 	// Generate billing options based on selected seat plan
 	const billingOptions: BillingOption[] = useMemo(() => {
@@ -236,14 +158,14 @@ export const useCheckout = () => {
 				id: "monthly",
 				label: "Monthly",
 				pricePerUser: Number(selectedSeatPlan.price_per_month),
-				type: "monthly",
+				type: "monthly" as const,
 				suffix: "/ Month",
 			},
 			{
 				id: "yearly",
 				label: "Yearly",
 				pricePerUser: Number(selectedSeatPlan.price_per_year),
-				type: "yearly",
+				type: "yearly" as const,
 				suffix: "/ Year",
 			},
 		];
@@ -256,12 +178,48 @@ export const useCheckout = () => {
 
 	// Price calculations
 	const priceCalculations = useMemo(() => {
-		// Use preset amount if available, then calculated amount, then fallback to base price
 		const basePrice = Number(selectedBillingOption?.pricePerUser || 0);
-		const effectiveAmount = presetAmount ?? calculatedAmount ?? basePrice;
-		const isUpgradeAmount =
-			presetAmount !== null || calculatedAmount !== null;
-		const pricePerUser = effectiveAmount;
+
+		// For preset amounts (from URL), always use them regardless of billing period
+		if (presetAmount !== null) {
+			const pricePerUser = presetAmount;
+			const subtotal = pricePerUser;
+			const taxAmount = subtotal * taxRate;
+			const totalAtRenewal = subtotal + taxAmount;
+
+			return {
+				pricePerUser,
+				subtotal,
+				taxAmount,
+				totalAtRenewal,
+				basePrice,
+				isUpgradeAmount: true,
+			};
+		}
+
+		// For plan/seat changes, use calculated proration amount if available
+		if (
+			(changeContext.type === "plan_change" ||
+				changeContext.type === "seat_change") &&
+			calculatedAmount !== null
+		) {
+			const pricePerUser = calculatedAmount;
+			const subtotal = pricePerUser;
+			const taxAmount = subtotal * taxRate;
+			const totalAtRenewal = subtotal + taxAmount;
+
+			return {
+				pricePerUser,
+				subtotal,
+				taxAmount,
+				totalAtRenewal,
+				basePrice,
+				isUpgradeAmount: true, // This is upgrade/change amount
+			};
+		}
+
+		// For new subscriptions and trial conversions, use full price based on billing period
+		const pricePerUser = basePrice;
 		const subtotal = pricePerUser;
 		const taxAmount = subtotal * taxRate;
 		const totalAtRenewal = subtotal + taxAmount;
@@ -271,10 +229,16 @@ export const useCheckout = () => {
 			subtotal,
 			taxAmount,
 			totalAtRenewal,
-			basePrice, // Full price of the new plan
-			isUpgradeAmount, // Whether we're showing upgrade amount or full price
+			basePrice,
+			isUpgradeAmount: false, // This is full price
 		};
-	}, [selectedBillingOption, taxRate, presetAmount, calculatedAmount]);
+	}, [
+		selectedBillingOption,
+		taxRate,
+		presetAmount,
+		calculatedAmount,
+		changeContext.type,
+	]);
 
 	// Validation
 	const isValidCheckout = useMemo(() => {
@@ -339,6 +303,140 @@ export const useCheckout = () => {
 			throw error;
 		}
 	};
+
+	// Smart auto-calculation that caches results for both billing periods
+	useEffect(() => {
+		const shouldCalculateAmount =
+			!presetAmount && // No preset amount in URL
+			!isTrialConversion && // Not a trial conversion
+			changeContext.type !== "new_subscription" && // Not a new subscription
+			planId &&
+			seatPlanId && // Have required IDs
+			!isCalculatingAmount && // Not already calculating
+			userSubscription && // Have user subscription data
+			// Only calculate if we don't have cached results for both periods
+			(calculatedAmounts.monthly === undefined ||
+				calculatedAmounts.yearly === undefined);
+
+		if (shouldCalculateAmount) {
+			setIsCalculatingAmount(true);
+			setCalculationError(null);
+
+			const calculateBothPeriods = async () => {
+				try {
+					const results: {
+						monthly?: number | null;
+						yearly?: number | null;
+					} = {};
+
+					// Calculate for both monthly and yearly
+					for (const isMonthly of [true, false]) {
+						const periodKey = isMonthly ? "monthly" : "yearly";
+
+						// Skip if we already have this period calculated
+						if (calculatedAmounts[periodKey] !== undefined) {
+							results[periodKey] = calculatedAmounts[periodKey];
+							continue;
+						}
+
+						try {
+							if (changeContext.type === "plan_change") {
+								const request: UpgradeSubscriptionPlanRequest = {
+									new_subscription_plan_id: planId,
+									new_seat_plan_id: seatPlanId,
+									is_monthly: isMonthly,
+								};
+								const response = await previewPlanMutation.mutateAsync(
+									request
+								);
+
+								if (
+									response.requires_payment &&
+									response.proration_amount !== undefined
+								) {
+									results[periodKey] = Number(
+										response.proration_amount
+									);
+								} else {
+									results[periodKey] = 0;
+								}
+							} else if (changeContext.type === "seat_change") {
+								const request: ChangeSeatPlanRequest = {
+									new_seat_plan_id: seatPlanId,
+									is_monthly: isMonthly,
+								};
+								const response = await previewSeatMutation.mutateAsync(
+									request
+								);
+
+								if (
+									response.requires_payment &&
+									response.proration_amount !== undefined
+								) {
+									results[periodKey] = Number(
+										response.proration_amount
+									);
+								} else {
+									results[periodKey] = 0;
+								}
+							}
+						} catch (error) {
+							console.error(
+								`Failed to calculate ${periodKey} amount:`,
+								error
+							);
+							results[periodKey] = null; // Mark as failed
+						}
+					}
+
+					// Update cached amounts
+					setCalculatedAmounts((prev) => ({ ...prev, ...results }));
+
+					// Set current calculated amount based on selected billing period
+					const currentPeriod =
+						selectedBillingOptionId === "monthly"
+							? "monthly"
+							: "yearly";
+					setCalculatedAmount(results[currentPeriod] ?? null);
+				} catch (error) {
+					console.error("Failed to auto-calculate amounts:", error);
+					const errorMessage =
+						error instanceof Error
+							? error.message
+							: "Unknown error";
+					setCalculationError(errorMessage);
+				} finally {
+					setIsCalculatingAmount(false);
+				}
+			};
+
+			calculateBothPeriods();
+		}
+	}, [
+		presetAmount,
+		isTrialConversion,
+		changeContext.type,
+		planId,
+		seatPlanId,
+		isCalculatingAmount,
+		userSubscription,
+		calculatedAmounts.monthly,
+		calculatedAmounts.yearly,
+		previewPlanMutation,
+		previewSeatMutation,
+	]);
+
+	// Update calculatedAmount when billing period changes (using cached values)
+	useEffect(() => {
+		if (
+			calculatedAmounts.monthly !== undefined &&
+			calculatedAmounts.yearly !== undefined
+		) {
+			const currentPeriod =
+				selectedBillingOptionId === "monthly" ? "monthly" : "yearly";
+			setCalculatedAmount(calculatedAmounts[currentPeriod] ?? null);
+		}
+	}, [selectedBillingOptionId, calculatedAmounts]);
 
 	return {
 		// URL Parameters

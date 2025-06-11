@@ -74,3 +74,9 @@ func (m *LeaveRequestRepository) HasApprovedLeaveForDate(ctx context.Context, em
 	args := m.Called(ctx, employeeID, date)
 	return args.Get(0).(bool), args.Error(1)
 }
+
+// HasOverlappingLeaveRequest mocks the HasOverlappingLeaveRequest method
+func (m *LeaveRequestRepository) HasOverlappingLeaveRequest(ctx context.Context, employeeID uint, startDate, endDate time.Time, excludeRequestID *uint) (bool, error) {
+	args := m.Called(ctx, employeeID, startDate, endDate, excludeRequestID)
+	return args.Bool(0), args.Error(1)
+}

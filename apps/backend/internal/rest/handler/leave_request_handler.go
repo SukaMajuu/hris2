@@ -50,6 +50,8 @@ func (h *LeaveRequestHandler) CreateLeaveRequest(c *gin.Context) {
 	if err != nil {
 		if errors.Is(err, domain.ErrEmployeeNotFound) {
 			response.NotFound(c, "Employee not found", err)
+		} else if errors.Is(err, domain.ErrOverlappingLeaveRequest) {
+			response.Conflict(c, "You already have a pending or approved leave request for overlapping dates", err)
 		} else {
 			response.InternalServerError(c, err)
 		}
@@ -89,6 +91,8 @@ func (h *LeaveRequestHandler) CreateLeaveRequestForEmployee(c *gin.Context) {
 	if err != nil {
 		if errors.Is(err, domain.ErrEmployeeNotFound) {
 			response.NotFound(c, "Employee not found", err)
+		} else if errors.Is(err, domain.ErrOverlappingLeaveRequest) {
+			response.Conflict(c, "Employee already has a pending or approved leave request for overlapping dates", err)
 		} else {
 			response.InternalServerError(c, err)
 		}
@@ -255,6 +259,8 @@ func (h *LeaveRequestHandler) UpdateLeaveRequest(c *gin.Context) {
 			response.NotFound(c, "Leave request not found", err)
 		} else if errors.Is(err, domain.ErrEmployeeNotFound) {
 			response.NotFound(c, "Employee not found", err)
+		} else if errors.Is(err, domain.ErrOverlappingLeaveRequest) {
+			response.Conflict(c, "You already have a pending or approved leave request for overlapping dates", err)
 		} else {
 			response.InternalServerError(c, err)
 		}

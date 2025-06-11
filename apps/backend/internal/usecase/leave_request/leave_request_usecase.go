@@ -100,6 +100,15 @@ func (uc *LeaveRequestUseCase) Create(ctx context.Context, leaveRequest *domain.
 	if leaveRequest.StartDate.After(leaveRequest.EndDate) {
 		return nil, fmt.Errorf("start date cannot be after end date")
 	}
+
+	// Check for overlapping leave requests
+	hasOverlapping, err := uc.leaveRequestRepo.HasOverlappingLeaveRequest(ctx, leaveRequest.EmployeeID, leaveRequest.StartDate, leaveRequest.EndDate, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check for overlapping leave requests: %w", err)
+	}
+	if hasOverlapping {
+		return nil, domain.ErrOverlappingLeaveRequest
+	}
 	if file != nil && file.Size > 0 && file.Filename != "" && uc.supabaseClient != nil { // Validate file type
 		if err := uc.validateAttachmentFile(file); err != nil {
 			return nil, err
@@ -157,10 +166,18 @@ func (uc *LeaveRequestUseCase) CreateForEmployee(ctx context.Context, leaveReque
 	if employee == nil {
 		return nil, fmt.Errorf("employee with ID %d not found", leaveRequest.EmployeeID)
 	}
-
 	// Validate dates
 	if leaveRequest.StartDate.After(leaveRequest.EndDate) {
 		return nil, fmt.Errorf("start date cannot be after end date")
+	}
+
+	// Check for overlapping leave requests
+	hasOverlapping, err := uc.leaveRequestRepo.HasOverlappingLeaveRequest(ctx, leaveRequest.EmployeeID, leaveRequest.StartDate, leaveRequest.EndDate, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check for overlapping leave requests: %w", err)
+	}
+	if hasOverlapping {
+		return nil, domain.ErrOverlappingLeaveRequest
 	}
 
 	// Handle file upload if provided
@@ -420,10 +437,18 @@ func (uc *LeaveRequestUseCase) Update(ctx context.Context, id uint, updates *dom
 	}
 	if updates.EmployeeNote != nil {
 		existingLeaveRequest.EmployeeNote = updates.EmployeeNote
-	}
-	// Validate dates
+	}	// Validate dates
 	if existingLeaveRequest.StartDate.After(existingLeaveRequest.EndDate) {
 		return nil, fmt.Errorf("start date cannot be after end date")
+	}
+
+	// Check for overlapping leave requests (exclude current request)
+	hasOverlapping, err := uc.leaveRequestRepo.HasOverlappingLeaveRequest(ctx, existingLeaveRequest.EmployeeID, existingLeaveRequest.StartDate, existingLeaveRequest.EndDate, &existingLeaveRequest.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check for overlapping leave requests: %w", err)
+	}
+	if hasOverlapping {
+		return nil, domain.ErrOverlappingLeaveRequest
 	}
 
 	// Handle file upload if provided

@@ -157,35 +157,33 @@ export default function EmployeeManagementPage() {
 
   return (
     <FeatureGuard feature={FEATURE_CODES.EMPLOYEE_MANAGEMENT}>
-      <div className='container mx-auto p-6'>
-        <div className='space-y-6'>
-          <StatsSection />
+      <div className='flex flex-col gap-6'>
+        <StatsSection />
 
-          <EmployeeLimitCard />
+        <EmployeeLimitCard />
 
-          <Card className='border border-gray-100 dark:border-gray-800'>
-            <CardContent>
-              <TableHeader
-                nameSearch={nameSearch}
-                setNameSearch={setNameSearch}
-                employees={filteredEmployees}
-                allEmployees={allEmployees}
-                genderFilter={genderFilter}
-                setGenderFilter={setGenderFilter}
-                statusFilter={statusFilter}
-                setStatusFilter={setStatusFilter}
-                onEmployeesChange={refetchEmployees}
-              />
+        <Card className='border border-gray-100 dark:border-gray-800'>
+          <CardContent>
+            <TableHeader
+              nameSearch={nameSearch}
+              setNameSearch={setNameSearch}
+              employees={filteredEmployees}
+              allEmployees={allEmployees}
+              genderFilter={genderFilter}
+              setGenderFilter={setGenderFilter}
+              statusFilter={statusFilter}
+              setStatusFilter={setStatusFilter}
+              onEmployeesChange={refetchEmployees}
+            />
 
-              <DataTable table={table} />
+            <DataTable table={table} />
 
-              <div className='mt-6 flex flex-col items-center justify-between gap-4 md:flex-row'>
-                <PageSizeComponent table={table} totalRecords={filteredEmployees.length} />
-                <PaginationComponent table={table} />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+            <div className='mt-6 flex flex-col items-center justify-between gap-4 md:flex-row'>
+              <PageSizeComponent table={table} totalRecords={filteredEmployees.length} />
+              <PaginationComponent table={table} />
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </FeatureGuard>
   );

@@ -105,6 +105,7 @@ type PaymentRepository interface {
 	GetSubscriptionByAdminUserID(ctx context.Context, adminUserID uint) (*domain.Subscription, error)
 	CreateSubscription(ctx context.Context, subscription *domain.Subscription) error
 	UpdateSubscription(ctx context.Context, subscription *domain.Subscription) error
+	UpdateSubscriptionFields(ctx context.Context, subscriptionID uint, fields map[string]interface{}) error
 	GetSubscriptionsByStatus(ctx context.Context, status enums.SubscriptionStatus) ([]domain.Subscription, error)
 	GetSubscriptionsDueForRenewal(ctx context.Context, date time.Time) ([]domain.Subscription, error)
 

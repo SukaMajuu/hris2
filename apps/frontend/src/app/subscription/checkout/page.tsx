@@ -49,6 +49,10 @@ function CheckoutPageContent() {
 		totalAtRenewal,
 		taxRate,
 
+		// Additional pricing context
+		basePrice,
+		isUpgradeAmount,
+
 		// Validation
 		isValidCheckout,
 
@@ -117,13 +121,55 @@ function CheckoutPageContent() {
 
 		setIsProcessingCheckout(true);
 
+		console.log("=== CHECKOUT DEBUG ===");
+		console.log("Change Context:", changeContext);
+		console.log("Preset Amount:", presetAmount);
+		console.log("Is Upgrade:", isUpgrade);
+		console.log("Plan ID:", planId, "Seat Plan ID:", seatPlanId);
+
 		try {
-			// For subscription changes (upgrades, downgrades, trial conversions),
-			// call the backend API first
+			// If we already have a preset amount (from a previous API call),
+			// skip the API call and go directly to payment
+			if (
+				presetAmount &&
+				(isUpgrade ||
+					isTrialConversion ||
+					changeContext.type === "plan_change" ||
+					changeContext.type === "seat_change")
+			) {
+				console.log(
+					"Skipping API call, using preset amount:",
+					presetAmount
+				);
+				const isMonthly = selectedBillingOption?.id === "monthly";
+				const params = new URLSearchParams({
+					planId: planId.toString(),
+					seatPlanId: seatPlanId.toString(),
+					isMonthly: isMonthly.toString(),
+					amount: presetAmount.toString(),
+				});
+
+				// Add context flags
+				if (isUpgrade) params.set("upgrade", "true");
+				if (isTrialConversion) params.set("trial_conversion", "true");
+
+				router.push(`/payment/process?${params.toString()}`);
+				return;
+			}
+
 			if (changeContext.type !== "new_subscription") {
+				console.log(
+					"Calling processSubscriptionChange for:",
+					changeContext.type
+				);
 				const response = await processSubscriptionChange();
+				console.log("ProcessSubscriptionChange response:", response);
 
 				if (response?.payment_required) {
+					console.log(
+						"Payment required, amount:",
+						response.payment_amount
+					);
 					// If payment is required, redirect to payment with the payment amount
 					const params = new URLSearchParams({
 						planId: planId.toString(),
@@ -141,9 +187,16 @@ function CheckoutPageContent() {
 					if (isTrialConversion)
 						params.set("trial_conversion", "true");
 
+					console.log(
+						"Redirecting to payment with params:",
+						params.toString()
+					);
 					router.push(`/payment/process?${params.toString()}`);
 					return;
 				} else {
+					console.log(
+						"No payment required, applying changes directly"
+					);
 					// No payment required, change was applied immediately
 					toast.success(
 						response?.message ||
@@ -154,6 +207,10 @@ function CheckoutPageContent() {
 				}
 			}
 
+			console.log(
+				"New subscription flow, using totalAtRenewal:",
+				totalAtRenewal
+			);
 			// For new subscriptions, proceed with normal payment flow
 			const isMonthly = selectedBillingOption?.id === "monthly";
 			const params = new URLSearchParams({
@@ -415,11 +472,34 @@ function CheckoutPageContent() {
 							{selectedSeatPlan!.max_employees}
 						</span>
 					</div>
+
+					{/* Show full plan price for reference when upgrading */}
+					{isUpgradeAmount && (
+						<div className="flex justify-between text-sm">
+							<span className="text-slate-600 dark:text-slate-400">
+								New Plan Price:
+							</span>
+							<span className="font-medium text-slate-700 dark:text-slate-200">
+								{formatCurrency(basePrice)}
+							</span>
+						</div>
+					)}
+
 					<div className="flex justify-between text-sm">
 						<span className="text-slate-600 dark:text-slate-400">
-							{presetAmount ? "Change Amount:" : "Price:"}
+							{isUpgradeAmount
+								? "Amount Due Today:"
+								: presetAmount
+								? "Change Amount:"
+								: "Price:"}
 						</span>
-						<span className="font-medium text-slate-700 dark:text-slate-200">
+						<span
+							className={`font-medium ${
+								isUpgradeAmount
+									? "text-green-600 dark:text-green-400"
+									: "text-slate-700 dark:text-slate-200"
+							}`}
+						>
 							{formatCurrency(pricePerUser)}
 						</span>
 					</div>
@@ -447,9 +527,15 @@ function CheckoutPageContent() {
 
 					<div className="flex justify-between text-lg font-bold">
 						<span className="text-slate-800 dark:text-slate-100">
-							Total:
+							{isUpgradeAmount ? "Total Due Today:" : "Total:"}
 						</span>
-						<span className="text-slate-800 dark:text-slate-100">
+						<span
+							className={`${
+								isUpgradeAmount
+									? "text-green-600 dark:text-green-400"
+									: "text-slate-800 dark:text-slate-100"
+							}`}
+						>
 							{formatCurrency(totalAtRenewal)}
 						</span>
 					</div>
@@ -465,10 +551,18 @@ function CheckoutPageContent() {
 							)}
 							{(changeContext.type === "plan_change" ||
 								changeContext.type === "seat_change") && (
-								<p>
-									Changes will be prorated and take effect
-									immediately.
-								</p>
+								<>
+									<p>
+										Changes will be prorated and take effect
+										immediately.
+									</p>
+									{isUpgradeAmount && (
+										<p className="mt-1 text-green-600 dark:text-green-400">
+											You're only paying the difference
+											for the remaining billing period.
+										</p>
+									)}
+								</>
 							)}
 						</div>
 					)}

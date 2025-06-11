@@ -16,6 +16,21 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+// convertToIDRWholeNumber converts decimal amount to whole number for IDR currency
+// Midtrans requires whole numbers for IDR, no cents allowed
+func convertToIDRWholeNumber(amount decimal.Decimal) decimal.Decimal {
+	// Round to nearest whole number
+	rounded := amount.Round(0)
+
+	// Ensure minimum amount for Midtrans (avoid zero amounts)
+	minAmount := decimal.NewFromInt(1000) // 1000 IDR minimum
+	if rounded.LessThan(minAmount) {
+		return minAmount
+	}
+
+	return rounded
+}
+
 type SubscriptionUseCase struct {
 	xenditRepo     interfaces.PaymentRepository
 	employeeRepo   interfaces.EmployeeRepository
@@ -148,6 +163,9 @@ func (uc *SubscriptionUseCase) InitiatePaidCheckout(ctx context.Context, userID,
 		paymentAmount = decimal.NewFromInt(1000)
 	}
 
+	// Convert to whole number for IDR currency (Midtrans requirement)
+	paymentAmount = convertToIDRWholeNumber(paymentAmount)
+
 	snapReq := interfaces.MidtransSnapRequest{
 		TransactionDetails: interfaces.MidtransTransactionDetails{
 			OrderID:     orderID,
@@ -200,7 +218,6 @@ func (uc *SubscriptionUseCase) InitiatePaidCheckout(ctx context.Context, userID,
 		CheckoutSession: subscriptionDto.ToCheckoutSessionResponse(checkoutSession),
 		Invoice: &subscriptionDto.InvoiceResponse{
 			ID:         snapResp.Token,
-			InvoiceURL: snapResp.RedirectURL,
 			Amount:     amount,
 			Currency:   "IDR",
 			ExpiryDate: time.Now().UTC().Add(24 * time.Hour).Format(time.RFC3339),
@@ -792,13 +809,18 @@ func (uc *SubscriptionUseCase) activateMidtransSubscription(ctx context.Context,
 	if subscription.Status == enums.StatusTrial {
 		fmt.Printf("activateMidtransSubscription: Converting trial subscription to paid\n")
 
-		subscription.ConvertFromTrialWithCheckoutSession(checkoutSession.Amount)
+		// Update subscription plan and seat plan from checkout session
+		subscription.SubscriptionPlanID = checkoutSession.SubscriptionPlanID
+		subscription.SeatPlanID = checkoutSession.SeatPlanID
+
+		// subscription.ConvertFromTrialWithCheckoutSession(checkoutSession.Amount)
 		if err := uc.xenditRepo.UpdateSubscription(ctx, subscription); err != nil {
 			fmt.Printf("activateMidtransSubscription: Failed to update subscription: %v\n", err)
 			return fmt.Errorf("failed to update subscription: %w", err)
 		}
 
-		fmt.Printf("activateMidtransSubscription: Trial converted to paid subscription\n")
+		fmt.Printf("activateMidtransSubscription: Trial converted to paid subscription (PlanID=%d, SeatPlanID=%d)\n",
+			subscription.SubscriptionPlanID, subscription.SeatPlanID)
 
 		// Update trial activity
 		trialActivity, err := uc.xenditRepo.GetTrialActivityBySubscription(ctx, subscription.ID)
@@ -909,16 +931,24 @@ func (uc *SubscriptionUseCase) PreviewSubscriptionPlanChange(ctx context.Context
 			// For upgrades, ensure we always have a minimum payment amount for Midtrans (min: 1000 IDR)
 			if isUpgrade {
 				minAmount := decimal.NewFromInt(1000) // Minimum 1000 IDR for Midtrans
-				if prorationAmount.LessThan(minAmount) {
-					// Use the larger of: proration amount, price difference, or minimum amount
-					if priceDifference.GreaterThan(minAmount) {
-						return priceDifference
-					}
-					return minAmount
+
+				// Start with proration amount
+				finalAmount := prorationAmount
+
+				// If proration is less than price difference, use price difference
+				if priceDifference.GreaterThan(finalAmount) {
+					finalAmount = priceDifference
 				}
-				return prorationAmount
+
+				// Ensure it meets minimum requirement
+				if finalAmount.LessThan(minAmount) {
+					finalAmount = minAmount
+				}
+
+				// Convert to whole number for IDR currency
+				return convertToIDRWholeNumber(finalAmount)
 			}
-			return prorationAmount
+			return convertToIDRWholeNumber(prorationAmount)
 		}(),
 		IsUpgrade:       isUpgrade,
 		EffectiveDate:   effectiveDate,
@@ -987,6 +1017,9 @@ func (uc *SubscriptionUseCase) UpgradeSubscriptionPlan(ctx context.Context, user
 			paymentAmount = decimal.NewFromInt(1000)
 		}
 
+		// Convert to whole number for IDR currency (Midtrans requirement)
+		paymentAmount = convertToIDRWholeNumber(paymentAmount)
+
 		snapReq := interfaces.MidtransSnapRequest{
 			TransactionDetails: interfaces.MidtransTransactionDetails{
 				OrderID:     orderID,
@@ -1038,7 +1071,6 @@ func (uc *SubscriptionUseCase) UpgradeSubscriptionPlan(ctx context.Context, user
 		checkoutSession = subscriptionDto.ToCheckoutSessionResponse(session)
 		invoice = &subscriptionDto.InvoiceResponse{
 			ID:         snapResp.Token,
-			InvoiceURL: snapResp.RedirectURL,
 			Amount:     preview.ProrationAmount,
 			Currency:   "IDR",
 			ExpiryDate: time.Now().UTC().Add(24 * time.Hour).Format(time.RFC3339),
@@ -1058,9 +1090,6 @@ func (uc *SubscriptionUseCase) UpgradeSubscriptionPlan(ctx context.Context, user
 	}
 
 	// No payment required (downgrade or trial), apply changes immediately
-	currentSubscription.SubscriptionPlanID = newPlanID
-	currentSubscription.SeatPlanID = preview.NewSeatPlan.ID
-
 	// Update billing dates
 	if isMonthly {
 		nextBilling := time.Now().UTC().AddDate(0, 1, 0)
@@ -1070,7 +1099,13 @@ func (uc *SubscriptionUseCase) UpgradeSubscriptionPlan(ctx context.Context, user
 		currentSubscription.NextBillingDate = &nextBilling
 	}
 
-	if err := uc.xenditRepo.UpdateSubscription(ctx, currentSubscription); err != nil {
+	// Use explicit field update to fix GORM tracking issue
+	err = uc.xenditRepo.UpdateSubscriptionFields(ctx, currentSubscription.ID, map[string]interface{}{
+		"subscription_plan_id": newPlanID,
+		"seat_plan_id":         preview.NewSeatPlan.ID,
+		"next_billing_date":    currentSubscription.NextBillingDate,
+	})
+	if err != nil {
 		return nil, fmt.Errorf("failed to update subscription: %w", err)
 	}
 
@@ -1168,16 +1203,24 @@ func (uc *SubscriptionUseCase) PreviewSeatPlanChange(ctx context.Context, userID
 			// For upgrades, ensure we always have a minimum payment amount for Midtrans (min: 1000 IDR)
 			if isUpgrade {
 				minAmount := decimal.NewFromInt(1000) // Minimum 1000 IDR for Midtrans
-				if prorationAmount.LessThan(minAmount) {
-					// Use the larger of: proration amount, price difference, or minimum amount
-					if priceDifference.GreaterThan(minAmount) {
-						return priceDifference
-					}
-					return minAmount
+
+				// Start with proration amount
+				finalAmount := prorationAmount
+
+				// If proration is less than price difference, use price difference
+				if priceDifference.GreaterThan(finalAmount) {
+					finalAmount = priceDifference
 				}
-				return prorationAmount
+
+				// Ensure it meets minimum requirement
+				if finalAmount.LessThan(minAmount) {
+					finalAmount = minAmount
+				}
+
+				// Convert to whole number for IDR currency
+				return convertToIDRWholeNumber(finalAmount)
 			}
-			return prorationAmount
+			return convertToIDRWholeNumber(prorationAmount)
 		}(),
 		IsUpgrade:       isUpgrade,
 		EffectiveDate:   effectiveDate,
@@ -1252,6 +1295,9 @@ func (uc *SubscriptionUseCase) ChangeSeatPlan(ctx context.Context, userID uint, 
 			paymentAmount = decimal.NewFromInt(1000)
 		}
 
+		// Convert to whole number for IDR currency (Midtrans requirement)
+		paymentAmount = convertToIDRWholeNumber(paymentAmount)
+
 		snapReq := interfaces.MidtransSnapRequest{
 			TransactionDetails: interfaces.MidtransTransactionDetails{
 				OrderID:     orderID,
@@ -1303,7 +1349,6 @@ func (uc *SubscriptionUseCase) ChangeSeatPlan(ctx context.Context, userID uint, 
 		checkoutSession = subscriptionDto.ToCheckoutSessionResponse(session)
 		invoice = &subscriptionDto.InvoiceResponse{
 			ID:         snapResp.Token,
-			InvoiceURL: snapResp.RedirectURL,
 			Amount:     preview.ProrationAmount,
 			Currency:   "IDR",
 			ExpiryDate: time.Now().UTC().Add(24 * time.Hour).Format(time.RFC3339),
@@ -1333,7 +1378,6 @@ func (uc *SubscriptionUseCase) ChangeSeatPlan(ctx context.Context, userID uint, 
 	if err != nil {
 		return nil, fmt.Errorf("failed to get updated subscription: %w", err)
 	}
-
 	message := fmt.Sprintf("Successfully changed seat plan to %d-%d employees",
 		preview.NewSeatPlan.MinEmployees, preview.NewSeatPlan.MaxEmployees)
 
@@ -1422,6 +1466,9 @@ func (uc *SubscriptionUseCase) ConvertTrialToPaid(ctx context.Context, userID ui
 		paymentAmount = decimal.NewFromInt(1000)
 	}
 
+	// Convert to whole number for IDR currency (Midtrans requirement)
+	paymentAmount = convertToIDRWholeNumber(paymentAmount)
+
 	snapReq := interfaces.MidtransSnapRequest{
 		TransactionDetails: interfaces.MidtransTransactionDetails{
 			OrderID:     orderID,
@@ -1478,7 +1525,6 @@ func (uc *SubscriptionUseCase) ConvertTrialToPaid(ctx context.Context, userID ui
 		CheckoutSession: subscriptionDto.ToCheckoutSessionResponse(session),
 		Invoice: &subscriptionDto.InvoiceResponse{
 			ID:         snapResp.Token,
-			InvoiceURL: snapResp.RedirectURL,
 			Amount:     amount,
 			Currency:   "IDR",
 			ExpiryDate: time.Now().UTC().Add(24 * time.Hour).Format(time.RFC3339),
@@ -1667,7 +1713,6 @@ func (uc *SubscriptionUseCase) CreateAutomaticTrialForPremiumUser(ctx context.Co
 	if err != nil || len(seatPlans) == 0 {
 		return fmt.Errorf("failed to get premium seat plans: %w", err)
 	}
-
 	// Find the smallest tier (1-50 employees) as default
 	var defaultSeatPlan *domain.SeatPlan
 	for _, plan := range seatPlans {

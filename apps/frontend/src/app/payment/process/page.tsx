@@ -220,11 +220,6 @@ function PaymentProcessContent() {
 		}
 	};
 
-	// Determine if using Midtrans or Xendit based on response
-	const isUsingMidtrans =
-		checkoutResponse?.invoice?.id &&
-		!checkoutResponse?.invoice?.invoice_url; // Midtrans uses token, Xendit uses URL
-
 	const getPageTitle = () => {
 		if (isTrialConversion) return "Complete Trial Conversion Payment";
 		if (isUpgrade) return "Complete Subscription Change Payment";
@@ -242,23 +237,28 @@ function PaymentProcessContent() {
 	return (
 		<>
 			{/* Load Midtrans Snap Script only if using Midtrans */}
-			{isUsingMidtrans && (
+			{
 				<Script
-					src="https://app.sandbox.midtrans.com/snap/snap.js"
+					src={"https://app.sandbox.midtrans.com/snap/snap.js"}
 					data-client-key={
 						process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY ||
 						"SB-Mid-client-YOUR_CLIENT_KEY"
 					}
 					onLoad={() => {
 						setSnapScriptLoaded(true);
-						console.log("Midtrans Snap script loaded");
 					}}
-					onError={() => {
-						console.error("Failed to load Midtrans Snap script");
+					onError={(e) => {
+						console.error(
+							"Failed to load Midtrans Snap script:",
+							e
+						);
+						setPaymentError(
+							"Failed to load payment system. Please refresh the page."
+						);
 						toast.error("Failed to load payment system");
 					}}
 				/>
-			)}
+			}
 
 			<div className="bg-slate-100 dark:bg-slate-950 p-4 md:p-8">
 				<div className="max-w-3xl mx-auto">
@@ -340,7 +340,7 @@ function PaymentProcessContent() {
 						)}
 
 						{/* Loading Snap Script for Midtrans */}
-						{isUsingMidtrans && !snapScriptLoaded && (
+						{!snapScriptLoaded && (
 							<div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
 								<div className="flex items-center space-x-2">
 									<Loader2 className="h-4 w-4 animate-spin text-yellow-600" />
@@ -355,7 +355,7 @@ function PaymentProcessContent() {
 						<div className="space-y-4">
 							{checkoutResponse && (
 								<>
-									{isUsingMidtrans ? (
+									{
 										<Button
 											size="lg"
 											className="w-full bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white text-base py-3"
@@ -376,23 +376,7 @@ function PaymentProcessContent() {
 												"Pay with Midtrans"
 											)}
 										</Button>
-									) : (
-										<Button
-											size="lg"
-											className="w-full bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white text-base py-3"
-											asChild
-										>
-											<Link
-												href={
-													checkoutResponse.invoice
-														.invoice_url || "#"
-												}
-												target="_blank"
-											>
-												Pay with Xendit
-											</Link>
-										</Button>
-									)}
+									}
 								</>
 							)}
 
@@ -423,8 +407,8 @@ function PaymentProcessContent() {
 									Secure Payment:
 								</span>{" "}
 								Your payment is processed securely through
-								{isUsingMidtrans ? " Midtrans" : " Xendit"}. We
-								never store your payment information.
+								Midtrans. We never store your payment
+								information.
 							</p>
 						</div>
 					</div>

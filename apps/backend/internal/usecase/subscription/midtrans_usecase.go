@@ -155,7 +155,6 @@ func (uc *MidtransSubscriptionUseCase) InitiatePaidCheckout(ctx context.Context,
 		CheckoutSession: subscription.ToCheckoutSessionResponse(checkoutSession),
 		Invoice: &subscription.InvoiceResponse{
 			ID:         snapResp.Token,
-			InvoiceURL: snapResp.RedirectURL,
 			Amount:     amount,
 			Currency:   "IDR",
 			ExpiryDate: time.Now().UTC().Add(24 * time.Hour).Format(time.RFC3339),

@@ -319,9 +319,7 @@ export function AddAttendanceDialog({
 		try {
 			const selectedEmployee = filteredEmployeeList.find(
 				(emp: { id: number }) => emp.id.toString() === data.employee_id
-			);
-
-			if (!selectedEmployee) {
+			);			if (!selectedEmployee) {
 				toast.error("Please select a valid employee");
 				return;
 			}
@@ -337,14 +335,17 @@ export function AddAttendanceDialog({
 						return;
 					}
 
+					// Generate clock_in timestamp if not provided
+					const clockInTime = data.clockIn 
+						? `${data.date}T${data.clockIn}:00Z`
+						: new Date().toISOString(); // Use current time if no specific time provided
+
 					const clockInData: ClockInAttendanceRequest = {
 						employee_id: parseInt(data.employee_id),
 						work_schedule_id:
 							selectedEmployee.work_schedule_id || 1,
 						date: data.date,
-						...(data.clockIn && {
-							clock_in: `${data.date}T${data.clockIn}:00Z`,
-						}),
+						clock_in: clockInTime, // This field is required by backend
 						clock_in_lat: parseFloat(data.latitude),
 						clock_in_long: parseFloat(data.longitude),
 					};
@@ -360,12 +361,15 @@ export function AddAttendanceDialog({
 						return;
 					}
 
+					// Generate clock_out timestamp if not provided
+					const clockOutTime = data.clockOut 
+						? `${data.date}T${data.clockOut}:00Z`
+						: new Date().toISOString(); // Use current time if no specific time provided
+
 					const clockOutData: ClockOutAttendanceRequest = {
 						employee_id: parseInt(data.employee_id),
 						date: data.date,
-						...(data.clockOut && {
-							clock_out: `${data.date}T${data.clockOut}:00Z`,
-						}),
+						clock_out: clockOutTime, // This field is required by backend
 						clock_out_lat: parseFloat(data.latitude),
 						clock_out_long: parseFloat(data.longitude),
 					};

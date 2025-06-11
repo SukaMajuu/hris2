@@ -400,7 +400,6 @@ export default function AttendanceOverviewTab() {
 		const currentDate = now.toISOString().split("T")[0];
 
 		const employeeWorkScheduleId = workScheduleId || 1;
-
 		if (action === "clock-in") {
 			title = "Record Clock-In";
 			setValue("attendance_type", "clock-in");
@@ -408,6 +407,7 @@ export default function AttendanceOverviewTab() {
 				employee_id: currentEmployee.id,
 				work_schedule_id: employeeWorkScheduleId,
 				date: currentDate,
+				clock_in: new Date().toISOString(), // Add required clock_in field
 				clock_in_lat: 0,
 				clock_in_long: 0,
 			});
@@ -417,13 +417,13 @@ export default function AttendanceOverviewTab() {
 			setValue("clock_out_request", {
 				employee_id: currentEmployee.id,
 				date: currentDate,
+				clock_out: new Date().toISOString(), // Add required clock_out field
 				clock_out_lat: 0,
 				clock_out_long: 0,
 			});
 		}
 
 		setDialogTitle(title);
-
 		if (navigator.geolocation) {
 			navigator.geolocation.getCurrentPosition(
 				(position) => {
@@ -432,6 +432,7 @@ export default function AttendanceOverviewTab() {
 							employee_id: currentEmployee.id,
 							work_schedule_id: employeeWorkScheduleId,
 							date: currentDate,
+							clock_in: new Date().toISOString(), // Keep the required clock_in field
 							clock_in_lat: position.coords.latitude,
 							clock_in_long: position.coords.longitude,
 						});
@@ -439,6 +440,7 @@ export default function AttendanceOverviewTab() {
 						setValue("clock_out_request", {
 							employee_id: currentEmployee.id,
 							date: currentDate,
+							clock_out: new Date().toISOString(), // Keep the required clock_out field
 							clock_out_lat: position.coords.latitude,
 							clock_out_long: position.coords.longitude,
 						});
@@ -471,18 +473,21 @@ export default function AttendanceOverviewTab() {
 				meta: {
 					className: "max-w-[80px]",
 				},
-			},
-			{
+			},			{
 				header: "Date",
 				accessorKey: "date",
 				cell: ({ row }) => {
-					// Combine UTC date and clock_in time to get the actual local date
 					const dateStr = row.original.date;
-					const timeStr = row.original.clock_in || "00:00:00";
-					const utcDateTime = `${dateStr}T${timeStr}Z`;
-					const localDate = new Date(utcDateTime);
+					// Use the date field directly, or clock_in if available
+					const dateToUse = row.original.clock_in || dateStr;
+					const date = new Date(dateToUse);
 
-					return localDate.toLocaleDateString("en-US", {
+					// Check if the date is valid
+					if (isNaN(date.getTime())) {
+						return "Invalid Date";
+					}
+
+					return date.toLocaleDateString("en-US", {
 						year: "numeric",
 						month: "long",
 						day: "2-digit",
@@ -703,15 +708,17 @@ export default function AttendanceOverviewTab() {
 					</SheetHeader>
 					{selectedData && (
 						<div className="mx-2 space-y-6 text-sm sm:mx-4">
-							<div className="mb-6 rounded-lg bg-white p-6 shadow-md">
-								<h3 className="mb-1 text-lg font-bold text-slate-700">
+							<div className="mb-6 rounded-lg bg-white p-6 shadow-md">								<h3 className="mb-1 text-lg font-bold text-slate-700">
 									{(() => {
-										const dateStr = selectedData.date;
-										const timeStr =
-											selectedData.clock_in || "00:00:00";
-										const utcDateTime = `${dateStr}T${timeStr}Z`;
-										const localDate = new Date(utcDateTime);
-										return localDate.toLocaleDateString(
+										const dateToUse = selectedData.clock_in || selectedData.date;
+										const date = new Date(dateToUse);
+										
+										// Check if the date is valid
+										if (isNaN(date.getTime())) {
+											return "Invalid Date";
+										}
+										
+										return date.toLocaleDateString(
 											"en-US",
 											{
 												year: "numeric",

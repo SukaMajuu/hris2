@@ -2,6 +2,7 @@ package employee
 
 import (
 	"context"
+	"database/sql"
 	"log"
 	"time"
 
@@ -394,7 +395,7 @@ func (r *PostgresRepository) GetStatisticsWithTrendsByManagerAndMonth(ctx contex
 }
 
 func (r *PostgresRepository) GetHireDateRange(ctx context.Context, managerID uint) (earliestHireDate, latestHireDate *time.Time, err error) {
-	var earliest, latest *time.Time
+	var earliest, latest sql.NullTime
 
 	// Get earliest hire date
 	err = r.db.WithContext(ctx).Model(&domain.Employee{}).
@@ -414,5 +415,16 @@ func (r *PostgresRepository) GetHireDateRange(ctx context.Context, managerID uin
 		return nil, nil, err
 	}
 
-	return earliest, latest, nil
+	// Convert sql.NullTime to *time.Time
+	var earliestPtr, latestPtr *time.Time
+
+	if earliest.Valid {
+		earliestPtr = &earliest.Time
+	}
+
+	if latest.Valid {
+		latestPtr = &latest.Time
+	}
+
+	return earliestPtr, latestPtr, nil
 }

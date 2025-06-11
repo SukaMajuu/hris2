@@ -1,25 +1,51 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckIcon, ArrowRightIcon } from "lucide-react";
-import { SubscriptionPlan } from "@/types/subscription";
+import {
+	CheckIcon,
+	ArrowRightIcon,
+	ArrowUpIcon,
+	ArrowDownIcon,
+	Settings,
+} from "lucide-react";
+import { SubscriptionPlan, UserSubscription } from "@/types/subscription";
+import { useRouter } from "next/navigation";
 
 interface PlanCardComponentProps {
 	plan: SubscriptionPlan;
 	currentUserPlan: SubscriptionPlan | null;
+	userSubscription?: UserSubscription | null;
 	onSelectPlan: (planId: number) => void;
+	onUpgradeSuccess?: () => void;
 }
 
 const PlanCardComponent: React.FC<PlanCardComponentProps> = ({
 	plan,
 	currentUserPlan,
+	userSubscription,
 	onSelectPlan,
+	onUpgradeSuccess,
 }) => {
+	const router = useRouter();
+
 	// Ensure safe comparisons for users without subscriptions
 	const isCurrentPlan = currentUserPlan?.id === plan.id;
 	const isInactive = plan.is_active === false;
 	const hasCurrentSubscription =
 		currentUserPlan !== null && currentUserPlan !== undefined;
+	const hasActiveSubscription =
+		userSubscription?.status === "active" ||
+		userSubscription?.status === "trial";
+
+	// Determine if this is an upgrade or downgrade
+	const isUpgrade =
+		hasCurrentSubscription &&
+		currentUserPlan &&
+		plan.id > currentUserPlan.id;
+	const isDowngrade =
+		hasCurrentSubscription &&
+		currentUserPlan &&
+		plan.id < currentUserPlan.id;
 
 	const cardClasses = `
 		rounded-xl p-6 flex flex-col h-full shadow-lg relative
@@ -34,6 +60,89 @@ const PlanCardComponent: React.FC<PlanCardComponentProps> = ({
 		isInactive ? "opacity-70" : ""
 	}`;
 
+	const handlePlanAction = () => {
+		console.log("handlePlanAction called", {
+			isInactive,
+			isUpgrade,
+			isDowngrade,
+			userSubscription: !!userSubscription,
+			planId: plan.id,
+			planName: plan.name,
+		});
+
+		if (isInactive) return;
+
+		if (userSubscription && isUpgrade) {
+			console.log("Redirecting to checkout for upgrade");
+			// Upgrades go directly to checkout
+			const params = new URLSearchParams({
+				planId: plan.id.toString(),
+				seatPlanId: userSubscription.seat_plan?.id.toString() || "1",
+				isMonthly: "true", // Default to monthly, user can change in checkout
+				upgrade: "true",
+			});
+
+			router.push(`/subscription/checkout?${params.toString()}`);
+		} else if (userSubscription && isDowngrade) {
+			console.log(
+				"Redirecting to subscription page for downgrade seat selection"
+			);
+			const downgradeData = {
+				planId: plan.id,
+				planName: plan.name,
+				isDowngrade: true,
+			};
+
+			console.log("Redirecting with downgrade data:", downgradeData);
+
+			// Store data as backup (in case URL params fail)
+			sessionStorage.setItem(
+				"targetDowngradePlan",
+				JSON.stringify(downgradeData)
+			);
+
+			// Force immediate redirect with URL parameters
+			const params = new URLSearchParams({
+				downgrade: "true",
+				targetPlanId: plan.id.toString(),
+				targetPlanName: plan.name,
+			});
+
+			router.push(`/subscription?${params.toString()}`);
+		} else {
+			console.log("Calling onSelectPlan for new subscription");
+			// For new subscriptions or current plan configuration
+			onSelectPlan(plan.id);
+		}
+	};
+
+	const getButtonText = () => {
+		if (isInactive) return "Not Available Right Now";
+		if (isCurrentPlan && hasCurrentSubscription) return "Configure Seats";
+		if (isUpgrade) return "Upgrade Plan";
+		if (isDowngrade) return "Downgrade Plan";
+		return "Select a Package";
+	};
+
+	const getButtonIcon = () => {
+		if (isInactive) return null;
+		if (isCurrentPlan && hasCurrentSubscription)
+			return <Settings className="ml-2 w-4 h-4" />;
+		if (isUpgrade) return <ArrowUpIcon className="ml-2 w-4 h-4" />;
+		if (isDowngrade) return <ArrowDownIcon className="ml-2 w-4 h-4" />;
+		return <ArrowRightIcon className="ml-2 w-4 h-4" />;
+	};
+
+	const getButtonColor = () => {
+		if (isInactive)
+			return "bg-slate-400 dark:bg-slate-600 cursor-not-allowed";
+		if (isCurrentPlan && hasCurrentSubscription)
+			return "bg-primary hover:bg-primary/80";
+		if (isUpgrade) return "bg-green-600 hover:bg-green-700";
+		if (isDowngrade) return "bg-orange-600 hover:bg-orange-700";
+		return "bg-primary hover:bg-primary/80";
+	};
+
 	return (
 		<Card className={cardClasses}>
 			{isCurrentPlan && hasCurrentSubscription && (
@@ -44,6 +153,16 @@ const PlanCardComponent: React.FC<PlanCardComponentProps> = ({
 			{isInactive && !isCurrentPlan && (
 				<div className="absolute top-3 right-3 bg-slate-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full">
 					Not Available
+				</div>
+			)}
+			{isUpgrade && !isInactive && (
+				<div className="absolute top-3 right-3 bg-green-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full">
+					Upgrade
+				</div>
+			)}
+			{isDowngrade && (
+				<div className="absolute top-3 right-3 bg-orange-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full">
+					Downgrade
 				</div>
 			)}
 			<CardHeader className="p-0 pt-2">
@@ -97,22 +216,12 @@ const PlanCardComponent: React.FC<PlanCardComponentProps> = ({
 			</CardContent>
 			<div className="mt-6">
 				<Button
-					onClick={() => !isInactive && onSelectPlan(plan?.id)}
+					onClick={handlePlanAction}
 					disabled={isInactive || !plan?.id}
-					className={`w-full font-semibold py-3 text-white ${
-						isCurrentPlan && hasCurrentSubscription
-							? "bg-primary hover:bg-primary/80"
-							: isInactive
-							? "bg-slate-400 dark:bg-slate-600 cursor-not-allowed"
-							: "bg-primary hover:bg-primary/80"
-					}`}
+					className={`w-full font-semibold py-3 text-white ${getButtonColor()}`}
 				>
-					{isInactive
-						? "Not Available Right Now"
-						: isCurrentPlan && hasCurrentSubscription
-						? "Configure Seats"
-						: "Select a Package"}
-					{!isInactive && <ArrowRightIcon className="ml-2 w-4 h-4" />}
+					{getButtonText()}
+					{getButtonIcon()}
 				</Button>
 			</div>
 		</Card>

@@ -608,7 +608,7 @@ export default function ProfilePage() {
                 type={showCurrentPassword ? 'text' : 'password'}
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
-                className='mt-1 border-slate-300 bg-slate-50 pr-10 dark:border-slate-600 dark:bg-slate-800'
+                className='mt-1 border-slate-300 bg-white pr-10 text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500'
                 placeholder='Enter your current password'
               />
               <button
@@ -632,21 +632,33 @@ export default function ProfilePage() {
             <div className='relative'>
               <Input
                 id='newPassword'
-                type='password'
+                type={showNewPassword ? 'text' : 'password'}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                className={`mt-1 bg-slate-50 pr-10 dark:bg-slate-800 ${
+                className={`mt-1 bg-white pr-10 text-slate-900 placeholder:text-slate-400 focus:ring-2 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 ${
                   passwordValidation.isValid === false
                     ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
                     : passwordValidation.isValid === true
                       ? 'border-green-500 focus:border-green-500 focus:ring-green-500'
-                      : 'border-slate-300 dark:border-slate-600'
+                      : 'border-slate-300 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600'
                 }`}
                 placeholder='Enter your new password'
               />
-              {/* Validation icon only */}
+              {/* Eye toggle button */}
+              <button
+                type='button'
+                onClick={() => setShowNewPassword(!showNewPassword)}
+                className='absolute inset-y-0 right-0 flex items-center pt-1 pr-3'
+              >
+                {showNewPassword ? (
+                  <EyeOff className='h-4 w-4 text-slate-500' />
+                ) : (
+                  <Eye className='h-4 w-4 text-slate-500' />
+                )}
+              </button>
+              {/* Validation icon */}
               {newPassword && (
-                <div className='absolute inset-y-0 right-3 flex items-center pt-1'>
+                <div className='absolute inset-y-0 right-10 flex items-center pt-1'>
                   {passwordValidation.isValid === true ? (
                     <CheckCircle className='h-4 w-4 text-green-500' />
                   ) : passwordValidation.isValid === false ? (
@@ -692,21 +704,33 @@ export default function ProfilePage() {
             <div className='relative'>
               <Input
                 id='confirmPassword'
-                type='password'
+                type={showConfirmPassword ? 'text' : 'password'}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className={`mt-1 bg-slate-50 pr-10 dark:bg-slate-800 ${
+                className={`mt-1 bg-white pr-10 text-slate-900 placeholder:text-slate-400 focus:ring-2 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 ${
                   confirmPasswordValidation.isValid === false
                     ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
                     : confirmPasswordValidation.isValid === true
                       ? 'border-green-500 focus:border-green-500 focus:ring-green-500'
-                      : 'border-slate-300 dark:border-slate-600'
+                      : 'border-slate-300 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600'
                 }`}
                 placeholder='Confirm your new password'
               />
-              {/* Validation icon only */}
+              {/* Eye toggle button */}
+              <button
+                type='button'
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className='absolute inset-y-0 right-0 flex items-center pt-1 pr-3'
+              >
+                {showConfirmPassword ? (
+                  <EyeOff className='h-4 w-4 text-slate-500' />
+                ) : (
+                  <Eye className='h-4 w-4 text-slate-500' />
+                )}
+              </button>
+              {/* Validation icon */}
               {confirmPassword && (
-                <div className='absolute inset-y-0 right-3 flex items-center pt-1'>
+                <div className='absolute inset-y-0 right-10 flex items-center pt-1'>
                   {confirmPasswordValidation.isValid === true ? (
                     <CheckCircle className='h-4 w-4 text-green-500' />
                   ) : confirmPasswordValidation.isValid === false ? (

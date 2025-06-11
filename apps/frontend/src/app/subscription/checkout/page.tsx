@@ -9,6 +9,7 @@ import { AlertCircle } from "lucide-react";
 import { useCheckout } from "./_hooks/useCheckout";
 import CheckoutPageSkeleton from "./_components/CheckoutPageSkeleton";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 const formatCurrency = (value: number) => {
 	// Format Indonesian Rupiah without locale-specific issues
@@ -21,11 +22,18 @@ function CheckoutPageContent() {
 		// URL Parameters
 		planId,
 		seatPlanId,
+		isUpgrade,
+		isTrialConversion,
+		presetAmount,
 
 		// Selected data
 		selectedPlan,
 		selectedSeatPlan,
 		selectedBillingOption,
+		userSubscription,
+
+		// Change context
+		changeContext,
 
 		// Billing options
 		billingOptions,
@@ -45,6 +53,9 @@ function CheckoutPageContent() {
 		// Loading and error states
 		isLoading,
 		hasError,
+
+		// Subscription change handler
+		processSubscriptionChange,
 	} = useCheckout();
 
 	// Loading state
@@ -99,19 +110,111 @@ function CheckoutPageContent() {
 		);
 	}
 
-	const handleContinueToPayment = () => {
-		// Determine if monthly based on selected billing option
-		const isMonthly = selectedBillingOption?.id === "monthly";
+	const handleContinueToPayment = async () => {
+		try {
+			// For subscription changes (upgrades, downgrades, trial conversions),
+			// call the backend API first
+			if (changeContext.type !== "new_subscription") {
+				const response = await processSubscriptionChange();
 
-		// Build URL with parameters for payment processing
-		const params = new URLSearchParams({
-			planId: planId.toString(),
-			seatPlanId: seatPlanId.toString(),
-			isMonthly: isMonthly.toString(),
-			amount: totalAtRenewal.toString(),
-		});
+				if (response?.payment_required) {
+					// If payment is required, redirect to payment with the payment amount
+					const params = new URLSearchParams({
+						planId: planId.toString(),
+						seatPlanId: seatPlanId.toString(),
+						isMonthly: (
+							selectedBillingOption?.id === "monthly"
+						).toString(),
+						amount:
+							response.payment_amount?.toString() ||
+							totalAtRenewal.toString(),
+					});
 
-		router.push(`/payment/process?${params.toString()}`);
+					// Add context flags
+					if (isUpgrade) params.set("upgrade", "true");
+					if (isTrialConversion)
+						params.set("trial_conversion", "true");
+
+					router.push(`/payment/process?${params.toString()}`);
+					return;
+				} else {
+					// No payment required, change was applied immediately
+					toast.success(
+						response?.message ||
+							"Subscription updated successfully!"
+					);
+					router.push("/subscription?updated=true");
+					return;
+				}
+			}
+
+			// For new subscriptions, proceed with normal payment flow
+			const isMonthly = selectedBillingOption?.id === "monthly";
+			const params = new URLSearchParams({
+				planId: planId.toString(),
+				seatPlanId: seatPlanId.toString(),
+				isMonthly: isMonthly.toString(),
+				amount: totalAtRenewal.toString(),
+			});
+
+			router.push(`/payment/process?${params.toString()}`);
+		} catch (error) {
+			console.error("Error processing subscription change:", error);
+			toast.error(
+				error instanceof Error
+					? error.message
+					: "Failed to process subscription change. Please try again."
+			);
+		}
+	};
+
+	// Get appropriate titles and messaging based on context
+	const getPageTitle = () => {
+		switch (changeContext.type) {
+			case "trial_conversion":
+				return "Convert Trial to Paid Plan";
+			case "plan_change":
+				return changeContext.isUpgrade
+					? "Upgrade Your Plan"
+					: "Downgrade Your Plan";
+			case "seat_change":
+				return changeContext.isUpgrade
+					? "Upgrade Team Size"
+					: "Downgrade Team Size";
+			default:
+				return "Complete Your Subscription";
+		}
+	};
+
+	const getPageDescription = () => {
+		switch (changeContext.type) {
+			case "trial_conversion":
+				return "Convert your trial to a paid subscription to continue using all features.";
+			case "plan_change":
+				if (changeContext.isUpgrade) {
+					return `Upgrade from ${changeContext.currentPlan?.name} to ${changeContext.newPlan?.name} plan.`;
+				}
+				return `Downgrade from ${changeContext.currentPlan?.name} to ${changeContext.newPlan?.name} plan.`;
+			case "seat_change":
+				if (changeContext.isUpgrade) {
+					return `Increase your team capacity from ${changeContext.currentSeatPlan?.max_employees} to ${changeContext.newSeatPlan?.max_employees} employees.`;
+				}
+				return `Reduce your team capacity from ${changeContext.currentSeatPlan?.max_employees} to ${changeContext.newSeatPlan?.max_employees} employees.`;
+			default:
+				return "Review your subscription details and complete your purchase.";
+		}
+	};
+
+	const getButtonText = () => {
+		switch (changeContext.type) {
+			case "trial_conversion":
+				return "Convert to Paid Plan";
+			case "plan_change":
+			case "seat_change":
+				return "Complete Change";
+			default:
+				return "Continue to Payment";
+		}
 	};
 
 	return (
@@ -119,10 +222,10 @@ function CheckoutPageContent() {
 			<div className="max-w-5xl mx-auto grid md:grid-cols-3 gap-8 items-start">
 				<div className="md:col-span-2 bg-white dark:bg-slate-900 p-6 rounded-lg shadow-lg">
 					<h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100 mb-1">
-						{selectedPlan!.name}
+						{getPageTitle()}
 					</h1>
 					<p className="text-slate-600 dark:text-slate-400 mb-2">
-						{selectedPlan!.description}
+						{getPageDescription()}
 					</p>
 					<Button
 						variant="outline"
@@ -221,12 +324,65 @@ function CheckoutPageContent() {
 				{/* Right Column: Order Summary */}
 				<div className="md:col-span-1 bg-white dark:bg-slate-900 p-6 rounded-lg shadow-lg space-y-4">
 					<h2 className="text-2xl font-semibold text-slate-800 dark:text-slate-100 border-b dark:border-slate-700 pb-3">
-						Order Summary
+						{changeContext.type === "new_subscription"
+							? "Order Summary"
+							: "Change Summary"}
 					</h2>
+
+					{/* Show current subscription info for changes */}
+					{(changeContext.type === "plan_change" ||
+						changeContext.type === "seat_change" ||
+						changeContext.type === "trial_conversion") &&
+						userSubscription && (
+							<div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
+								<h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+									Current Subscription
+								</h3>
+								<div className="space-y-1 text-xs text-slate-600 dark:text-slate-400">
+									<div className="flex justify-between">
+										<span>Plan:</span>
+										<span>
+											{
+												userSubscription
+													.subscription_plan?.name
+											}
+										</span>
+									</div>
+									<div className="flex justify-between">
+										<span>Team Size:</span>
+										<span>
+											{
+												userSubscription.seat_plan
+													?.min_employees
+											}
+											-
+											{
+												userSubscription.seat_plan
+													?.max_employees
+											}
+										</span>
+									</div>
+									{userSubscription.is_in_trial && (
+										<div className="flex justify-between">
+											<span>Status:</span>
+											<span className="text-orange-600 dark:text-orange-400">
+												Trial (
+												{
+													userSubscription.remaining_trial_days
+												}{" "}
+												days left)
+											</span>
+										</div>
+									)}
+								</div>
+							</div>
+						)}
 
 					<div className="flex justify-between text-sm">
 						<span className="text-slate-600 dark:text-slate-400">
-							Package:
+							{changeContext.type === "new_subscription"
+								? "Package:"
+								: "New Package:"}
 						</span>
 						<span className="font-medium text-slate-700 dark:text-slate-200">
 							{selectedPlan!.name}
@@ -242,7 +398,9 @@ function CheckoutPageContent() {
 					</div>
 					<div className="flex justify-between text-sm">
 						<span className="text-slate-600 dark:text-slate-400">
-							Team Size:
+							{changeContext.type === "new_subscription"
+								? "Team Size:"
+								: "New Team Size:"}
 						</span>
 						<span className="font-medium text-slate-700 dark:text-slate-200">
 							{selectedSeatPlan!.min_employees}-
@@ -251,7 +409,7 @@ function CheckoutPageContent() {
 					</div>
 					<div className="flex justify-between text-sm">
 						<span className="text-slate-600 dark:text-slate-400">
-							Price:
+							{presetAmount ? "Change Amount:" : "Price:"}
 						</span>
 						<span className="font-medium text-slate-700 dark:text-slate-200">
 							{formatCurrency(pricePerUser)}
@@ -288,13 +446,32 @@ function CheckoutPageContent() {
 						</span>
 					</div>
 
+					{/* Show additional context for changes */}
+					{changeContext.type !== "new_subscription" && (
+						<div className="text-xs text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-200 dark:border-slate-700">
+							{changeContext.type === "trial_conversion" && (
+								<p>
+									This will convert your trial to a paid
+									subscription.
+								</p>
+							)}
+							{(changeContext.type === "plan_change" ||
+								changeContext.type === "seat_change") && (
+								<p>
+									Changes will be prorated and take effect
+									immediately.
+								</p>
+							)}
+						</div>
+					)}
+
 					<Button
 						size="lg"
 						className="w-full mt-6 bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white text-base py-3"
 						onClick={handleContinueToPayment}
 						disabled={!selectedBillingOption}
 					>
-						Continue to Payment
+						{getButtonText()}
 					</Button>
 				</div>
 			</div>

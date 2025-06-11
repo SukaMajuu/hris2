@@ -165,6 +165,17 @@ func (r *Repository) GetSubscriptionPlans(ctx context.Context) ([]domain.Subscri
 	return plans, nil
 }
 
+func (r *Repository) GetSubscriptionPlan(ctx context.Context, planID uint) (*domain.SubscriptionPlan, error) {
+	var plan domain.SubscriptionPlan
+	if err := r.db.WithContext(ctx).
+		Preload("PlanFeatures.SubscriptionFeature").
+		Where("id = ?", planID).
+		First(&plan).Error; err != nil {
+		return nil, err
+	}
+	return &plan, nil
+}
+
 func (r *Repository) GetSeatPlansBySubscriptionPlan(ctx context.Context, subscriptionPlanID uint) ([]domain.SeatPlan, error) {
 	var seatPlans []domain.SeatPlan
 	if err := r.db.WithContext(ctx).

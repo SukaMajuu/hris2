@@ -1295,6 +1295,24 @@ func TestSubscriptionUseCase_ChangeSeatPlan(t *testing.T) {
 							if tt.mockMidtransError == nil {
 								mockXenditRepo.On("UpdateCheckoutSession", ctx, mock.AnythingOfType("*domain.CheckoutSession")).
 									Return(tt.mockUpdateCheckoutError).Once()
+
+								// Add mock for GetCheckoutSession reload after update
+								if tt.mockUpdateCheckoutError == nil {
+									mockUpdatedSession := &domain.CheckoutSession{
+										SessionID:          "test-session-id",
+										UserID:             userID,
+										SubscriptionPlanID: tt.mockCurrentSubscription.SubscriptionPlanID,
+										SeatPlanID:         newSeatPlanID,
+										IsTrialCheckout:    false,
+										Amount:             decimal.NewFromInt(200000), // Price difference for upgrade
+										Currency:           "IDR",
+										Status:             enums.CheckoutPending,
+										PaymentToken:       func() *string { s := "snap_token_123"; return &s }(),
+										PaymentURL:         func() *string { s := "https://app.sandbox.midtrans.com/snap/v2/vtweb/snap_token_123"; return &s }(),
+									}
+									mockXenditRepo.On("GetCheckoutSession", ctx, mock.AnythingOfType("string")).
+										Return(mockUpdatedSession, nil).Once()
+								}
 							}
 						}
 					}
@@ -1511,6 +1529,34 @@ func TestSubscriptionUseCase_ConvertTrialToPaid(t *testing.T) {
 							if tt.mockMidtransError == nil {
 								mockXenditRepo.On("UpdateCheckoutSession", ctx, mock.AnythingOfType("*domain.CheckoutSession")).
 									Return(tt.mockUpdateCheckoutError).Once()
+
+								// Add mock for GetCheckoutSession reload after update
+								if tt.mockUpdateCheckoutError == nil {
+									mockUpdatedSession := &domain.CheckoutSession{
+										SessionID: "test-session-id",
+										UserID:    userID,
+										SubscriptionPlanID: func() uint {
+											if tt.newPlanID != nil {
+												return *tt.newPlanID
+											}
+											return tt.mockTrialSubscription.SubscriptionPlanID
+										}(),
+										SeatPlanID: func() uint {
+											if tt.newSeatPlanID != nil {
+												return *tt.newSeatPlanID
+											}
+											return tt.mockTrialSubscription.SeatPlanID
+										}(),
+										IsTrialCheckout: false,
+										Amount:          tt.expectedAmount,
+										Currency:        "IDR",
+										Status:          enums.CheckoutPending,
+										PaymentToken:    func() *string { s := "snap_token_123"; return &s }(),
+										PaymentURL:      func() *string { s := "https://app.sandbox.midtrans.com/snap/v2/vtweb/snap_token_123"; return &s }(),
+									}
+									mockXenditRepo.On("GetCheckoutSession", ctx, mock.AnythingOfType("string")).
+										Return(mockUpdatedSession, nil).Once()
+								}
 							}
 						}
 					}

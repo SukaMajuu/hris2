@@ -495,6 +495,40 @@ func (h *SubscriptionHandler) ConvertTrialToPaid(c *gin.Context) {
 	response.OK(c, "Trial conversion initiated successfully", changeResponse)
 }
 
+// VerifyPayment verifies payment status and ensures subscription activation
+func (h *SubscriptionHandler) VerifyPayment(c *gin.Context) {
+	var req subscriptionDTO.VerifyPaymentRequest
+	if bindAndValidate(c, &req) {
+		return
+	}
+
+	userID, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User ID not found in context", nil)
+		return
+	}
+
+	verificationResponse, err := h.subscriptionUseCase.VerifyPaymentAndActivateSubscription(
+		c.Request.Context(),
+		userID.(uint),
+		req.TransactionID,
+		req.OrderID,
+		req.PlanID,
+		req.SeatPlanID,
+		req.IsMonthly,
+	)
+	if err != nil {
+		response.InternalServerError(c, err)
+		return
+	}
+
+	if verificationResponse.SubscriptionActivated {
+		response.OK(c, "Payment verified and subscription activated", verificationResponse)
+	} else {
+		response.OK(c, "Payment verification completed", verificationResponse)
+	}
+}
+
 // HealthCheckWebhook - Health check endpoint for webhook connectivity testing
 func (h *SubscriptionHandler) HealthCheckWebhook(c *gin.Context) {
 	fmt.Printf("=== WEBHOOK HEALTH CHECK ===\n")

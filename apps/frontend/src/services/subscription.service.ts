@@ -14,6 +14,8 @@ import {
 	UpgradeSubscriptionPlanRequest,
 	ChangeSeatPlanRequest,
 	ConvertTrialToPaidRequest,
+	VerifyPaymentRequest,
+	PaymentVerificationResponse,
 } from "@/types/subscription";
 
 class SubscriptionService {
@@ -28,18 +30,18 @@ class SubscriptionService {
 	}
 
 	// Get seat plans for a specific subscription plan
-	async getSeatPlans(subscriptionPlanId: number): Promise<SeatPlan[]> {
+	async getSeatPlans(planId: number): Promise<SeatPlan[]> {
 		const response = await this.apiService.get<ApiResponse<SeatPlan[]>>(
-			`/api/subscription/plans/${subscriptionPlanId}/seat-plans`
+			`/api/subscription/plans/${planId}/seat-plans`
 		);
 		return response.data.data;
 	}
 
-	// Get current user's subscription
+	// Get user's current subscription
 	async getUserSubscription(): Promise<UserSubscription> {
 		const response = await this.apiService.get<
 			ApiResponse<UserSubscription>
-		>("/api/subscription/me");
+		>("/api/subscription/user");
 		return response.data.data;
 	}
 
@@ -88,15 +90,13 @@ class SubscriptionService {
 		);
 	}
 
-	// New upgrade/downgrade methods
-
 	// Preview subscription plan change
 	async previewSubscriptionPlanChange(
 		request: UpgradeSubscriptionPlanRequest
 	): Promise<UpgradePreviewResponse> {
 		const response = await this.apiService.post<
 			ApiResponse<UpgradePreviewResponse>
-		>("/api/subscription/plan/preview", request);
+		>("/api/subscription/preview/plan-change", request);
 		return response.data.data;
 	}
 
@@ -116,7 +116,7 @@ class SubscriptionService {
 	): Promise<UpgradePreviewResponse> {
 		const response = await this.apiService.post<
 			ApiResponse<UpgradePreviewResponse>
-		>("/api/subscription/seat/preview", request);
+		>("/api/subscription/preview/seat-change", request);
 		return response.data.data;
 	}
 
@@ -137,6 +137,16 @@ class SubscriptionService {
 		const response = await this.apiService.post<
 			ApiResponse<SubscriptionChangeResponse>
 		>("/api/subscription/trial/convert", request);
+		return response.data.data;
+	}
+
+	// Verify payment and activate subscription
+	async verifyPayment(
+		request: VerifyPaymentRequest
+	): Promise<PaymentVerificationResponse> {
+		const response = await this.apiService.post<
+			ApiResponse<PaymentVerificationResponse>
+		>("/api/subscription/verify-payment", request);
 		return response.data.data;
 	}
 }

@@ -156,3 +156,19 @@ export interface ConvertTrialToPaidRequest {
 	seat_plan_id?: number;
 	is_monthly: boolean;
 }
+
+// Payment verification types
+export interface VerifyPaymentRequest {
+	transaction_id: string;
+	order_id?: string;
+	plan_id: number;
+	seat_plan_id: number;
+	is_monthly: boolean;
+}
+
+export interface PaymentVerificationResponse {
+	subscription_activated: boolean;
+	payment_status: "completed" | "pending" | "failed" | "not_found";
+	subscription?: UserSubscription;
+	message: string;
+}

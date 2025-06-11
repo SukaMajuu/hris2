@@ -49,6 +49,15 @@ type ConvertTrialToPaidRequest struct {
 	IsMonthly          bool  `json:"is_monthly"`
 }
 
+// Payment verification request
+type VerifyPaymentRequest struct {
+	TransactionID string `json:"transaction_id" binding:"required"`
+	OrderID       string `json:"order_id"`
+	PlanID        uint   `json:"plan_id" binding:"required"`
+	SeatPlanID    uint   `json:"seat_plan_id" binding:"required"`
+	IsMonthly     bool   `json:"is_monthly"`
+}
+
 func FromCompleteTrialCheckoutRequest(req *CompleteTrialCheckoutRequest) *domain.CustomerBillingInfo {
 	billingInfo := &domain.CustomerBillingInfo{
 		CompanyName:         req.CompanyName,

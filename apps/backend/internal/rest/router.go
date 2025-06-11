@@ -195,6 +195,7 @@ func (r *Router) Setup() *gin.Engine {
 					protected.POST("/seat/preview", r.subscriptionHandler.PreviewSeatPlanChange)
 					protected.POST("/seat/change", r.subscriptionHandler.ChangeSeatPlan)
 					protected.POST("/trial/convert", r.subscriptionHandler.ConvertTrialToPaid)
+					protected.POST("/verify-payment", r.subscriptionHandler.VerifyPayment)
 				}
 			}
 		}

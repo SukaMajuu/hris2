@@ -354,6 +354,147 @@ func (h *SubscriptionHandler) ActivateTrial(c *gin.Context) {
 	response.OK(c, "Trial activated successfully", nil)
 }
 
+// Upgrade/Downgrade endpoints
+
+func (h *SubscriptionHandler) PreviewSubscriptionPlanChange(c *gin.Context) {
+	var req subscriptionDTO.UpgradeSubscriptionPlanRequest
+	if bindAndValidate(c, &req) {
+		return
+	}
+
+	userID, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User ID not found in context", nil)
+		return
+	}
+
+	preview, err := h.subscriptionUseCase.PreviewSubscriptionPlanChange(
+		c.Request.Context(),
+		userID.(uint),
+		req.NewSubscriptionPlanID,
+		req.IsMonthly,
+	)
+	if err != nil {
+		response.InternalServerError(c, err)
+		return
+	}
+
+	response.OK(c, "Subscription plan change preview retrieved successfully", preview)
+}
+
+func (h *SubscriptionHandler) UpgradeSubscriptionPlan(c *gin.Context) {
+	var req subscriptionDTO.UpgradeSubscriptionPlanRequest
+	if bindAndValidate(c, &req) {
+		return
+	}
+
+	userID, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User ID not found in context", nil)
+		return
+	}
+
+	changeResponse, err := h.subscriptionUseCase.UpgradeSubscriptionPlan(
+		c.Request.Context(),
+		userID.(uint),
+		req.NewSubscriptionPlanID,
+		req.IsMonthly,
+	)
+	if err != nil {
+		response.InternalServerError(c, err)
+		return
+	}
+
+	if changeResponse.PaymentRequired {
+		response.OK(c, "Payment required to complete subscription change", changeResponse)
+	} else {
+		response.OK(c, "Subscription plan changed successfully", changeResponse)
+	}
+}
+
+func (h *SubscriptionHandler) PreviewSeatPlanChange(c *gin.Context) {
+	var req subscriptionDTO.ChangeSeatPlanRequest
+	if bindAndValidate(c, &req) {
+		return
+	}
+
+	userID, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User ID not found in context", nil)
+		return
+	}
+
+	preview, err := h.subscriptionUseCase.PreviewSeatPlanChange(
+		c.Request.Context(),
+		userID.(uint),
+		req.NewSeatPlanID,
+		req.IsMonthly,
+	)
+	if err != nil {
+		response.InternalServerError(c, err)
+		return
+	}
+
+	response.OK(c, "Seat plan change preview retrieved successfully", preview)
+}
+
+func (h *SubscriptionHandler) ChangeSeatPlan(c *gin.Context) {
+	var req subscriptionDTO.ChangeSeatPlanRequest
+	if bindAndValidate(c, &req) {
+		return
+	}
+
+	userID, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User ID not found in context", nil)
+		return
+	}
+
+	changeResponse, err := h.subscriptionUseCase.ChangeSeatPlan(
+		c.Request.Context(),
+		userID.(uint),
+		req.NewSeatPlanID,
+		req.IsMonthly,
+	)
+	if err != nil {
+		response.InternalServerError(c, err)
+		return
+	}
+
+	if changeResponse.PaymentRequired {
+		response.OK(c, "Payment required to complete seat plan change", changeResponse)
+	} else {
+		response.OK(c, "Seat plan changed successfully", changeResponse)
+	}
+}
+
+func (h *SubscriptionHandler) ConvertTrialToPaid(c *gin.Context) {
+	var req subscriptionDTO.ConvertTrialToPaidRequest
+	if bindAndValidate(c, &req) {
+		return
+	}
+
+	userID, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User ID not found in context", nil)
+		return
+	}
+
+	changeResponse, err := h.subscriptionUseCase.ConvertTrialToPaid(
+		c.Request.Context(),
+		userID.(uint),
+		req.SubscriptionPlanID,
+		req.SeatPlanID,
+		req.IsMonthly,
+	)
+	if err != nil {
+		response.InternalServerError(c, err)
+		return
+	}
+
+	response.OK(c, "Trial conversion initiated successfully", changeResponse)
+}
+
 // HealthCheckWebhook - Health check endpoint for webhook connectivity testing
 func (h *SubscriptionHandler) HealthCheckWebhook(c *gin.Context) {
 	fmt.Printf("=== WEBHOOK HEALTH CHECK ===\n")

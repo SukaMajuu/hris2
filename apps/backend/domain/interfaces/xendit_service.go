@@ -109,6 +109,7 @@ type PaymentRepository interface {
 
 	// SubscriptionPlan operations
 	GetSubscriptionPlans(ctx context.Context) ([]domain.SubscriptionPlan, error)
+	GetSubscriptionPlan(ctx context.Context, planID uint) (*domain.SubscriptionPlan, error)
 	GetSeatPlansBySubscriptionPlan(ctx context.Context, subscriptionPlanID uint) ([]domain.SeatPlan, error)
 	GetSeatPlan(ctx context.Context, seatPlanID uint) (*domain.SeatPlan, error)
 

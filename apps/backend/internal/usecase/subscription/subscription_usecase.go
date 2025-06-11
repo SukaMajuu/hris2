@@ -785,6 +785,550 @@ func (uc *SubscriptionUseCase) activateMidtransSubscription(ctx context.Context,
 	return nil
 }
 
+// PreviewSubscriptionPlanChange previews the changes when upgrading/downgrading subscription plan
+func (uc *SubscriptionUseCase) PreviewSubscriptionPlanChange(ctx context.Context, userID uint, newPlanID uint, isMonthly bool) (*subscriptionDto.UpgradePreviewResponse, error) {
+	// Get current subscription
+	currentSubscription, err := uc.xenditRepo.GetSubscriptionByAdminUserID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get current subscription: %w", err)
+	}
+
+	// Get new plan
+	newPlan, err := uc.xenditRepo.GetSubscriptionPlan(ctx, newPlanID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get new subscription plan: %w", err)
+	}
+
+	// Get appropriate seat plan for new plan (same tier)
+	newSeatPlans, err := uc.xenditRepo.GetSeatPlansBySubscriptionPlan(ctx, newPlanID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get seat plans for new plan: %w", err)
+	}
+
+	// Find matching seat plan by employee range
+	var newSeatPlan *domain.SeatPlan
+	currentMinEmployees := currentSubscription.SeatPlan.MinEmployees
+	currentMaxEmployees := currentSubscription.SeatPlan.MaxEmployees
+
+	for _, seatPlan := range newSeatPlans {
+		if seatPlan.MinEmployees == currentMinEmployees && seatPlan.MaxEmployees == currentMaxEmployees {
+			newSeatPlan = &seatPlan
+			break
+		}
+	}
+
+	if newSeatPlan == nil {
+		return nil, fmt.Errorf("no matching seat plan found for new subscription plan")
+	}
+
+	// Calculate price difference
+	var currentPrice, newPrice decimal.Decimal
+	if isMonthly {
+		currentPrice = currentSubscription.SeatPlan.PricePerMonth
+		newPrice = newSeatPlan.PricePerMonth
+	} else {
+		currentPrice = currentSubscription.SeatPlan.PricePerYear
+		newPrice = newSeatPlan.PricePerYear
+	}
+
+	priceDifference := newPrice.Sub(currentPrice)
+	isUpgrade := priceDifference.GreaterThan(decimal.Zero)
+
+	// Calculate proration (simplified - based on remaining days in billing cycle)
+	prorationAmount := decimal.Zero
+	effectiveDate := time.Now().UTC()
+	nextBillingDate := effectiveDate
+
+	if currentSubscription.NextBillingDate != nil {
+		nextBillingDate = *currentSubscription.NextBillingDate
+
+		// Calculate remaining days
+		if currentSubscription.Status == enums.StatusActive {
+			remainingDays := int(nextBillingDate.Sub(effectiveDate).Hours() / 24)
+			totalDays := 30 // Monthly
+			if !isMonthly {
+				totalDays = 365 // Yearly
+			}
+
+			if remainingDays > 0 && isUpgrade {
+				// For upgrades, charge prorated amount for remaining period
+				dailyDifference := priceDifference.Div(decimal.NewFromInt(int64(totalDays)))
+				prorationAmount = dailyDifference.Mul(decimal.NewFromInt(int64(remainingDays)))
+			}
+		}
+	} else {
+		// For trial users, set next billing based on billing frequency
+		if isMonthly {
+			nextBillingDate = effectiveDate.AddDate(0, 1, 0)
+		} else {
+			nextBillingDate = effectiveDate.AddDate(1, 0, 0)
+		}
+	}
+
+	return &subscriptionDto.UpgradePreviewResponse{
+		CurrentPlan:     subscriptionDto.ToSubscriptionPlanResponse(&currentSubscription.SubscriptionPlan),
+		NewPlan:         subscriptionDto.ToSubscriptionPlanResponse(newPlan),
+		CurrentSeatPlan: subscriptionDto.ToSeatPlanResponse(&currentSubscription.SeatPlan),
+		NewSeatPlan:     subscriptionDto.ToSeatPlanResponse(newSeatPlan),
+		PriceDifference: priceDifference,
+		ProrationAmount: prorationAmount,
+		IsUpgrade:       isUpgrade,
+		EffectiveDate:   effectiveDate,
+		NextBillingDate: nextBillingDate,
+		RequiresPayment: prorationAmount.GreaterThan(decimal.Zero),
+	}, nil
+}
+
+// UpgradeSubscriptionPlan upgrades or downgrades subscription plan
+func (uc *SubscriptionUseCase) UpgradeSubscriptionPlan(ctx context.Context, userID uint, newPlanID uint, isMonthly bool) (*subscriptionDto.SubscriptionChangeResponse, error) {
+	// Get preview first
+	preview, err := uc.PreviewSubscriptionPlanChange(ctx, userID, newPlanID, isMonthly)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get current subscription
+	currentSubscription, err := uc.xenditRepo.GetSubscriptionByAdminUserID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get current subscription: %w", err)
+	}
+
+	changeType := "plan_downgrade"
+	if preview.IsUpgrade {
+		changeType = "plan_upgrade"
+	}
+
+	// If payment is required for upgrade, create checkout session
+	var checkoutSession *subscriptionDto.CheckoutSessionResponse
+	var invoice *subscriptionDto.InvoiceResponse
+
+	if preview.RequiresPayment && preview.ProrationAmount.GreaterThan(decimal.Zero) {
+		sessionID := uuid.New().String()
+		session := &domain.CheckoutSession{
+			SessionID:          sessionID,
+			UserID:             userID,
+			SubscriptionPlanID: newPlanID,
+			SeatPlanID:         preview.NewSeatPlan.ID,
+			IsTrialCheckout:    false,
+			Amount:             preview.ProrationAmount,
+			Currency:           "IDR",
+			Status:             enums.CheckoutInitiated,
+			InitiatedAt:        time.Now().UTC(),
+			ExpiresAt:          func() *time.Time { t := time.Now().UTC().Add(24 * time.Hour); return &t }(),
+		}
+
+		if err := uc.xenditRepo.CreateCheckoutSession(ctx, session); err != nil {
+			return nil, fmt.Errorf("failed to create checkout session: %w", err)
+		}
+
+		// Create invoice for the upgrade difference
+		externalID := fmt.Sprintf("upgrade_%s", sessionID)
+		description := fmt.Sprintf("HRIS Plan Upgrade - %s to %s",
+			currentSubscription.SubscriptionPlan.Name,
+			preview.NewPlan.Name)
+
+		invoiceReq := interfaces.CreateInvoiceRequest{
+			ExternalID:      externalID,
+			PayerEmail:      "",
+			Description:     description,
+			Amount:          preview.ProrationAmount,
+			Currency:        "IDR",
+			InvoiceDuration: 24 * 60 * 60,
+			PaymentMethods:  []string{"BANK_TRANSFER", "CREDIT_CARD", "EWALLET"},
+			Items: []interfaces.InvoiceItem{
+				{
+					Name:     description,
+					Quantity: 1,
+					Price:    preview.ProrationAmount,
+					Category: "subscription_upgrade",
+				},
+			},
+		}
+
+		xenditInvoice, err := uc.xenditClient.CreateInvoice(ctx, invoiceReq)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create Xendit invoice: %w", err)
+		}
+
+		session.SetPaymentInfo(xenditInvoice.ID, xenditInvoice.InvoiceURL, externalID)
+		if err := uc.xenditRepo.UpdateCheckoutSession(ctx, session); err != nil {
+			return nil, fmt.Errorf("failed to update checkout session: %w", err)
+		}
+
+		checkoutSession = subscriptionDto.ToCheckoutSessionResponse(session)
+		invoice = &subscriptionDto.InvoiceResponse{
+			ID:         xenditInvoice.ID,
+			InvoiceURL: xenditInvoice.InvoiceURL,
+			Amount:     xenditInvoice.Amount,
+			Currency:   xenditInvoice.Currency,
+			ExpiryDate: xenditInvoice.ExpiryDate,
+		}
+
+		// Return response indicating payment is required
+		return &subscriptionDto.SubscriptionChangeResponse{
+			Subscription:    subscriptionDto.ToSubscriptionResponse(currentSubscription),
+			ChangeType:      changeType,
+			PaymentRequired: true,
+			PaymentAmount:   &preview.ProrationAmount,
+			CheckoutSession: checkoutSession,
+			Invoice:         invoice,
+			EffectiveDate:   preview.EffectiveDate,
+			Message:         fmt.Sprintf("Payment of %s required to complete plan upgrade", preview.ProrationAmount.String()),
+		}, nil
+	}
+
+	// No payment required (downgrade or trial), apply changes immediately
+	currentSubscription.SubscriptionPlanID = newPlanID
+	currentSubscription.SeatPlanID = preview.NewSeatPlan.ID
+
+	// Update billing dates
+	if isMonthly {
+		nextBilling := time.Now().UTC().AddDate(0, 1, 0)
+		currentSubscription.NextBillingDate = &nextBilling
+	} else {
+		nextBilling := time.Now().UTC().AddDate(1, 0, 0)
+		currentSubscription.NextBillingDate = &nextBilling
+	}
+
+	if err := uc.xenditRepo.UpdateSubscription(ctx, currentSubscription); err != nil {
+		return nil, fmt.Errorf("failed to update subscription: %w", err)
+	}
+
+	// Reload subscription with new relationships
+	updatedSubscription, err := uc.xenditRepo.GetSubscriptionByAdminUserID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get updated subscription: %w", err)
+	}
+
+	message := fmt.Sprintf("Successfully %s to %s plan",
+		func() string {
+			if preview.IsUpgrade {
+				return "upgraded"
+			}
+			return "downgraded"
+		}(),
+		preview.NewPlan.Name)
+
+	return &subscriptionDto.SubscriptionChangeResponse{
+		Subscription:    subscriptionDto.ToSubscriptionResponse(updatedSubscription),
+		ChangeType:      changeType,
+		PaymentRequired: false,
+		EffectiveDate:   preview.EffectiveDate,
+		Message:         message,
+	}, nil
+}
+
+// PreviewSeatPlanChange previews the changes when changing seat plan
+func (uc *SubscriptionUseCase) PreviewSeatPlanChange(ctx context.Context, userID uint, newSeatPlanID uint, isMonthly bool) (*subscriptionDto.UpgradePreviewResponse, error) {
+	// Get current subscription
+	currentSubscription, err := uc.xenditRepo.GetSubscriptionByAdminUserID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get current subscription: %w", err)
+	}
+
+	// Get new seat plan
+	newSeatPlan, err := uc.xenditRepo.GetSeatPlan(ctx, newSeatPlanID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get new seat plan: %w", err)
+	}
+
+	// Verify seat plan belongs to current subscription plan
+	if newSeatPlan.SubscriptionPlanID != currentSubscription.SubscriptionPlanID {
+		return nil, fmt.Errorf("seat plan does not belong to current subscription plan")
+	}
+
+	// Calculate price difference
+	var currentPrice, newPrice decimal.Decimal
+	if isMonthly {
+		currentPrice = currentSubscription.SeatPlan.PricePerMonth
+		newPrice = newSeatPlan.PricePerMonth
+	} else {
+		currentPrice = currentSubscription.SeatPlan.PricePerYear
+		newPrice = newSeatPlan.PricePerYear
+	}
+
+	priceDifference := newPrice.Sub(currentPrice)
+	isUpgrade := priceDifference.GreaterThan(decimal.Zero)
+
+	// Calculate proration
+	prorationAmount := decimal.Zero
+	effectiveDate := time.Now().UTC()
+	nextBillingDate := effectiveDate
+
+	if currentSubscription.NextBillingDate != nil {
+		nextBillingDate = *currentSubscription.NextBillingDate
+
+		if currentSubscription.Status == enums.StatusActive {
+			remainingDays := int(nextBillingDate.Sub(effectiveDate).Hours() / 24)
+			totalDays := 30 // Monthly
+			if !isMonthly {
+				totalDays = 365 // Yearly
+			}
+
+			if remainingDays > 0 && isUpgrade {
+				dailyDifference := priceDifference.Div(decimal.NewFromInt(int64(totalDays)))
+				prorationAmount = dailyDifference.Mul(decimal.NewFromInt(int64(remainingDays)))
+			}
+		}
+	} else {
+		if isMonthly {
+			nextBillingDate = effectiveDate.AddDate(0, 1, 0)
+		} else {
+			nextBillingDate = effectiveDate.AddDate(1, 0, 0)
+		}
+	}
+
+	return &subscriptionDto.UpgradePreviewResponse{
+		CurrentPlan:     subscriptionDto.ToSubscriptionPlanResponse(&currentSubscription.SubscriptionPlan),
+		NewPlan:         subscriptionDto.ToSubscriptionPlanResponse(&currentSubscription.SubscriptionPlan), // Same plan
+		CurrentSeatPlan: subscriptionDto.ToSeatPlanResponse(&currentSubscription.SeatPlan),
+		NewSeatPlan:     subscriptionDto.ToSeatPlanResponse(newSeatPlan),
+		PriceDifference: priceDifference,
+		ProrationAmount: prorationAmount,
+		IsUpgrade:       isUpgrade,
+		EffectiveDate:   effectiveDate,
+		NextBillingDate: nextBillingDate,
+		RequiresPayment: prorationAmount.GreaterThan(decimal.Zero),
+	}, nil
+}
+
+// ChangeSeatPlan changes the seat plan within the same subscription plan
+func (uc *SubscriptionUseCase) ChangeSeatPlan(ctx context.Context, userID uint, newSeatPlanID uint, isMonthly bool) (*subscriptionDto.SubscriptionChangeResponse, error) {
+	// Get preview first
+	preview, err := uc.PreviewSeatPlanChange(ctx, userID, newSeatPlanID, isMonthly)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get current subscription
+	currentSubscription, err := uc.xenditRepo.GetSubscriptionByAdminUserID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get current subscription: %w", err)
+	}
+
+	changeType := "seat_downgrade"
+	if preview.IsUpgrade {
+		changeType = "seat_upgrade"
+	}
+
+	// Check if current employee count fits in new seat plan
+	if currentSubscription.CurrentEmployeeCount > preview.NewSeatPlan.MaxEmployees {
+		return nil, fmt.Errorf("cannot downgrade: current employee count (%d) exceeds new seat plan limit (%d)",
+			currentSubscription.CurrentEmployeeCount, preview.NewSeatPlan.MaxEmployees)
+	}
+
+	// If payment is required for upgrade
+	var checkoutSession *subscriptionDto.CheckoutSessionResponse
+	var invoice *subscriptionDto.InvoiceResponse
+
+	if preview.RequiresPayment && preview.ProrationAmount.GreaterThan(decimal.Zero) {
+		sessionID := uuid.New().String()
+		session := &domain.CheckoutSession{
+			SessionID:          sessionID,
+			UserID:             userID,
+			SubscriptionPlanID: currentSubscription.SubscriptionPlanID,
+			SeatPlanID:         newSeatPlanID,
+			IsTrialCheckout:    false,
+			Amount:             preview.ProrationAmount,
+			Currency:           "IDR",
+			Status:             enums.CheckoutInitiated,
+			InitiatedAt:        time.Now().UTC(),
+			ExpiresAt:          func() *time.Time { t := time.Now().UTC().Add(24 * time.Hour); return &t }(),
+		}
+
+		if err := uc.xenditRepo.CreateCheckoutSession(ctx, session); err != nil {
+			return nil, fmt.Errorf("failed to create checkout session: %w", err)
+		}
+
+		// Create invoice for the seat upgrade difference
+		externalID := fmt.Sprintf("seat_upgrade_%s", sessionID)
+		description := fmt.Sprintf("HRIS Seat Upgrade - %d-%d to %d-%d employees",
+			preview.CurrentSeatPlan.MinEmployees, preview.CurrentSeatPlan.MaxEmployees,
+			preview.NewSeatPlan.MinEmployees, preview.NewSeatPlan.MaxEmployees)
+
+		invoiceReq := interfaces.CreateInvoiceRequest{
+			ExternalID:      externalID,
+			PayerEmail:      "",
+			Description:     description,
+			Amount:          preview.ProrationAmount,
+			Currency:        "IDR",
+			InvoiceDuration: 24 * 60 * 60,
+			PaymentMethods:  []string{"BANK_TRANSFER", "CREDIT_CARD", "EWALLET"},
+			Items: []interfaces.InvoiceItem{
+				{
+					Name:     description,
+					Quantity: 1,
+					Price:    preview.ProrationAmount,
+					Category: "seat_upgrade",
+				},
+			},
+		}
+
+		xenditInvoice, err := uc.xenditClient.CreateInvoice(ctx, invoiceReq)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create Xendit invoice: %w", err)
+		}
+
+		session.SetPaymentInfo(xenditInvoice.ID, xenditInvoice.InvoiceURL, externalID)
+		if err := uc.xenditRepo.UpdateCheckoutSession(ctx, session); err != nil {
+			return nil, fmt.Errorf("failed to update checkout session: %w", err)
+		}
+
+		checkoutSession = subscriptionDto.ToCheckoutSessionResponse(session)
+		invoice = &subscriptionDto.InvoiceResponse{
+			ID:         xenditInvoice.ID,
+			InvoiceURL: xenditInvoice.InvoiceURL,
+			Amount:     xenditInvoice.Amount,
+			Currency:   xenditInvoice.Currency,
+			ExpiryDate: xenditInvoice.ExpiryDate,
+		}
+
+		return &subscriptionDto.SubscriptionChangeResponse{
+			Subscription:    subscriptionDto.ToSubscriptionResponse(currentSubscription),
+			ChangeType:      changeType,
+			PaymentRequired: true,
+			PaymentAmount:   &preview.ProrationAmount,
+			CheckoutSession: checkoutSession,
+			Invoice:         invoice,
+			EffectiveDate:   preview.EffectiveDate,
+			Message:         fmt.Sprintf("Payment of %s required to complete seat upgrade", preview.ProrationAmount.String()),
+		}, nil
+	}
+
+	// No payment required (downgrade or trial), apply changes immediately
+	currentSubscription.SeatPlanID = newSeatPlanID
+
+	if err := uc.xenditRepo.UpdateSubscription(ctx, currentSubscription); err != nil {
+		return nil, fmt.Errorf("failed to update subscription: %w", err)
+	}
+
+	// Reload subscription with new relationships
+	updatedSubscription, err := uc.xenditRepo.GetSubscriptionByAdminUserID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get updated subscription: %w", err)
+	}
+
+	message := fmt.Sprintf("Successfully changed seat plan to %d-%d employees",
+		preview.NewSeatPlan.MinEmployees, preview.NewSeatPlan.MaxEmployees)
+
+	return &subscriptionDto.SubscriptionChangeResponse{
+		Subscription:    subscriptionDto.ToSubscriptionResponse(updatedSubscription),
+		ChangeType:      changeType,
+		PaymentRequired: false,
+		EffectiveDate:   preview.EffectiveDate,
+		Message:         message,
+	}, nil
+}
+
+// ConvertTrialToPaid converts trial subscription to paid with optional plan/seat changes
+func (uc *SubscriptionUseCase) ConvertTrialToPaid(ctx context.Context, userID uint, newPlanID *uint, newSeatPlanID *uint, isMonthly bool) (*subscriptionDto.SubscriptionChangeResponse, error) {
+	// Get current subscription
+	currentSubscription, err := uc.xenditRepo.GetSubscriptionByAdminUserID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get current subscription: %w", err)
+	}
+
+	if currentSubscription.Status != enums.StatusTrial {
+		return nil, fmt.Errorf("subscription is not in trial status")
+	}
+
+	// Use current plan and seat if not specified
+	targetPlanID := currentSubscription.SubscriptionPlanID
+	targetSeatPlanID := currentSubscription.SeatPlanID
+
+	if newPlanID != nil {
+		targetPlanID = *newPlanID
+	}
+
+	if newSeatPlanID != nil {
+		targetSeatPlanID = *newSeatPlanID
+	}
+
+	// Get target seat plan
+	targetSeatPlan, err := uc.xenditRepo.GetSeatPlan(ctx, targetSeatPlanID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get target seat plan: %w", err)
+	}
+
+	// Calculate payment amount
+	var amount decimal.Decimal
+	if isMonthly {
+		amount = targetSeatPlan.PricePerMonth
+	} else {
+		amount = targetSeatPlan.PricePerYear
+	}
+
+	// Create checkout session for trial conversion
+	sessionID := uuid.New().String()
+	session := &domain.CheckoutSession{
+		SessionID:          sessionID,
+		UserID:             userID,
+		SubscriptionPlanID: targetPlanID,
+		SeatPlanID:         targetSeatPlanID,
+		IsTrialCheckout:    false,
+		Amount:             amount,
+		Currency:           "IDR",
+		Status:             enums.CheckoutInitiated,
+		InitiatedAt:        time.Now().UTC(),
+		ExpiresAt:          func() *time.Time { t := time.Now().UTC().Add(24 * time.Hour); return &t }(),
+	}
+
+	if err := uc.xenditRepo.CreateCheckoutSession(ctx, session); err != nil {
+		return nil, fmt.Errorf("failed to create checkout session: %w", err)
+	}
+
+	externalID := fmt.Sprintf("trial_conversion_%s", sessionID)
+	description := fmt.Sprintf("HRIS Trial Conversion - %s Plan (%d-%d employees)",
+		targetSeatPlan.SubscriptionPlan.Name,
+		targetSeatPlan.MinEmployees,
+		targetSeatPlan.MaxEmployees)
+
+	invoiceReq := interfaces.CreateInvoiceRequest{
+		ExternalID:      externalID,
+		PayerEmail:      "",
+		Description:     description,
+		Amount:          amount,
+		Currency:        "IDR",
+		InvoiceDuration: 24 * 60 * 60,
+		PaymentMethods:  []string{"BANK_TRANSFER", "CREDIT_CARD", "EWALLET"},
+		Items: []interfaces.InvoiceItem{
+			{
+				Name:     description,
+				Quantity: 1,
+				Price:    amount,
+				Category: "trial_conversion",
+			},
+		},
+	}
+
+	xenditInvoice, err := uc.xenditClient.CreateInvoice(ctx, invoiceReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Xendit invoice: %w", err)
+	}
+
+	session.SetPaymentInfo(xenditInvoice.ID, xenditInvoice.InvoiceURL, externalID)
+	if err := uc.xenditRepo.UpdateCheckoutSession(ctx, session); err != nil {
+		return nil, fmt.Errorf("failed to update checkout session: %w", err)
+	}
+
+	return &subscriptionDto.SubscriptionChangeResponse{
+		Subscription:    subscriptionDto.ToSubscriptionResponse(currentSubscription),
+		ChangeType:      "trial_conversion",
+		PaymentRequired: true,
+		PaymentAmount:   &amount,
+		CheckoutSession: subscriptionDto.ToCheckoutSessionResponse(session),
+		Invoice: &subscriptionDto.InvoiceResponse{
+			ID:         xenditInvoice.ID,
+			InvoiceURL: xenditInvoice.InvoiceURL,
+			Amount:     xenditInvoice.Amount,
+			Currency:   xenditInvoice.Currency,
+			ExpiryDate: xenditInvoice.ExpiryDate,
+		},
+		EffectiveDate: time.Now().UTC(),
+		Message:       fmt.Sprintf("Payment of %s required to convert trial to paid subscription", amount.String()),
+	}, nil
+}
+
 func (uc *SubscriptionUseCase) CreateAutomaticTrialForPremiumUser(ctx context.Context, userID uint) error {
 	// Check if user is eligible for trial
 	user, err := uc.authRepo.GetUserByID(ctx, userID)

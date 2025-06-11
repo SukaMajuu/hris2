@@ -119,6 +119,14 @@ func (m *XenditRepository) GetSubscriptionPlans(ctx context.Context) ([]domain.S
 	return args.Get(0).([]domain.SubscriptionPlan), args.Error(1)
 }
 
+func (m *XenditRepository) GetSubscriptionPlan(ctx context.Context, planID uint) (*domain.SubscriptionPlan, error) {
+	args := m.Called(ctx, planID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*domain.SubscriptionPlan), args.Error(1)
+}
+
 func (m *XenditRepository) GetSeatPlansBySubscriptionPlan(ctx context.Context, subscriptionPlanID uint) ([]domain.SeatPlan, error) {
 	args := m.Called(ctx, subscriptionPlanID)
 	return args.Get(0).([]domain.SeatPlan), args.Error(1)

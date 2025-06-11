@@ -3,6 +3,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { useCheckClock } from "../_hooks/useAttendance";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { DataTable } from "@/components/dataTable";
 import { Button } from "@/components/ui/button";
 import {
@@ -279,7 +280,6 @@ export default function AttendanceOverviewTab() {
 
 		return currentTime < checkoutStartLocal;
 	}, [workSchedule, canClockOut]);
-
 	// Check if user has already clocked out today
 	const hasAlreadyClockedOut = useMemo(() => {
 		if (!currentEmployee) return false;
@@ -294,6 +294,33 @@ export default function AttendanceOverviewTab() {
 
 		return !!todayAttendance; // User has already clocked out if there's a complete record for today
 	}, [checkClockData, currentEmployee]);
+
+	// Check if user has a leave record for today (prevents clock-in)
+	const hasLeaveToday = useMemo(() => {
+		if (!currentEmployee) return false;
+
+		const today = new Date().toISOString().split("T")[0];
+
+		// Find today's attendance record with leave status
+		const todayLeaveAttendance = checkClockData.find(
+			(record) => record.date === today && record.status === "leave"
+		);
+
+		return !!todayLeaveAttendance; // User has leave today if there's a leave record
+	}, [checkClockData, currentEmployee]);
+
+	// Check if user can clock in (not on leave and hasn't already clocked in)
+	const canClockIn = useMemo(() => {
+		if (!currentEmployee || hasLeaveToday) return false;
+
+		const today = new Date().toISOString().split("T")[0];
+
+		// Find today's attendance record that already has clock_in
+		const todayAttendance = checkClockData.find(
+			(record) => record.date === today && record.clock_in		);
+
+		return !todayAttendance; // Can clock in only if no attendance record with clock_in exists for today
+	}, [checkClockData, currentEmployee, hasLeaveToday]);
 
 	const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
 		pageIndex: 0,
@@ -386,9 +413,26 @@ export default function AttendanceOverviewTab() {
 		});
 		setPagination((prev) => ({ ...prev, pageIndex: 0 }));
 	};
-
 	const openDialogHandler = (action: "clock-in" | "clock-out") => {
 		if (!currentEmployee) {
+			return;
+		}
+
+		// Add validation for clock-in on leave days
+		if (action === "clock-in" && hasLeaveToday) {
+			toast.error(
+				"Clock-in is not allowed on leave days. You have an active leave record for today.",
+				{ duration: 5000 }
+			);
+			return;
+		}
+
+		// Add validation for clock-in permission
+		if (action === "clock-in" && !canClockIn) {
+			toast.error(
+				"Clock-in is not available. You may have already clocked in today or are on leave.",
+				{ duration: 5000 }
+			);
 			return;
 		}
 
@@ -400,7 +444,6 @@ export default function AttendanceOverviewTab() {
 		const currentDate = now.toISOString().split("T")[0];
 
 		const employeeWorkScheduleId = workScheduleId || 1;
-
 		if (action === "clock-in") {
 			title = "Record Clock-In";
 			setValue("attendance_type", "clock-in");
@@ -408,6 +451,7 @@ export default function AttendanceOverviewTab() {
 				employee_id: currentEmployee.id,
 				work_schedule_id: employeeWorkScheduleId,
 				date: currentDate,
+				clock_in: new Date().toISOString(), // Add required clock_in field
 				clock_in_lat: 0,
 				clock_in_long: 0,
 			});
@@ -417,13 +461,13 @@ export default function AttendanceOverviewTab() {
 			setValue("clock_out_request", {
 				employee_id: currentEmployee.id,
 				date: currentDate,
+				clock_out: new Date().toISOString(), // Add required clock_out field
 				clock_out_lat: 0,
 				clock_out_long: 0,
 			});
 		}
 
 		setDialogTitle(title);
-
 		if (navigator.geolocation) {
 			navigator.geolocation.getCurrentPosition(
 				(position) => {
@@ -432,6 +476,7 @@ export default function AttendanceOverviewTab() {
 							employee_id: currentEmployee.id,
 							work_schedule_id: employeeWorkScheduleId,
 							date: currentDate,
+							clock_in: new Date().toISOString(), // Keep the required clock_in field
 							clock_in_lat: position.coords.latitude,
 							clock_in_long: position.coords.longitude,
 						});
@@ -439,6 +484,7 @@ export default function AttendanceOverviewTab() {
 						setValue("clock_out_request", {
 							employee_id: currentEmployee.id,
 							date: currentDate,
+							clock_out: new Date().toISOString(), // Keep the required clock_out field
 							clock_out_lat: position.coords.latitude,
 							clock_out_long: position.coords.longitude,
 						});
@@ -471,18 +517,21 @@ export default function AttendanceOverviewTab() {
 				meta: {
 					className: "max-w-[80px]",
 				},
-			},
-			{
+			},			{
 				header: "Date",
 				accessorKey: "date",
 				cell: ({ row }) => {
-					// Combine UTC date and clock_in time to get the actual local date
 					const dateStr = row.original.date;
-					const timeStr = row.original.clock_in || "00:00:00";
-					const utcDateTime = `${dateStr}T${timeStr}Z`;
-					const localDate = new Date(utcDateTime);
+					// Use the date field directly, or clock_in if available
+					const dateToUse = row.original.clock_in || dateStr;
+					const date = new Date(dateToUse);
 
-					return localDate.toLocaleDateString("en-US", {
+					// Check if the date is valid
+					if (isNaN(date.getTime())) {
+						return "Invalid Date";
+					}
+
+					return date.toLocaleDateString("en-US", {
 						year: "numeric",
 						month: "long",
 						day: "2-digit",
@@ -585,8 +634,7 @@ export default function AttendanceOverviewTab() {
 						<div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
 							<h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">
 								Attendance Overview
-							</h2>
-							<div className="flex flex-wrap gap-2">
+							</h2>							<div className="flex flex-wrap gap-2">
 								<Button
 									variant="outline"
 									className="gap-2 border-green-500 bg-green-500 text-white hover:bg-green-600 disabled:bg-gray-400 disabled:border-gray-400"
@@ -596,10 +644,15 @@ export default function AttendanceOverviewTab() {
 									disabled={
 										isClockingIn ||
 										!currentEmployee ||
+										!canClockIn ||
 										!isWithinCheckInTime
 									}
 									title={
-										!isWithinCheckInTime
+										hasLeaveToday
+											? "Cannot clock-in: You have a leave record for today"
+											: !canClockIn
+											? "Clock-in not available: Already clocked in or on leave"
+											: !isWithinCheckInTime
 											? "Clock-in is not available at this time"
 											: ""
 									}
@@ -607,8 +660,12 @@ export default function AttendanceOverviewTab() {
 									<LogIn className="h-4 w-4" />
 									{isClockingIn
 										? "Clocking In..."
-										: !isWithinCheckInTime
+										: hasLeaveToday
+										? "Clock In (On Leave)"
+										: !canClockIn
 										? "Clock In (Disabled)"
+										: !isWithinCheckInTime
+										? "Clock In (Outside Hours)"
 										: "Clock In"}
 								</Button>
 								<Button
@@ -703,15 +760,17 @@ export default function AttendanceOverviewTab() {
 					</SheetHeader>
 					{selectedData && (
 						<div className="mx-2 space-y-6 text-sm sm:mx-4">
-							<div className="mb-6 rounded-lg bg-white p-6 shadow-md">
-								<h3 className="mb-1 text-lg font-bold text-slate-700">
+							<div className="mb-6 rounded-lg bg-white p-6 shadow-md">								<h3 className="mb-1 text-lg font-bold text-slate-700">
 									{(() => {
-										const dateStr = selectedData.date;
-										const timeStr =
-											selectedData.clock_in || "00:00:00";
-										const utcDateTime = `${dateStr}T${timeStr}Z`;
-										const localDate = new Date(utcDateTime);
-										return localDate.toLocaleDateString(
+										const dateToUse = selectedData.clock_in || selectedData.date;
+										const date = new Date(dateToUse);
+										
+										// Check if the date is valid
+										if (isNaN(date.getTime())) {
+											return "Invalid Date";
+										}
+										
+										return date.toLocaleDateString(
 											"en-US",
 											{
 												year: "numeric",

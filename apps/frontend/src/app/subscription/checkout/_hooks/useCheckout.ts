@@ -97,7 +97,13 @@ export const useCheckout = () => {
 	const changeContext = useMemo(() => {
 		if (!userSubscription) return { type: "new_subscription" };
 
-		if (isTrialConversion) return { type: "trial_conversion" };
+		// SAFEGUARD: If user has an active subscription, never treat it as trial conversion
+		// even if URL incorrectly contains trial_conversion=true
+		const hasActiveSubscription = userSubscription.status === "active";
+		const isActualTrialConversion =
+			isTrialConversion && userSubscription.is_in_trial;
+
+		if (isActualTrialConversion) return { type: "trial_conversion" };
 
 		// Check for changes regardless of upgrade/downgrade status
 		const currentPlan = userSubscription.subscription_plan;
@@ -317,8 +323,12 @@ export const useCheckout = () => {
 		const isMonthly = selectedBillingOption.id === "monthly";
 
 		try {
+			// SAFEGUARD: Prevent trial conversion API for active subscriptions
+			const isActualTrialConversion =
+				isTrialConversion && userSubscription?.is_in_trial;
+
 			// Handle different change scenarios
-			if (isTrialConversion) {
+			if (isActualTrialConversion) {
 				// Trial conversion
 				const request: ConvertTrialToPaidRequest = {
 					subscription_plan_id: planId,

@@ -2,6 +2,7 @@ package subscription
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -15,14 +16,14 @@ import (
 )
 
 type SubscriptionUseCase struct {
-	xenditRepo   interfaces.XenditRepository
+	xenditRepo   interfaces.PaymentRepository
 	xenditClient interfaces.XenditClient
 	employeeRepo interfaces.EmployeeRepository
 	authRepo     interfaces.AuthRepository
 }
 
 func NewSubscriptionUseCase(
-	xenditRepo interfaces.XenditRepository,
+	xenditRepo interfaces.PaymentRepository,
 	xenditClient interfaces.XenditClient,
 	employeeRepo interfaces.EmployeeRepository,
 	authRepo interfaces.AuthRepository,
@@ -79,8 +80,8 @@ func (uc *SubscriptionUseCase) InitiateTrialCheckout(ctx context.Context, userID
 		Amount:             decimal.NewFromInt(0),
 		Currency:           "IDR",
 		Status:             enums.CheckoutInitiated,
-		InitiatedAt:        time.Now(),
-		ExpiresAt:          func() *time.Time { t := time.Now().Add(24 * time.Hour); return &t }(),
+		InitiatedAt:        time.Now().UTC(),
+		ExpiresAt:          func() *time.Time { t := time.Now().UTC().Add(24 * time.Hour); return &t }(),
 	}
 
 	if err := uc.xenditRepo.CreateCheckoutSession(ctx, checkoutSession); err != nil {
@@ -113,8 +114,8 @@ func (uc *SubscriptionUseCase) InitiatePaidCheckout(ctx context.Context, userID,
 		Amount:             amount,
 		Currency:           "IDR",
 		Status:             enums.CheckoutInitiated,
-		InitiatedAt:        time.Now(),
-		ExpiresAt:          func() *time.Time { t := time.Now().Add(24 * time.Hour); return &t }(),
+		InitiatedAt:        time.Now().UTC(),
+		ExpiresAt:          func() *time.Time { t := time.Now().UTC().Add(24 * time.Hour); return &t }(),
 	}
 
 	if err := uc.xenditRepo.CreateCheckoutSession(ctx, checkoutSession); err != nil {
@@ -156,7 +157,7 @@ func (uc *SubscriptionUseCase) InitiatePaidCheckout(ctx context.Context, userID,
 		return nil, fmt.Errorf("failed to create Xendit invoice: %w", err)
 	}
 
-	checkoutSession.SetXenditInfo(invoice.ID, invoice.InvoiceURL, externalID)
+	checkoutSession.SetPaymentInfo(invoice.ID, invoice.InvoiceURL, externalID)
 	if err := uc.xenditRepo.UpdateCheckoutSession(ctx, checkoutSession); err != nil {
 		return nil, fmt.Errorf("failed to update checkout session: %w", err)
 	}
@@ -192,7 +193,7 @@ func (uc *SubscriptionUseCase) CompleteTrialCheckout(ctx context.Context, sessio
 		SubscriptionPlanID:   session.SubscriptionPlanID,
 		SeatPlanID:           session.SeatPlanID,
 		Status:               enums.StatusTrial,
-		StartDate:            time.Now(),
+		StartDate:            time.Now().UTC(),
 		IsAutoRenew:          true,
 		CurrentEmployeeCount: 0,
 	}
@@ -245,14 +246,14 @@ func (uc *SubscriptionUseCase) ProcessPaymentWebhook(ctx context.Context, webhoo
 }
 
 func (uc *SubscriptionUseCase) processInvoicePaidWebhook(ctx context.Context, data map[string]interface{}) error {
-	invoiceID, ok := data["id"].(string)
-	if !ok {
-		return fmt.Errorf("missing invoice ID")
-	}
-
 	externalID, ok := data["external_id"].(string)
 	if !ok {
 		return fmt.Errorf("missing external ID")
+	}
+
+	invoiceID, ok := data["id"].(string)
+	if !ok {
+		return fmt.Errorf("missing invoice ID")
 	}
 
 	sessionID := externalID[9:]
@@ -264,16 +265,21 @@ func (uc *SubscriptionUseCase) processInvoicePaidWebhook(ctx context.Context, da
 	paidAtStr, _ := data["paid_at"].(string)
 	paidAt, _ := time.Parse(time.RFC3339, paidAtStr)
 
+	// Convert data to JSON string for storage
+	gatewayResponseJSON, _ := json.Marshal(data)
+	gatewayResponseStr := string(gatewayResponseJSON)
+
 	transaction := &domain.PaymentTransaction{
-		SubscriptionID:   *session.SubscriptionID,
-		XenditInvoiceID:  &invoiceID,
-		XenditExternalID: externalID,
-		Amount:           session.Amount,
-		Currency:         session.Currency,
-		Status:           enums.PaymentPaid,
-		PaymentMethod:    func() *string { s, _ := data["payment_method"].(string); return &s }(),
-		Description:      "Subscription payment",
-		PaidAt:           &paidAt,
+		SubscriptionID:  *session.SubscriptionID,
+		TransactionID:   &invoiceID,
+		OrderID:         externalID,
+		Amount:          session.Amount,
+		Currency:        session.Currency,
+		Status:          enums.PaymentPaid,
+		PaymentMethod:   func() *string { s, _ := data["payment_method"].(string); return &s }(),
+		Description:     "Subscription payment",
+		PaidAt:          &paidAt,
+		GatewayResponse: &gatewayResponseStr,
 	}
 
 	if err := uc.xenditRepo.CreatePaymentTransaction(ctx, transaction); err != nil {
@@ -445,7 +451,7 @@ func (uc *SubscriptionUseCase) processTripayPaidWebhook(ctx context.Context, dat
 	if paidAtUnix, ok := data["paid_at"].(float64); ok {
 		paidAt = time.Unix(int64(paidAtUnix), 0)
 	} else {
-		paidAt = time.Now()
+		paidAt = time.Now().UTC()
 	}
 
 	// Get payment method from Tripay callback
@@ -462,17 +468,22 @@ func (uc *SubscriptionUseCase) processTripayPaidWebhook(ctx context.Context, dat
 		amountReceived = session.Amount
 	}
 
+	// Convert data to JSON string for storage
+	gatewayResponseJSON, _ := json.Marshal(data)
+	gatewayResponseStr := string(gatewayResponseJSON)
+
 	// Create payment transaction record
 	transaction := &domain.PaymentTransaction{
-		SubscriptionID:   *session.SubscriptionID,
-		XenditInvoiceID:  &reference, // Use Tripay reference as invoice ID
-		XenditExternalID: merchantRef,
-		Amount:           amountReceived,
-		Currency:         session.Currency,
-		Status:           enums.PaymentPaid,
-		PaymentMethod:    &paymentMethod,
-		Description:      "Subscription payment via Tripay",
-		PaidAt:           &paidAt,
+		SubscriptionID:  *session.SubscriptionID,
+		TransactionID:   &reference, // Use Tripay reference as transaction ID
+		OrderID:         merchantRef,
+		Amount:          amountReceived,
+		Currency:        session.Currency,
+		Status:          enums.PaymentPaid,
+		PaymentMethod:   &paymentMethod,
+		Description:     "Subscription payment via Tripay",
+		PaidAt:          &paidAt,
+		GatewayResponse: &gatewayResponseStr,
 	}
 
 	if err := uc.xenditRepo.CreatePaymentTransaction(ctx, transaction); err != nil {
@@ -551,41 +562,60 @@ func (uc *SubscriptionUseCase) ProcessMidtransWebhook(ctx context.Context, notif
 		return fmt.Errorf("missing transaction_status")
 	}
 
+	fmt.Printf("ProcessMidtransWebhook: Processing order %s with status %s\n", orderID, transactionStatus)
+
 	// Extract session ID from order ID (format: HRIS-{sessionID})
 	if len(orderID) < 6 || orderID[:5] != "HRIS-" {
 		return fmt.Errorf("invalid order ID format: %s", orderID)
 	}
 	sessionID := orderID[5:] // Remove "HRIS-" prefix
 
+	fmt.Printf("ProcessMidtransWebhook: Extracted session ID: %s\n", sessionID)
+
 	// Find checkout session
 	checkoutSession, err := uc.xenditRepo.GetCheckoutSession(ctx, sessionID)
 	if err != nil {
+		fmt.Printf("ProcessMidtransWebhook: Failed to get checkout session for sessionID %s: %v\n", sessionID, err)
 		return fmt.Errorf("failed to get checkout session: %w", err)
 	}
+
+	fmt.Printf("ProcessMidtransWebhook: Found checkout session: UserID=%d, Status=%s, Amount=%s\n",
+		checkoutSession.UserID, checkoutSession.Status, checkoutSession.Amount.String())
 
 	// Update checkout session status based on Midtrans transaction status
 	switch transactionStatus {
 	case statusCapture, statusSettlement:
 		// Payment successful
+		fmt.Printf("ProcessMidtransWebhook: Payment successful for order %s, activating subscription\n", orderID)
+
 		checkoutSession.Status = enums.CheckoutCompleted
-		checkoutSession.CompletedAt = func() *time.Time { t := time.Now(); return &t }()
+		checkoutSession.CompletedAt = func() *time.Time { t := time.Now().UTC(); return &t }()
 
-		// Create payment transaction record
-		if err := uc.createMidtransPaymentTransaction(ctx, checkoutSession, notification); err != nil {
-			return fmt.Errorf("failed to create payment transaction: %w", err)
-		}
-
-		// Activate subscription if it's a trial
+		// Activate subscription first (this sets the subscription ID)
 		if err := uc.activateMidtransSubscription(ctx, checkoutSession); err != nil {
+			fmt.Printf("ProcessMidtransWebhook: Failed to activate subscription: %v\n", err)
 			return fmt.Errorf("failed to activate subscription: %w", err)
 		}
 
+		fmt.Printf("ProcessMidtransWebhook: Subscription activated successfully, SubscriptionID=%d\n",
+			*checkoutSession.SubscriptionID)
+
+		// Create payment transaction record (after subscription is created)
+		if err := uc.createMidtransPaymentTransaction(ctx, checkoutSession, notification); err != nil {
+			fmt.Printf("ProcessMidtransWebhook: Failed to create payment transaction: %v\n", err)
+			return fmt.Errorf("failed to create payment transaction: %w", err)
+		}
+
+		fmt.Printf("ProcessMidtransWebhook: Payment transaction created successfully\n")
+
 	case statusPending:
 		// Payment pending (e.g., bank transfer waiting)
+		fmt.Printf("ProcessMidtransWebhook: Payment pending for order %s\n", orderID)
 		checkoutSession.Status = enums.CheckoutPending
 
 	case statusDeny, statusCancel, statusExpire:
 		// Payment failed or canceled
+		fmt.Printf("ProcessMidtransWebhook: Payment failed/canceled for order %s\n", orderID)
 		checkoutSession.MarkAsFailed()
 
 	default:
@@ -594,13 +624,20 @@ func (uc *SubscriptionUseCase) ProcessMidtransWebhook(ctx context.Context, notif
 
 	// Update checkout session
 	if err := uc.xenditRepo.UpdateCheckoutSession(ctx, checkoutSession); err != nil {
+		fmt.Printf("ProcessMidtransWebhook: Failed to update checkout session: %v\n", err)
 		return fmt.Errorf("failed to update checkout session: %w", err)
 	}
 
+	fmt.Printf("ProcessMidtransWebhook: Checkout session updated successfully\n")
 	return nil
 }
 
 func (uc *SubscriptionUseCase) createMidtransPaymentTransaction(ctx context.Context, session *domain.CheckoutSession, notification map[string]interface{}) error {
+	// Check if subscription ID is set
+	if session.SubscriptionID == nil {
+		return fmt.Errorf("subscription ID is nil - subscription activation may have failed")
+	}
+
 	transactionID, _ := notification["transaction_id"].(string)
 	paymentType, _ := notification["payment_type"].(string)
 	transactionTime, _ := notification["transaction_time"].(string)
@@ -608,39 +645,251 @@ func (uc *SubscriptionUseCase) createMidtransPaymentTransaction(ctx context.Cont
 	// Parse transaction time
 	paidAt, _ := time.Parse("2006-01-02 15:04:05", transactionTime)
 
+	// Convert notification to JSON string for storage
+	gatewayResponseJSON, _ := json.Marshal(notification)
+	gatewayResponseStr := string(gatewayResponseJSON)
+
 	transaction := &domain.PaymentTransaction{
-		SubscriptionID:   *session.SubscriptionID,
-		XenditInvoiceID:  &transactionID,
-		XenditExternalID: fmt.Sprintf("HRIS-%s", session.SessionID),
-		Amount:           session.Amount,
-		Currency:         session.Currency,
-		Status:           enums.PaymentPaid,
-		PaymentMethod:    &paymentType,
-		Description:      "Midtrans subscription payment",
-		PaidAt:           &paidAt,
+		SubscriptionID:  *session.SubscriptionID,
+		TransactionID:   &transactionID,
+		OrderID:         fmt.Sprintf("HRIS-%s", session.SessionID),
+		Amount:          session.Amount,
+		Currency:        session.Currency,
+		Status:          enums.PaymentPaid,
+		PaymentMethod:   &paymentType,
+		PaymentType:     &paymentType,
+		Description:     "Midtrans subscription payment",
+		PaidAt:          &paidAt,
+		GatewayResponse: &gatewayResponseStr,
 	}
 
 	return uc.xenditRepo.CreatePaymentTransaction(ctx, transaction)
 }
 
 func (uc *SubscriptionUseCase) activateMidtransSubscription(ctx context.Context, checkoutSession *domain.CheckoutSession) error {
+	fmt.Printf("activateMidtransSubscription: Starting activation for UserID=%d\n", checkoutSession.UserID)
+
+	// Try to get existing subscription (for trial users)
 	subscription, err := uc.xenditRepo.GetSubscriptionByAdminUserID(ctx, checkoutSession.UserID)
+
 	if err != nil {
-		return fmt.Errorf("failed to get subscription: %w", err)
+		fmt.Printf("activateMidtransSubscription: No existing subscription found, creating new subscription\n")
+
+		// No existing subscription found - this is a new paid subscription
+		// Get seat plan to calculate subscription period
+		seatPlan, err := uc.xenditRepo.GetSeatPlan(ctx, checkoutSession.SeatPlanID)
+		if err != nil {
+			fmt.Printf("activateMidtransSubscription: Failed to get seat plan: %v\n", err)
+			return fmt.Errorf("failed to get seat plan: %w", err)
+		}
+
+		fmt.Printf("activateMidtransSubscription: Got seat plan: %s (%d-%d employees)\n",
+			seatPlan.SubscriptionPlan.Name, seatPlan.MinEmployees, seatPlan.MaxEmployees)
+
+		// Calculate subscription period
+		var startDate, endDate time.Time
+		startDate = time.Now().UTC()
+
+		// Determine if it's monthly or yearly based on amount
+		if checkoutSession.Amount.Cmp(seatPlan.PricePerMonth) == 0 {
+			// Monthly subscription
+			endDate = startDate.AddDate(0, 1, 0)
+			fmt.Printf("activateMidtransSubscription: Creating monthly subscription (ends: %s)\n", endDate.Format("2006-01-02"))
+		} else {
+			// Yearly subscription
+			endDate = startDate.AddDate(1, 0, 0)
+			fmt.Printf("activateMidtransSubscription: Creating yearly subscription (ends: %s)\n", endDate.Format("2006-01-02"))
+		}
+
+		// Create new subscription
+		newSubscription := &domain.Subscription{
+			AdminUserID:          checkoutSession.UserID,
+			SubscriptionPlanID:   checkoutSession.SubscriptionPlanID,
+			SeatPlanID:           checkoutSession.SeatPlanID,
+			Status:               enums.StatusActive,
+			StartDate:            time.Now().UTC(),
+			EndDate:              &endDate,
+			IsAutoRenew:          true,
+			CurrentEmployeeCount: 0,
+		}
+
+		if err := uc.xenditRepo.CreateSubscription(ctx, newSubscription); err != nil {
+			fmt.Printf("activateMidtransSubscription: Failed to create subscription: %v\n", err)
+			return fmt.Errorf("failed to create subscription: %w", err)
+		}
+
+		fmt.Printf("activateMidtransSubscription: Created subscription with ID=%d, Status=%s\n",
+			newSubscription.ID, newSubscription.Status)
+
+		// Get user info for billing
+		user, err := uc.authRepo.GetUserByID(ctx, checkoutSession.UserID)
+		if err != nil {
+			fmt.Printf("activateMidtransSubscription: Failed to get user: %v\n", err)
+			return fmt.Errorf("failed to get user: %w", err)
+		}
+
+		// Create basic billing info for paid subscriptions
+		billingInfo := &domain.CustomerBillingInfo{
+			SubscriptionID:      newSubscription.ID,
+			CompanyName:         fmt.Sprintf("%s Company", user.Email), // Use email as fallback
+			CompanyAddress:      "Address not provided",                // Default address
+			CompanyEmail:        user.Email,
+			BillingContactName:  user.Email, // Use email as contact name
+			BillingContactEmail: user.Email,
+		}
+
+		if err := uc.xenditRepo.CreateCustomerBillingInfo(ctx, billingInfo); err != nil {
+			fmt.Printf("activateMidtransSubscription: Failed to create billing info: %v\n", err)
+			return fmt.Errorf("failed to create billing info: %w", err)
+		}
+
+		fmt.Printf("activateMidtransSubscription: Created billing info for subscription\n")
+
+		// Update checkout session with subscription ID
+		checkoutSession.SubscriptionID = &newSubscription.ID
+		fmt.Printf("activateMidtransSubscription: Updated checkout session with SubscriptionID=%d\n", newSubscription.ID)
+		return nil
 	}
 
+	fmt.Printf("activateMidtransSubscription: Found existing subscription ID=%d, Status=%s\n",
+		subscription.ID, subscription.Status)
+
+	// Existing subscription found - convert from trial if applicable
 	if subscription.Status == enums.StatusTrial {
+		fmt.Printf("activateMidtransSubscription: Converting trial subscription to paid\n")
+
 		subscription.ConvertFromTrialWithCheckoutSession(checkoutSession.Amount)
 		if err := uc.xenditRepo.UpdateSubscription(ctx, subscription); err != nil {
+			fmt.Printf("activateMidtransSubscription: Failed to update subscription: %v\n", err)
 			return fmt.Errorf("failed to update subscription: %w", err)
 		}
+
+		fmt.Printf("activateMidtransSubscription: Trial converted to paid subscription\n")
 
 		// Update trial activity
 		trialActivity, err := uc.xenditRepo.GetTrialActivityBySubscription(ctx, subscription.ID)
 		if err == nil {
 			trialActivity.MarkAsConverted()
 			_ = uc.xenditRepo.UpdateTrialActivity(ctx, trialActivity)
+			fmt.Printf("activateMidtransSubscription: Updated trial activity\n")
 		}
+
+		// Update checkout session with subscription ID
+		checkoutSession.SubscriptionID = &subscription.ID
+		fmt.Printf("activateMidtransSubscription: Updated checkout session with existing SubscriptionID=%d\n", subscription.ID)
+	} else {
+		fmt.Printf("activateMidtransSubscription: Existing subscription is not trial (Status=%s), skipping conversion\n", subscription.Status)
+		checkoutSession.SubscriptionID = &subscription.ID
+	}
+
+	return nil
+}
+
+func (uc *SubscriptionUseCase) CreateAutomaticTrialForPremiumUser(ctx context.Context, userID uint) error {
+	// Check if user is eligible for trial
+	user, err := uc.authRepo.GetUserByID(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("failed to get user: %w", err)
+	}
+
+	if !user.IsEligibleForTrial() {
+		return fmt.Errorf("user is not eligible for trial")
+	}
+
+	// Check if user already has a subscription
+	_, err = uc.xenditRepo.GetSubscriptionByAdminUserID(ctx, userID)
+	if err == nil {
+		// User already has subscription, no need to create trial
+		return nil
+	}
+
+	// Get all subscription plans and find premium plan
+	plans, err := uc.xenditRepo.GetSubscriptionPlans(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get subscription plans: %w", err)
+	}
+
+	var premiumPlan *domain.SubscriptionPlan
+	for _, plan := range plans {
+		if plan.PlanType == enums.PlanPremium {
+			premiumPlan = &plan
+			break
+		}
+	}
+
+	if premiumPlan == nil {
+		return fmt.Errorf("premium plan not found")
+	}
+
+	// Get default seat plan for premium (1-50 employees tier)
+	seatPlans, err := uc.xenditRepo.GetSeatPlansBySubscriptionPlan(ctx, premiumPlan.ID)
+	if err != nil || len(seatPlans) == 0 {
+		return fmt.Errorf("failed to get premium seat plans: %w", err)
+	}
+
+	// Find the smallest tier (1-50 employees) as default
+	var defaultSeatPlan *domain.SeatPlan
+	for _, plan := range seatPlans {
+		if plan.SizeTierID == "pre-tier1-50" { // Premium tier for 1-50 employees
+			defaultSeatPlan = &plan
+			break
+		}
+	}
+
+	if defaultSeatPlan == nil {
+		// Fallback to first available seat plan if specific tier not found
+		defaultSeatPlan = &seatPlans[0]
+	}
+
+	// Create subscription with trial status
+	subscription := &domain.Subscription{
+		AdminUserID:          userID,
+		SubscriptionPlanID:   premiumPlan.ID,
+		SeatPlanID:           defaultSeatPlan.ID,
+		Status:               enums.StatusTrial,
+		StartDate:            time.Now().UTC(),
+		IsAutoRenew:          true,
+		CurrentEmployeeCount: 1, // The admin user counts as first employee
+	}
+
+	// Start trial (sets trial dates and other fields)
+	subscription.StartTrial()
+
+	// Create subscription in database
+	if err := uc.xenditRepo.CreateSubscription(ctx, subscription); err != nil {
+		return fmt.Errorf("failed to create trial subscription: %w", err)
+	}
+
+	// Create basic billing info with user's information
+	billingInfo := &domain.CustomerBillingInfo{
+		SubscriptionID:      subscription.ID,
+		CompanyName:         fmt.Sprintf("%s Company", user.Email), // Default company name
+		CompanyAddress:      "Address not provided",                // Default address
+		CompanyEmail:        user.Email,
+		BillingContactName:  user.Email,
+		BillingContactEmail: user.Email,
+	}
+
+	if err := uc.xenditRepo.CreateCustomerBillingInfo(ctx, billingInfo); err != nil {
+		return fmt.Errorf("failed to create billing info: %w", err)
+	}
+
+	// Create trial activity record
+	trialActivity := &domain.TrialActivity{
+		SubscriptionID: subscription.ID,
+		UserID:         userID,
+		EmployeesAdded: 1, // Admin user is first employee
+		FeaturesUsed:   "[]",
+	}
+
+	if err := uc.xenditRepo.CreateTrialActivity(ctx, trialActivity); err != nil {
+		return fmt.Errorf("failed to create trial activity: %w", err)
+	}
+
+	// Mark user as having used trial
+	user.HasUsedTrial = true
+	if err := uc.authRepo.UpdateUser(ctx, user); err != nil {
+		return fmt.Errorf("failed to update user trial status: %w", err)
 	}
 
 	return nil

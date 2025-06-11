@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useCurrentUserProfileQuery } from '@/api/queries/employee.queries';
 import { useUpdateCurrentUserProfile } from '@/api/mutations/employee.mutations';
+import { useUpdateUserPasswordMutation } from '@/api/mutations/auth.mutation';
 import { useDocumentsByEmployee } from '@/api/queries/document.queries';
 import {
   useUploadDocumentForEmployee,
@@ -35,12 +36,19 @@ interface PhoneValidationState {
   message: string;
 }
 
+// Password validation interface
+interface PasswordValidationState {
+  isValid: boolean | null;
+  message: string;
+}
+
 const employeeService = new EmployeeService();
 
 export function useProfile() {
   const { data: employee, isLoading, error, isError } = useCurrentUserProfileQuery();
 
   const updateProfileMutation = useUpdateCurrentUserProfile();
+  const changePasswordMutation = useUpdateUserPasswordMutation();
   const { data: documents = [] } = useDocumentsByEmployee(employee?.id || 0);
   const uploadDocumentMutation = useUploadDocumentForEmployee();
   const deleteDocumentMutation = useDeleteDocument();
@@ -80,6 +88,17 @@ export function useProfile() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+
+  // Password validation states
+  const [passwordValidation, setPasswordValidation] = useState<PasswordValidationState>({
+    isValid: null,
+    message: '',
+  });
+  const [confirmPasswordValidation, setConfirmPasswordValidation] =
+    useState<PasswordValidationState>({
+      isValid: null,
+      message: '',
+    });
 
   // Document management
   const currentDocuments: ClientDocument[] = (documents || []).map((doc: Document) => ({
@@ -242,6 +261,85 @@ export function useProfile() {
       validatePhoneDebounced(value);
     },
     [validatePhoneImmediate, validatePhoneDebounced],
+  );
+
+  // Password validation functions
+  const validateNewPassword = useCallback((password: string) => {
+    if (!password) {
+      setPasswordValidation({ isValid: null, message: '' });
+      return;
+    }
+
+    if (password.length < 8) {
+      setPasswordValidation({
+        isValid: false,
+        message: 'Password must be at least 8 characters long',
+      });
+      return;
+    }
+
+    if (!/(?=.*[a-z])/.test(password)) {
+      setPasswordValidation({
+        isValid: false,
+        message: 'Password must contain at least one lowercase letter',
+      });
+      return;
+    }
+
+    if (!/(?=.*[A-Z])/.test(password)) {
+      setPasswordValidation({
+        isValid: false,
+        message: 'Password must contain at least one uppercase letter',
+      });
+      return;
+    }
+
+    if (!/(?=.*\d)/.test(password)) {
+      setPasswordValidation({
+        isValid: false,
+        message: 'Password must contain at least one number',
+      });
+      return;
+    }
+
+    setPasswordValidation({ isValid: true, message: '' });
+  }, []);
+
+  const validateConfirmPassword = useCallback((confirmPwd: string, newPwd: string) => {
+    if (!confirmPwd) {
+      setConfirmPasswordValidation({ isValid: null, message: '' });
+      return;
+    }
+
+    if (confirmPwd !== newPwd) {
+      setConfirmPasswordValidation({
+        isValid: false,
+        message: 'Passwords do not match',
+      });
+      return;
+    }
+
+    setConfirmPasswordValidation({ isValid: true, message: '' });
+  }, []);
+
+  const setNewPasswordWithValidation = useCallback(
+    (value: string) => {
+      setNewPassword(value);
+      validateNewPassword(value);
+      // Re-validate confirm password when new password changes
+      if (confirmPassword) {
+        validateConfirmPassword(confirmPassword, value);
+      }
+    },
+    [validateNewPassword, validateConfirmPassword, confirmPassword],
+  );
+
+  const setConfirmPasswordWithValidation = useCallback(
+    (value: string) => {
+      setConfirmPassword(value);
+      validateConfirmPassword(value, newPassword);
+    },
+    [validateConfirmPassword, newPassword],
   );
 
   useEffect(() => {
@@ -436,27 +534,69 @@ export function useProfile() {
     }
   }, [employee, bankName, bankAccountHolder, bankAccountNumber, updateProfileMutation]);
 
-  const handleChangePassword = useCallback(() => {
+  const handleChangePassword = useCallback(async () => {
+    // Validation checks
+    if (!currentPassword) {
+      toast.error('Current password is required.');
+      return;
+    }
+
+    if (!newPassword) {
+      toast.error('New password is required.');
+      return;
+    }
+
+    if (passwordValidation.isValid === false) {
+      toast.error(passwordValidation.message || 'New password does not meet requirements.');
+      return;
+    }
+
+    if (confirmPasswordValidation.isValid === false) {
+      toast.error(confirmPasswordValidation.message || 'Passwords do not match.');
+      return;
+    }
+
     if (newPassword !== confirmPassword) {
       toast.error('New password and confirm password do not match.');
       return;
     }
 
-    if (!newPassword) {
-      toast.error('New password cannot be empty.');
-      return;
+    try {
+      await changePasswordMutation.mutateAsync({
+        oldPassword: currentPassword,
+        newPassword: newPassword,
+      });
+
+      // Clear form on success
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setPasswordValidation({ isValid: null, message: '' });
+      setConfirmPasswordValidation({ isValid: null, message: '' });
+
+      toast.success('Password changed successfully!');
+    } catch (error: any) {
+      console.error('Error changing password:', error);
+
+      // Handle specific error messages
+      if (error?.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else if (error?.message) {
+        toast.error(error.message);
+      } else {
+        toast.error('Failed to change password. Please try again.');
+      }
     }
-
-    console.log('Changing password with:', {
-      currentPassword,
-      newPassword,
-    });
-
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-    toast.success('Password change submitted (simulated).');
-  }, [currentPassword, newPassword, confirmPassword]);
+  }, [
+    currentPassword,
+    newPassword,
+    confirmPassword,
+    passwordValidation.isValid,
+    passwordValidation.message,
+    confirmPasswordValidation.isValid,
+    confirmPasswordValidation.message,
+    changePasswordMutation,
+  ]);
 
   const isPersonalFormValid = useCallback(() => {
     if (phoneValidation.isValidating) {
@@ -522,12 +662,19 @@ export function useProfile() {
     currentPassword,
     setCurrentPassword,
     newPassword,
-    setNewPassword,
+    setNewPassword: setNewPasswordWithValidation,
     confirmPassword,
-    setConfirmPassword,
+    setConfirmPassword: setConfirmPasswordWithValidation,
 
     // Phone validation
     phoneValidation,
+
+    // Password validation
+    passwordValidation,
+    setPasswordValidation,
+    confirmPasswordValidation,
+    setConfirmPasswordValidation,
+    isChangingPassword: changePasswordMutation.isPending,
 
     // Handlers
     handleProfileImageChange,

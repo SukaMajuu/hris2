@@ -125,6 +125,20 @@ func (r *PostgresRepository) UpdateStatus(ctx context.Context, id uint, status d
 	return nil
 }
 
+func (r *PostgresRepository) HasApprovedLeaveForDate(ctx context.Context, employeeID uint, date time.Time) (bool, error) {
+	var count int64
+
+	if err := r.db.WithContext(ctx).
+		Model(&domain.LeaveRequest{}).
+		Where("employee_id = ? AND status = ? AND start_date <= ? AND end_date >= ?",
+			employeeID, domain.LeaveStatusApproved, date, date).
+		Count(&count).Error; err != nil {
+		return false, fmt.Errorf("failed to check approved leave for employee %d: %w", employeeID, err)
+	}
+
+	return count > 0, nil
+}
+
 func (r *PostgresRepository) HasOverlappingLeaveRequest(ctx context.Context, employeeID uint, startDate, endDate time.Time, excludeRequestID *uint) (bool, error) {
 	var count int64
 	

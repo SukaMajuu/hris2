@@ -24,7 +24,7 @@ import { type Role } from '../../const/role';
 import { getMainMenuItemsByRole, getFooterItemsByRole } from '../_config/menuConfig';
 import { useAuthStore } from '@/stores/auth.store';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Bell, ChevronDown } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { useProactiveTokenRefresh } from '@/hooks/useProactiveTokenRefresh';
 import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 import { useUserProfile } from '@/hooks/useUserProfile';
@@ -172,7 +172,16 @@ function NavContent({ menuItems, footerItems, pathname }: NavContentProps) {
   );
 }
 
-const hideLayoutForPaths = ['/subscription', '/subscription/checkout', '/payment', '/payment/process', '/payment/pending', '/payment/success', '/payment/failed'];
+const hideLayoutForPaths = [
+  '/subscription',
+  '/subscription/checkout',
+  '/payment',
+  '/payment/process',
+  '/payment/pending',
+  '/payment/success',
+  '/payment/failed',
+  '/welcome',
+];
 
 export default function MainLayout({ children }: MainLayoutProps) {
   const pathname = usePathname();
@@ -185,7 +194,8 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
   const role = (user?.role as Role) || 'admin';
 
-  const shouldHideLayout = hideLayoutForPaths.includes(pathname) || !hasActiveSubscription;
+  const shouldHideLayout =
+    hideLayoutForPaths.includes(pathname) || (!hasActiveSubscription && pathname !== '/welcome');
 
   const getPageTitle = () => {
     const allMenuItems = [...getMainMenuItemsByRole(role), ...getFooterItemsByRole(role)];
@@ -242,17 +252,6 @@ export default function MainLayout({ children }: MainLayoutProps) {
                   </h1>
                 </div>
                 <div className='flex items-center gap-2 md:gap-4'>
-                  <Button
-                    variant='ghost'
-                    size='icon'
-                    className='relative rounded-full text-gray-500 hover:bg-slate-200 hover:text-slate-700'
-                  >
-                    <Bell className='h-5 w-5' />
-                    <span className='absolute top-1.5 right-1.5 flex h-2.5 w-2.5'>
-                      <span className='absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75'></span>
-                      <span className='relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500'></span>
-                    </span>
-                  </Button>
                   <div className='flex items-center gap-2 md:gap-3'>
                     <Avatar className='h-9 w-9 border-2 border-transparent transition-colors hover:border-blue-500'>
                       <AvatarImage src={userProfile.avatarUrl} alt={userProfile.avatarAlt} />

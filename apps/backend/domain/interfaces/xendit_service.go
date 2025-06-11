@@ -2,8 +2,10 @@ package interfaces
 
 import (
 	"context"
+	"time"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
+	"github.com/SukaMajuu/hris/apps/backend/domain/enums"
 	"github.com/shopspring/decimal"
 )
 
@@ -13,18 +15,18 @@ type XenditClient interface {
 
 // Request/Response DTOs
 type CreateInvoiceRequest struct {
-	ExternalID          string
-	PayerEmail          string
-	Description         string
-	Amount              decimal.Decimal
-	Currency            string
-	InvoiceDuration     int64
-	SuccessRedirectURL  *string
-	FailureRedirectURL  *string
-	PaymentMethods      []string
-	CustomerID          *string
-	Customer            *InvoiceCustomer
-	Items               []InvoiceItem
+	ExternalID         string
+	PayerEmail         string
+	Description        string
+	Amount             decimal.Decimal
+	Currency           string
+	InvoiceDuration    int64
+	SuccessRedirectURL *string
+	FailureRedirectURL *string
+	PaymentMethods     []string
+	CustomerID         *string
+	Customer           *InvoiceCustomer
+	Items              []InvoiceItem
 }
 
 type InvoiceCustomer struct {
@@ -80,8 +82,8 @@ type InvoiceFee struct {
 	Value decimal.Decimal
 }
 
-// Repository interface for Xendit-related database operations
-type XenditRepository interface {
+// Repository interface for payment-related database operations (generic, payment gateway agnostic)
+type PaymentRepository interface {
 	// CheckoutSession operations
 	CreateCheckoutSession(ctx context.Context, session *domain.CheckoutSession) error
 	GetCheckoutSession(ctx context.Context, sessionID string) (*domain.CheckoutSession, error)
@@ -90,7 +92,7 @@ type XenditRepository interface {
 	// PaymentTransaction operations
 	CreatePaymentTransaction(ctx context.Context, transaction *domain.PaymentTransaction) error
 	GetPaymentTransaction(ctx context.Context, transactionID uint) (*domain.PaymentTransaction, error)
-	GetPaymentTransactionByXenditID(ctx context.Context, xenditInvoiceID string) (*domain.PaymentTransaction, error)
+	GetPaymentTransactionByOrderID(ctx context.Context, orderID string) (*domain.PaymentTransaction, error)
 	UpdatePaymentTransaction(ctx context.Context, transaction *domain.PaymentTransaction) error
 
 	// CustomerBillingInfo operations
@@ -102,6 +104,8 @@ type XenditRepository interface {
 	GetSubscriptionByAdminUserID(ctx context.Context, adminUserID uint) (*domain.Subscription, error)
 	CreateSubscription(ctx context.Context, subscription *domain.Subscription) error
 	UpdateSubscription(ctx context.Context, subscription *domain.Subscription) error
+	GetSubscriptionsByStatus(ctx context.Context, status enums.SubscriptionStatus) ([]domain.Subscription, error)
+	GetSubscriptionsDueForRenewal(ctx context.Context, date time.Time) ([]domain.Subscription, error)
 
 	// SubscriptionPlan operations
 	GetSubscriptionPlans(ctx context.Context) ([]domain.SubscriptionPlan, error)
@@ -112,4 +116,7 @@ type XenditRepository interface {
 	CreateTrialActivity(ctx context.Context, activity *domain.TrialActivity) error
 	UpdateTrialActivity(ctx context.Context, activity *domain.TrialActivity) error
 	GetTrialActivityBySubscription(ctx context.Context, subscriptionID uint) (*domain.TrialActivity, error)
+
+	// SubscriptionUsage operations
+	CreateSubscriptionUsage(ctx context.Context, usage *domain.SubscriptionUsage) error
 }

@@ -22,7 +22,6 @@ func NewLeaveRequestHandler(useCase *leaveRequestUseCase.LeaveRequestUseCase) *L
 	}
 }
 
-// CreateLeaveRequest creates a new leave request
 func (h *LeaveRequestHandler) CreateLeaveRequest(c *gin.Context) {
 	var req leaveRequestDTO.CreateLeaveRequestDTO
 	if err := c.ShouldBind(&req); err != nil {
@@ -30,7 +29,6 @@ func (h *LeaveRequestHandler) CreateLeaveRequest(c *gin.Context) {
 		return
 	}
 
-	// Get employee ID from context (authenticated user)
 	userIDCtx, exists := c.Get("userID")
 	if !exists {
 		response.Unauthorized(c, "User ID not found in context", errors.New("missing userID in context"))
@@ -42,14 +40,12 @@ func (h *LeaveRequestHandler) CreateLeaveRequest(c *gin.Context) {
 		return
 	}
 
-	// Convert DTO to domain
 	domainLeaveRequest, err := req.ToDomain(userID)
 	if err != nil {
 		response.BadRequest(c, "Invalid request data", err)
 		return
 	}
 
-	// Create leave request
 	createdLeaveRequest, err := h.leaveRequestUseCase.Create(c.Request.Context(), domainLeaveRequest, req.AttachmentFile)
 	if err != nil {
 		if errors.Is(err, domain.ErrEmployeeNotFound) {
@@ -65,7 +61,6 @@ func (h *LeaveRequestHandler) CreateLeaveRequest(c *gin.Context) {
 	response.Created(c, "Leave request created successfully", createdLeaveRequest)
 }
 
-// CreateLeaveRequestForEmployee creates a new leave request for a specific employee (admin only)
 func (h *LeaveRequestHandler) CreateLeaveRequestForEmployee(c *gin.Context) {
 	var req leaveRequestDTO.CreateLeaveRequestForEmployeeDTO
 	if err := c.ShouldBind(&req); err != nil {
@@ -73,7 +68,6 @@ func (h *LeaveRequestHandler) CreateLeaveRequestForEmployee(c *gin.Context) {
 		return
 	}
 
-	// Get admin user ID from context for logging purposes
 	userIDCtx, exists := c.Get("userID")
 	if !exists {
 		response.Unauthorized(c, "User ID not found in context", errors.New("missing userID in context"))
@@ -87,14 +81,12 @@ func (h *LeaveRequestHandler) CreateLeaveRequestForEmployee(c *gin.Context) {
 
 	log.Printf("Admin user ID %d is creating leave request for employee ID %d", adminUserID, req.EmployeeID)
 
-	// Convert DTO to domain
 	domainLeaveRequest, err := req.ToDomain()
 	if err != nil {
 		response.BadRequest(c, "Invalid request data", err)
 		return
 	}
 
-	// Create leave request using admin-specific method
 	createdLeaveRequest, err := h.leaveRequestUseCase.CreateForEmployee(c.Request.Context(), domainLeaveRequest, req.AttachmentFile)
 	if err != nil {
 		if errors.Is(err, domain.ErrEmployeeNotFound) {
@@ -110,7 +102,6 @@ func (h *LeaveRequestHandler) CreateLeaveRequestForEmployee(c *gin.Context) {
 	response.Created(c, "Leave request created successfully for employee", createdLeaveRequest)
 }
 
-// GetLeaveRequestByID retrieves a leave request by ID
 func (h *LeaveRequestHandler) GetLeaveRequestByID(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
@@ -132,14 +123,12 @@ func (h *LeaveRequestHandler) GetLeaveRequestByID(c *gin.Context) {
 	response.OK(c, "Leave request retrieved successfully", leaveRequest)
 }
 
-// ListLeaveRequests retrieves a list of leave requests with filtering and pagination
 func (h *LeaveRequestHandler) ListLeaveRequests(c *gin.Context) {
 	var query leaveRequestDTO.LeaveRequestQueryDTO
 	if bindAndValidateQuery(c, &query) {
 		return
 	}
 
-	// Get current user ID from context
 	userIDCtx, exists := c.Get("userID")
 	if !exists {
 		response.Unauthorized(c, "User ID not found in context", errors.New("missing userID in context"))
@@ -151,14 +140,12 @@ func (h *LeaveRequestHandler) ListLeaveRequests(c *gin.Context) {
 		return
 	}
 
-	// Get current employee to get manager ID
 	currentEmployee, err := h.leaveRequestUseCase.GetEmployeeByUserID(c.Request.Context(), currentUserID)
 	if err != nil {
 		response.InternalServerError(c, err)
 		return
 	}
 
-	// Convert query DTO to filters and pagination params
 	filters := make(map[string]interface{})
 	if query.EmployeeID != nil {
 		filters["employee_id"] = *query.EmployeeID
@@ -170,7 +157,6 @@ func (h *LeaveRequestHandler) ListLeaveRequests(c *gin.Context) {
 		filters["leave_type"] = *query.LeaveType
 	}
 
-	// Add manager filter to only show leave requests for employees under this manager
 	filters["manager_id"] = currentEmployee.ID
 
 	paginationParams := domain.PaginationParams{
@@ -178,7 +164,6 @@ func (h *LeaveRequestHandler) ListLeaveRequests(c *gin.Context) {
 		PageSize: query.PageSize,
 	}
 
-	// Set default pagination values if not provided
 	if paginationParams.Page <= 0 {
 		paginationParams.Page = 1
 	}
@@ -195,14 +180,12 @@ func (h *LeaveRequestHandler) ListLeaveRequests(c *gin.Context) {
 	response.OK(c, "Leave requests retrieved successfully", leaveRequests)
 }
 
-// GetMyLeaveRequests retrieves leave requests for the authenticated user
 func (h *LeaveRequestHandler) GetMyLeaveRequests(c *gin.Context) {
 	var query leaveRequestDTO.LeaveRequestQueryDTO
 	if bindAndValidateQuery(c, &query) {
 		return
 	}
 
-	// Get employee ID from context (authenticated user)
 	userIDCtx, exists := c.Get("userID")
 	if !exists {
 		response.Unauthorized(c, "User ID not found in context", errors.New("missing userID in context"))
@@ -213,7 +196,6 @@ func (h *LeaveRequestHandler) GetMyLeaveRequests(c *gin.Context) {
 		response.InternalServerError(c, errors.New("invalid user ID type in context"))
 		return
 	}
-	// Convert query DTO to filters and pagination
 	filters := make(map[string]interface{})
 	if query.Status != nil {
 		filters["status"] = *query.Status
@@ -222,7 +204,6 @@ func (h *LeaveRequestHandler) GetMyLeaveRequests(c *gin.Context) {
 		filters["leave_type"] = *query.LeaveType
 	}
 
-	// Convert pagination from query DTO
 	pagination := domain.PaginationParams{
 		Page:     query.Page,
 		PageSize: query.PageSize,
@@ -241,7 +222,6 @@ func (h *LeaveRequestHandler) GetMyLeaveRequests(c *gin.Context) {
 	response.OK(c, "My leave requests retrieved successfully", leaveRequests)
 }
 
-// UpdateLeaveRequest updates an existing leave request
 func (h *LeaveRequestHandler) UpdateLeaveRequest(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
@@ -256,7 +236,6 @@ func (h *LeaveRequestHandler) UpdateLeaveRequest(c *gin.Context) {
 		return
 	}
 
-	// Get employee ID from context (authenticated user)
 	userIDCtx, exists := c.Get("userID")
 	if !exists {
 		response.Unauthorized(c, "User ID not found in context", errors.New("missing userID in context"))
@@ -268,14 +247,12 @@ func (h *LeaveRequestHandler) UpdateLeaveRequest(c *gin.Context) {
 		return
 	}
 
-	// Convert DTO to domain
 	domainLeaveRequest, err := req.ToDomain(userID)
 	if err != nil {
 		response.BadRequest(c, "Invalid request data", err)
 		return
 	}
 
-	// Update leave request
 	updatedLeaveRequest, err := h.leaveRequestUseCase.Update(c.Request.Context(), uint(id), domainLeaveRequest, req.AttachmentFile)
 	if err != nil {
 		if errors.Is(err, domain.ErrLeaveRequestNotFound) {
@@ -293,7 +270,6 @@ func (h *LeaveRequestHandler) UpdateLeaveRequest(c *gin.Context) {
 	response.OK(c, "Leave request updated successfully", updatedLeaveRequest)
 }
 
-// DeleteLeaveRequest deletes a leave request
 func (h *LeaveRequestHandler) DeleteLeaveRequest(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
@@ -302,7 +278,6 @@ func (h *LeaveRequestHandler) DeleteLeaveRequest(c *gin.Context) {
 		return
 	}
 
-	// Get employee ID from context (authenticated user) - for validation only
 	userIDCtx, exists := c.Get("userID")
 	if !exists {
 		response.Unauthorized(c, "User ID not found in context", errors.New("missing userID in context"))
@@ -314,7 +289,6 @@ func (h *LeaveRequestHandler) DeleteLeaveRequest(c *gin.Context) {
 		return
 	}
 
-	// Get the leave request to verify ownership
 	leaveRequest, err := h.leaveRequestUseCase.GetByID(c.Request.Context(), uint(id))
 	if err != nil {
 		if errors.Is(err, domain.ErrLeaveRequestNotFound) {
@@ -325,7 +299,6 @@ func (h *LeaveRequestHandler) DeleteLeaveRequest(c *gin.Context) {
 		return
 	}
 
-	// Check if the authenticated user is the owner of the leave request
 	employee, err := h.leaveRequestUseCase.GetEmployeeByUserID(c.Request.Context(), userID)
 	if err != nil {
 		response.InternalServerError(c, err)
@@ -337,7 +310,6 @@ func (h *LeaveRequestHandler) DeleteLeaveRequest(c *gin.Context) {
 		return
 	}
 
-	// Delete leave request
 	err = h.leaveRequestUseCase.Delete(c.Request.Context(), uint(id))
 	if err != nil {
 		if errors.Is(err, domain.ErrLeaveRequestNotFound) {
@@ -351,7 +323,6 @@ func (h *LeaveRequestHandler) DeleteLeaveRequest(c *gin.Context) {
 	response.OK(c, "Leave request deleted successfully", nil)
 }
 
-// UpdateLeaveRequestStatus updates the status of a leave request (admin only)
 func (h *LeaveRequestHandler) UpdateLeaveRequestStatus(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
@@ -365,7 +336,6 @@ func (h *LeaveRequestHandler) UpdateLeaveRequestStatus(c *gin.Context) {
 		return
 	}
 
-	// Get admin employee ID from context for audit purposes (optional)
 	userIDCtx, exists := c.Get("userID")
 	if !exists {
 		response.Unauthorized(c, "User ID not found in context", errors.New("missing userID in context"))
@@ -377,10 +347,8 @@ func (h *LeaveRequestHandler) UpdateLeaveRequestStatus(c *gin.Context) {
 		return
 	}
 
-	// Log the admin who is updating the status
 	log.Printf("Leave request status update by admin user ID: %d", userID)
 
-	// Update status
 	updatedLeaveRequest, err := h.leaveRequestUseCase.UpdateStatus(c.Request.Context(), uint(id), req.Status, req.AdminNote)
 	if err != nil {
 		if errors.Is(err, domain.ErrLeaveRequestNotFound) {

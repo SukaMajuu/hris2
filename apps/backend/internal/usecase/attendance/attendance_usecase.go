@@ -18,17 +18,20 @@ type AttendanceUseCase struct {
 	attendanceRepo   interfaces.AttendanceRepository
 	employeeRepo     interfaces.EmployeeRepository
 	workScheduleRepo interfaces.WorkScheduleRepository
+	leaveRequestRepo interfaces.LeaveRequestRepository
 }
 
 func NewAttendanceUseCase(
 	attendanceRepo interfaces.AttendanceRepository,
 	employeeRepo interfaces.EmployeeRepository,
 	workScheduleRepo interfaces.WorkScheduleRepository,
+	leaveRequestRepo interfaces.LeaveRequestRepository,
 ) *AttendanceUseCase {
 	return &AttendanceUseCase{
 		attendanceRepo:   attendanceRepo,
 		employeeRepo:     employeeRepo,
 		workScheduleRepo: workScheduleRepo,
+		leaveRequestRepo: leaveRequestRepo,
 	}
 }
 
@@ -130,23 +133,24 @@ func (uc *AttendanceUseCase) ClockIn(ctx context.Context, reqDTO *dtoAttendance.
 				return nil, fmt.Errorf("invalid clock_in format: %w", err)
 			}
 		}
-		clockInTime = parsedTime
+		// Convert to UTC
+		clockInTime = parsedTime.UTC()
 
 		// If date was not provided separately, extract it from clock_in
 		if reqDTO.Date == "" {
-			attendanceDate = time.Date(clockInTime.Year(), clockInTime.Month(), clockInTime.Day(), 0, 0, 0, 0, clockInTime.Location())
+			attendanceDate = time.Date(clockInTime.Year(), clockInTime.Month(), clockInTime.Day(), 0, 0, 0, 0, time.UTC)
 		}
 	} else {
-		// Use current time if no clock_in provided
-		now := time.Now()
+		// Use current time in UTC if no clock_in provided
+		now := time.Now().UTC()
 		clockInTime = now
 
 		// If date was not provided, use today's date
 		if reqDTO.Date == "" {
-			attendanceDate = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+			attendanceDate = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
 		} else {
 			// If date was provided but clock_in wasn't, use current time but with the specified date
-			clockInTime = time.Date(attendanceDate.Year(), attendanceDate.Month(), attendanceDate.Day(), now.Hour(), now.Minute(), now.Second(), now.Nanosecond(), now.Location())
+			clockInTime = time.Date(attendanceDate.Year(), attendanceDate.Month(), attendanceDate.Day(), now.Hour(), now.Minute(), now.Second(), now.Nanosecond(), time.UTC)
 		}
 	}
 
@@ -244,23 +248,24 @@ func (uc *AttendanceUseCase) ClockOut(ctx context.Context, reqDTO *dtoAttendance
 				return nil, fmt.Errorf("invalid clock_out format: %w", err)
 			}
 		}
-		clockOutTime = parsedTime
+		// Convert to UTC
+		clockOutTime = parsedTime.UTC()
 
 		// If date was not provided separately, extract it from clock_out
 		if reqDTO.Date == "" {
-			attendanceDate = time.Date(clockOutTime.Year(), clockOutTime.Month(), clockOutTime.Day(), 0, 0, 0, 0, clockOutTime.Location())
+			attendanceDate = time.Date(clockOutTime.Year(), clockOutTime.Month(), clockOutTime.Day(), 0, 0, 0, 0, time.UTC)
 		}
 	} else {
-		// Use current time if no clock_out provided
-		now := time.Now()
+		// Use current time in UTC if no clock_out provided
+		now := time.Now().UTC()
 		clockOutTime = now
 
 		// If date was not provided, use today's date
 		if reqDTO.Date == "" {
-			attendanceDate = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+			attendanceDate = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
 		} else {
 			// If date was provided but clock_out wasn't, use current time but with the specified date
-			clockOutTime = time.Date(attendanceDate.Year(), attendanceDate.Month(), attendanceDate.Day(), now.Hour(), now.Minute(), now.Second(), now.Nanosecond(), now.Location())
+			clockOutTime = time.Date(attendanceDate.Year(), attendanceDate.Month(), attendanceDate.Day(), now.Hour(), now.Minute(), now.Second(), now.Nanosecond(), time.UTC)
 		}
 	}
 
@@ -453,9 +458,9 @@ func (uc *AttendanceUseCase) Update(ctx context.Context, id uint, reqDTO *dtoAtt
 			attendance.ClockIn = nil
 		} else {
 			if parsedTime, err := time.Parse("15:04:05", *reqDTO.ClockIn); err == nil {
-				// Combine the attendance date with the parsed time
+				// Combine the attendance date with the parsed time - use UTC
 				clockInDateTime := time.Date(attendance.Date.Year(), attendance.Date.Month(), attendance.Date.Day(),
-					parsedTime.Hour(), parsedTime.Minute(), parsedTime.Second(), 0, attendance.Date.Location())
+					parsedTime.Hour(), parsedTime.Minute(), parsedTime.Second(), 0, time.UTC)
 				attendance.ClockIn = &clockInDateTime
 			} else {
 				return nil, fmt.Errorf("invalid clock in time format: %w", err)
@@ -468,9 +473,9 @@ func (uc *AttendanceUseCase) Update(ctx context.Context, id uint, reqDTO *dtoAtt
 			attendance.ClockOut = nil
 		} else {
 			if parsedTime, err := time.Parse("15:04:05", *reqDTO.ClockOut); err == nil {
-				// Combine the attendance date with the parsed time
+				// Combine the attendance date with the parsed time - use UTC
 				clockOutDateTime := time.Date(attendance.Date.Year(), attendance.Date.Month(), attendance.Date.Day(),
-					parsedTime.Hour(), parsedTime.Minute(), parsedTime.Second(), 0, attendance.Date.Location())
+					parsedTime.Hour(), parsedTime.Minute(), parsedTime.Second(), 0, time.UTC)
 				attendance.ClockOut = &clockOutDateTime
 			} else {
 				return nil, fmt.Errorf("invalid clock out time format: %w", err)

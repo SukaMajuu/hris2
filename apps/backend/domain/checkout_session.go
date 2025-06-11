@@ -8,36 +8,36 @@ import (
 )
 
 type CheckoutSession struct {
-	ID                 uint                     `gorm:"primaryKey"`
-	SessionID          string                   `gorm:"type:varchar(255);not null;unique"`
-	UserID             uint                     `gorm:"not null"`
-	User               User                     `gorm:"foreignKey:UserID"`
+	ID        uint   `gorm:"primaryKey"`
+	SessionID string `gorm:"type:varchar(255);not null;unique"`
+	UserID    uint   `gorm:"not null"`
+	User      User   `gorm:"foreignKey:UserID"`
 
-	SubscriptionPlanID uint                     `gorm:"not null"`
-	SubscriptionPlan   SubscriptionPlan         `gorm:"foreignKey:SubscriptionPlanID"`
-	SeatPlanID         uint                     `gorm:"not null"`
-	SeatPlan           SeatPlan                 `gorm:"foreignKey:SeatPlanID"`
+	SubscriptionPlanID uint             `gorm:"foreignKey:SubscriptionPlanID"`
+	SubscriptionPlan   SubscriptionPlan `gorm:"foreignKey:SubscriptionPlanID"`
+	SeatPlanID         uint             `gorm:"foreignKey:SeatPlanID"`
+	SeatPlan           SeatPlan         `gorm:"foreignKey:SeatPlanID"`
 
-	IsTrialCheckout    bool                     `gorm:"type:boolean;default:true;not null"`
-	Amount             decimal.Decimal          `gorm:"type:decimal(10,2);not null"`
-	Currency           string                   `gorm:"type:varchar(3);not null;default:IDR"`
-	Status             enums.CheckoutStatus     `gorm:"type:checkout_status;not null;default:initiated"`
+	IsTrialCheckout bool                 `gorm:"type:boolean;default:true"`
+	Amount          decimal.Decimal      `gorm:"type:decimal(10,2)"`
+	Currency        string               `gorm:"type:varchar(3);default:IDR"`
+	Status          enums.CheckoutStatus `gorm:"type:checkout_status;default:initiated"`
 
-	XenditInvoiceID    *string                  `gorm:"type:varchar(255)"`
-	XenditInvoiceURL   *string                  `gorm:"type:varchar(500)"`
-	XenditExternalID   *string                  `gorm:"type:varchar(255)"`
+	PaymentToken     *string `gorm:"type:varchar(255)"`
+	PaymentURL       *string `gorm:"type:varchar(500)"`
+	PaymentReference *string `gorm:"type:varchar(255)"`
 
-	InitiatedAt        time.Time                `gorm:"type:timestamp;not null"`
-	CompletedAt        *time.Time               `gorm:"type:timestamp"`
-	ExpiresAt          *time.Time               `gorm:"type:timestamp"`
+	InitiatedAt time.Time  `gorm:"type:timestamp"`
+	CompletedAt *time.Time `gorm:"type:timestamp"`
+	ExpiresAt   *time.Time `gorm:"type:timestamp"`
 
-	SubscriptionID     *uint                    `gorm:"type:uint"`
-	Subscription       *Subscription            `gorm:"foreignKey:SubscriptionID"`
-	PaymentTransactionID *uint                  `gorm:"type:uint"`
-	PaymentTransaction *PaymentTransaction      `gorm:"foreignKey:PaymentTransactionID"`
+	SubscriptionID       *uint               `gorm:"type:uint"`
+	Subscription         *Subscription       `gorm:"foreignKey:SubscriptionID"`
+	PaymentTransactionID *uint               `gorm:"type:uint"`
+	PaymentTransaction   *PaymentTransaction `gorm:"foreignKey:PaymentTransactionID"`
 
-	CreatedAt          time.Time                `gorm:"autoCreateTime"`
-	UpdatedAt          time.Time                `gorm:"autoUpdateTime"`
+	CreatedAt time.Time `gorm:"autoCreateTime"`
+	UpdatedAt time.Time `gorm:"autoUpdateTime"`
 }
 
 func (cs *CheckoutSession) TableName() string {
@@ -53,7 +53,7 @@ func (cs *CheckoutSession) IsExpired() bool {
 }
 
 func (cs *CheckoutSession) MarkAsCompleted(subscriptionID uint, paymentTransactionID *uint) {
-	now := time.Now()
+	now := time.Now().UTC()
 	cs.Status = enums.CheckoutCompleted
 	cs.CompletedAt = &now
 	cs.SubscriptionID = &subscriptionID
@@ -64,9 +64,10 @@ func (cs *CheckoutSession) MarkAsFailed() {
 	cs.Status = enums.CheckoutFailed
 }
 
-func (cs *CheckoutSession) SetXenditInfo(invoiceID, invoiceURL, externalID string) {
-	cs.XenditInvoiceID = &invoiceID
-	cs.XenditInvoiceURL = &invoiceURL
-	cs.XenditExternalID = &externalID
+// Updated method for Midtrans
+func (cs *CheckoutSession) SetPaymentInfo(token, paymentURL, reference string) {
+	cs.PaymentToken = &token
+	cs.PaymentURL = &paymentURL
+	cs.PaymentReference = &reference
 	cs.Status = enums.CheckoutPending
 }

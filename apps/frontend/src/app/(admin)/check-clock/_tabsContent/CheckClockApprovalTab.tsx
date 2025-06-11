@@ -39,6 +39,7 @@ interface ApprovalDetail {
 }
 
 export default function CheckClockApprovalTab() {
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const {
     selectedItem,
     isModalOpen,
@@ -82,11 +83,23 @@ export default function CheckClockApprovalTab() {
   const handleApproveWithNote = (adminNote: string) => {
     handleApprove(adminNote);
   };
-
   const handleRejectWithNote = (adminNote: string) => {
     handleReject(adminNote);
   };
 
+  // Enhanced refresh function with smooth transition
+  const handleRefreshWithTransition = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await refetch();
+      // Add a small delay to ensure smooth transition visibility
+      await new Promise(resolve => setTimeout(resolve, 300));
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [refetch]);
   const columns = React.useMemo<ColumnDef<ApprovalItem>[]>(
     () => [
       {
@@ -94,25 +107,44 @@ export default function CheckClockApprovalTab() {
         id: 'no',
         cell: ({ row, table }) => {
           const { pageIndex, pageSize } = table.getState().pagination;
-          return pageIndex * pageSize + row.index + 1;
+          return (
+            <div className="flex items-center justify-center text-center">
+              <div className="text-xs md:text-sm">
+                {pageIndex * pageSize + row.index + 1}
+              </div>
+            </div>
+          );
         },
-        meta: { className: 'w-[80px]' },
+        meta: { className: 'w-[50px] md:w-[80px] text-center' },
         enableSorting: false,
         enableColumnFilter: false,
-      },
-      {
-        header: 'Nama',
+      },      {
+        header: 'Name',
         accessorKey: 'name',
         enableColumnFilter: true,
+        cell: ({ row }) => {
+          const name = row.original.name;
+          return (
+            <div className="flex items-center justify-center">
+              <div className="max-w-[120px] truncate text-center text-xs md:max-w-[180px] md:text-sm">
+                {name}
+              </div>
+            </div>
+          );
+        },
+        meta: { className: 'w-[120px] md:w-[180px] text-center' },
       },
       {
-        header: 'Status Pengajuan',
+        header: 'Leave Type',
         accessorKey: 'status',
         cell: ({ row }) => (
-          <Badge variant='outline' className='bg-gray-600 text-white hover:bg-gray-600'>
-            {row.original.status}
-          </Badge>
+          <div className="flex items-center justify-center">
+            <Badge variant='outline' className='bg-gray-600 text-white hover:bg-gray-600 text-xs md:text-sm max-w-[100px] md:max-w-[140px] truncate'>
+              {row.original.status}
+            </Badge>
+          </div>
         ),
+        meta: { className: 'w-[100px] md:w-[140px] text-center' },
       },
       {
         header: 'Approval',
@@ -121,32 +153,40 @@ export default function CheckClockApprovalTab() {
           const item = row.original;
           if (item.approved === null) {
             return (
-              <Button
-                size='sm'
-                variant='outline'
-                className='border-yellow-500 bg-yellow-500 text-white hover:cursor-pointer hover:bg-yellow-600'
-                onClick={(e) => {
-                  e.stopPropagation();
-                  openApprovalModal(item);
-                }}
-              >
-                Need Approval
-              </Button>
+              <div className="flex items-center justify-center">
+                <Button
+                  size='sm'
+                  variant='outline'
+                  className='h-7 w-full cursor-pointer border-yellow-500 bg-yellow-500 px-1 text-xs text-white hover:cursor-pointer hover:bg-yellow-600 md:h-8 md:w-auto md:px-2'
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openApprovalModal(item);
+                  }}
+                >
+                  <span className="hidden md:inline">Need Approval</span>
+                  <span className="md:hidden">Approval</span>
+                </Button>
+              </div>
             );
           } else if (item.approved) {
             return (
-              <Badge variant='outline' className='border-green-200 bg-green-100 text-green-800'>
-                Approved
-              </Badge>
+              <div className="flex items-center justify-center">
+                <Badge variant='outline' className='border-green-200 bg-green-100 text-green-800 text-xs md:text-sm max-w-[80px] md:max-w-[120px] truncate'>
+                  Approved
+                </Badge>
+              </div>
             );
           } else {
             return (
-              <Badge variant='outline' className='border-red-200 bg-red-100 text-red-800'>
-                Rejected
-              </Badge>
+              <div className="flex items-center justify-center">
+                <Badge variant='outline' className='border-red-200 bg-red-100 text-red-800 text-xs md:text-sm max-w-[80px] md:max-w-[120px] truncate'>
+                  Rejected
+                </Badge>
+              </div>
             );
           }
         },
+        meta: { className: 'w-[90px] md:w-[140px] text-center' },
         enableSorting: false,
         enableColumnFilter: false,
       },
@@ -154,18 +194,22 @@ export default function CheckClockApprovalTab() {
         header: 'Details',
         id: 'details',
         cell: ({ row }) => (
-          <Button
-            size='sm'
-            variant='default'
-            className='bg-blue-500 hover:cursor-pointer hover:bg-blue-600'
-            onClick={(e) => {
-              e.stopPropagation();
-              handleSheetViewDetails(row.original.id);
-            }}
-          >
-            Details
-          </Button>
+          <div className="flex items-center justify-center">
+            <Button
+              size='sm'
+              variant='default'
+              className='h-7 w-full cursor-pointer bg-blue-500 px-1 text-xs hover:cursor-pointer hover:bg-blue-600 text-white md:h-8 md:w-auto md:px-2'
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSheetViewDetails(row.original.id);
+              }}
+            >
+              <span className="hidden md:inline">Details</span>
+              <span className="md:hidden">View</span>
+            </Button>
+          </div>
         ),
+        meta: { className: 'w-[80px] md:w-[100px] text-center' },
         enableSorting: false,
         enableColumnFilter: false,
       },
@@ -191,12 +235,22 @@ export default function CheckClockApprovalTab() {
     getPaginationRowModel: getPaginationRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     autoResetPageIndex: false,
-  });
-  return (
+  });  return (
     <>
-      <Card className='border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900'>
+      <Card className='border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900 relative'>
+        {/* Refresh loading overlay */}
+        {isRefreshing && (
+          <div className="absolute inset-0 bg-white/10 backdrop-blur-[0.5px] rounded-lg z-10 flex items-center justify-center transition-all duration-200">
+            <div className="flex items-center gap-2 bg-white/95 px-3 py-1.5 rounded-lg shadow-sm border border-blue-100">
+              <RefreshCw className="h-3.5 w-3.5 animate-spin text-blue-500" />
+              <span className="text-xs text-slate-600 font-medium">Refreshing...</span>
+            </div>
+          </div>
+        )}
         <CardContent>
-          <header className='mb-6 flex flex-col gap-6'>
+          <header className={`mb-6 flex flex-col gap-6 transition-opacity duration-300 ease-in-out ${
+            isRefreshing ? 'opacity-90' : 'opacity-100'
+          }`}>
             <h2 className='text-xl font-semibold text-slate-800 dark:text-slate-100'>
               Leave Request Approval
             </h2>
@@ -215,32 +269,64 @@ export default function CheckClockApprovalTab() {
                 />
               </div>              <Button
                 variant='outline'
-                className='gap-2 rounded-md border-slate-300 bg-white px-4 py-2 text-slate-700 hover:bg-slate-50 hover:text-slate-800 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-200'
-                onClick={() => refetch()}
-                disabled={isLoading}
+                className={`gap-2 rounded-md border-slate-300 bg-white px-4 py-2 text-slate-700 hover:bg-slate-50 hover:text-slate-800 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-200 transition-all duration-200 ${
+                  isRefreshing ? 'opacity-70 scale-98' : 'opacity-100 scale-100'
+                }`}
+                onClick={handleRefreshWithTransition}
+                disabled={isLoading || isRefreshing}
               >
-                <RefreshCw className='h-4 w-4' />
-                {isLoading ? 'Loading...' : 'Refresh'}
+                <RefreshCw className={`h-4 w-4 transition-transform duration-500 ${
+                  isRefreshing ? 'animate-spin' : ''
+                }`} />
+                {isRefreshing ? 'Refreshing...' : 'Refresh'}
               </Button>
             </div>
-            {error && (
-              <div className='text-sm text-red-500'>
-                Error loading leave requests: {error.message}
+          </header>          {/* Table */}
+          <div className={`transition-opacity duration-300 ease-in-out ${
+            isRefreshing ? 'opacity-75' : 'opacity-100'
+          }`}>
+            {isLoading ? (
+              <div className='flex h-32 items-center justify-center'>
+                <div className='text-center'>
+                  <div className='mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600'></div>
+                  <p>Loading leave requests...</p>
+                </div>
               </div>
+            ) : error ? (
+              <div className='flex h-32 items-center justify-center'>
+                <div className='text-center'>
+                  <div className='mb-4 text-red-500'>
+                    <svg
+                      className='mx-auto mb-2 h-12 w-12'
+                      fill='none'
+                      stroke='currentColor'
+                      viewBox='0 0 24 24'
+                    >
+                      <path
+                        strokeLinecap='round'
+                        strokeLinejoin='round'
+                        strokeWidth={2}
+                        d='M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
+                      />
+                    </svg>
+                  </div>
+                  <p className='font-medium text-red-600'>Error loading data</p>
+                  <p className='mt-1 text-sm text-gray-600'>{error.message}</p>
+                  <button
+                    onClick={() => window.location.reload()}
+                    className='mt-4 rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700'
+                  >
+                    Retry
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <DataTable table={table} />
             )}
-          </header>
-
-          {/* Table */}
-          {isLoading ? (
-            <div className='flex h-32 items-center justify-center'>
-              <div className='text-slate-500'>Loading leave requests...</div>
-            </div>
-          ) : (
-            <DataTable table={table} />
-          )}
-
-          {/* Pagination */}
-          <footer className='mt-4 flex flex-col items-center justify-between gap-4 md:flex-row'>
+          </div>          {/* Pagination */}
+          <footer className={`mt-4 flex flex-col items-center justify-between gap-4 md:flex-row transition-opacity duration-300 ease-in-out ${
+            isRefreshing ? 'opacity-75' : 'opacity-100'
+          }`}>
             <PageSizeComponent table={table} />
             <PaginationComponent table={table} />
           </footer>

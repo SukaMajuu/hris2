@@ -17,10 +17,11 @@ import (
 )
 
 type AuthUseCase struct {
-	authRepo     interfaces.AuthRepository
-	employeeRepo interfaces.EmployeeRepository
-	jwtService   jwt.Service
-	config       *config.Config
+	authRepo       interfaces.AuthRepository
+	employeeRepo   interfaces.EmployeeRepository
+	jwtService     jwt.Service
+	config         *config.Config
+	subscriptionUC interfaces.SubscriptionUseCase
 }
 
 func NewAuthUseCase(
@@ -28,12 +29,14 @@ func NewAuthUseCase(
 	employeeRepo interfaces.EmployeeRepository,
 	jwtService jwt.Service,
 	config *config.Config,
+	subscriptionUC interfaces.SubscriptionUseCase,
 ) *AuthUseCase {
 	return &AuthUseCase{
-		authRepo:     authRepo,
-		employeeRepo: employeeRepo,
-		jwtService:   jwtService,
-		config:       config,
+		authRepo:       authRepo,
+		employeeRepo:   employeeRepo,
+		jwtService:     jwtService,
+		config:         config,
+		subscriptionUC: subscriptionUC,
 	}
 }
 
@@ -350,4 +353,23 @@ func (uc *AuthUseCase) VerifyAccessToken(ctx context.Context, accessToken string
 	}
 
 	return claims.UserID, claims.Role, nil
+}
+
+func (uc *AuthUseCase) UpdateUserPassword(ctx context.Context, userID uint, accessToken, oldPassword, newPassword string) error {
+	if userID == 0 || accessToken == "" || oldPassword == "" || newPassword == "" {
+		return domain.ErrInvalidPassword
+	}
+
+	// Call repository with the oldPassword parameter
+	err := uc.authRepo.UpdateUserPassword(ctx, userID, accessToken, oldPassword, newPassword)
+	if err != nil {
+		return fmt.Errorf("failed to update user password: %w", err)
+	}
+
+	// Revoke all refresh tokens for security after password change
+	if err := uc.authRepo.RevokeAllUserRefreshTokens(ctx, userID); err != nil {
+		log.Printf("Failed to revoke refresh tokens after password change for user %d: %v", userID, err)
+	}
+
+	return nil
 }

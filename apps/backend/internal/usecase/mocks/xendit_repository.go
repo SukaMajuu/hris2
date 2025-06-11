@@ -2,8 +2,10 @@ package mocks
 
 import (
 	"context"
+	"time"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
+	"github.com/SukaMajuu/hris/apps/backend/domain/enums"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -16,6 +18,21 @@ type XenditRepository struct {
 func (m *XenditRepository) CreateCheckoutSession(ctx context.Context, session *domain.CheckoutSession) error {
 	args := m.Called(ctx, session)
 	return args.Error(0)
+}
+
+func (m *XenditRepository) CreateSubscriptionUsage(ctx context.Context, usage *domain.SubscriptionUsage) error {
+	args := m.Called(ctx, usage)
+	return args.Error(0)
+}
+
+func (m *XenditRepository) GetSubscriptionsByStatus(ctx context.Context, status enums.SubscriptionStatus) ([]domain.Subscription, error) {
+	args := m.Called(ctx, status)
+	return args.Get(0).([]domain.Subscription), args.Error(1)
+}
+
+func (m *XenditRepository) GetSubscriptionsDueForRenewal(ctx context.Context, date time.Time) ([]domain.Subscription, error) {
+	args := m.Called(ctx, date)
+	return args.Get(0).([]domain.Subscription), args.Error(1)
 }
 
 func (m *XenditRepository) GetCheckoutSession(ctx context.Context, sessionID string) (*domain.CheckoutSession, error) {
@@ -45,8 +62,8 @@ func (m *XenditRepository) GetPaymentTransaction(ctx context.Context, transactio
 	return args.Get(0).(*domain.PaymentTransaction), args.Error(1)
 }
 
-func (m *XenditRepository) GetPaymentTransactionByXenditID(ctx context.Context, xenditInvoiceID string) (*domain.PaymentTransaction, error) {
-	args := m.Called(ctx, xenditInvoiceID)
+func (m *XenditRepository) GetPaymentTransactionByOrderID(ctx context.Context, orderID string) (*domain.PaymentTransaction, error) {
+	args := m.Called(ctx, orderID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}

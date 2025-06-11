@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
@@ -98,6 +99,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 			"role":       registeredUser.Role,
 			"last_login": registeredUser.LastLoginAt,
 		},
+		"is_new_user": true,
 	})
 }
 
@@ -127,6 +129,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 			"role":       user.Role,
 			"last_login": user.LastLoginAt,
 		},
+		"is_new_user": false,
 	})
 }
 
@@ -137,12 +140,14 @@ func (h *AuthHandler) GoogleLogin(c *gin.Context) {
 	}
 
 	user, accessToken, refreshToken, err := h.authUseCase.LoginWithGoogle(c.Request.Context(), req.Token)
+	isNewUser := false
 	if err != nil {
 		user, accessToken, refreshToken, err = h.authUseCase.RegisterAdminWithGoogle(c.Request.Context(), req.Token)
 		if err != nil {
 			response.InternalServerError(c, fmt.Errorf("google authentication process failed: %w", err))
 			return
 		}
+		isNewUser = true
 	}
 
 	h.setRefreshTokenCookie(c, refreshToken, false)
@@ -155,6 +160,7 @@ func (h *AuthHandler) GoogleLogin(c *gin.Context) {
 			"role":       user.Role,
 			"last_login": user.LastLoginAt,
 		},
+		"is_new_user": isNewUser,
 	})
 }
 
@@ -181,6 +187,50 @@ func (h *AuthHandler) ChangePassword(c *gin.Context) {
 	}
 
 	response.Success(c, http.StatusOK, "Password changed successfully", nil)
+}
+
+func (h *AuthHandler) UpdateUserPassword(c *gin.Context) {
+	var req authDTO.ChangePasswordRequest
+	if bindAndValidate(c, &req) {
+		return
+	}
+
+	userIDCtx, exists := c.Get("userID")
+	if !exists {
+		response.Unauthorized(c, "User ID not found in context", fmt.Errorf("missing userID in context"))
+		return
+	}
+	userID, ok := userIDCtx.(uint)
+	if !ok {
+		response.InternalServerError(c, fmt.Errorf("invalid user ID type in context"))
+		return
+	}
+
+	// Get access token from Authorization header
+	authHeader := c.GetHeader("Authorization")
+	if authHeader == "" {
+		response.Unauthorized(c, "Authorization header not found", fmt.Errorf("missing authorization header"))
+		return
+	}
+
+	// Extract token from "Bearer <token>"
+	parts := strings.Split(authHeader, " ")
+	if len(parts) != 2 || parts[0] != "Bearer" {
+		response.Unauthorized(c, "Invalid authorization header format", fmt.Errorf("invalid authorization header"))
+		return
+	}
+	accessToken := parts[1]
+
+	if err := h.authUseCase.UpdateUserPassword(c.Request.Context(), userID, accessToken, req.OldPassword, req.NewPassword); err != nil {
+		if errors.Is(err, domain.ErrInvalidCredentials) {
+			response.Unauthorized(c, "Current password is incorrect", err)
+			return
+		}
+		response.InternalServerError(c, err)
+		return
+	}
+
+	response.Success(c, http.StatusOK, "Password updated successfully", nil)
 }
 
 func (h *AuthHandler) ResetPassword(c *gin.Context) {

@@ -83,15 +83,15 @@ func NewAttendanceResponseDTO(attendance *domain.Attendance) *AttendanceResponse
 		UpdatedAt:      attendance.UpdatedAt,
 	}
 
-	// Format clock in time
+	// Format clock in time with full datetime and timezone
 	if attendance.ClockIn != nil {
-		clockInStr := attendance.ClockIn.Format("15:04:05")
+		clockInStr := attendance.ClockIn.Format(time.RFC3339) // ISO format with timezone
 		dto.ClockIn = &clockInStr
 	}
 
-	// Format clock out time
+	// Format clock out time with full datetime and timezone
 	if attendance.ClockOut != nil {
-		clockOutStr := attendance.ClockOut.Format("15:04:05")
+		clockOutStr := attendance.ClockOut.Format(time.RFC3339) // ISO format with timezone
 		dto.ClockOut = &clockOutStr
 	}
 
@@ -181,15 +181,15 @@ func NewAttendanceResponseDTOWithoutRelations(attendance *domain.Attendance) *At
 		UpdatedAt:      attendance.UpdatedAt,
 	}
 
-	// Format clock in time
+	// Format clock in time with full datetime and timezone
 	if attendance.ClockIn != nil {
-		clockInStr := attendance.ClockIn.Format("15:04:05")
+		clockInStr := attendance.ClockIn.Format(time.RFC3339) // ISO format with timezone
 		dto.ClockIn = &clockInStr
 	}
 
-	// Format clock out time
+	// Format clock out time with full datetime and timezone
 	if attendance.ClockOut != nil {
-		clockOutStr := attendance.ClockOut.Format("15:04:05")
+		clockOutStr := attendance.ClockOut.Format(time.RFC3339) // ISO format with timezone
 		dto.ClockOut = &clockOutStr
 	}
 

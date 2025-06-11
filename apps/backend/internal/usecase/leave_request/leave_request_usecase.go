@@ -61,7 +61,7 @@ func (uc *LeaveRequestUseCase) toLeaveRequestResponseDTO(lr *domain.LeaveRequest
 	positionName := "Unknown Position"
 	if lr.Employee.PositionName != "" {
 		positionName = lr.Employee.PositionName
-	} 
+	}
 	var attachmentURL *string
 	if lr.Attachment != nil && *lr.Attachment != "" {
 		bucketName := bucketNameAttachments
@@ -125,7 +125,7 @@ func (uc *LeaveRequestUseCase) Create(ctx context.Context, leaveRequest *domain.
 				log.Printf("Warning: failed to close attachment file: %v", closeErr)
 			}
 		}()
-		
+
 		_, err = uc.supabaseClient.Storage.UploadFile(bucketNameAttachments, fileName, src, storage.FileOptions{
 			ContentType: &[]string{uc.getContentTypeFromExtension(file.Filename)}[0],
 			Upsert:      &[]bool{true}[0],
@@ -133,7 +133,7 @@ func (uc *LeaveRequestUseCase) Create(ctx context.Context, leaveRequest *domain.
 		if err != nil {
 			return nil, fmt.Errorf("failed to upload attachment: %w", err)
 		}
-		
+
 		leaveRequest.Attachment = &fileName
 	}
 
@@ -146,7 +146,7 @@ func (uc *LeaveRequestUseCase) Create(ctx context.Context, leaveRequest *domain.
 		}
 		return nil, fmt.Errorf("failed to create leave request: %w", err)
 	}
-	
+
 	createdLeaveRequest, err := uc.leaveRequestRepo.GetByID(ctx, leaveRequest.ID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve created leave request: %w", err)
@@ -200,7 +200,7 @@ func (uc *LeaveRequestUseCase) CreateForEmployee(ctx context.Context, leaveReque
 			}
 		}()
 
-		// Upload to Supabase Storage 
+		// Upload to Supabase Storage
 		_, err = uc.supabaseClient.Storage.UploadFile(bucketNameAttachments, fileName, src, storage.FileOptions{
 			ContentType: &[]string{uc.getContentTypeFromExtension(file.Filename)}[0],
 			Upsert:      &[]bool{true}[0],
@@ -529,7 +529,6 @@ func (uc *LeaveRequestUseCase) UpdateStatus(ctx context.Context, id uint, status
 	if err != nil {
 		return nil, fmt.Errorf("failed to update leave request status: %w", err)
 	}
-
 	// If approved, create attendance records with "leave" status for the duration
 	if status == domain.LeaveStatusApproved {
 		err = uc.createLeaveAttendanceRecords(ctx, leaveRequest)
@@ -698,7 +697,7 @@ func (uc *LeaveRequestUseCase) getContentTypeFromExtension(filename string) stri
 
 // createLeaveAttendanceRecords creates attendance records with "leave" status for each day in the leave period
 func (uc *LeaveRequestUseCase) createLeaveAttendanceRecords(ctx context.Context, leaveRequest *domain.LeaveRequest) error {
-	log.Printf("LeaveRequestUseCase: Creating attendance records for leave request ID %d from %s to %s", 
+	log.Printf("LeaveRequestUseCase: Creating attendance records for leave request ID %d from %s to %s",
 		leaveRequest.ID, leaveRequest.StartDate.Format("2006-01-02"), leaveRequest.EndDate.Format("2006-01-02"))
 
 	// Iterate through each day in the leave period
@@ -713,7 +712,7 @@ func (uc *LeaveRequestUseCase) createLeaveAttendanceRecords(ctx context.Context,
 		// Check if attendance record already exists for this date
 		dateStr := currentDate.Format("2006-01-02")
 		existingAttendance, err := uc.attendanceRepo.GetByEmployeeAndDate(ctx, leaveRequest.EmployeeID, dateStr)
-		
+
 		if err == nil {
 			// Attendance record exists, update it to "leave" status
 			existingAttendance.Status = domain.Leave
@@ -728,34 +727,34 @@ func (uc *LeaveRequestUseCase) createLeaveAttendanceRecords(ctx context.Context,
 
 			err = uc.attendanceRepo.Update(ctx, existingAttendance)
 			if err != nil {
-				return fmt.Errorf("failed to update attendance record for employee %d on %s: %w", 
+				return fmt.Errorf("failed to update attendance record for employee %d on %s: %w",
 					leaveRequest.EmployeeID, dateStr, err)
 			}
-			log.Printf("Updated existing attendance record for employee %d on %s to leave status", 
+			log.Printf("Updated existing attendance record for employee %d on %s to leave status",
 				leaveRequest.EmployeeID, dateStr)
 		} else {
 			// No existing attendance record, create a new one with "leave" status
 			newAttendance := &domain.Attendance{
-				EmployeeID: leaveRequest.EmployeeID,
-				Date:       currentDate,
-				Status:     domain.Leave,
-				ClockIn:    nil,
-				ClockOut:   nil,
-				WorkHours:  nil,
-				ClockInLat: nil,
-				ClockInLong: nil,
-				ClockOutLat: nil,
+				EmployeeID:   leaveRequest.EmployeeID,
+				Date:         currentDate,
+				Status:       domain.Leave,
+				ClockIn:      nil,
+				ClockOut:     nil,
+				WorkHours:    nil,
+				ClockInLat:   nil,
+				ClockInLong:  nil,
+				ClockOutLat:  nil,
 				ClockOutLong: nil,
-				CreatedAt:  time.Now(),
-				UpdatedAt:  time.Now(),
+				CreatedAt:    time.Now(),
+				UpdatedAt:    time.Now(),
 			}
 
 			err = uc.attendanceRepo.Create(ctx, newAttendance)
 			if err != nil {
-				return fmt.Errorf("failed to create attendance record for employee %d on %s: %w", 
+				return fmt.Errorf("failed to create attendance record for employee %d on %s: %w",
 					leaveRequest.EmployeeID, dateStr, err)
 			}
-			log.Printf("Created new attendance record for employee %d on %s with leave status", 
+			log.Printf("Created new attendance record for employee %d on %s with leave status",
 				leaveRequest.EmployeeID, dateStr)
 		}
 

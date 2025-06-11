@@ -56,14 +56,14 @@ export const useCheckout = () => {
 			{
 				id: "monthly",
 				label: "Monthly",
-				pricePerUser: selectedSeatPlan.price_per_month,
+				pricePerUser: Number(selectedSeatPlan.price_per_month),
 				type: "monthly",
 				suffix: "/ Month",
 			},
 			{
 				id: "yearly",
 				label: "Yearly",
-				pricePerUser: selectedSeatPlan.price_per_year,
+				pricePerUser: Number(selectedSeatPlan.price_per_year),
 				type: "yearly",
 				suffix: "/ Year",
 			},
@@ -77,7 +77,7 @@ export const useCheckout = () => {
 
 	// Price calculations
 	const priceCalculations = useMemo(() => {
-		const pricePerUser = selectedBillingOption?.pricePerUser || 0;
+		const pricePerUser = Number(selectedBillingOption?.pricePerUser || 0);
 		const subtotal = pricePerUser;
 		const taxAmount = subtotal * taxRate;
 		const totalAtRenewal = subtotal + taxAmount;

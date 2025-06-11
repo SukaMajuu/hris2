@@ -35,13 +35,6 @@ export const WFA: Story = {
 	},
 };
 
-// Story for WFH (Work From Home)
-export const WFH: Story = {
-	args: {
-		workType: WORK_TYPES.WFH,
-	},
-};
-
 //story for Hybrid
 export const Hybrid: Story = {
 	args: {
@@ -55,7 +48,6 @@ export const AllTypes: Story = {
 		<div className="flex gap-4">
 			<WorkTypeBadge workType={WORK_TYPES.WFO} />
 			<WorkTypeBadge workType={WORK_TYPES.WFA} />
-			<WorkTypeBadge workType={WORK_TYPES.WFH} />
 			<WorkTypeBadge workType={WORK_TYPES.Hybrid} />
 		</div>
 	),

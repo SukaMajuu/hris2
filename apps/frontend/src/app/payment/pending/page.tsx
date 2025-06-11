@@ -24,6 +24,20 @@ function PaymentPendingContent() {
 	const vaNumber = searchParams.get("va_number");
 	const bank = searchParams.get("bank");
 
+	// Get payment parameters for retry functionality
+	const planId = searchParams.get("planId");
+	const seatPlanId = searchParams.get("seatPlanId");
+	const isMonthly = searchParams.get("isMonthly");
+	const retryAmount = searchParams.get("amount") || amount; // Use amount from payment params or gross_amount
+
+	// Construct retry URL if we have the necessary parameters
+	const getRetryUrl = () => {
+		if (planId && seatPlanId && retryAmount) {
+			return `/payment/process?planId=${planId}&seatPlanId=${seatPlanId}&isMonthly=${isMonthly}&amount=${retryAmount}`;
+		}
+		return "/subscription/checkout";
+	};
+
 	const copyToClipboard = async (text: string, fieldName: string) => {
 		try {
 			await navigator.clipboard.writeText(text);
@@ -277,7 +291,7 @@ function PaymentPendingContent() {
 								className="dark:text-slate-400 dark:border-slate-600 dark:hover:bg-slate-800"
 								asChild
 							>
-								<Link href="/payment/process">
+								<Link href={getRetryUrl()}>
 									Try Different Method
 								</Link>
 							</Button>

@@ -290,23 +290,47 @@ func (r *supabaseRepository) LoginWithGoogle(ctx context.Context, token string) 
 
 func (r *supabaseRepository) LoginWithPhone(ctx context.Context, phone, password string) (*domain.User, error) {
 	session, err := r.client.Auth.SignInWithPhonePassword(phone, password)
-	if err != nil {
-		return nil, domain.ErrInvalidCredentials
-	}
-	if session == nil || session.User.ID == uuid.Nil {
-		return nil, domain.ErrInvalidCredentials
+	if err == nil && session != nil && session.User.ID != uuid.Nil {
+		var user domain.User
+		supaUserIDStr := session.User.ID.String()
+		if err := r.db.WithContext(ctx).Where("supabase_uid = ?", supaUserIDStr).First(&user).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil, domain.ErrInvalidCredentials
+			}
+			return nil, fmt.Errorf("error retrieving local user: %w", err)
+		}
+		return &user, nil
 	}
 
-	var user domain.User
-	supaUserIDStr := session.User.ID.String()
-	if err := r.db.WithContext(ctx).Where("supabase_uid = ?", supaUserIDStr).First(&user).Error; err != nil {
+	var localUser domain.User
+	if err := r.db.WithContext(ctx).Where("phone = ?", phone).First(&localUser).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, domain.ErrInvalidCredentials
 		}
-		return nil, fmt.Errorf("error retrieving local user: %w", err)
+		return nil, fmt.Errorf("error finding user by phone: %w", err)
 	}
 
-	return &user, nil
+	if localUser.Email == "" {
+		return nil, fmt.Errorf("user with phone %s has no email for authentication", phone)
+	}
+	if localUser.SupabaseUID == nil || *localUser.SupabaseUID == "" {
+		return nil, fmt.Errorf("user with phone %s is not linked to Supabase", phone)
+	}
+
+	emailSession, err := r.client.Auth.SignInWithEmailPassword(localUser.Email, password)
+	if err != nil {
+		return nil, domain.ErrInvalidCredentials
+	}
+	if emailSession == nil || emailSession.User.ID == uuid.Nil {
+		return nil, domain.ErrInvalidCredentials
+	}
+
+	supaUserIDStr := emailSession.User.ID.String()
+	if *localUser.SupabaseUID != supaUserIDStr {
+		return nil, fmt.Errorf("supabase UID mismatch for user with phone %s", phone)
+	}
+
+	return &localUser, nil
 }
 
 func (r *supabaseRepository) LoginWithEmployeeCredentials(ctx context.Context, employeeCode, password string) (*domain.User, error) {
@@ -352,6 +376,43 @@ func (r *supabaseRepository) ChangePassword(ctx context.Context, userID uint, ol
 	_, err = r.client.Auth.AdminUpdateUser(updateReq)
 	if err != nil {
 		return fmt.Errorf("error updating supabase user password: %w", err)
+	}
+
+	return nil
+}
+
+func (r *supabaseRepository) UpdateUserPassword(ctx context.Context, userID uint, accessToken, oldPassword, newPassword string) error {
+	localUser, err := r.GetUserByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if localUser.SupabaseUID == nil || *localUser.SupabaseUID == "" {
+		return fmt.Errorf("user is not linked to a supabase account")
+	}
+	if localUser.Email == "" {
+		return fmt.Errorf("user email is required for password verification")
+	}
+
+	// Verify current password by attempting login
+	session, err := r.client.Auth.SignInWithEmailPassword(localUser.Email, oldPassword)
+	if err != nil {
+		return domain.ErrInvalidCredentials
+	}
+	if session == nil || session.AccessToken == "" {
+		return domain.ErrInvalidCredentials
+	}
+
+	// Use the Supabase access token from the session to update password
+	authedClient := r.client.Auth.WithToken(session.AccessToken)
+
+	// Update password using authenticated client
+	updateReq := types.UpdateUserRequest{
+		Password: &newPassword,
+	}
+
+	_, err = authedClient.UpdateUser(updateReq)
+	if err != nil {
+		return fmt.Errorf("failed to update user password: %w", err)
 	}
 
 	return nil
@@ -535,5 +596,64 @@ func (r *supabaseRepository) UpdateUser(ctx context.Context, user *domain.User) 
 	}
 
 	log.Printf("SupabaseRepository: Successfully updated user details (locally) for UserID %d.", user.ID)
+	return nil
+}
+
+// RegisterWithPhone creates a new user with phone number in Supabase and database
+func (r *supabaseRepository) RegisterWithPhone(ctx context.Context, user *domain.User, employee *domain.Employee) error {
+	if user.Phone == "" {
+		return fmt.Errorf("phone number is required for phone registration")
+	}
+
+	signUpOpts := types.SignupRequest{
+		Phone:    user.Phone,
+		Password: user.Password,
+	}
+
+	supaUserResponse, err := r.client.Auth.Signup(signUpOpts)
+	if err != nil {
+		errStr := err.Error()
+		if strings.Contains(errStr, "user_already_exists") || strings.Contains(errStr, "User already registered") {
+			return domain.ErrUserAlreadyExists
+		}
+		return fmt.Errorf("error creating user in Supabase with phone: %w", err)
+	}
+
+	if supaUserResponse == nil || supaUserResponse.ID == uuid.Nil {
+		return fmt.Errorf("supabase SignUp returned nil user or empty ID")
+	}
+
+	supaUserIDStr := supaUserResponse.ID.String()
+	user.SupabaseUID = &supaUserIDStr
+
+	tx := r.db.WithContext(ctx).Begin()
+	if tx.Error != nil {
+		_ = r.client.Auth.AdminDeleteUser(types.AdminDeleteUserRequest{UserID: supaUserResponse.ID})
+		return fmt.Errorf("error starting transaction: %w", tx.Error)
+	}
+
+	if err := tx.Create(user).Error; err != nil {
+		tx.Rollback()
+		_ = r.client.Auth.AdminDeleteUser(types.AdminDeleteUserRequest{UserID: supaUserResponse.ID})
+		errStr := err.Error()
+		if strings.Contains(errStr, "23505") && (strings.Contains(errStr, "uni_users_supabase_uid") || strings.Contains(errStr, "uni_users_phone")) {
+			return domain.ErrUserAlreadyExists
+		}
+		return fmt.Errorf("error storing user in database: %w", err)
+	}
+
+	employee.UserID = user.ID
+	if err := tx.Create(employee).Error; err != nil {
+		tx.Rollback()
+		_ = r.client.Auth.AdminDeleteUser(types.AdminDeleteUserRequest{UserID: supaUserResponse.ID})
+		_ = r.db.WithContext(ctx).Delete(user)
+		return fmt.Errorf("error storing employee in database: %w", err)
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		_ = r.client.Auth.AdminDeleteUser(types.AdminDeleteUserRequest{UserID: supaUserResponse.ID})
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
 	return nil
 }

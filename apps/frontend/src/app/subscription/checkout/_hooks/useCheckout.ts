@@ -151,10 +151,6 @@ export const useCheckout = () => {
 			userSubscription; // Have user subscription data
 
 		if (shouldCalculateAmount) {
-			console.log(
-				"Auto-calculating prorated amount for:",
-				changeContext.type
-			);
 			setIsCalculatingAmount(true);
 			setCalculationError(null);
 
@@ -171,15 +167,6 @@ export const useCheckout = () => {
 						const response = await previewPlanMutation.mutateAsync(
 							request
 						);
-						console.log("Preview plan change response:", response);
-						console.log(
-							"Requires payment:",
-							response.requires_payment
-						);
-						console.log(
-							"Proration amount:",
-							response.proration_amount
-						);
 
 						if (
 							response.requires_payment &&
@@ -189,8 +176,6 @@ export const useCheckout = () => {
 								Number(response.proration_amount)
 							);
 						} else {
-							console.log("No payment required for this change");
-							// Set to 0 if no payment is required
 							setCalculatedAmount(0);
 						}
 					} else if (changeContext.type === "seat_change") {
@@ -201,15 +186,6 @@ export const useCheckout = () => {
 						const response = await previewSeatMutation.mutateAsync(
 							request
 						);
-						console.log("Preview seat change response:", response);
-						console.log(
-							"Requires payment:",
-							response.requires_payment
-						);
-						console.log(
-							"Proration amount:",
-							response.proration_amount
-						);
 
 						if (
 							response.requires_payment &&
@@ -219,8 +195,6 @@ export const useCheckout = () => {
 								Number(response.proration_amount)
 							);
 						} else {
-							console.log("No payment required for this change");
-							// Set to 0 if no payment is required
 							setCalculatedAmount(0);
 						}
 					}

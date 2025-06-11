@@ -38,12 +38,6 @@ function SubscriptionPageContent() {
 		handleViewChange,
 	} = useSubscription();
 
-	const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-	const [upgradeModalData, setUpgradeModalData] = useState<{
-		planId: number;
-		seatPlanId: number;
-	} | null>(null);
-
 	// Loading state
 	if (isLoading) {
 		return <SubscriptionPageSkeleton view={activeView} />;

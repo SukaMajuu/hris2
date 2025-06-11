@@ -121,12 +121,6 @@ function CheckoutPageContent() {
 
 		setIsProcessingCheckout(true);
 
-		console.log("=== CHECKOUT DEBUG ===");
-		console.log("Change Context:", changeContext);
-		console.log("Preset Amount:", presetAmount);
-		console.log("Is Upgrade:", isUpgrade);
-		console.log("Plan ID:", planId, "Seat Plan ID:", seatPlanId);
-
 		try {
 			// If we already have a preset amount (from a previous API call),
 			// skip the API call and go directly to payment
@@ -137,10 +131,6 @@ function CheckoutPageContent() {
 					changeContext.type === "plan_change" ||
 					changeContext.type === "seat_change")
 			) {
-				console.log(
-					"Skipping API call, using preset amount:",
-					presetAmount
-				);
 				const isMonthly = selectedBillingOption?.id === "monthly";
 				const params = new URLSearchParams({
 					planId: planId.toString(),
@@ -158,24 +148,11 @@ function CheckoutPageContent() {
 			}
 
 			if (changeContext.type !== "new_subscription") {
-				console.log(
-					"Calling processSubscriptionChange for:",
-					changeContext.type
-				);
 				const response = await processSubscriptionChange();
-				console.log("ProcessSubscriptionChange response:", response);
 
 				if (response?.payment_required) {
-					console.log(
-						"Payment required, amount:",
-						response.payment_amount
-					);
-
 					// Check if we have a checkout session with payment URL (for upgrades/changes)
 					if (response.checkout_session?.payment_url) {
-						console.log(
-							"Using direct payment URL from upgrade API"
-						);
 						// Redirect directly to Midtrans payment URL from the upgrade transaction
 						window.location.href =
 							response.checkout_session.payment_url;
@@ -183,9 +160,6 @@ function CheckoutPageContent() {
 					}
 
 					// Fallback: If no direct payment URL, redirect to payment process page
-					console.log(
-						"No direct payment URL, redirecting to payment process"
-					);
 					const params = new URLSearchParams({
 						planId: planId.toString(),
 						seatPlanId: seatPlanId.toString(),
@@ -202,16 +176,9 @@ function CheckoutPageContent() {
 					if (isTrialConversion)
 						params.set("trial_conversion", "true");
 
-					console.log(
-						"Redirecting to payment with params:",
-						params.toString()
-					);
 					router.push(`/payment/process?${params.toString()}`);
 					return;
 				} else {
-					console.log(
-						"No payment required, applying changes directly"
-					);
 					// No payment required, change was applied immediately
 					toast.success(
 						response?.message ||
@@ -222,10 +189,6 @@ function CheckoutPageContent() {
 				}
 			}
 
-			console.log(
-				"New subscription flow, using totalAtRenewal:",
-				totalAtRenewal
-			);
 			// For new subscriptions, proceed with normal payment flow
 			const isMonthly = selectedBillingOption?.id === "monthly";
 			const params = new URLSearchParams({
@@ -237,7 +200,6 @@ function CheckoutPageContent() {
 
 			router.push(`/payment/process?${params.toString()}`);
 		} catch (error) {
-			console.error("Error processing subscription change:", error);
 			toast.error(
 				error instanceof Error
 					? error.message

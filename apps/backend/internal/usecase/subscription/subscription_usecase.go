@@ -1150,7 +1150,13 @@ func (uc *SubscriptionUseCase) createUpgradeCheckoutSession(
 		return nil, nil, fmt.Errorf("failed to update checkout session: %w", err)
 	}
 
-	checkoutSession := subscriptionDto.ToCheckoutSessionResponse(session)
+	// Reload checkout session with relationships to ensure proper DTO conversion
+	updatedSession, err := uc.xenditRepo.GetCheckoutSession(ctx, sessionID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to reload checkout session: %w", err)
+	}
+
+	checkoutSession := subscriptionDto.ToCheckoutSessionResponse(updatedSession)
 	invoice := &subscriptionDto.InvoiceResponse{
 		ID:         snapResp.Token,
 		Amount:     paymentAmount, // Use the actual payment amount sent to Midtrans
@@ -1545,7 +1551,13 @@ func (uc *SubscriptionUseCase) ChangeSeatPlan(ctx context.Context, userID uint, 
 			return nil, fmt.Errorf("failed to update checkout session: %w", err)
 		}
 
-		checkoutSession = subscriptionDto.ToCheckoutSessionResponse(session)
+		// Reload checkout session with relationships to ensure proper DTO conversion
+		updatedSession, err := uc.xenditRepo.GetCheckoutSession(ctx, session.SessionID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to reload checkout session: %w", err)
+		}
+
+		checkoutSession = subscriptionDto.ToCheckoutSessionResponse(updatedSession)
 		invoice = &subscriptionDto.InvoiceResponse{
 			ID:         snapResp.Token,
 			Amount:     paymentAmount,
@@ -1716,12 +1728,18 @@ func (uc *SubscriptionUseCase) ConvertTrialToPaid(ctx context.Context, userID ui
 		return nil, fmt.Errorf("failed to update checkout session: %w", err)
 	}
 
+	// Reload checkout session with relationships to ensure proper DTO conversion
+	updatedSession, err := uc.xenditRepo.GetCheckoutSession(ctx, sessionID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to reload checkout session: %w", err)
+	}
+
 	return &subscriptionDto.SubscriptionChangeResponse{
 		Subscription:    subscriptionDto.ToSubscriptionResponse(currentSubscription),
 		ChangeType:      "trial_conversion",
 		PaymentRequired: true,
 		PaymentAmount:   &amount,
-		CheckoutSession: subscriptionDto.ToCheckoutSessionResponse(session),
+		CheckoutSession: subscriptionDto.ToCheckoutSessionResponse(updatedSession),
 		Invoice: &subscriptionDto.InvoiceResponse{
 			ID:         snapResp.Token,
 			Amount:     amount,

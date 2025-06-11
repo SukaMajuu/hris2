@@ -361,3 +361,21 @@ func (h *SubscriptionHandler) ActivateTrial(c *gin.Context) {
 
 	response.OK(c, "Trial activated successfully", nil)
 }
+
+// HealthCheckWebhook - Health check endpoint for webhook connectivity testing
+func (h *SubscriptionHandler) HealthCheckWebhook(c *gin.Context) {
+	fmt.Printf("=== WEBHOOK HEALTH CHECK ===\n")
+	fmt.Printf("Timestamp: %s\n", time.Now().Format(time.RFC3339))
+	fmt.Printf("Method: %s\n", c.Request.Method)
+	fmt.Printf("Remote Address: %s\n", c.ClientIP())
+	fmt.Printf("User Agent: %s\n", c.GetHeader("User-Agent"))
+	fmt.Printf("=== HEALTH CHECK END ===\n\n")
+
+	response.OK(c, "Webhook endpoint is healthy and reachable", map[string]interface{}{
+		"status":    "healthy",
+		"timestamp": time.Now().Format(time.RFC3339),
+		"endpoint":  "/v1/webhooks/midtrans",
+		"method":    c.Request.Method,
+		"server":    "HRIS Backend",
+	})
+}

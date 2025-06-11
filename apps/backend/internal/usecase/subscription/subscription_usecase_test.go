@@ -68,10 +68,10 @@ func TestSubscriptionUseCase_GetSubscriptionPlans(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockXenditRepo := new(mocks.XenditRepository)
-			mockXenditClient := new(mocks.XenditClient)
 			mockEmployeeRepo := new(mocks.EmployeeRepository)
 			mockAuthRepo := new(mocks.AuthRepository)
-			uc := NewSubscriptionUseCase(mockXenditRepo, mockXenditClient, mockEmployeeRepo, mockAuthRepo)
+			mockMidtransClient := new(mocks.MidtransClient)
+			uc := NewSubscriptionUseCase(mockXenditRepo, mockEmployeeRepo, mockAuthRepo, mockMidtransClient)
 
 			mockXenditRepo.On("GetSubscriptionPlans", ctx).
 				Return(tt.mockPlans, tt.mockPlansError).Once()
@@ -88,7 +88,7 @@ func TestSubscriptionUseCase_GetSubscriptionPlans(t *testing.T) {
 			}
 
 			mockXenditRepo.AssertExpectations(t)
-			mockXenditClient.AssertExpectations(t)
+			mockMidtransClient.AssertExpectations(t)
 		})
 	}
 }
@@ -149,10 +149,10 @@ func TestSubscriptionUseCase_InitiateTrialCheckout(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockXenditRepo := new(mocks.XenditRepository)
-			mockXenditClient := new(mocks.XenditClient)
 			mockEmployeeRepo := new(mocks.EmployeeRepository)
 			mockAuthRepo := new(mocks.AuthRepository)
-			uc := NewSubscriptionUseCase(mockXenditRepo, mockXenditClient, mockEmployeeRepo, mockAuthRepo)
+			mockMidtransClient := new(mocks.MidtransClient)
+			uc := NewSubscriptionUseCase(mockXenditRepo, mockEmployeeRepo, mockAuthRepo, mockMidtransClient)
 
 			mockXenditRepo.On("GetSeatPlan", ctx, seatPlanID).
 				Return(tt.mockSeatPlan, tt.mockGetSeatPlanError).Once()
@@ -180,7 +180,7 @@ func TestSubscriptionUseCase_InitiateTrialCheckout(t *testing.T) {
 			}
 
 			mockXenditRepo.AssertExpectations(t)
-			mockXenditClient.AssertExpectations(t)
+			mockMidtransClient.AssertExpectations(t)
 		})
 	}
 }
@@ -207,25 +207,28 @@ func TestSubscriptionUseCase_InitiatePaidCheckout(t *testing.T) {
 		},
 	}
 
-	mockXenditInvoice := &interfaces.XenditInvoice{
-		ID:         "inv_123",
-		ExternalID: "checkout_test",
-		Amount:     decimal.NewFromInt(500000),
-		Currency:   "IDR",
-		InvoiceURL: "https://checkout.xendit.co/web/123",
-		ExpiryDate: "2024-01-01T00:00:00Z",
+	mockUser := &domain.User{
+		ID:    userID,
+		Email: "test@example.com",
+	}
+
+	mockMidtransSnap := &interfaces.MidtransSnapResponse{
+		Token:       "snap_token_123",
+		RedirectURL: "https://app.sandbox.midtrans.com/snap/v2/vtweb/snap_token_123",
 	}
 
 	repoError := errors.New("repository database error")
-	xenditError := errors.New("xendit service error")
+	midtransError := errors.New("midtrans service error")
 
 	tests := []struct {
 		name                    string
 		mockSeatPlan            *domain.SeatPlan
 		mockGetSeatPlanError    error
 		mockCreateCheckoutError error
-		mockXenditInvoice       *interfaces.XenditInvoice
-		mockXenditError         error
+		mockUser                *domain.User
+		mockGetUserError        error
+		mockMidtransSnap        *interfaces.MidtransSnapResponse
+		mockMidtransError       error
 		mockUpdateCheckoutError error
 		expectedResponseNonNil  bool
 		expectedErrorMsg        string
@@ -235,8 +238,10 @@ func TestSubscriptionUseCase_InitiatePaidCheckout(t *testing.T) {
 			mockSeatPlan:            mockSeatPlan,
 			mockGetSeatPlanError:    nil,
 			mockCreateCheckoutError: nil,
-			mockXenditInvoice:       mockXenditInvoice,
-			mockXenditError:         nil,
+			mockUser:                mockUser,
+			mockGetUserError:        nil,
+			mockMidtransSnap:        mockMidtransSnap,
+			mockMidtransError:       nil,
 			mockUpdateCheckoutError: nil,
 			expectedResponseNonNil:  true,
 			expectedErrorMsg:        "",
@@ -246,32 +251,36 @@ func TestSubscriptionUseCase_InitiatePaidCheckout(t *testing.T) {
 			mockSeatPlan:            nil,
 			mockGetSeatPlanError:    repoError,
 			mockCreateCheckoutError: nil,
-			mockXenditInvoice:       nil,
-			mockXenditError:         nil,
+			mockUser:                nil,
+			mockGetUserError:        nil,
+			mockMidtransSnap:        nil,
+			mockMidtransError:       nil,
 			mockUpdateCheckoutError: nil,
 			expectedResponseNonNil:  false,
 			expectedErrorMsg:        fmt.Errorf("failed to get seat plan: %w", repoError).Error(),
 		},
 		{
-			name:                    "xendit invoice creation fails",
+			name:                    "midtrans snap creation fails",
 			mockSeatPlan:            mockSeatPlan,
 			mockGetSeatPlanError:    nil,
 			mockCreateCheckoutError: nil,
-			mockXenditInvoice:       nil,
-			mockXenditError:         xenditError,
+			mockUser:                mockUser,
+			mockGetUserError:        nil,
+			mockMidtransSnap:        nil,
+			mockMidtransError:       midtransError,
 			mockUpdateCheckoutError: nil,
 			expectedResponseNonNil:  false,
-			expectedErrorMsg:        fmt.Errorf("failed to create Xendit invoice: %w", xenditError).Error(),
+			expectedErrorMsg:        fmt.Errorf("failed to create Midtrans Snap transaction: %w", midtransError).Error(),
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockXenditRepo := new(mocks.XenditRepository)
-			mockXenditClient := new(mocks.XenditClient)
 			mockEmployeeRepo := new(mocks.EmployeeRepository)
 			mockAuthRepo := new(mocks.AuthRepository)
-			uc := NewSubscriptionUseCase(mockXenditRepo, mockXenditClient, mockEmployeeRepo, mockAuthRepo)
+			mockMidtransClient := new(mocks.MidtransClient)
+			uc := NewSubscriptionUseCase(mockXenditRepo, mockEmployeeRepo, mockAuthRepo, mockMidtransClient)
 
 			mockXenditRepo.On("GetSeatPlan", ctx, seatPlanID).
 				Return(tt.mockSeatPlan, tt.mockGetSeatPlanError).Once()
@@ -281,12 +290,17 @@ func TestSubscriptionUseCase_InitiatePaidCheckout(t *testing.T) {
 					Return(tt.mockCreateCheckoutError).Once()
 
 				if tt.mockCreateCheckoutError == nil {
-					mockXenditClient.On("CreateInvoice", ctx, mock.AnythingOfType("interfaces.CreateInvoiceRequest")).
-						Return(tt.mockXenditInvoice, tt.mockXenditError).Once()
+					mockAuthRepo.On("GetUserByID", ctx, userID).
+						Return(tt.mockUser, tt.mockGetUserError).Once()
 
-					if tt.mockXenditError == nil {
-						mockXenditRepo.On("UpdateCheckoutSession", ctx, mock.AnythingOfType("*domain.CheckoutSession")).
-							Return(tt.mockUpdateCheckoutError).Once()
+					if tt.mockGetUserError == nil {
+						mockMidtransClient.On("CreateSnapTransaction", ctx, mock.AnythingOfType("interfaces.MidtransSnapRequest")).
+							Return(tt.mockMidtransSnap, tt.mockMidtransError).Once()
+
+						if tt.mockMidtransError == nil {
+							mockXenditRepo.On("UpdateCheckoutSession", ctx, mock.AnythingOfType("*domain.CheckoutSession")).
+								Return(tt.mockUpdateCheckoutError).Once()
+						}
 					}
 				}
 			}
@@ -310,7 +324,8 @@ func TestSubscriptionUseCase_InitiatePaidCheckout(t *testing.T) {
 			}
 
 			mockXenditRepo.AssertExpectations(t)
-			mockXenditClient.AssertExpectations(t)
+			mockMidtransClient.AssertExpectations(t)
+			mockAuthRepo.AssertExpectations(t)
 		})
 	}
 }
@@ -401,10 +416,10 @@ func TestSubscriptionUseCase_CompleteTrialCheckout(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockXenditRepo := new(mocks.XenditRepository)
-			mockXenditClient := new(mocks.XenditClient)
 			mockEmployeeRepo := new(mocks.EmployeeRepository)
 			mockAuthRepo := new(mocks.AuthRepository)
-			uc := NewSubscriptionUseCase(mockXenditRepo, mockXenditClient, mockEmployeeRepo, mockAuthRepo)
+			mockMidtransClient := new(mocks.MidtransClient)
+			uc := NewSubscriptionUseCase(mockXenditRepo, mockEmployeeRepo, mockAuthRepo, mockMidtransClient)
 
 			mockXenditRepo.On("GetCheckoutSession", ctx, tt.sessionID).
 				Return(tt.mockCheckoutSession, tt.mockGetSessionError).Once()
@@ -445,7 +460,7 @@ func TestSubscriptionUseCase_CompleteTrialCheckout(t *testing.T) {
 			}
 
 			mockXenditRepo.AssertExpectations(t)
-			mockXenditClient.AssertExpectations(t)
+			mockMidtransClient.AssertExpectations(t)
 		})
 	}
 }
@@ -478,10 +493,10 @@ func TestSubscriptionUseCase_ProcessPaymentWebhook(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockXenditRepo := new(mocks.XenditRepository)
-			mockXenditClient := new(mocks.XenditClient)
 			mockEmployeeRepo := new(mocks.EmployeeRepository)
 			mockAuthRepo := new(mocks.AuthRepository)
-			uc := NewSubscriptionUseCase(mockXenditRepo, mockXenditClient, mockEmployeeRepo, mockAuthRepo)
+			mockMidtransClient := new(mocks.MidtransClient)
+			uc := NewSubscriptionUseCase(mockXenditRepo, mockEmployeeRepo, mockAuthRepo, mockMidtransClient)
 
 			actualErr := uc.ProcessPaymentWebhook(ctx, tt.webhookData)
 
@@ -493,7 +508,7 @@ func TestSubscriptionUseCase_ProcessPaymentWebhook(t *testing.T) {
 			}
 
 			mockXenditRepo.AssertExpectations(t)
-			mockXenditClient.AssertExpectations(t)
+			mockMidtransClient.AssertExpectations(t)
 		})
 	}
 }

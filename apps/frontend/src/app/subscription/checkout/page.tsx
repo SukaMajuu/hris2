@@ -1,11 +1,11 @@
 "use client";
 
-import React, { Suspense } from "react";
+import React, { Suspense, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 import { useCheckout } from "./_hooks/useCheckout";
 import CheckoutPageSkeleton from "./_components/CheckoutPageSkeleton";
 import { useRouter } from "next/navigation";
@@ -18,6 +18,8 @@ const formatCurrency = (value: number) => {
 
 function CheckoutPageContent() {
 	const router = useRouter();
+	const [isProcessingCheckout, setIsProcessingCheckout] = useState(false);
+
 	const {
 		// URL Parameters
 		planId,
@@ -111,6 +113,10 @@ function CheckoutPageContent() {
 	}
 
 	const handleContinueToPayment = async () => {
+		if (isProcessingCheckout) return; // Prevent double-click
+
+		setIsProcessingCheckout(true);
+
 		try {
 			// For subscription changes (upgrades, downgrades, trial conversions),
 			// call the backend API first
@@ -165,6 +171,8 @@ function CheckoutPageContent() {
 					? error.message
 					: "Failed to process subscription change. Please try again."
 			);
+		} finally {
+			setIsProcessingCheckout(false);
 		}
 	};
 
@@ -467,11 +475,20 @@ function CheckoutPageContent() {
 
 					<Button
 						size="lg"
-						className="w-full mt-6 bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white text-base py-3"
+						className="w-full mt-6 bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white text-base py-3 disabled:opacity-50 disabled:cursor-not-allowed"
 						onClick={handleContinueToPayment}
-						disabled={!selectedBillingOption}
+						disabled={
+							!selectedBillingOption || isProcessingCheckout
+						}
 					>
-						{getButtonText()}
+						{isProcessingCheckout ? (
+							<>
+								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+								Processing...
+							</>
+						) : (
+							getButtonText()
+						)}
 					</Button>
 				</div>
 			</div>

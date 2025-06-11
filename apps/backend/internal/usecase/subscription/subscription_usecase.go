@@ -17,23 +17,23 @@ import (
 )
 
 type SubscriptionUseCase struct {
-	xenditRepo   interfaces.PaymentRepository
-	xenditClient interfaces.XenditClient
-	employeeRepo interfaces.EmployeeRepository
-	authRepo     interfaces.AuthRepository
+	xenditRepo     interfaces.PaymentRepository
+	employeeRepo   interfaces.EmployeeRepository
+	authRepo       interfaces.AuthRepository
+	midtransClient interfaces.MidtransClient
 }
 
 func NewSubscriptionUseCase(
 	xenditRepo interfaces.PaymentRepository,
-	xenditClient interfaces.XenditClient,
 	employeeRepo interfaces.EmployeeRepository,
 	authRepo interfaces.AuthRepository,
+	midtransClient interfaces.MidtransClient,
 ) *SubscriptionUseCase {
 	return &SubscriptionUseCase{
-		xenditRepo:   xenditRepo,
-		xenditClient: xenditClient,
-		employeeRepo: employeeRepo,
-		authRepo:     authRepo,
+		xenditRepo:     xenditRepo,
+		employeeRepo:   employeeRepo,
+		authRepo:       authRepo,
+		midtransClient: midtransClient,
 	}
 }
 
@@ -123,9 +123,7 @@ func (uc *SubscriptionUseCase) InitiatePaidCheckout(ctx context.Context, userID,
 		return nil, fmt.Errorf("failed to create checkout session: %w", err)
 	}
 
-	externalID := fmt.Sprintf("checkout_%s", sessionID)
-	description := fmt.Sprintf("HRIS %s Plan - %s (%d-%d employees)",
-		seatPlan.SubscriptionPlan.Name,
+	description := fmt.Sprintf("HRIS %s Subscription - %d-%d employees",
 		func() string {
 			if isMonthly {
 				return "Monthly"
@@ -135,30 +133,65 @@ func (uc *SubscriptionUseCase) InitiatePaidCheckout(ctx context.Context, userID,
 		seatPlan.MinEmployees,
 		seatPlan.MaxEmployees)
 
-	invoiceReq := interfaces.CreateInvoiceRequest{
-		ExternalID:      externalID,
-		PayerEmail:      "",
-		Description:     description,
-		Amount:          amount,
-		Currency:        "IDR",
-		InvoiceDuration: 24 * 60 * 60,
-		PaymentMethods:  []string{"BANK_TRANSFER", "CREDIT_CARD", "EWALLET"},
-		Items: []interfaces.InvoiceItem{
+	// Get user for Midtrans customer details
+	user, err := uc.authRepo.GetUserByID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+
+	// Create Midtrans Snap transaction instead of Xendit invoice
+	orderID := fmt.Sprintf("HRIS-%s", sessionID)
+
+	// Ensure amount meets Midtrans minimum requirement (1000 IDR)
+	paymentAmount := amount
+	if paymentAmount.LessThan(decimal.NewFromInt(1000)) {
+		paymentAmount = decimal.NewFromInt(1000)
+	}
+
+	snapReq := interfaces.MidtransSnapRequest{
+		TransactionDetails: interfaces.MidtransTransactionDetails{
+			OrderID:     orderID,
+			GrossAmount: paymentAmount,
+		},
+		CustomerDetails: &interfaces.MidtransCustomerDetails{
+			Email: user.Email,
+		},
+		ItemDetails: []interfaces.MidtransItemDetails{
 			{
+				ID:       fmt.Sprintf("subscription-%d", seatPlanID),
 				Name:     description,
+				Price:    paymentAmount,
 				Quantity: 1,
-				Price:    amount,
-				Category: "subscription",
+				Category: func() *string { s := "subscription"; return &s }(),
 			},
 		},
+		Callbacks: &interfaces.MidtransCallbacks{
+			Finish:  "https://hrispblfrontend.agreeablecoast-95647c57.southeastasia.azurecontainerapps.io/payment/success",
+			Error:   "https://hrispblfrontend.agreeablecoast-95647c57.southeastasia.azurecontainerapps.io/payment/error",
+			Pending: "https://hrispblfrontend.agreeablecoast-95647c57.southeastasia.azurecontainerapps.io/payment/pending",
+		},
+		Expiry: &interfaces.MidtransExpiry{
+			Unit:     "hour",
+			Duration: 24,
+		},
+		PageExpiry: &interfaces.MidtransPageExpiry{
+			Duration: 24,
+			Unit:     "hour",
+		},
+		CustomField1: &sessionID, // Store session ID for reference
 	}
 
-	invoice, err := uc.xenditClient.CreateInvoice(ctx, invoiceReq)
+	snapResp, err := uc.midtransClient.CreateSnapTransaction(ctx, snapReq)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create Xendit invoice: %w", err)
+		return nil, fmt.Errorf("failed to create Midtrans Snap transaction: %w", err)
 	}
 
-	checkoutSession.SetPaymentInfo(invoice.ID, invoice.InvoiceURL, externalID)
+	// Update checkout session with Midtrans info
+	checkoutSession.PaymentToken = &snapResp.Token
+	checkoutSession.PaymentURL = &snapResp.RedirectURL
+	checkoutSession.PaymentReference = &orderID
+	checkoutSession.Status = enums.CheckoutPending
+
 	if err := uc.xenditRepo.UpdateCheckoutSession(ctx, checkoutSession); err != nil {
 		return nil, fmt.Errorf("failed to update checkout session: %w", err)
 	}
@@ -166,11 +199,11 @@ func (uc *SubscriptionUseCase) InitiatePaidCheckout(ctx context.Context, userID,
 	return &subscriptionDto.InitiatePaidCheckoutResponse{
 		CheckoutSession: subscriptionDto.ToCheckoutSessionResponse(checkoutSession),
 		Invoice: &subscriptionDto.InvoiceResponse{
-			ID:         invoice.ID,
-			InvoiceURL: invoice.InvoiceURL,
-			Amount:     invoice.Amount,
-			Currency:   invoice.Currency,
-			ExpiryDate: invoice.ExpiryDate,
+			ID:         snapResp.Token,
+			InvoiceURL: snapResp.RedirectURL,
+			Amount:     amount,
+			Currency:   "IDR",
+			ExpiryDate: time.Now().UTC().Add(24 * time.Hour).Format(time.RFC3339),
 		},
 	}, nil
 }
@@ -872,11 +905,25 @@ func (uc *SubscriptionUseCase) PreviewSubscriptionPlanChange(ctx context.Context
 		CurrentSeatPlan: subscriptionDto.ToSeatPlanResponse(&currentSubscription.SeatPlan),
 		NewSeatPlan:     subscriptionDto.ToSeatPlanResponse(newSeatPlan),
 		PriceDifference: priceDifference,
-		ProrationAmount: prorationAmount,
+		ProrationAmount: func() decimal.Decimal {
+			// For upgrades, ensure we always have a minimum payment amount for Midtrans (min: 1000 IDR)
+			if isUpgrade {
+				minAmount := decimal.NewFromInt(1000) // Minimum 1000 IDR for Midtrans
+				if prorationAmount.LessThan(minAmount) {
+					// Use the larger of: proration amount, price difference, or minimum amount
+					if priceDifference.GreaterThan(minAmount) {
+						return priceDifference
+					}
+					return minAmount
+				}
+				return prorationAmount
+			}
+			return prorationAmount
+		}(),
 		IsUpgrade:       isUpgrade,
 		EffectiveDate:   effectiveDate,
 		NextBillingDate: nextBillingDate,
-		RequiresPayment: prorationAmount.GreaterThan(decimal.Zero),
+		RequiresPayment: isUpgrade, // Always require payment for upgrades
 	}, nil
 }
 
@@ -903,7 +950,7 @@ func (uc *SubscriptionUseCase) UpgradeSubscriptionPlan(ctx context.Context, user
 	var checkoutSession *subscriptionDto.CheckoutSessionResponse
 	var invoice *subscriptionDto.InvoiceResponse
 
-	if preview.RequiresPayment && preview.ProrationAmount.GreaterThan(decimal.Zero) {
+	if preview.RequiresPayment {
 		sessionID := uuid.New().String()
 		session := &domain.CheckoutSession{
 			SessionID:          sessionID,
@@ -922,47 +969,79 @@ func (uc *SubscriptionUseCase) UpgradeSubscriptionPlan(ctx context.Context, user
 			return nil, fmt.Errorf("failed to create checkout session: %w", err)
 		}
 
-		// Create invoice for the upgrade difference
-		externalID := fmt.Sprintf("upgrade_%s", sessionID)
+		// Get user for payment details
+		user, err := uc.authRepo.GetUserByID(ctx, userID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get user: %w", err)
+		}
+
+		// Create Midtrans Snap transaction instead of Xendit invoice
+		orderID := fmt.Sprintf("HRIS-%s", sessionID)
 		description := fmt.Sprintf("HRIS Plan Upgrade - %s to %s",
 			currentSubscription.SubscriptionPlan.Name,
 			preview.NewPlan.Name)
 
-		invoiceReq := interfaces.CreateInvoiceRequest{
-			ExternalID:      externalID,
-			PayerEmail:      "",
-			Description:     description,
-			Amount:          preview.ProrationAmount,
-			Currency:        "IDR",
-			InvoiceDuration: 24 * 60 * 60,
-			PaymentMethods:  []string{"BANK_TRANSFER", "CREDIT_CARD", "EWALLET"},
-			Items: []interfaces.InvoiceItem{
+		// Ensure amount meets Midtrans minimum requirement (1000 IDR)
+		paymentAmount := preview.ProrationAmount
+		if paymentAmount.LessThan(decimal.NewFromInt(1000)) {
+			paymentAmount = decimal.NewFromInt(1000)
+		}
+
+		snapReq := interfaces.MidtransSnapRequest{
+			TransactionDetails: interfaces.MidtransTransactionDetails{
+				OrderID:     orderID,
+				GrossAmount: paymentAmount,
+			},
+			CustomerDetails: &interfaces.MidtransCustomerDetails{
+				Email: user.Email,
+			},
+			ItemDetails: []interfaces.MidtransItemDetails{
 				{
+					ID:       fmt.Sprintf("upgrade-%d", newPlanID),
 					Name:     description,
+					Price:    paymentAmount,
 					Quantity: 1,
-					Price:    preview.ProrationAmount,
-					Category: "subscription_upgrade",
+					Category: func() *string { s := "subscription_upgrade"; return &s }(),
 				},
 			},
+			Callbacks: &interfaces.MidtransCallbacks{
+				Finish:  "https://hrispblfrontend.agreeablecoast-95647c57.southeastasia.azurecontainerapps.io/payment/success",
+				Error:   "https://hrispblfrontend.agreeablecoast-95647c57.southeastasia.azurecontainerapps.io/payment/error",
+				Pending: "https://hrispblfrontend.agreeablecoast-95647c57.southeastasia.azurecontainerapps.io/payment/pending",
+			},
+			Expiry: &interfaces.MidtransExpiry{
+				Unit:     "hour",
+				Duration: 24,
+			},
+			PageExpiry: &interfaces.MidtransPageExpiry{
+				Duration: 24,
+				Unit:     "hour",
+			},
+			CustomField1: &sessionID, // Store session ID for reference
 		}
 
-		xenditInvoice, err := uc.xenditClient.CreateInvoice(ctx, invoiceReq)
+		snapResp, err := uc.midtransClient.CreateSnapTransaction(ctx, snapReq)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create Xendit invoice: %w", err)
+			return nil, fmt.Errorf("failed to create Midtrans Snap transaction: %w", err)
 		}
 
-		session.SetPaymentInfo(xenditInvoice.ID, xenditInvoice.InvoiceURL, externalID)
+		// Update checkout session with Midtrans info
+		session.PaymentToken = &snapResp.Token
+		session.PaymentURL = &snapResp.RedirectURL
+		session.PaymentReference = &orderID
+		session.Status = enums.CheckoutPending
+
 		if err := uc.xenditRepo.UpdateCheckoutSession(ctx, session); err != nil {
 			return nil, fmt.Errorf("failed to update checkout session: %w", err)
 		}
 
 		checkoutSession = subscriptionDto.ToCheckoutSessionResponse(session)
 		invoice = &subscriptionDto.InvoiceResponse{
-			ID:         xenditInvoice.ID,
-			InvoiceURL: xenditInvoice.InvoiceURL,
-			Amount:     xenditInvoice.Amount,
-			Currency:   xenditInvoice.Currency,
-			ExpiryDate: xenditInvoice.ExpiryDate,
+			ID:         snapResp.Token,
+			InvoiceURL: snapResp.RedirectURL,
+			Amount:     preview.ProrationAmount,
+			Currency:   "IDR",
+			ExpiryDate: time.Now().UTC().Add(24 * time.Hour).Format(time.RFC3339),
 		}
 
 		// Return response indicating payment is required
@@ -1085,11 +1164,25 @@ func (uc *SubscriptionUseCase) PreviewSeatPlanChange(ctx context.Context, userID
 		CurrentSeatPlan: subscriptionDto.ToSeatPlanResponse(&currentSubscription.SeatPlan),
 		NewSeatPlan:     subscriptionDto.ToSeatPlanResponse(newSeatPlan),
 		PriceDifference: priceDifference,
-		ProrationAmount: prorationAmount,
+		ProrationAmount: func() decimal.Decimal {
+			// For upgrades, ensure we always have a minimum payment amount for Midtrans (min: 1000 IDR)
+			if isUpgrade {
+				minAmount := decimal.NewFromInt(1000) // Minimum 1000 IDR for Midtrans
+				if prorationAmount.LessThan(minAmount) {
+					// Use the larger of: proration amount, price difference, or minimum amount
+					if priceDifference.GreaterThan(minAmount) {
+						return priceDifference
+					}
+					return minAmount
+				}
+				return prorationAmount
+			}
+			return prorationAmount
+		}(),
 		IsUpgrade:       isUpgrade,
 		EffectiveDate:   effectiveDate,
 		NextBillingDate: nextBillingDate,
-		RequiresPayment: prorationAmount.GreaterThan(decimal.Zero),
+		RequiresPayment: isUpgrade, // Always require payment for upgrades
 	}, nil
 }
 
@@ -1122,7 +1215,7 @@ func (uc *SubscriptionUseCase) ChangeSeatPlan(ctx context.Context, userID uint, 
 	var checkoutSession *subscriptionDto.CheckoutSessionResponse
 	var invoice *subscriptionDto.InvoiceResponse
 
-	if preview.RequiresPayment && preview.ProrationAmount.GreaterThan(decimal.Zero) {
+	if preview.RequiresPayment {
 		sessionID := uuid.New().String()
 		session := &domain.CheckoutSession{
 			SessionID:          sessionID,
@@ -1141,47 +1234,79 @@ func (uc *SubscriptionUseCase) ChangeSeatPlan(ctx context.Context, userID uint, 
 			return nil, fmt.Errorf("failed to create checkout session: %w", err)
 		}
 
-		// Create invoice for the seat upgrade difference
-		externalID := fmt.Sprintf("seat_upgrade_%s", sessionID)
+		// Get user for payment details
+		user, err := uc.authRepo.GetUserByID(ctx, userID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get user: %w", err)
+		}
+
+		// Create Midtrans Snap transaction instead of Xendit invoice
+		orderID := fmt.Sprintf("HRIS-%s", sessionID)
 		description := fmt.Sprintf("HRIS Seat Upgrade - %d-%d to %d-%d employees",
 			preview.CurrentSeatPlan.MinEmployees, preview.CurrentSeatPlan.MaxEmployees,
 			preview.NewSeatPlan.MinEmployees, preview.NewSeatPlan.MaxEmployees)
 
-		invoiceReq := interfaces.CreateInvoiceRequest{
-			ExternalID:      externalID,
-			PayerEmail:      "",
-			Description:     description,
-			Amount:          preview.ProrationAmount,
-			Currency:        "IDR",
-			InvoiceDuration: 24 * 60 * 60,
-			PaymentMethods:  []string{"BANK_TRANSFER", "CREDIT_CARD", "EWALLET"},
-			Items: []interfaces.InvoiceItem{
+		// Ensure amount meets Midtrans minimum requirement (1000 IDR)
+		paymentAmount := preview.ProrationAmount
+		if paymentAmount.LessThan(decimal.NewFromInt(1000)) {
+			paymentAmount = decimal.NewFromInt(1000)
+		}
+
+		snapReq := interfaces.MidtransSnapRequest{
+			TransactionDetails: interfaces.MidtransTransactionDetails{
+				OrderID:     orderID,
+				GrossAmount: paymentAmount,
+			},
+			CustomerDetails: &interfaces.MidtransCustomerDetails{
+				Email: user.Email,
+			},
+			ItemDetails: []interfaces.MidtransItemDetails{
 				{
+					ID:       fmt.Sprintf("seat-%d", newSeatPlanID),
 					Name:     description,
+					Price:    paymentAmount,
 					Quantity: 1,
-					Price:    preview.ProrationAmount,
-					Category: "seat_upgrade",
+					Category: func() *string { s := "seat_upgrade"; return &s }(),
 				},
 			},
+			Callbacks: &interfaces.MidtransCallbacks{
+				Finish:  "https://hrispblfrontend.agreeablecoast-95647c57.southeastasia.azurecontainerapps.io/payment/success",
+				Error:   "https://hrispblfrontend.agreeablecoast-95647c57.southeastasia.azurecontainerapps.io/payment/error",
+				Pending: "https://hrispblfrontend.agreeablecoast-95647c57.southeastasia.azurecontainerapps.io/payment/pending",
+			},
+			Expiry: &interfaces.MidtransExpiry{
+				Unit:     "hour",
+				Duration: 24,
+			},
+			PageExpiry: &interfaces.MidtransPageExpiry{
+				Duration: 24,
+				Unit:     "hour",
+			},
+			CustomField1: &sessionID, // Store session ID for reference
 		}
 
-		xenditInvoice, err := uc.xenditClient.CreateInvoice(ctx, invoiceReq)
+		snapResp, err := uc.midtransClient.CreateSnapTransaction(ctx, snapReq)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create Xendit invoice: %w", err)
+			return nil, fmt.Errorf("failed to create Midtrans Snap transaction: %w", err)
 		}
 
-		session.SetPaymentInfo(xenditInvoice.ID, xenditInvoice.InvoiceURL, externalID)
+		// Update checkout session with Midtrans info
+		session.PaymentToken = &snapResp.Token
+		session.PaymentURL = &snapResp.RedirectURL
+		session.PaymentReference = &orderID
+		session.Status = enums.CheckoutPending
+
 		if err := uc.xenditRepo.UpdateCheckoutSession(ctx, session); err != nil {
 			return nil, fmt.Errorf("failed to update checkout session: %w", err)
 		}
 
 		checkoutSession = subscriptionDto.ToCheckoutSessionResponse(session)
 		invoice = &subscriptionDto.InvoiceResponse{
-			ID:         xenditInvoice.ID,
-			InvoiceURL: xenditInvoice.InvoiceURL,
-			Amount:     xenditInvoice.Amount,
-			Currency:   xenditInvoice.Currency,
-			ExpiryDate: xenditInvoice.ExpiryDate,
+			ID:         snapResp.Token,
+			InvoiceURL: snapResp.RedirectURL,
+			Amount:     preview.ProrationAmount,
+			Currency:   "IDR",
+			ExpiryDate: time.Now().UTC().Add(24 * time.Hour).Format(time.RFC3339),
 		}
 
 		return &subscriptionDto.SubscriptionChangeResponse{
@@ -1278,36 +1403,69 @@ func (uc *SubscriptionUseCase) ConvertTrialToPaid(ctx context.Context, userID ui
 		return nil, fmt.Errorf("failed to create checkout session: %w", err)
 	}
 
-	externalID := fmt.Sprintf("trial_conversion_%s", sessionID)
+	// Get user for Midtrans customer details
+	user, err := uc.authRepo.GetUserByID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+
+	// Create Midtrans Snap transaction instead of Xendit invoice
+	orderID := fmt.Sprintf("HRIS-%s", sessionID)
 	description := fmt.Sprintf("HRIS Trial Conversion - %s Plan (%d-%d employees)",
 		targetSeatPlan.SubscriptionPlan.Name,
 		targetSeatPlan.MinEmployees,
 		targetSeatPlan.MaxEmployees)
 
-	invoiceReq := interfaces.CreateInvoiceRequest{
-		ExternalID:      externalID,
-		PayerEmail:      "",
-		Description:     description,
-		Amount:          amount,
-		Currency:        "IDR",
-		InvoiceDuration: 24 * 60 * 60,
-		PaymentMethods:  []string{"BANK_TRANSFER", "CREDIT_CARD", "EWALLET"},
-		Items: []interfaces.InvoiceItem{
+	// Ensure amount meets Midtrans minimum requirement (1000 IDR)
+	paymentAmount := amount
+	if paymentAmount.LessThan(decimal.NewFromInt(1000)) {
+		paymentAmount = decimal.NewFromInt(1000)
+	}
+
+	snapReq := interfaces.MidtransSnapRequest{
+		TransactionDetails: interfaces.MidtransTransactionDetails{
+			OrderID:     orderID,
+			GrossAmount: paymentAmount,
+		},
+		CustomerDetails: &interfaces.MidtransCustomerDetails{
+			Email: user.Email,
+		},
+		ItemDetails: []interfaces.MidtransItemDetails{
 			{
+				ID:       fmt.Sprintf("trial-conversion-%d", targetSeatPlanID),
 				Name:     description,
+				Price:    paymentAmount,
 				Quantity: 1,
-				Price:    amount,
-				Category: "trial_conversion",
+				Category: func() *string { s := "trial_conversion"; return &s }(),
 			},
 		},
+		Callbacks: &interfaces.MidtransCallbacks{
+			Finish:  "https://hrispblfrontend.agreeablecoast-95647c57.southeastasia.azurecontainerapps.io/payment/success",
+			Error:   "https://hrispblfrontend.agreeablecoast-95647c57.southeastasia.azurecontainerapps.io/payment/error",
+			Pending: "https://hrispblfrontend.agreeablecoast-95647c57.southeastasia.azurecontainerapps.io/payment/pending",
+		},
+		Expiry: &interfaces.MidtransExpiry{
+			Unit:     "hour",
+			Duration: 24,
+		},
+		PageExpiry: &interfaces.MidtransPageExpiry{
+			Duration: 24,
+			Unit:     "hour",
+		},
+		CustomField1: &sessionID, // Store session ID for reference
 	}
 
-	xenditInvoice, err := uc.xenditClient.CreateInvoice(ctx, invoiceReq)
+	snapResp, err := uc.midtransClient.CreateSnapTransaction(ctx, snapReq)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create Xendit invoice: %w", err)
+		return nil, fmt.Errorf("failed to create Midtrans Snap transaction: %w", err)
 	}
 
-	session.SetPaymentInfo(xenditInvoice.ID, xenditInvoice.InvoiceURL, externalID)
+	// Update checkout session with Midtrans info
+	session.PaymentToken = &snapResp.Token
+	session.PaymentURL = &snapResp.RedirectURL
+	session.PaymentReference = &orderID
+	session.Status = enums.CheckoutPending
+
 	if err := uc.xenditRepo.UpdateCheckoutSession(ctx, session); err != nil {
 		return nil, fmt.Errorf("failed to update checkout session: %w", err)
 	}
@@ -1319,11 +1477,11 @@ func (uc *SubscriptionUseCase) ConvertTrialToPaid(ctx context.Context, userID ui
 		PaymentAmount:   &amount,
 		CheckoutSession: subscriptionDto.ToCheckoutSessionResponse(session),
 		Invoice: &subscriptionDto.InvoiceResponse{
-			ID:         xenditInvoice.ID,
-			InvoiceURL: xenditInvoice.InvoiceURL,
-			Amount:     xenditInvoice.Amount,
-			Currency:   xenditInvoice.Currency,
-			ExpiryDate: xenditInvoice.ExpiryDate,
+			ID:         snapResp.Token,
+			InvoiceURL: snapResp.RedirectURL,
+			Amount:     amount,
+			Currency:   "IDR",
+			ExpiryDate: time.Now().UTC().Add(24 * time.Hour).Format(time.RFC3339),
 		},
 		EffectiveDate: time.Now().UTC(),
 		Message:       fmt.Sprintf("Payment of %s required to convert trial to paid subscription", amount.String()),

@@ -1,6 +1,6 @@
 'use client';
 
-import type React from 'react';
+import React from 'react';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
@@ -24,11 +24,12 @@ import { type Role } from '../../const/role';
 import { getMainMenuItemsByRole, getFooterItemsByRole } from '../_config/menuConfig';
 import { useAuthStore } from '@/stores/auth.store';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, ChevronRight, Loader2, LogOut } from 'lucide-react';
 import { useProactiveTokenRefresh } from '@/hooks/useProactiveTokenRefresh';
 import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { cn } from '@/lib/utils';
+import { useLogout } from '../(auth)/logout/useLogout';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -46,6 +47,38 @@ function LogoComponent() {
         className={`object-contain transition-all duration-200 ${open ? 'h-12' : 'h-8 w-8'}`}
       />
     </div>
+  );
+}
+
+// Special LogoutButton component with loading state
+function LogoutButton({ className }: { className?: string }) {
+  const { logout, isLoading } = useLogout();
+
+  const handleLogout = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (isLoading) return; // Prevent spam clicking
+    await logout();
+  };
+
+  return (
+    <SidebarMenuButton
+      variant='default'
+      tooltip={isLoading ? "Logging out..." : "Logout"}
+      className={className}
+      onClick={handleLogout}
+      disabled={isLoading}
+    >
+      <div className='flex items-center gap-3'>
+        {isLoading ? (
+          <Loader2 className='h-5 w-5 flex-shrink-0 animate-spin' />
+        ) : (
+          <LogOut className='h-5 w-5 flex-shrink-0' />
+        )}
+        <span className='sidebar-item-label-and-chevron truncate'>
+          {isLoading ? "Logging out..." : "Logout"}
+        </span>
+      </div>
+    </SidebarMenuButton>
   );
 }
 
@@ -149,21 +182,31 @@ function NavContent({ menuItems, footerItems, pathname }: NavContentProps) {
         <SidebarMenu>
           {footerItems.map((item) => (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton
-                asChild
-                variant='default'
-                tooltip={item.title}
-                className={`flex w-full items-center justify-start rounded-md px-3 py-2 text-sm font-medium transition-colors duration-150 ${
-                  pathname === item.href
-                    ? 'bg-slate-200 text-slate-900 hover:bg-slate-300'
-                    : 'bg-transparent text-gray-600 hover:bg-slate-100 hover:text-slate-800'
-                }`}
-              >
-                <Link href={item.href} className='flex items-center gap-3'>
-                  <item.icon className='h-5 w-5 flex-shrink-0' />
-                  <span className='sidebar-item-label-and-chevron truncate'>{item.title}</span>
-                </Link>
-              </SidebarMenuButton>
+              {item.title === "Logout" ? (
+                <LogoutButton
+                  className={`flex w-full items-center justify-start rounded-md px-3 py-2 text-sm font-medium transition-colors duration-150 ${
+                    pathname === item.href
+                      ? 'bg-slate-200 text-slate-900 hover:bg-slate-300'
+                      : 'bg-transparent text-gray-600 hover:bg-slate-100 hover:text-slate-800 disabled:opacity-50 disabled:cursor-not-allowed'
+                  }`}
+                />
+              ) : (
+                <SidebarMenuButton
+                  asChild
+                  variant='default'
+                  tooltip={item.title}
+                  className={`flex w-full items-center justify-start rounded-md px-3 py-2 text-sm font-medium transition-colors duration-150 ${
+                    pathname === item.href
+                      ? 'bg-slate-200 text-slate-900 hover:bg-slate-300'
+                      : 'bg-transparent text-gray-600 hover:bg-slate-100 hover:text-slate-800'
+                  }`}
+                >
+                  <Link href={item.href} className='flex items-center gap-3'>
+                    <item.icon className='h-5 w-5 flex-shrink-0' />
+                    <span className='sidebar-item-label-and-chevron truncate'>{item.title}</span>
+                  </Link>
+                </SidebarMenuButton>
+              )}
             </SidebarMenuItem>
           ))}
         </SidebarMenu>

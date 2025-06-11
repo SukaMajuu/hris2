@@ -829,7 +829,8 @@ func (uc *SubscriptionUseCase) activateMidtransSubscription(ctx context.Context,
 		subscription.ID, subscription.Status)
 
 	// Existing subscription found - handle trial conversion OR active subscription upgrade
-	if subscription.Status == enums.StatusTrial {
+	switch subscription.Status {
+	case enums.StatusTrial:
 		fmt.Printf("activateMidtransSubscription: Converting trial subscription to paid\n")
 
 		// Update subscription plan and seat plan from checkout session
@@ -845,23 +846,24 @@ func (uc *SubscriptionUseCase) activateMidtransSubscription(ctx context.Context,
 		fmt.Printf("activateMidtransSubscription: Trial converted to paid subscription (PlanID=%d, SeatPlanID=%d)\n",
 			subscription.SubscriptionPlanID, subscription.SeatPlanID)
 
-		// Update trial activity
+		// Update trial activity to mark as converted
 		trialActivity, err := uc.xenditRepo.GetTrialActivityBySubscription(ctx, subscription.ID)
-		if err == nil {
+		if err == nil && trialActivity != nil {
 			trialActivity.MarkAsConverted()
-			_ = uc.xenditRepo.UpdateTrialActivity(ctx, trialActivity)
-			fmt.Printf("activateMidtransSubscription: Updated trial activity\n")
+			if updateErr := uc.xenditRepo.UpdateTrialActivity(ctx, trialActivity); updateErr != nil {
+				fmt.Printf("activateMidtransSubscription: Failed to update trial activity: %v\n", updateErr)
+			} else {
+				fmt.Printf("activateMidtransSubscription: Updated trial activity\n")
+			}
 		}
 
-		// Update checkout session with subscription ID
 		checkoutSession.SubscriptionID = &subscription.ID
 		fmt.Printf("activateMidtransSubscription: Updated checkout session with existing SubscriptionID=%d\n", subscription.ID)
-	} else if subscription.Status == enums.StatusActive {
-		fmt.Printf("activateMidtransSubscription: Upgrading active subscription (PlanID: %d->%d, SeatPlanID: %d->%d)\n",
-			subscription.SubscriptionPlanID, checkoutSession.SubscriptionPlanID,
-			subscription.SeatPlanID, checkoutSession.SeatPlanID)
 
-		// For active subscriptions, apply the upgrade/change from checkout session
+	case enums.StatusActive:
+		fmt.Printf("activateMidtransSubscription: Upgrading active subscription\n")
+
+		// Apply the upgrade for active subscriptions
 		subscription.SubscriptionPlanID = checkoutSession.SubscriptionPlanID
 		subscription.SeatPlanID = checkoutSession.SeatPlanID
 
@@ -870,15 +872,15 @@ func (uc *SubscriptionUseCase) activateMidtransSubscription(ctx context.Context,
 			return fmt.Errorf("failed to update subscription: %w", err)
 		}
 
-		fmt.Printf("activateMidtransSubscription: Active subscription upgraded successfully (PlanID=%d, SeatPlanID=%d)\n",
+		fmt.Printf("activateMidtransSubscription: Active subscription upgraded (PlanID=%d, SeatPlanID=%d)\n",
 			subscription.SubscriptionPlanID, subscription.SeatPlanID)
 
-		// Update checkout session with subscription ID
 		checkoutSession.SubscriptionID = &subscription.ID
 		fmt.Printf("activateMidtransSubscription: Updated checkout session with existing SubscriptionID=%d\n", subscription.ID)
-	} else {
-		fmt.Printf("activateMidtransSubscription: Existing subscription has unsupported status (%s), only trial and active subscriptions can be processed\n", subscription.Status)
-		return fmt.Errorf("cannot process subscription with status: %s", subscription.Status)
+
+	default:
+		fmt.Printf("activateMidtransSubscription: Existing subscription has status %s, skipping modification\n", subscription.Status)
+		checkoutSession.SubscriptionID = &subscription.ID
 	}
 
 	return nil
@@ -1023,7 +1025,14 @@ func (uc *SubscriptionUseCase) PreviewSubscriptionPlanChange(ctx context.Context
 }
 
 // createUpgradeCheckoutSession creates a checkout session for subscription upgrade
-func (uc *SubscriptionUseCase) createUpgradeCheckoutSession(ctx context.Context, userID uint, newPlanID uint, sessionID string, preview *subscriptionDto.UpgradePreviewResponse, currentSubscription *domain.Subscription) (*subscriptionDto.CheckoutSessionResponse, *subscriptionDto.InvoiceResponse, error) {
+func (uc *SubscriptionUseCase) createUpgradeCheckoutSession(
+	ctx context.Context,
+	userID uint,
+	newPlanID uint,
+	sessionID string,
+	preview *subscriptionDto.UpgradePreviewResponse,
+	currentSubscription *domain.Subscription,
+) (*subscriptionDto.CheckoutSessionResponse, *subscriptionDto.InvoiceResponse, error) {
 	session := &domain.CheckoutSession{
 		SessionID:          sessionID,
 		UserID:             userID,
@@ -1097,7 +1106,12 @@ func (uc *SubscriptionUseCase) createUpgradeCheckoutSession(ctx context.Context,
 }
 
 // createMidtransSnapTransaction creates a Midtrans Snap transaction
-func (uc *SubscriptionUseCase) createMidtransSnapTransaction(ctx context.Context, orderID, description string, paymentAmount decimal.Decimal, userEmail, sessionID, itemID, category string) (*interfaces.MidtransSnapResponse, error) {
+func (uc *SubscriptionUseCase) createMidtransSnapTransaction(
+	ctx context.Context,
+	orderID, description string,
+	paymentAmount decimal.Decimal,
+	userEmail, sessionID, itemID, category string,
+) (*interfaces.MidtransSnapResponse, error) {
 	fmt.Printf("DEBUG MIDTRANS: createMidtransSnapTransaction called with paymentAmount=%s\n", paymentAmount.String())
 
 	// Convert decimal to int64 for proper JSON serialization
@@ -1143,7 +1157,13 @@ func (uc *SubscriptionUseCase) createMidtransSnapTransaction(ctx context.Context
 }
 
 // applySubscriptionUpgrade applies the subscription upgrade immediately (for downgrades or free upgrades)
-func (uc *SubscriptionUseCase) applySubscriptionUpgrade(ctx context.Context, userID uint, newPlanID uint, preview *subscriptionDto.UpgradePreviewResponse, isMonthly bool) (*domain.Subscription, error) {
+func (uc *SubscriptionUseCase) applySubscriptionUpgrade(
+	ctx context.Context,
+	userID uint,
+	newPlanID uint,
+	preview *subscriptionDto.UpgradePreviewResponse,
+	isMonthly bool,
+) (*domain.Subscription, error) {
 	// Get current subscription
 	currentSubscription, err := uc.xenditRepo.GetSubscriptionByAdminUserID(ctx, userID)
 	if err != nil {

@@ -171,6 +171,14 @@ func (r *Repository) UpdateSubscription(ctx context.Context, subscription *domai
 	return r.db.WithContext(ctx).Save(subscription).Error
 }
 
+// UpdateSubscriptionFields updates specific fields of a subscription
+func (r *Repository) UpdateSubscriptionFields(ctx context.Context, subscriptionID uint, fields map[string]interface{}) error {
+	result := r.db.WithContext(ctx).Model(&domain.Subscription{}).
+		Where("id = ?", subscriptionID).
+		Updates(fields)
+	return result.Error
+}
+
 func (r *Repository) GetSubscriptionPlans(ctx context.Context) ([]domain.SubscriptionPlan, error) {
 	var plans []domain.SubscriptionPlan
 	if err := r.db.WithContext(ctx).

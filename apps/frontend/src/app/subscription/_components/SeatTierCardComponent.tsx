@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { UserSubscription } from "@/types/subscription";
 import { useRouter } from "next/navigation";
+import { useSubscriptionUpgrade } from "@/hooks/useSubscriptionUpgrade";
 
 export interface SeatTier {
 	id: number;
@@ -36,6 +37,7 @@ const SeatTierCardComponent: React.FC<SeatTierCardComponentProps> = ({
 	onUpgradeSuccess,
 }) => {
 	const router = useRouter();
+	const { changeSeat, isLoading: isUpgrading } = useSubscriptionUpgrade();
 
 	const [isInDowngradeContext, setIsInDowngradeContext] = React.useState(
 		false
@@ -70,6 +72,18 @@ const SeatTierCardComponent: React.FC<SeatTierCardComponentProps> = ({
 	const canUpgradeDowngrade =
 		hasActiveSubscription && currentSeatPlan && !isCurrentTier;
 
+	// Check if this is an equivalent tier for an upgrade (same employee range)
+	const isEquivalentTier =
+		hasActiveSubscription &&
+		currentSeatPlan &&
+		userSubscription?.subscription_plan?.id !== tier.planId &&
+		currentSeatPlan.min_employees ===
+			parseInt(
+				tier.employeeRangeDescription.match(/(\d+)-/)?.[1] || "0"
+			) &&
+		currentSeatPlan.max_employees ===
+			parseInt(tier.employeeRangeDescription.match(/-(\d+)/)?.[1] || "0");
+
 	let isUpgrade = false;
 	let isDowngrade = false;
 
@@ -97,28 +111,15 @@ const SeatTierCardComponent: React.FC<SeatTierCardComponentProps> = ({
 
 		if (tierMaxCapacity > currentCapacity) {
 			isUpgrade = true;
-			console.log(
-				`${tier.sizeTierName}: UPGRADE (capacity ${tierMaxCapacity} > ${currentCapacity})`
-			);
 		} else if (tierMaxCapacity < currentCapacity) {
 			isDowngrade = true;
-			console.log(
-				`${tier.sizeTierName}: DOWNGRADE (capacity ${tierMaxCapacity} < ${currentCapacity})`
-			);
 		} else if (tierMaxCapacity === currentCapacity) {
 			isUpgrade = targetSeatPlanId > currentSeatPlanId;
 			isDowngrade = targetSeatPlanId < currentSeatPlanId;
-			console.log(
-				`${
-					tier.sizeTierName
-				}: Same capacity (${tierMaxCapacity}), comparing IDs: ${targetSeatPlanId} vs ${currentSeatPlanId} = ${
-					isUpgrade ? "UPGRADE" : isDowngrade ? "DOWNGRADE" : "SAME"
-				}`
-			);
 		}
 	}
 
-	const handleSeatChange = () => {
+	const handleSeatChange = async () => {
 		if (isInDowngradeContext && targetDowngradePlan) {
 			const params = new URLSearchParams({
 				planId: targetDowngradePlan.planId.toString(),
@@ -130,17 +131,23 @@ const SeatTierCardComponent: React.FC<SeatTierCardComponentProps> = ({
 			sessionStorage.removeItem("targetDowngradePlan");
 
 			router.push(`/subscription/checkout?${params.toString()}`);
-		} else if (canUpgradeDowngrade && (isUpgrade || isDowngrade)) {
+		} else if (
+			hasActiveSubscription &&
+			userSubscription?.subscription_plan?.id !== tier.planId
+		) {
 			const params = new URLSearchParams({
-				planId:
-					userSubscription?.subscription_plan?.id.toString() ||
-					tier.planId.toString(),
+				planId: tier.planId.toString(),
 				seatPlanId: tier.id.toString(),
 				isMonthly: "true",
 				upgrade: "true",
 			});
 
 			router.push(`/subscription/checkout?${params.toString()}`);
+		} else if (canUpgradeDowngrade && (isUpgrade || isDowngrade)) {
+			await changeSeat({
+				new_seat_plan_id: tier.id,
+				is_monthly: true,
+			});
 		} else {
 			onSelectSeatTier(tier.planId, tier.id);
 		}
@@ -148,6 +155,7 @@ const SeatTierCardComponent: React.FC<SeatTierCardComponentProps> = ({
 
 	const getButtonText = () => {
 		if (isCurrentTier) return "Current Tier";
+		if (isEquivalentTier) return "Select Recommended";
 		if (isInDowngradeContext) return "Select Tier";
 		if (isUpgrade) return "Upgrade Seats";
 		if (isDowngrade) return "Downgrade Seats";
@@ -160,12 +168,13 @@ const SeatTierCardComponent: React.FC<SeatTierCardComponentProps> = ({
 			return <ArrowRightIcon className="ml-1.5 w-4 h-4" />;
 		if (isUpgrade) return <ArrowUpIcon className="ml-1.5 w-4 h-4" />;
 		if (isDowngrade) return <ArrowDownIcon className="ml-1.5 w-4 h-4" />;
-		return <ArrowRightIcon className="ml-1.5 w-4 h-4" />;
+		return;
 	};
 
 	const getButtonColor = () => {
 		if (isCurrentTier)
 			return "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300";
+		if (isEquivalentTier) return "bg-blue-600 hover:bg-blue-700 text-white";
 		if (isInDowngradeContext)
 			return "bg-slate-600 hover:bg-slate-700 dark:bg-slate-500 dark:hover:bg-slate-600 text-white";
 		if (isUpgrade) return "bg-green-600 hover:bg-green-700 text-white";
@@ -185,21 +194,32 @@ const SeatTierCardComponent: React.FC<SeatTierCardComponentProps> = ({
 					Current Tier
 				</div>
 			)}
-			{isInDowngradeContext && !isCurrentTier && (
+			{isEquivalentTier && !isCurrentTier && (
+				<div className="absolute top-3 right-3 bg-blue-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full">
+					Recommended
+				</div>
+			)}
+			{isInDowngradeContext && !isCurrentTier && !isEquivalentTier && (
 				<div className="absolute top-3 right-3 bg-blue-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full">
 					Select Option
 				</div>
 			)}
-			{!isInDowngradeContext && isUpgrade && !isCurrentTier && (
-				<div className="absolute top-3 right-3 bg-green-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full">
-					Upgrade
-				</div>
-			)}
-			{!isInDowngradeContext && isDowngrade && !isCurrentTier && (
-				<div className="absolute top-3 right-3 bg-orange-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full">
-					Downgrade
-				</div>
-			)}
+			{!isInDowngradeContext &&
+				!isEquivalentTier &&
+				isUpgrade &&
+				!isCurrentTier && (
+					<div className="absolute top-3 right-3 bg-green-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full">
+						Upgrade
+					</div>
+				)}
+			{!isInDowngradeContext &&
+				!isEquivalentTier &&
+				isDowngrade &&
+				!isCurrentTier && (
+					<div className="absolute top-3 right-3 bg-orange-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full">
+						Downgrade
+					</div>
+				)}
 			<CardHeader className="p-0 mb-3 pt-2">
 				<p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
 					{tier.packageName} Plan
@@ -220,10 +240,13 @@ const SeatTierCardComponent: React.FC<SeatTierCardComponentProps> = ({
 				<Button
 					onClick={handleSeatChange}
 					className={`w-full font-semibold py-2.5 text-sm ${getButtonColor()}`}
-					disabled={isCurrentTier}
+					disabled={isCurrentTier || isUpgrading}
 				>
-					{getButtonText()}
-					{!isCurrentTier && getButtonIcon()}
+					{isUpgrading ? "Processing..." : getButtonText()}
+					{!isCurrentTier &&
+						!isUpgrading &&
+						!isEquivalentTier &&
+						getButtonIcon()}
 				</Button>
 			</div>
 		</Card>

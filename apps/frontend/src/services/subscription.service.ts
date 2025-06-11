@@ -96,7 +96,7 @@ class SubscriptionService {
 	): Promise<UpgradePreviewResponse> {
 		const response = await this.apiService.post<
 			ApiResponse<UpgradePreviewResponse>
-		>("/api/subscription/preview/plan-change", request);
+		>("/api/subscription/plan/preview", request);
 		return response.data.data;
 	}
 
@@ -116,7 +116,7 @@ class SubscriptionService {
 	): Promise<UpgradePreviewResponse> {
 		const response = await this.apiService.post<
 			ApiResponse<UpgradePreviewResponse>
-		>("/api/subscription/preview/seat-change", request);
+		>("/api/subscription/seat/preview", request);
 		return response.data.data;
 	}
 

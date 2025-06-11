@@ -61,57 +61,29 @@ const PlanCardComponent: React.FC<PlanCardComponentProps> = ({
 	}`;
 
 	const handlePlanAction = () => {
-		console.log("handlePlanAction called", {
-			isInactive,
-			isUpgrade,
-			isDowngrade,
-			userSubscription: !!userSubscription,
-			planId: plan.id,
-			planName: plan.name,
-		});
-
 		if (isInactive) return;
 
 		if (userSubscription && isUpgrade) {
-			console.log("Redirecting to checkout for upgrade");
-			// Upgrades go directly to checkout
-			const params = new URLSearchParams({
-				planId: plan.id.toString(),
-				seatPlanId: userSubscription.seat_plan?.id.toString() || "1",
-				isMonthly: "true", // Default to monthly, user can change in checkout
-				upgrade: "true",
-			});
-
-			router.push(`/subscription/checkout?${params.toString()}`);
+			console.log("Upgrade detected, calling onSelectPlan");
+			onSelectPlan(plan.id);
 		} else if (userSubscription && isDowngrade) {
-			console.log(
-				"Redirecting to subscription page for downgrade seat selection"
-			);
+			// Store downgrade context for the subscription page
 			const downgradeData = {
 				planId: plan.id,
 				planName: plan.name,
 				isDowngrade: true,
 			};
 
-			console.log("Redirecting with downgrade data:", downgradeData);
-
-			// Store data as backup (in case URL params fail)
 			sessionStorage.setItem(
 				"targetDowngradePlan",
 				JSON.stringify(downgradeData)
 			);
 
-			// Force immediate redirect with URL parameters
-			const params = new URLSearchParams({
-				downgrade: "true",
-				targetPlanId: plan.id.toString(),
-				targetPlanName: plan.name,
-			});
-
-			router.push(`/subscription?${params.toString()}`);
-		} else {
-			console.log("Calling onSelectPlan for new subscription");
-			// For new subscriptions or current plan configuration
+			onSelectPlan(plan.id);
+		} else if (userSubscription && !isUpgrade && !isDowngrade) {
+			onSelectPlan(plan.id);
+		} else if (!userSubscription) {
+			console.log("New subscription, calling onSelectPlan");
 			onSelectPlan(plan.id);
 		}
 	};

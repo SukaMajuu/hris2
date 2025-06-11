@@ -1029,9 +1029,16 @@ func (uc *SubscriptionUseCase) PreviewSubscriptionPlanChange(ctx context.Context
 			nextBillingDate = effectiveDate.AddDate(1, 0, 0)
 		}
 
-		// For trial users or users without billing date, calculate proration for full billing period
-		if isUpgrade {
-			// For trial users upgrading, calculate proration based on remaining time until next billing
+		// Special handling for trial users - they should pay FULL price, not prorated difference
+		if currentSubscription.Status == enums.StatusTrial {
+			// For trial conversion, charge the full price of the new plan (not prorated difference)
+			prorationAmount = newPrice
+
+			// Debug logging
+			fmt.Printf("DEBUG: Trial conversion - charging full price=%s for new plan\n",
+				prorationAmount.String())
+		} else if isUpgrade {
+			// For non-trial users without billing date, calculate proration based on remaining time until next billing
 			totalDays := 30 // Monthly
 			if !isMonthly {
 				totalDays = 365 // Yearly
@@ -1043,7 +1050,7 @@ func (uc *SubscriptionUseCase) PreviewSubscriptionPlanChange(ctx context.Context
 				prorationAmount = dailyDifference.Mul(decimal.NewFromInt(int64(remainingDays)))
 
 				// Debug logging
-				fmt.Printf("DEBUG: Trial user proration - remainingDays=%d, totalDays=%d, priceDifference=%s, dailyDifference=%s, prorationAmount=%s\n",
+				fmt.Printf("DEBUG: Non-trial user proration - remainingDays=%d, totalDays=%d, priceDifference=%s, dailyDifference=%s, prorationAmount=%s\n",
 					remainingDays, totalDays, priceDifference.String(), dailyDifference.String(), prorationAmount.String())
 			}
 		}
@@ -1383,9 +1390,16 @@ func (uc *SubscriptionUseCase) PreviewSeatPlanChange(ctx context.Context, userID
 			nextBillingDate = effectiveDate.AddDate(1, 0, 0)
 		}
 
-		// For trial users or users without billing date, calculate proration for full billing period
-		if isUpgrade {
-			// For trial users upgrading, calculate proration based on remaining time until next billing
+		// Special handling for trial users - they should pay FULL price, not prorated difference
+		if currentSubscription.Status == enums.StatusTrial {
+			// For trial conversion, charge the full price of the new seat plan (not prorated difference)
+			prorationAmount = newPrice
+
+			// Debug logging
+			fmt.Printf("DEBUG: Trial seat plan conversion - charging full price=%s for new seat plan\n",
+				prorationAmount.String())
+		} else if isUpgrade {
+			// For non-trial users without billing date, calculate proration based on remaining time until next billing
 			totalDays := 30 // Monthly
 			if !isMonthly {
 				totalDays = 365 // Yearly
@@ -1397,7 +1411,7 @@ func (uc *SubscriptionUseCase) PreviewSeatPlanChange(ctx context.Context, userID
 				prorationAmount = dailyDifference.Mul(decimal.NewFromInt(int64(remainingDays)))
 
 				// Debug logging
-				fmt.Printf("DEBUG: Trial user proration - remainingDays=%d, totalDays=%d, priceDifference=%s, dailyDifference=%s, prorationAmount=%s\n",
+				fmt.Printf("DEBUG: Non-trial user seat plan proration - remainingDays=%d, totalDays=%d, priceDifference=%s, dailyDifference=%s, prorationAmount=%s\n",
 					remainingDays, totalDays, priceDifference.String(), dailyDifference.String(), prorationAmount.String())
 			}
 		}

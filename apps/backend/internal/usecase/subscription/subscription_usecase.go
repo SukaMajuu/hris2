@@ -1331,7 +1331,13 @@ func (uc *SubscriptionUseCase) ConvertTrialToPaid(ctx context.Context, userID ui
 }
 
 // VerifyPaymentAndActivateSubscription verifies payment status and ensures subscription is activated
-func (uc *SubscriptionUseCase) VerifyPaymentAndActivateSubscription(ctx context.Context, userID uint, transactionID, orderID string, planID, seatPlanID uint, isMonthly bool) (*subscriptionDto.PaymentVerificationResponse, error) {
+func (uc *SubscriptionUseCase) VerifyPaymentAndActivateSubscription(
+	ctx context.Context,
+	userID uint,
+	transactionID, orderID string,
+	planID, seatPlanID uint,
+	isMonthly bool,
+) (*subscriptionDto.PaymentVerificationResponse, error) {
 	// Look for payment transaction by transaction ID or order ID
 	var paymentTransaction *domain.PaymentTransaction
 	var err error
@@ -1404,14 +1410,15 @@ func (uc *SubscriptionUseCase) VerifyPaymentAndActivateSubscription(ctx context.
 
 	// Check if subscription exists but payment status is unclear
 	if subErr == nil {
-		if currentSubscription.Status == enums.StatusActive {
+		switch currentSubscription.Status {
+		case enums.StatusActive:
 			return &subscriptionDto.PaymentVerificationResponse{
 				SubscriptionActivated: true,
 				PaymentStatus:         "completed",
 				Subscription:          subscriptionDto.ToSubscriptionResponse(currentSubscription),
 				Message:               "Subscription is already active",
 			}, nil
-		} else if currentSubscription.Status == enums.StatusTrial {
+		case enums.StatusTrial:
 			return &subscriptionDto.PaymentVerificationResponse{
 				SubscriptionActivated: false,
 				PaymentStatus:         "pending",

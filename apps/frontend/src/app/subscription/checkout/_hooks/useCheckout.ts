@@ -165,6 +165,7 @@ export const useCheckout = () => {
 					if (changeContext.type === "plan_change") {
 						const request: UpgradeSubscriptionPlanRequest = {
 							new_subscription_plan_id: planId,
+							new_seat_plan_id: seatPlanId,
 							is_monthly: isMonthly,
 						};
 						const response = await previewPlanMutation.mutateAsync(
@@ -342,6 +343,7 @@ export const useCheckout = () => {
 				// Plan upgrade/downgrade
 				const request: UpgradeSubscriptionPlanRequest = {
 					new_subscription_plan_id: planId,
+					new_seat_plan_id: seatPlanId,
 					is_monthly: isMonthly,
 				};
 				return await changePlanMutation.mutateAsync(request);

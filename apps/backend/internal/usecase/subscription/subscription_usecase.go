@@ -925,7 +925,7 @@ func (uc *SubscriptionUseCase) activateMidtransSubscription(ctx context.Context,
 }
 
 // PreviewSubscriptionPlanChange previews the changes when upgrading/downgrading subscription plan
-func (uc *SubscriptionUseCase) PreviewSubscriptionPlanChange(ctx context.Context, userID uint, newPlanID uint, isMonthly bool) (*subscriptionDto.UpgradePreviewResponse, error) {
+func (uc *SubscriptionUseCase) PreviewSubscriptionPlanChange(ctx context.Context, userID uint, newPlanID uint, newSeatPlanID *uint, isMonthly bool) (*subscriptionDto.UpgradePreviewResponse, error) {
 	// Get current subscription
 	currentSubscription, err := uc.xenditRepo.GetSubscriptionByAdminUserID(ctx, userID)
 	if err != nil {
@@ -938,26 +938,42 @@ func (uc *SubscriptionUseCase) PreviewSubscriptionPlanChange(ctx context.Context
 		return nil, fmt.Errorf("failed to get new subscription plan: %w", err)
 	}
 
-	// Get appropriate seat plan for new plan (same tier)
-	newSeatPlans, err := uc.xenditRepo.GetSeatPlansBySubscriptionPlan(ctx, newPlanID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get seat plans for new plan: %w", err)
-	}
-
-	// Find matching seat plan by employee range
 	var newSeatPlan *domain.SeatPlan
-	currentMinEmployees := currentSubscription.SeatPlan.MinEmployees
-	currentMaxEmployees := currentSubscription.SeatPlan.MaxEmployees
 
-	for _, seatPlan := range newSeatPlans {
-		if seatPlan.MinEmployees == currentMinEmployees && seatPlan.MaxEmployees == currentMaxEmployees {
-			newSeatPlan = &seatPlan
-			break
+	// If specific seat plan ID is provided, use it
+	if newSeatPlanID != nil {
+		seatPlan, err := uc.xenditRepo.GetSeatPlan(ctx, *newSeatPlanID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get specified seat plan: %w", err)
 		}
-	}
 
-	if newSeatPlan == nil {
-		return nil, fmt.Errorf("no matching seat plan found for new subscription plan")
+		// Verify seat plan belongs to the new subscription plan
+		if seatPlan.SubscriptionPlanID != newPlanID {
+			return nil, fmt.Errorf("specified seat plan does not belong to the new subscription plan")
+		}
+
+		newSeatPlan = seatPlan
+	} else {
+		// Auto-match seat plan by employee range (existing logic)
+		newSeatPlans, err := uc.xenditRepo.GetSeatPlansBySubscriptionPlan(ctx, newPlanID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get seat plans for new plan: %w", err)
+		}
+
+		// Find matching seat plan by employee range
+		currentMinEmployees := currentSubscription.SeatPlan.MinEmployees
+		currentMaxEmployees := currentSubscription.SeatPlan.MaxEmployees
+
+		for _, seatPlan := range newSeatPlans {
+			if seatPlan.MinEmployees == currentMinEmployees && seatPlan.MaxEmployees == currentMaxEmployees {
+				newSeatPlan = &seatPlan
+				break
+			}
+		}
+
+		if newSeatPlan == nil {
+			return nil, fmt.Errorf("no matching seat plan found for new subscription plan")
+		}
 	}
 
 	// Calculate price difference
@@ -1237,9 +1253,9 @@ func (uc *SubscriptionUseCase) applySubscriptionUpgrade(
 }
 
 // UpgradeSubscriptionPlan upgrades or downgrades subscription plan
-func (uc *SubscriptionUseCase) UpgradeSubscriptionPlan(ctx context.Context, userID uint, newPlanID uint, isMonthly bool) (*subscriptionDto.SubscriptionChangeResponse, error) {
+func (uc *SubscriptionUseCase) UpgradeSubscriptionPlan(ctx context.Context, userID uint, newPlanID uint, newSeatPlanID *uint, isMonthly bool) (*subscriptionDto.SubscriptionChangeResponse, error) {
 	// Get preview first
-	preview, err := uc.PreviewSubscriptionPlanChange(ctx, userID, newPlanID, isMonthly)
+	preview, err := uc.PreviewSubscriptionPlanChange(ctx, userID, newPlanID, newSeatPlanID, isMonthly)
 	if err != nil {
 		return nil, err
 	}

@@ -372,6 +372,7 @@ func (h *SubscriptionHandler) PreviewSubscriptionPlanChange(c *gin.Context) {
 		c.Request.Context(),
 		userID.(uint),
 		req.NewSubscriptionPlanID,
+		req.NewSeatPlanID,
 		req.IsMonthly,
 	)
 	if err != nil {
@@ -398,6 +399,7 @@ func (h *SubscriptionHandler) UpgradeSubscriptionPlan(c *gin.Context) {
 		c.Request.Context(),
 		userID.(uint),
 		req.NewSubscriptionPlanID,
+		req.NewSeatPlanID,
 		req.IsMonthly,
 	)
 	if err != nil {

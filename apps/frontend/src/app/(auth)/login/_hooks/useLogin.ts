@@ -53,21 +53,9 @@ export const useLogin = () => {
 				toast.success("Login successful! Welcome back.");
 			}
 		} catch (error) {
-			console.error("Login error in login function:", error);
 			let errorMessage =
 				"Login failed. Please check your credentials and try again.";
 
-			if (error instanceof AxiosError) {
-				if (error.response?.status === 401) {
-					errorMessage = "Invalid Credentials.";
-				} else if (error.response?.data?.message) {
-					errorMessage = error.response.data.message;
-				} else if (error.message) {
-					errorMessage = error.message;
-				}
-			} else if (error instanceof Error) {
-				errorMessage = error.message;
-			}
 			toast.error("LOGIN ERROR: " + errorMessage, {
 				duration: 10000,
 				description:

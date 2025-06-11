@@ -9,6 +9,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
+	github.com/resend/resend-go/v2 v2.20.0
 	github.com/shopspring/decimal v1.4.0
 	github.com/stretchr/testify v1.10.0
 	github.com/supabase-community/gotrue-go v1.2.0
@@ -56,10 +57,8 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/resend/resend-go/v2 v2.20.0 // indirect
 	github.com/richardlehane/mscfb v1.0.4 // indirect
 	github.com/richardlehane/msoleps v1.0.4 // indirect
-	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/rogpeppe/go-internal v1.11.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/supabase-community/functions-go v0.0.0-20220927045802-22373e6cb51d // indirect

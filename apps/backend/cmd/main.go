@@ -24,7 +24,6 @@ import (
 	"github.com/SukaMajuu/hris/apps/backend/pkg/database"
 	"github.com/SukaMajuu/hris/apps/backend/pkg/jwt"
 	"github.com/SukaMajuu/hris/apps/backend/pkg/midtrans"
-	xenditService "github.com/SukaMajuu/hris/apps/backend/pkg/xendit"
 	"github.com/supabase-community/supabase-go"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -55,7 +54,6 @@ func main() {
 	workScheduleRepo := work_schedule.NewWorkScheduleRepository(db)
 	leaveRequestRepo := leave_request.NewPostgresRepository(db)
 	xenditRepo := xendit.NewXenditRepository(db)
-	xenditClient := xenditService.NewXenditClient(&cfg.Xendit)
 	midtransClient := midtrans.NewClient(&cfg.Midtrans)
 	documentRepo := document.NewPostgresRepository(db)
 
@@ -63,9 +61,9 @@ func main() {
 
 	subscriptionUseCase := subscription.NewSubscriptionUseCase(
 		xenditRepo,
-		xenditClient,
 		employeeRepo,
 		authRepo,
+		midtransClient,
 	)
 
 	authUseCase := authUseCase.NewAuthUseCase(

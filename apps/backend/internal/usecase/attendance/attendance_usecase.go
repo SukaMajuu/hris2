@@ -153,15 +153,21 @@ func (uc *AttendanceUseCase) ClockIn(ctx context.Context, reqDTO *dtoAttendance.
 			clockInTime = time.Date(attendanceDate.Year(), attendanceDate.Month(), attendanceDate.Day(), now.Hour(), now.Minute(), now.Second(), now.Nanosecond(), time.UTC)
 		}
 	}
-
 	// Check if attendance already exists for the specified date
 	dateStr := attendanceDate.Format("2006-01-02")
 	existingAttendance, err := uc.attendanceRepo.GetByEmployeeAndDate(ctx, reqDTO.EmployeeID, dateStr)
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, fmt.Errorf("failed to check existing attendance for check-in: %w", err)
 	}
-	if existingAttendance != nil && existingAttendance.ClockIn != nil {
-		return nil, fmt.Errorf("employee %d has already checked in on %s at %s", reqDTO.EmployeeID, dateStr, existingAttendance.ClockIn.Format(time.Kitchen))
+	if existingAttendance != nil {
+		// Check if already clocked in
+		if existingAttendance.ClockIn != nil {
+			return nil, fmt.Errorf("employee %d has already checked in on %s at %s", reqDTO.EmployeeID, dateStr, existingAttendance.ClockIn.Format(time.Kitchen))
+		}
+		// Check if there's a leave attendance record for this date
+		if existingAttendance.Status == domain.Leave {
+			return nil, fmt.Errorf("employee %d has a leave record for %s. Clock-in is not allowed on leave days", reqDTO.EmployeeID, dateStr)
+		}
 	}
 
 	// TODO: Validate location coordinates if provided (requires Location validation logic)

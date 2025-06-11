@@ -51,7 +51,10 @@ export const useUserSubscription = () => {
 			return failureCount < 3;
 		},
 		enabled: true,
-		refetchOnWindowFocus: true,
+		refetchOnWindowFocus: false,
+		refetchOnMount: true,
+		staleTime: 5 * 60 * 1000,
+		gcTime: 10 * 60 * 1000,
 	});
 };
 

@@ -37,6 +37,9 @@ function PaymentProcessContent() {
 	const [paymentError, setPaymentError] = useState<string | null>(null);
 	const [snapScriptLoaded, setSnapScriptLoaded] = useState(false);
 	const [checkoutResponse, setCheckoutResponse] = useState<any>(null);
+	const [initializationAttempted, setInitializationAttempted] = useState(
+		false
+	);
 
 	// Get parameters from URL
 	const planId = searchParams.get("planId");
@@ -105,8 +108,12 @@ function PaymentProcessContent() {
 			}
 		};
 
-		initializePayment();
-	}, [planId, seatPlanId, isMonthly, initiatePaidCheckoutMutation]);
+		if (!checkoutResponse && !initializationAttempted) {
+			setInitializationAttempted(true);
+			initializePayment();
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [planId, seatPlanId, isMonthly]);
 
 	const handleInitiatePayment = async () => {
 		if (!snapScriptLoaded) {

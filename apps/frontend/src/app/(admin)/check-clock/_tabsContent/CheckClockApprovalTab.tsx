@@ -16,6 +16,7 @@ import {
   getCoreRowModel,
   getPaginationRowModel,
   getFilteredRowModel,
+  getSortedRowModel,
   PaginationState,
 } from '@tanstack/react-table';
 import type { LeaveRequest } from '@/types/leave-request';
@@ -136,8 +137,7 @@ export default function CheckClockApprovalTab() {
           );
         },
         meta: { className: 'w-[120px] md:w-[180px] text-center' },
-      },      
-      {
+      },        {
         header: 'Start Date',
         id: 'start_date',
         cell: ({ row }) => {
@@ -151,8 +151,18 @@ export default function CheckClockApprovalTab() {
             </div>
           );
         },
+        sortingFn: (rowA, rowB) => {
+          const dateA = rowA.original.leaveRequest?.start_date;
+          const dateB = rowB.original.leaveRequest?.start_date;
+          
+          if (!dateA && !dateB) return 0;
+          if (!dateA) return 1;
+          if (!dateB) return -1;
+          
+          return new Date(dateA).getTime() - new Date(dateB).getTime();
+        },
         meta: { className: 'w-[100px] md:w-[120px] text-center' },
-        enableSorting: false,
+        enableSorting: true,
         enableColumnFilter: false,
       },
       {
@@ -168,8 +178,19 @@ export default function CheckClockApprovalTab() {
               </div>
             </div>
           );
-        },        meta: { className: 'w-[100px] md:w-[120px] text-center' },
-        enableSorting: false,
+        },
+        sortingFn: (rowA, rowB) => {
+          const dateA = rowA.original.leaveRequest?.end_date;
+          const dateB = rowB.original.leaveRequest?.end_date;
+          
+          if (!dateA && !dateB) return 0;
+          if (!dateA) return 1;
+          if (!dateB) return -1;
+          
+          return new Date(dateA).getTime() - new Date(dateB).getTime();
+        },
+        meta: { className: 'w-[100px] md:w-[120px] text-center' },
+        enableSorting: true,
         enableColumnFilter: false,
       },
       {
@@ -199,8 +220,34 @@ export default function CheckClockApprovalTab() {
             </div>
           );
         },
+        sortingFn: (rowA, rowB) => {
+          const startDateA = rowA.original.leaveRequest?.start_date;
+          const endDateA = rowA.original.leaveRequest?.end_date;
+          const startDateB = rowB.original.leaveRequest?.start_date;
+          const endDateB = rowB.original.leaveRequest?.end_date;
+          
+          // Calculate duration for row A
+          let durationA = 0;
+          if (startDateA && endDateA) {
+            const startA = new Date(startDateA);
+            const endA = new Date(endDateA);
+            const diffTimeA = Math.abs(endA.getTime() - startA.getTime());
+            durationA = Math.ceil(diffTimeA / (1000 * 60 * 60 * 24)) + 1;
+          }
+          
+          // Calculate duration for row B
+          let durationB = 0;
+          if (startDateB && endDateB) {
+            const startB = new Date(startDateB);
+            const endB = new Date(endDateB);
+            const diffTimeB = Math.abs(endB.getTime() - startB.getTime());
+            durationB = Math.ceil(diffTimeB / (1000 * 60 * 60 * 24)) + 1;
+          }
+          
+          return durationA - durationB;
+        },
         meta: { className: 'w-[80px] md:w-[100px] text-center' },
-        enableSorting: false,
+        enableSorting: true,
         enableColumnFilter: false,
       },
       {
@@ -285,7 +332,6 @@ export default function CheckClockApprovalTab() {
     ],
     [openApprovalModal, handleSheetViewDetails],
   );
-
   const table = useReactTable<ApprovalItem>({
     data: approvalData,
     columns,
@@ -303,8 +349,9 @@ export default function CheckClockApprovalTab() {
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     autoResetPageIndex: false,
-  });  return (
+  });return (
     <>
       <Card className='border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900 relative'>
         {/* Refresh loading overlay */}

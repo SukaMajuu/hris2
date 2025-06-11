@@ -133,8 +133,7 @@ export default function PermitTab() {
       }
     },
     [leaveRequestsData?.items],
-  );
-  const onSubmit = useCallback(
+  );  const onSubmit = useCallback(
     async (data: CreateLeaveRequestRequest) => {
       try {
         // Call the API mutation to create the leave request
@@ -145,19 +144,23 @@ export default function PermitTab() {
         reset();
 
         // Show success notification
-        toast.success('Permohonan izin/cuti berhasil diajukan. Menunggu persetujuan atasan.');
+        toast.success('Leave request submitted successfully!', {
+          description: 'Your leave request has been submitted and is awaiting approval.',
+        });
 
         // Refetch data after submission
         await refetch();
       } catch (error) {
+        // Error handling is now done by PermitDialog component
+        // Just log the error here and let PermitDialog handle user notification
         console.error('Error submitting leave request:', error);
-
-        // Show error notification
-        toast.error('Terjadi kesalahan saat mengajukan permohonan. Silakan coba lagi.');
+        
+        // Don't show any toast messages here to avoid conflicts with PermitDialog
+        // The PermitDialog component will handle all error display logic
       }
     },
     [createLeaveRequestMutation, reset, refetch],
-  ); // Memoize refetch callback to prevent unnecessary re-renders
+  );// Memoize refetch callback to prevent unnecessary re-renders
   const handleRefetch = useCallback(async () => {
     await refetch();
   }, [refetch]);

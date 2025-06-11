@@ -3,6 +3,7 @@ package leave_request
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
 	"github.com/SukaMajuu/hris/apps/backend/domain/interfaces"
@@ -122,4 +123,24 @@ func (r *PostgresRepository) UpdateStatus(ctx context.Context, id uint, status d
 		return domain.ErrLeaveRequestNotFound
 	}
 	return nil
+}
+
+func (r *PostgresRepository) HasOverlappingLeaveRequest(ctx context.Context, employeeID uint, startDate, endDate time.Time, excludeRequestID *uint) (bool, error) {
+	var count int64
+	
+	query := r.db.WithContext(ctx).Model(&domain.LeaveRequest{}).
+		Where("employee_id = ?", employeeID).
+		Where("status IN (?)", []domain.LeaveStatus{domain.LeaveStatusPending, domain.LeaveStatusApproved}).
+		Where("NOT (end_date < ? OR start_date > ?)", startDate, endDate)
+	
+	// Exclude the current request when updating
+	if excludeRequestID != nil {
+		query = query.Where("id != ?", *excludeRequestID)
+	}
+	
+	if err := query.Count(&count).Error; err != nil {
+		return false, err
+	}
+	
+	return count > 0, nil
 }

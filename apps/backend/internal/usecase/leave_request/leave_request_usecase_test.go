@@ -65,13 +65,13 @@ func TestLeaveRequestUseCase_Create(t *testing.T) {
 		setupMocks     func(*mocks.LeaveRequestRepository, *mocks.EmployeeRepository)
 		expectedResult *dtoleave.LeaveRequestResponseDTO
 		expectedError  string
-	}{
-		{
+	}{		{
 			name:         "successful leave request creation without file",
 			leaveRequest: mockLeaveRequest,
 			file:         nil,
 			setupMocks: func(lrRepo *mocks.LeaveRequestRepository, empRepo *mocks.EmployeeRepository) {
 				empRepo.On("GetByID", ctx, uint(1)).Return(mockEmployee, nil)
+				lrRepo.On("HasOverlappingLeaveRequest", ctx, uint(1), startDate, endDate, (*uint)(nil)).Return(false, nil)
 				lrRepo.On("Create", ctx, mock.MatchedBy(func(lr *domain.LeaveRequest) bool {
 					return lr.EmployeeID == 1 && lr.Status == domain.LeaveStatusPending
 				})).Return(nil)
@@ -103,13 +103,13 @@ func TestLeaveRequestUseCase_Create(t *testing.T) {
 			},
 			expectedResult: nil,
 			expectedError:  "start date cannot be after end date",
-		},
-		{
+		},		{
 			name:         "repository create error",
 			leaveRequest: mockLeaveRequest,
 			file:         nil,
 			setupMocks: func(lrRepo *mocks.LeaveRequestRepository, empRepo *mocks.EmployeeRepository) {
 				empRepo.On("GetByID", ctx, uint(1)).Return(mockEmployee, nil)
+				lrRepo.On("HasOverlappingLeaveRequest", ctx, uint(1), startDate, endDate, (*uint)(nil)).Return(false, nil)
 				lrRepo.On("Create", ctx, mock.AnythingOfType("*domain.LeaveRequest")).Return(repoError)
 			},
 			expectedResult: nil,
@@ -121,11 +121,22 @@ func TestLeaveRequestUseCase_Create(t *testing.T) {
 			file:         nil,
 			setupMocks: func(lrRepo *mocks.LeaveRequestRepository, empRepo *mocks.EmployeeRepository) {
 				empRepo.On("GetByID", ctx, uint(1)).Return(mockEmployee, nil)
+				lrRepo.On("HasOverlappingLeaveRequest", ctx, uint(1), startDate, endDate, (*uint)(nil)).Return(false, nil)
 				lrRepo.On("Create", ctx, mock.AnythingOfType("*domain.LeaveRequest")).Return(nil)
 				lrRepo.On("GetByID", ctx, uint(1)).Return(nil, repoError)
+			},			expectedResult: nil,
+			expectedError:  "failed to retrieve created leave request:",
+		},
+		{
+			name:         "overlapping leave request exists",
+			leaveRequest: mockLeaveRequest,
+			file:         nil,
+			setupMocks: func(lrRepo *mocks.LeaveRequestRepository, empRepo *mocks.EmployeeRepository) {
+				empRepo.On("GetByID", ctx, uint(1)).Return(mockEmployee, nil)
+				lrRepo.On("HasOverlappingLeaveRequest", ctx, uint(1), startDate, endDate, (*uint)(nil)).Return(true, nil)
 			},
 			expectedResult: nil,
-			expectedError:  "failed to retrieve created leave request:",
+			expectedError:  "overlapping leave request already exists",
 		},
 	}
 
@@ -210,6 +221,7 @@ func TestLeaveRequestUseCase_CreateForEmployee(t *testing.T) {
 				Duration:   2,
 			},			setupMocks: func(lrRepo *mocks.LeaveRequestRepository, empRepo *mocks.EmployeeRepository, attRepo *mocks.AttendanceRepository) {
 				empRepo.On("GetByID", ctx, uint(1)).Return(mockEmployee, nil)
+				lrRepo.On("HasOverlappingLeaveRequest", ctx, uint(1), startDate, endDate, (*uint)(nil)).Return(false, nil)
 				lrRepo.On("Create", ctx, mock.MatchedBy(func(lr *domain.LeaveRequest) bool {
 					return lr.EmployeeID == 1 && lr.Status == domain.LeaveStatusApproved
 				})).Return(nil)
@@ -676,9 +688,9 @@ func TestLeaveRequestUseCase_Update(t *testing.T) {
 		{
 			name:    "successful update",
 			id:      1,
-			updates: updateData,
-			setupMocks: func(lrRepo *mocks.LeaveRequestRepository, empRepo *mocks.EmployeeRepository) {
+			updates: updateData,			setupMocks: func(lrRepo *mocks.LeaveRequestRepository, empRepo *mocks.EmployeeRepository) {
 				lrRepo.On("GetByID", ctx, uint(1)).Return(existingLeaveRequest, nil).Once()
+				lrRepo.On("HasOverlappingLeaveRequest", ctx, uint(1), startDate, newEndDate, &existingLeaveRequest.ID).Return(false, nil)
 				lrRepo.On("Update", ctx, mock.MatchedBy(func(lr *domain.LeaveRequest) bool {
 					return lr.ID == 1 && lr.EndDate.Equal(newEndDate)
 				})).Return(nil)
@@ -723,17 +735,53 @@ func TestLeaveRequestUseCase_Update(t *testing.T) {
 			},
 			expectedResult: nil,
 			expectedError:  "start date cannot be after end date",
-		},
-		{
-			name:    "repository update error",
-			id:      1,
-			updates: updateData,
+		},		{
+			name: "repository update error",
+			id:   1,
+			updates: &domain.LeaveRequest{
+				EndDate: newEndDate,
+			},
 			setupMocks: func(lrRepo *mocks.LeaveRequestRepository, empRepo *mocks.EmployeeRepository) {
-				lrRepo.On("GetByID", ctx, uint(1)).Return(existingLeaveRequest, nil).Once()
+				existingReq := &domain.LeaveRequest{
+					ID:         1,
+					EmployeeID: 1,
+					Employee:   *mockEmployee,
+					LeaveType:  enums.AnnualLeave,
+					StartDate:  startDate,
+					EndDate:    endDate,
+					Status:     domain.LeaveStatusPending,
+					CreatedAt:  now,
+					UpdatedAt:  now,
+				}
+				lrRepo.On("GetByID", ctx, uint(1)).Return(existingReq, nil).Once()
+				lrRepo.On("HasOverlappingLeaveRequest", ctx, uint(1), startDate, newEndDate, &existingReq.ID).Return(false, nil)
 				lrRepo.On("Update", ctx, mock.AnythingOfType("*domain.LeaveRequest")).Return(repoError)
 			},
 			expectedResult: nil,
 			expectedError:  "failed to update leave request:",
+		},		{
+			name: "overlapping leave request update",
+			id:   1,
+			updates: &domain.LeaveRequest{
+				EndDate: newEndDate,
+			},
+			setupMocks: func(lrRepo *mocks.LeaveRequestRepository, empRepo *mocks.EmployeeRepository) {
+				existingReq := &domain.LeaveRequest{
+					ID:         1,
+					EmployeeID: 1,
+					Employee:   *mockEmployee,
+					LeaveType:  enums.AnnualLeave,
+					StartDate:  startDate,
+					EndDate:    endDate,
+					Status:     domain.LeaveStatusPending,
+					CreatedAt:  now,
+					UpdatedAt:  now,
+				}
+				lrRepo.On("GetByID", ctx, uint(1)).Return(existingReq, nil).Once()
+				lrRepo.On("HasOverlappingLeaveRequest", ctx, uint(1), startDate, newEndDate, &existingReq.ID).Return(true, nil)
+			},
+			expectedResult: nil,
+			expectedError:  "overlapping leave request already exists",
 		},
 	}
 
@@ -1271,11 +1319,11 @@ func TestLeaveRequestUseCase_CreateWithFile(t *testing.T) {
 			LeaveType:  enums.AnnualLeave,
 			StartDate:  startDate,
 			EndDate:    endDate,
-			Duration:   2,
-		},
+			Duration:   2,		},
 		file: nil, // Skip file upload tests for now
 		setupMocks: func(lrRepo *mocks.LeaveRequestRepository, empRepo *mocks.EmployeeRepository) {
 			empRepo.On("GetByID", ctx, uint(1)).Return(mockEmployee, nil)
+			lrRepo.On("HasOverlappingLeaveRequest", ctx, uint(1), startDate, endDate, (*uint)(nil)).Return(false, nil)
 			lrRepo.On("Create", ctx, mock.AnythingOfType("*domain.LeaveRequest")).Return(nil)
 
 			// Create a leave request with proper employee data

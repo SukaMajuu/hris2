@@ -2,6 +2,7 @@ package mocks
 
 import (
 	"context"
+	"time"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
 	"github.com/stretchr/testify/mock"
@@ -67,4 +68,10 @@ func (m *LeaveRequestRepository) List(ctx context.Context, filters map[string]in
 func (m *LeaveRequestRepository) UpdateStatus(ctx context.Context, id uint, status domain.LeaveStatus, adminNote *string) error {
 	args := m.Called(ctx, id, status, adminNote)
 	return args.Error(0)
+}
+
+// HasOverlappingLeaveRequest mocks the HasOverlappingLeaveRequest method
+func (m *LeaveRequestRepository) HasOverlappingLeaveRequest(ctx context.Context, employeeID uint, startDate, endDate time.Time, excludeRequestID *uint) (bool, error) {
+	args := m.Called(ctx, employeeID, startDate, endDate, excludeRequestID)
+	return args.Bool(0), args.Error(1)
 }

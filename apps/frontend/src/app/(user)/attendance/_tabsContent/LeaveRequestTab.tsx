@@ -63,6 +63,7 @@ const formatLeaveType = (leaveType: string) => {
 export default function PermitTab() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const {
     data: leaveRequestsData,
@@ -157,9 +158,22 @@ export default function PermitTab() {
       }
     },
     [createLeaveRequestMutation, reset, refetch],
-  ); // Memoize refetch callback to prevent unnecessary re-renders
+  );  // Memoize refetch callback to prevent unnecessary re-renders
   const handleRefetch = useCallback(async () => {
     await refetch();
+  }, [refetch]);  // Enhanced refresh function with smooth transition
+  const handleRefreshWithTransition = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await refetch();
+      // Add a small delay to ensure smooth transition visibility
+      await new Promise(resolve => setTimeout(resolve, 300));
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+      toast.error('Gagal me-refresh data. Silakan coba lagi.');
+    } finally {
+      setIsRefreshing(false);
+    }
   }, [refetch]);
 
   const openPermitDialog = useCallback(() => {
@@ -266,12 +280,20 @@ export default function PermitTab() {
     manualPagination: true,
     autoResetPageIndex: false,
   });
-
   return (
     <>
-      <Card className='border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900'>
-        <CardContent>
-          <header className='mb-6 flex flex-col gap-6'>
+      <Card className='border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900 relative'>        {/* Refresh loading overlay */}
+        {isRefreshing && (
+          <div className="absolute inset-0 bg-white/10 backdrop-blur-[0.5px] rounded-lg z-10 flex items-center justify-center transition-all duration-200">
+            <div className="flex items-center gap-2 bg-white/95 px-3 py-1.5 rounded-lg shadow-sm border border-blue-100">
+              <RefreshCw className="h-3.5 w-3.5 animate-spin text-blue-500" />
+              <span className="text-xs text-slate-600 font-medium">Refreshing...</span>
+            </div>
+          </div>
+        )}
+        <CardContent>          <header className={`mb-6 flex flex-col gap-6 transition-opacity duration-300 ease-in-out ${
+            isRefreshing ? 'opacity-90' : 'opacity-100'
+          }`}>
             <div className='flex flex-col items-start justify-between gap-4 md:flex-row md:items-center'>
               <h2 className='text-xl font-semibold text-slate-800 dark:text-slate-100'>
                 My Leave Requests
@@ -297,16 +319,18 @@ export default function PermitTab() {
                   }}
                   className='w-full rounded-md border-slate-300 bg-white pl-10 text-slate-700 placeholder-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:placeholder-slate-500'
                   placeholder='Search by leave type...'
-                />
-              </div>{' '}
-              <Button
+                />              </div>{' '}              <Button
                 variant='outline'
-                className='gap-2 rounded-md border-slate-300 bg-white px-4 py-2 text-slate-700 hover:bg-slate-50 hover:text-slate-800 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-200'
-                onClick={() => refetch()}
-                disabled={isLoading}
+                className={`gap-2 rounded-md border-slate-300 bg-white px-4 py-2 text-slate-700 hover:bg-slate-50 hover:text-slate-800 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-200 transition-all duration-200 ${
+                  isRefreshing ? 'opacity-70 scale-98' : 'opacity-100 scale-100'
+                }`}
+                onClick={handleRefreshWithTransition}
+                disabled={isLoading || isRefreshing}
               >
-                <RefreshCw className='h-4 w-4' />
-                {isLoading ? 'Loading...' : 'Refresh'}
+                <RefreshCw className={`h-4 w-4 transition-transform duration-500 ${
+                  isRefreshing ? 'animate-spin' : ''
+                }`} />
+                {isRefreshing ? 'Refreshing...' : 'Refresh'}
               </Button>
             </div>
             {error && (
@@ -314,19 +338,21 @@ export default function PermitTab() {
                 Error loading leave requests: {error.message}
               </div>
             )}
-          </header>
-
-          {/* Table */}
-          {isLoading ? (
-            <div className='flex h-32 items-center justify-center'>
-              <div className='text-slate-500'>Loading leave requests...</div>
-            </div>
-          ) : (
-            <DataTable table={table} />
-          )}
-
-          {/* Pagination */}
-          <footer className='mt-4 flex flex-col items-center justify-between gap-4 md:flex-row'>
+          </header>          {/* Table */}
+          <div className={`transition-opacity duration-300 ease-in-out ${
+            isRefreshing ? 'opacity-75' : 'opacity-100'
+          }`}>
+            {isLoading ? (
+              <div className='flex h-32 items-center justify-center'>
+                <div className='text-slate-500'>Loading leave requests...</div>
+              </div>
+            ) : (
+              <DataTable table={table} />
+            )}
+          </div>          {/* Pagination */}
+          <footer className={`mt-4 flex flex-col items-center justify-between gap-4 md:flex-row transition-opacity duration-300 ease-in-out ${
+            isRefreshing ? 'opacity-75' : 'opacity-100'
+          }`}>
             <PageSizeComponent table={table} />
             <PaginationComponent table={table} />
           </footer>

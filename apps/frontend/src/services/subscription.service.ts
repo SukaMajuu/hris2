@@ -9,6 +9,11 @@ import {
 	InitiatePaidCheckoutRequest,
 	CompleteTrialCheckoutRequest,
 	InitiatePaidCheckoutResponse,
+	UpgradePreviewResponse,
+	SubscriptionChangeResponse,
+	UpgradeSubscriptionPlanRequest,
+	ChangeSeatPlanRequest,
+	ConvertTrialToPaidRequest,
 } from "@/types/subscription";
 
 class SubscriptionService {
@@ -81,6 +86,58 @@ class SubscriptionService {
 		await this.apiService.post<ApiResponse<null>>(
 			"/api/subscription/trial/activate"
 		);
+	}
+
+	// New upgrade/downgrade methods
+
+	// Preview subscription plan change
+	async previewSubscriptionPlanChange(
+		request: UpgradeSubscriptionPlanRequest
+	): Promise<UpgradePreviewResponse> {
+		const response = await this.apiService.post<
+			ApiResponse<UpgradePreviewResponse>
+		>("/api/subscription/plan/preview", request);
+		return response.data.data;
+	}
+
+	// Change subscription plan
+	async changeSubscriptionPlan(
+		request: UpgradeSubscriptionPlanRequest
+	): Promise<SubscriptionChangeResponse> {
+		const response = await this.apiService.post<
+			ApiResponse<SubscriptionChangeResponse>
+		>("/api/subscription/plan/change", request);
+		return response.data.data;
+	}
+
+	// Preview seat plan change
+	async previewSeatPlanChange(
+		request: ChangeSeatPlanRequest
+	): Promise<UpgradePreviewResponse> {
+		const response = await this.apiService.post<
+			ApiResponse<UpgradePreviewResponse>
+		>("/api/subscription/seat/preview", request);
+		return response.data.data;
+	}
+
+	// Change seat plan
+	async changeSeatPlan(
+		request: ChangeSeatPlanRequest
+	): Promise<SubscriptionChangeResponse> {
+		const response = await this.apiService.post<
+			ApiResponse<SubscriptionChangeResponse>
+		>("/api/subscription/seat/change", request);
+		return response.data.data;
+	}
+
+	// Convert trial to paid
+	async convertTrialToPaid(
+		request: ConvertTrialToPaidRequest
+	): Promise<SubscriptionChangeResponse> {
+		const response = await this.apiService.post<
+			ApiResponse<SubscriptionChangeResponse>
+		>("/api/subscription/trial/convert", request);
+		return response.data.data;
 	}
 }
 

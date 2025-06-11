@@ -188,6 +188,13 @@ func (r *Router) Setup() *gin.Engine {
 					protected.POST("/checkout/trial", r.subscriptionHandler.InitiateTrialCheckout)
 					protected.POST("/checkout/paid", r.subscriptionHandler.InitiatePaidCheckout)
 					protected.POST("/checkout/complete-trial", r.subscriptionHandler.CompleteTrialCheckout)
+
+					// Upgrade/Downgrade endpoints
+					protected.POST("/plan/preview", r.subscriptionHandler.PreviewSubscriptionPlanChange)
+					protected.POST("/plan/change", r.subscriptionHandler.UpgradeSubscriptionPlan)
+					protected.POST("/seat/preview", r.subscriptionHandler.PreviewSeatPlanChange)
+					protected.POST("/seat/change", r.subscriptionHandler.ChangeSeatPlan)
+					protected.POST("/trial/convert", r.subscriptionHandler.ConvertTrialToPaid)
 				}
 			}
 		}

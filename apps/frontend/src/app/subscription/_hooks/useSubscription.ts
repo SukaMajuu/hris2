@@ -16,6 +16,7 @@ export const useSubscription = () => {
 		initialStepQueryParam === "seat" ? "seat" : "package"
 	);
 	const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
+	const [isDowngradeContext, setIsDowngradeContext] = useState(false);
 
 	// API calls
 	const {
@@ -35,8 +36,86 @@ export const useSubscription = () => {
 		error: seatPlansError,
 	} = useSeatPlans(selectedPlanId || 0);
 
-	// Set initial selected plan based on user subscription or view param
+	// Check for downgrade context from URL parameters (immediate) or sessionStorage (backup)
 	useEffect(() => {
+		const checkDowngradeContext = () => {
+			// First check URL parameters for immediate detection
+			const isDowngradeFromURL = searchParams.get("downgrade") === "true";
+			const targetPlanId = searchParams.get("targetPlanId");
+			const targetPlanName = searchParams.get("targetPlanName");
+
+			if (isDowngradeFromURL && targetPlanId && targetPlanName) {
+				console.log(
+					"useSubscription: Found downgrade context in URL params:",
+					{
+						targetPlanId,
+						targetPlanName,
+					}
+				);
+
+				setSelectedPlanId(parseInt(targetPlanId));
+				setActiveView("seat");
+				setIsDowngradeContext(true);
+
+				// Store in sessionStorage for consistency
+				const downgradeData = {
+					planId: parseInt(targetPlanId),
+					planName: targetPlanName,
+					isDowngrade: true,
+				};
+				sessionStorage.setItem(
+					"targetDowngradePlan",
+					JSON.stringify(downgradeData)
+				);
+
+				// Clean up URL parameters to keep URL clean
+				const currentUrl = new URL(window.location.href);
+				currentUrl.searchParams.delete("downgrade");
+				currentUrl.searchParams.delete("targetPlanId");
+				currentUrl.searchParams.delete("targetPlanName");
+
+				// Replace URL without page reload
+				window.history.replaceState({}, "", currentUrl.toString());
+
+				return; // Exit early since we found URL params
+			}
+
+			// Fallback to sessionStorage (for page refreshes or direct navigation)
+			const stored = sessionStorage.getItem("targetDowngradePlan");
+			console.log(
+				"useSubscription: Checking sessionStorage downgrade context:",
+				stored
+			);
+
+			if (stored) {
+				try {
+					const parsed = JSON.parse(stored);
+					console.log(
+						"useSubscription: Found downgrade context in sessionStorage, setting selectedPlanId to:",
+						parsed.planId
+					);
+					setSelectedPlanId(parsed.planId);
+					setActiveView("seat");
+					setIsDowngradeContext(true);
+				} catch (error) {
+					console.error(
+						"Failed to parse downgrade context in useSubscription:",
+						error
+					);
+				}
+			} else {
+				setIsDowngradeContext(false);
+			}
+		};
+
+		checkDowngradeContext();
+	}, [searchParams]); // Include searchParams in dependency array
+
+	// Normal initialization logic
+	useEffect(() => {
+		// Skip normal initialization if we're in downgrade context
+		if (isDowngradeContext) return;
+
 		if (
 			initialStepQueryParam === "seat" &&
 			userSubscription?.subscription_plan
@@ -49,7 +128,7 @@ export const useSubscription = () => {
 		) {
 			setActiveView("package");
 		}
-	}, [initialStepQueryParam, userSubscription]);
+	}, [initialStepQueryParam, userSubscription, isDowngradeContext]);
 
 	// Event handlers
 	const handleSelectPlan = (planId: number) => {
@@ -64,8 +143,21 @@ export const useSubscription = () => {
 	};
 
 	const handleViewChange = (view: "package" | "seat") => {
+		console.log(
+			"handleViewChange called:",
+			view,
+			"isDowngradeContext:",
+			isDowngradeContext
+		);
 		setActiveView(view);
 		if (view === "package") {
+			// Clear downgrade context when going back to package view
+			const stored = sessionStorage.getItem("targetDowngradePlan");
+			if (stored) {
+				console.log("Clearing downgrade context on package view");
+				sessionStorage.removeItem("targetDowngradePlan");
+				setIsDowngradeContext(false);
+			}
 			setSelectedPlanId(null);
 		}
 	};

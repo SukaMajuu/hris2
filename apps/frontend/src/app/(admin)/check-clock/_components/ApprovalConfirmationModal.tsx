@@ -34,22 +34,28 @@ export function ApprovalConfirmationModal({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent>
-        {' '}
         <DialogHeader>
-          <DialogTitle>Confirm Approval</DialogTitle>
-          <DialogDescription>Admin Note (Optional)</DialogDescription>        
-          <div className='space-y-2'>
-            <Textarea
-              id='adminNote'
-              placeholder='Add a note for this approval/rejection decision...'
-              value={adminNote}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-                onAdminNoteChange(e.target.value)
-              }
-              className='min-h-[80px] resize-none'
-            />
-          </div>{''}        
+          <DialogTitle>Confirm Approval Decision</DialogTitle>
+          <DialogDescription>
+            Please review the leave request and provide your decision with an optional note
+          </DialogDescription>
         </DialogHeader>
+        
+        <div className='space-y-2 mt-4'>
+          <Label htmlFor='adminNote' className='text-sm font-medium text-slate-700'>
+            Admin Note (Optional)
+          </Label>
+          <Textarea
+            id='adminNote'
+            placeholder='Add a note for this approval/rejection decision...'
+            value={adminNote}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+              onAdminNoteChange(e.target.value)
+            }
+            className='min-h-[100px] resize-none border-slate-200 bg-slate-50 text-slate-700 placeholder:text-slate-400 focus:border-slate-300 focus:bg-white focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-colors duration-200'
+          />
+        </div>
+        
         <DialogFooter className='flex justify-end sm:justify-end'>
           <div className='flex gap-2'>
             <Button

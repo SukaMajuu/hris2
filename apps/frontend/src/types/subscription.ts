@@ -109,3 +109,50 @@ export interface CompleteTrialCheckoutRequest {
 	bank_account_number?: string;
 	bank_account_name?: string;
 }
+
+// New upgrade/downgrade types
+export interface UpgradePreviewResponse {
+	current_plan: SubscriptionPlan | null;
+	new_plan: SubscriptionPlan | null;
+	current_seat_plan: SeatPlan | null;
+	new_seat_plan: SeatPlan | null;
+	price_difference: number;
+	proration_amount: number;
+	is_upgrade: boolean;
+	effective_date: string;
+	next_billing_date: string;
+	requires_payment: boolean;
+}
+
+export interface SubscriptionChangeResponse {
+	subscription: UserSubscription;
+	change_type:
+		| "plan_upgrade"
+		| "plan_downgrade"
+		| "seat_upgrade"
+		| "seat_downgrade"
+		| "trial_conversion";
+	payment_required: boolean;
+	payment_amount?: number;
+	checkout_session?: CheckoutSession;
+	invoice?: InvoiceResponse;
+	effective_date: string;
+	message: string;
+}
+
+// Request types for upgrade/downgrade
+export interface UpgradeSubscriptionPlanRequest {
+	new_subscription_plan_id: number;
+	is_monthly: boolean;
+}
+
+export interface ChangeSeatPlanRequest {
+	new_seat_plan_id: number;
+	is_monthly: boolean;
+}
+
+export interface ConvertTrialToPaidRequest {
+	subscription_plan_id?: number;
+	seat_plan_id?: number;
+	is_monthly: boolean;
+}

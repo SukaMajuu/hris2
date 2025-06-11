@@ -51,7 +51,6 @@ export const PermitDialog = React.memo(function PermitDialog({
   // Watch start date and end date for validation - optimized to only watch when needed
   const watchedStartDate = watch('start_date');
   const watchedEndDate = watch('end_date');
-
   // Date validation function - memoized to prevent recreation on every render
   const validateDateRange = React.useCallback(
     (startDate: string, endDate: string): string | null => {
@@ -60,9 +59,7 @@ export const PermitDialog = React.memo(function PermitDialog({
       }
 
       const start = new Date(startDate);
-      const end = new Date(endDate);
-
-      if (end < start) {
+      const end = new Date(endDate);      if (end < start) {
         return 'End date cannot be earlier than start date';
       }
 
@@ -101,7 +98,6 @@ export const PermitDialog = React.memo(function PermitDialog({
     'application/pdf',
   ];
   const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.pdf'];
-
   // File validation function
   const validateFileUpload = (files: File | null): string | null => {
     if (!files) {
@@ -113,9 +109,7 @@ export const PermitDialog = React.memo(function PermitDialog({
     // Additional safety check for file existence
     if (!file) {
       return null; // No file selected, validation passes (file is optional)
-    }
-
-    // Check file size
+    }    // Check file size
     if (file.size > MAX_FILE_SIZE) {
       return 'File size must be less than 10MB';
     }
@@ -135,55 +129,53 @@ export const PermitDialog = React.memo(function PermitDialog({
 
     return null; // Validation passed
   };
-
   const permitRelatedLeaveTypes = [
-    'sick leave',
-    'compassionate leave',
-    'maternity leave',
-    'annual leave',
-    'marriage leave',
+    'sick_leave',
+    'compassionate_leave',
+    'maternity_leave',
+    'annual_leave',
+    'marriage_leave',
   ];
-
   // Map attendance types to LeaveType enum
   const mapAttendanceTypeToLeaveType = (attendanceType: string): LeaveType => {
     switch (attendanceType) {
-      case 'sick leave':
+      case 'sick_leave':
         return LeaveType.SICK_LEAVE;
-      case 'compassionate leave':
+      case 'compassionate_leave':
         return LeaveType.COMPASSIONATE_LEAVE;
-      case 'maternity leave':
+      case 'maternity_leave':
         return LeaveType.MATERNITY_LEAVE;
-      case 'annual leave':
+      case 'annual_leave':
         return LeaveType.ANNUAL_LEAVE;
-      case 'marriage leave':
+      case 'marriage_leave':
         return LeaveType.MARRIAGE_LEAVE;
       default:
         return LeaveType.SICK_LEAVE;
     }
-  };
-
-  const handleLeaveRequestSubmit = async (data: CreateLeaveRequestRequest) => {
+  };  const handleLeaveRequestSubmit = async (data: CreateLeaveRequestRequest) => {
     try {
-      console.log('Form data received:', data);
-      console.log('Evidence data:', data.attachment);
-
       // Validate date range before submission
       const dateError = validateDateRange(data.start_date, data.end_date);
       if (dateError) {
-        toast.error(dateError);
+        toast.error('Invalid Date Range', {
+          description: 'Please check the date range you selected.',
+          duration: 4000,
+        });
         return;
       }
 
       // Validate file before submitting
       const fileValidationError = validateFileUpload(data.attachment || null);
       if (fileValidationError) {
-        toast.error(fileValidationError);
+        toast.error('Invalid File', {
+          description: fileValidationError,
+          duration: 4000,
+        });
         return;
       }
 
       // Get the actual file from the evidence
       const attachmentFile = data.attachment && data.attachment.name ? data.attachment : undefined;
-      console.log('Attachment file:', attachmentFile);
 
       const leaveRequestData = {
         leave_type: mapAttendanceTypeToLeaveType(data.leave_type),
@@ -193,10 +185,16 @@ export const PermitDialog = React.memo(function PermitDialog({
         attachment: attachmentFile,
       };
 
-      console.log('Submitting leave request data:', leaveRequestData);
+      // Clear any previous toasts to prevent confusion
+      toast.dismiss();
 
-      await createLeaveRequestMutation.mutateAsync(leaveRequestData);
-      toast.success('Permohonan izin/cuti berhasil diajukan. Menunggu persetujuan atasan.');
+      const result = await createLeaveRequestMutation.mutateAsync(leaveRequestData);
+      
+      // Show success message
+      toast.success('Leave Request Submitted Successfully', {
+        description: 'Your leave request has been submitted and is awaiting approval.',
+        duration: 4000,
+      });
 
       // Reset form and close dialog
       formMethods.reset();
@@ -205,30 +203,43 @@ export const PermitDialog = React.memo(function PermitDialog({
       // Refetch data if refetch function is provided
       if (onRefetch) {
         await onRefetch();
-      }
-    } catch (error) {
+      }    } catch (error) {
       console.error('Error creating leave request:', error);
-
+      
       // Handle specific error messages from backend
-      let errorMessage = 'Gagal mengajukan permohonan izin/cuti. Silakan coba lagi.';
+      let errorMessage = 'Failed to submit leave request. Please try again.';
+      let errorTitle = 'Failed to Submit Leave Request';
 
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      } else if (typeof error === 'object' && error !== null) {
-        // Handle axios error structure
-        if ('response' in error && error.response && typeof error.response === 'object') {
-          const response = error.response as any;
-          if (response.data?.message) {
-            errorMessage = response.data.message;
-          } else if (response.data?.error) {
-            errorMessage = response.data.error;
-          }
-        } else if ('message' in error) {
-          errorMessage = (error as any).message;
+      // Check for axios error structure
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as any;
+        const response = axiosError.response;
+        
+        if (response?.status === 409) {
+          // Handle 409 Conflict specifically for overlapping leave requests
+          errorTitle = 'Date Conflict';
+          errorMessage = 'You have an existing leave request for these dates. Please choose different dates.';
+        } else if (response?.data?.message) {
+          // Use backend message if available from data
+          errorMessage = response.data.message;
+        } else if (response?.data?.error) {
+          // Use backend error if available from data
+          errorMessage = response.data.error;
+        } else if (axiosError.message) {
+          // Use axios error message as fallback
+          errorMessage = axiosError.message;
         }
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (error && typeof error === 'object' && 'message' in error) {
+        errorMessage = (error as any).message;
       }
 
-      toast.error(errorMessage);
+      // Show error toast
+      toast.error(errorTitle, {
+        description: errorMessage,
+        duration: 6000, // Show error longer for user to read
+      });
     }
   };
 
@@ -239,27 +250,104 @@ export const PermitDialog = React.memo(function PermitDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='bg-slate-50 p-0 sm:max-w-[600px] dark:bg-slate-900'>
-        <DialogHeader className='border-b px-6 py-4 dark:border-slate-700'>
+      <DialogContent className='bg-slate-50 p-0 sm:max-w-[600px] dark:bg-slate-900'>        <DialogHeader className='border-b px-6 py-4 dark:border-slate-700'>
           <DialogTitle className='text-xl font-semibold text-slate-800 dark:text-slate-100'>
             {dialogTitle}
-          </DialogTitle>
-          <DialogDescription className='text-sm text-slate-600 dark:text-slate-400'>
-            Please fill in the details for your permit or leave request.
+          </DialogTitle>          <DialogDescription className='text-sm text-slate-600 dark:text-slate-400'>
+            Please fill in the details for your leave request.
           </DialogDescription>
-        </DialogHeader>
-        <form
+        </DialogHeader><form
           onSubmit={handleSubmit(
             isLeaveRequest
               ? handleLeaveRequestSubmit
-              : (data) => {
+              : async (data) => {
                   try {
-                    onSubmit(data);
-                    toast.success('Data attendance berhasil disimpan.');
+                    await onSubmit(data);
+                      // Show success message for non-leave request
+                    toast.success('Data Successfully Saved', {
+                      description: 'Your attendance data has been successfully saved.',
+                      duration: 4000,
+                    });
+                    
+                    // Reset form and close dialog
+                    formMethods.reset();
                     onOpenChange(false);
+                    
+                    // Refetch data if refetch function is provided
+                    if (onRefetch) {
+                      await onRefetch();
+                    }
                   } catch (error) {
                     console.error('Error submitting form:', error);
-                    toast.error('Terjadi kesalahan saat menyimpan data. Silakan coba lagi.');
+                      // Handle specific error messages for non-leave requests
+                    let errorMessage = 'Failed to save attendance data. Please try again.';
+                    let errorTitle = 'Failed to Save Data';
+                    let errorDescription = 'An error occurred while processing your data.';
+
+                    if (error instanceof Error) {
+                      errorMessage = error.message;
+                    } else if (typeof error === 'object' && error !== null) {
+                      // Handle axios error structure
+                      if ('response' in error && error.response && typeof error.response === 'object') {
+                        const response = error.response as any;
+                        
+                        switch (response.status) {
+                          case 400: // Bad Request
+                            errorTitle = 'Invalid Data';
+                            errorDescription = 'The data you entered is invalid or incomplete.';
+                            if (response.data?.message) {
+                              errorMessage = response.data.message;
+                            } else if (response.data?.error) {
+                              errorMessage = response.data.error;
+                            }
+                            break;
+                            
+                          case 401: // Unauthorized
+                            errorTitle = 'Session Expired';
+                            errorMessage = 'Your session has expired.';
+                            errorDescription = 'Please log in again to continue.';
+                            break;
+                            
+                          case 403: // Forbidden
+                            errorTitle = 'Access Denied';
+                            errorMessage = 'You do not have permission to save data.';
+                            errorDescription = 'Please contact administrator for more information.';
+                            break;
+                            
+                          case 404: // Not Found
+                            errorTitle = 'Data Not Found';
+                            errorMessage = 'Required data was not found.';
+                            errorDescription = 'Please contact system administrator.';
+                            break;
+                            
+                          case 500:
+                          case 502:
+                          case 503:
+                          case 504: // Server Error
+                            errorTitle = 'Server Error';
+                            errorMessage = 'A server error occurred.';
+                            errorDescription = 'Please try again in a moment.';
+                            break;
+                            
+                          default:
+                            // Use backend message if available
+                            if (response.data?.message) {
+                              errorMessage = response.data.message;
+                            } else if (response.data?.error) {
+                              errorMessage = response.data.error;
+                            }
+                            break;
+                        }
+                      } else if ('message' in error) {
+                        errorMessage = (error as any).message;
+                      }
+                    }
+
+                    // Show error toast with title and description
+                    toast.error(errorTitle, {
+                      description: errorDescription,
+                      duration: 5000,
+                    });
                   }
                 },
           )}
@@ -268,12 +356,11 @@ export const PermitDialog = React.memo(function PermitDialog({
           <div className='max-h-[calc(100vh-220px)] space-y-6 overflow-y-auto px-6 py-4'>
             {/* Section 1: Attendance Type & Permit Duration */}
             <div className='rounded-lg bg-white p-6 shadow-md dark:bg-slate-800'>
-              <div className='space-y-2'>
-                <Label
+              <div className='space-y-2'>                <Label
                   htmlFor='leave_type'
                   className='text-sm font-medium text-slate-700 dark:text-slate-300'
                 >
-                  Permit / Leave Type
+                  Leave Type
                 </Label>
                 <select
                   id='leave_type'
@@ -289,8 +376,7 @@ export const PermitDialog = React.memo(function PermitDialog({
                   <option value={LeaveType.MARRIAGE_LEAVE}>Marriage Leave</option>
                 </select>
               </div>
-              <div className='mt-4 space-y-2'>
-                <Label
+              <div className='mt-4 space-y-2'>                <Label
                   htmlFor='start_date'
                   className='text-sm font-medium text-slate-700 dark:text-slate-300'
                 >
@@ -299,8 +385,7 @@ export const PermitDialog = React.memo(function PermitDialog({
                 <Input
                   id='start_date'
                   type='date'
-                  className='border-slate-300 bg-white text-slate-900 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-50'
-                  {...register('start_date', {
+                  className='border-slate-300 bg-white text-slate-900 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-50'                  {...register('start_date', {
                     required: 'Start date is required',
                   })}
                 />
@@ -310,8 +395,7 @@ export const PermitDialog = React.memo(function PermitDialog({
                   </p>
                 )}
               </div>
-              <div className='mt-4 space-y-2'>
-                <Label
+              <div className='mt-4 space-y-2'>                <Label
                   htmlFor='end_date'
                   className='text-sm font-medium text-slate-700 dark:text-slate-300'
                 >
@@ -320,8 +404,7 @@ export const PermitDialog = React.memo(function PermitDialog({
                 <Input
                   id='end_date'
                   type='date'
-                  className='border-slate-300 bg-white text-slate-900 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-50'
-                  {...register('end_date', {
+                  className='border-slate-300 bg-white text-slate-900 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-50'                  {...register('end_date', {
                     required: 'End date is required',
                     validate: (value) => {
                       if (watchedStartDate && value) {
@@ -337,8 +420,7 @@ export const PermitDialog = React.memo(function PermitDialog({
                   </p>
                 )}
               </div>
-              <div className='mt-4 space-y-2'>
-                <Label
+              <div className='mt-4 space-y-2'>                <Label
                   htmlFor='employee_note'
                   className='text-sm font-medium text-slate-700 dark:text-slate-300'
                 >
@@ -346,13 +428,12 @@ export const PermitDialog = React.memo(function PermitDialog({
                 </Label>
                 <Textarea
                   id='employee_note'
-                  placeholder='Please provide the reason for your leave request...'
-                  className='border-slate-300 bg-white text-slate-900 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-50'
-                  {...register('employee_note', {
+                  placeholder='Please provide a reason for your leave request...'
+                  className='border-slate-300 bg-white text-slate-900 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-50'                  {...register('employee_note', {
                     required: 'Employee note is required',
                     minLength: {
                       value: 10,
-                      message: 'Employee note must be at least 10 characters long',
+                      message: 'Employee note must be at least 10 characters',
                     },
                   })}
                 />
@@ -363,12 +444,11 @@ export const PermitDialog = React.memo(function PermitDialog({
                 )}
               </div>
             </div>
-            <div className='rounded-lg bg-white p-6 shadow-md dark:bg-slate-800'>
-              <Label
+            <div className='rounded-lg bg-white p-6 shadow-md dark:bg-slate-800'>              <Label
                 htmlFor='evidence'
                 className='mb-2 block text-base font-semibold text-slate-800 dark:text-slate-200'
               >
-                Upload Support Evidence
+                Upload Supporting Document
               </Label>
               <Controller
                 name='attachment'
@@ -397,17 +477,13 @@ export const PermitDialog = React.memo(function PermitDialog({
                         onChange(null);
                         return;
                       }
-                      
-                      onChange(files);
-                      console.log('File updated in form:', files);
+                        onChange(files);
                     }}
                   />
                 )}
-              />
-              {/* Display selected file */}
+              />{/* Display selected file */}
               {watch('attachment') && watch('attachment')?.size && (
-                <div className='mt-2 rounded-md border border-slate-200 bg-slate-100 p-2 dark:border-slate-600 dark:bg-slate-700'>
-                  <p className='text-sm text-slate-700 dark:text-slate-300'>
+                <div className='mt-2 rounded-md border border-slate-200 bg-slate-100 p-2 dark:border-slate-600 dark:bg-slate-700'>                  <p className='text-sm text-slate-700 dark:text-slate-300'>
                     <strong>Selected file:</strong> {watch('attachment')?.name || 'Unknown file'}
                   </p>
                   <p className='text-xs text-slate-500 dark:text-slate-400'>
@@ -419,11 +495,9 @@ export const PermitDialog = React.memo(function PermitDialog({
                 <p className='mt-1 text-sm text-red-600 dark:text-red-400'>
                   {errors.attachment.message}
                 </p>
-              )}
-              <div className='mt-2 space-y-1'>
+              )}              <div className='mt-2 space-y-1'>
                 <p className='text-xs text-slate-500 dark:text-slate-400'>
-                  <strong>Accepted file types:</strong> Images (JPG, JPEG, PNG, GIF, BMP, WEBP) and
-                  PDF files
+                  <strong>Accepted file types:</strong> Images (JPG, JPEG, PNG, GIF, BMP, WEBP) and PDF files
                 </p>
                 <p className='text-xs text-slate-500 dark:text-slate-400'>
                   <strong>Maximum file size:</strong> 10MB
@@ -433,14 +507,12 @@ export const PermitDialog = React.memo(function PermitDialog({
                 </p>
               </div>
             </div>
-          </div>
-          <DialogFooter className='rounded-b-lg border-t bg-slate-100 px-6 py-4 dark:border-slate-700 dark:bg-slate-800/50'>
+          </div>          <DialogFooter className='rounded-b-lg border-t bg-slate-100 px-6 py-4 dark:border-slate-700 dark:bg-slate-800/50'>
             <Button
               type='button'
               variant='outline'
               onClick={() => onOpenChange(false)}
-              className='border-slate-300 text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100'
-            >
+              className='border-slate-300 text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100'            >
               Cancel
             </Button>{' '}
             <Button

@@ -1,11 +1,12 @@
 "use client";
 
-import React, { Suspense } from "react";
+import React, { Suspense, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeftIcon, AlertCircle, LogOut } from "lucide-react";
 import Link from "next/link";
 import PlanCardComponent from "./_components/PlanCardComponent";
 import SeatTierCardComponent from "./_components/SeatTierCardComponent";
+import TrialConversionBanner from "./_components/TrialConversionBanner";
 import SubscriptionPageSkeleton from "./_components/SubscriptionPageSkeleton";
 import SeatTierCardSkeleton from "./_components/SeatTierCardSkeleton";
 import { useSubscription } from "./_hooks/useSubscription";
@@ -37,6 +38,12 @@ function SubscriptionPageContent() {
 		handleViewChange,
 	} = useSubscription();
 
+	const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+	const [upgradeModalData, setUpgradeModalData] = useState<{
+		planId: number;
+		seatPlanId: number;
+	} | null>(null);
+
 	// Loading state
 	if (isLoading) {
 		return <SubscriptionPageSkeleton view={activeView} />;
@@ -58,42 +65,57 @@ function SubscriptionPageContent() {
 		);
 	}
 
+	const handleUpgradeSuccess = () => {
+		// Refresh the page data or refetch queries
+		window.location.reload();
+	};
+
 	return (
 		<div className="container mx-auto min-h-[95vh] flex flex-col gap-12">
 			{/* Show different navigation based on user subscription status */}
-			{userSubscription?.subscription_plan ? (
-				// User has subscription - show go back to settings
-				<div className="mb-8">
-					<Link
-						href="/settings"
-						className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center"
-					>
-						<ArrowLeftIcon className="w-4 h-4 mr-1" />
-						Go Back
-					</Link>
-				</div>
-			) : (
-				// User doesn't have subscription - show back to welcome and logout
-				<div className="h-12 flex items-center justify-between">
-					<Link
-						href="/welcome"
-						className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center"
-					>
-						<ArrowLeftIcon className="w-4 h-4 mr-1" />
-						Kembali ke Welcome
-					</Link>
-					<Button
-						onClick={logout}
-						disabled={isLoggingOut}
-						variant="outline"
-						size="sm"
-						className="text-slate-600 bg-primary text-white hover:bg-primary/80 cursor-pointer"
-					>
-						<LogOut className="h-4 w-4 mr-2" />
-						{isLoggingOut ? "Logging out..." : "Logout"}
-					</Button>
-				</div>
-			)}
+			<div className="flex flex-col gap-2">
+				{userSubscription?.subscription_plan ? (
+					// User has subscription - show go back to settings
+					<div className="h-12 flex items-center justify-between">
+						<Link
+							href="/settings"
+							className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center"
+						>
+							<ArrowLeftIcon className="w-4 h-4 mr-1" />
+							Go Back
+						</Link>
+					</div>
+				) : (
+					// User doesn't have subscription - show back to welcome and logout
+					<div className="h-12 flex items-center justify-between">
+						<Link
+							href="/welcome"
+							className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center"
+						>
+							<ArrowLeftIcon className="w-4 h-4 mr-1" />
+							Kembali ke Welcome
+						</Link>
+						<Button
+							onClick={logout}
+							disabled={isLoggingOut}
+							variant="outline"
+							size="sm"
+							className="text-slate-600 bg-primary text-white hover:bg-primary/80 cursor-pointer"
+						>
+							<LogOut className="h-4 w-4 mr-2" />
+							{isLoggingOut ? "Logging out..." : "Logout"}
+						</Button>
+					</div>
+				)}
+				{/* Trial Conversion Banner */}
+				{userSubscription?.is_in_trial && (
+					<TrialConversionBanner
+						userSubscription={userSubscription}
+						onConversionSuccess={handleUpgradeSuccess}
+					/>
+				)}
+			</div>
+
 			<div>
 				<header className="text-center mb-12">
 					<h1 className="text-4xl font-extrabold text-slate-900 dark:text-slate-100 sm:text-5xl">
@@ -151,7 +173,9 @@ function SubscriptionPageContent() {
 										userSubscription?.subscription_plan ||
 										null
 									}
+									userSubscription={userSubscription}
 									onSelectPlan={handleSelectPlan}
+									onUpgradeSuccess={handleUpgradeSuccess}
 								/>
 							</div>
 						))}
@@ -192,8 +216,12 @@ function SubscriptionPageContent() {
 													?.subscription_plan?.id ===
 													selectedPlanId
 											}
+											userSubscription={userSubscription}
 											onSelectSeatTier={
 												handleSelectSeatTier
+											}
+											onUpgradeSuccess={
+												handleUpgradeSuccess
 											}
 										/>
 									))}
@@ -223,7 +251,7 @@ function SubscriptionPageContent() {
 
 export default function SubscriptionPage() {
 	return (
-		<Suspense fallback={<SubscriptionPageSkeleton />}>
+		<Suspense fallback={<SubscriptionPageSkeleton view="package" />}>
 			<SubscriptionPageContent />
 		</Suspense>
 	);

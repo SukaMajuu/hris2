@@ -16,8 +16,10 @@ import {
   getCoreRowModel,
   getPaginationRowModel,
   getFilteredRowModel,
+  getSortedRowModel,
   PaginationState,
 } from '@tanstack/react-table';
+import type { LeaveRequest } from '@/types/leave-request';
 
 interface ApprovalItem {
   id: number;
@@ -26,6 +28,7 @@ interface ApprovalItem {
   admin_note: string | null;
   approved: boolean | null;
   status: string;
+  leaveRequest?: LeaveRequest;
 }
 
 interface ApprovalDetail {
@@ -118,7 +121,8 @@ export default function CheckClockApprovalTab() {
         meta: { className: 'w-[50px] md:w-[80px] text-center' },
         enableSorting: false,
         enableColumnFilter: false,
-      },      {
+      },     
+      {
         header: 'Name',
         accessorKey: 'name',
         enableColumnFilter: true,
@@ -133,6 +137,118 @@ export default function CheckClockApprovalTab() {
           );
         },
         meta: { className: 'w-[120px] md:w-[180px] text-center' },
+      },        {
+        header: 'Start Date',
+        id: 'start_date',
+        cell: ({ row }) => {
+          const item = row.original;
+          const startDate = item.leaveRequest?.start_date;
+          return (
+            <div className="flex items-center justify-center">
+              <div className="text-xs md:text-sm text-center">
+                {startDate ? new Date(startDate).toLocaleDateString() : '-'}
+              </div>
+            </div>
+          );
+        },
+        sortingFn: (rowA, rowB) => {
+          const dateA = rowA.original.leaveRequest?.start_date;
+          const dateB = rowB.original.leaveRequest?.start_date;
+          
+          if (!dateA && !dateB) return 0;
+          if (!dateA) return 1;
+          if (!dateB) return -1;
+          
+          return new Date(dateA).getTime() - new Date(dateB).getTime();
+        },
+        meta: { className: 'w-[100px] md:w-[120px] text-center' },
+        enableSorting: true,
+        enableColumnFilter: false,
+      },
+      {
+        header: 'End Date',
+        id: 'end_date',
+        cell: ({ row }) => {
+          const item = row.original;
+          const endDate = item.leaveRequest?.end_date;
+          return (
+            <div className="flex items-center justify-center">
+              <div className="text-xs md:text-sm text-center">
+                {endDate ? new Date(endDate).toLocaleDateString() : '-'}
+              </div>
+            </div>
+          );
+        },
+        sortingFn: (rowA, rowB) => {
+          const dateA = rowA.original.leaveRequest?.end_date;
+          const dateB = rowB.original.leaveRequest?.end_date;
+          
+          if (!dateA && !dateB) return 0;
+          if (!dateA) return 1;
+          if (!dateB) return -1;
+          
+          return new Date(dateA).getTime() - new Date(dateB).getTime();
+        },
+        meta: { className: 'w-[100px] md:w-[120px] text-center' },
+        enableSorting: true,
+        enableColumnFilter: false,
+      },
+      {
+        header: 'Duration',
+        id: 'duration',
+        cell: ({ row }) => {
+          const item = row.original;
+          const startDate = item.leaveRequest?.start_date;
+          const endDate = item.leaveRequest?.end_date;
+          
+          if (!startDate || !endDate) return (
+            <div className="flex items-center justify-center">
+              <div className="text-xs md:text-sm text-center">-</div>
+            </div>
+          );
+          
+          const start = new Date(startDate);
+          const end = new Date(endDate);
+          const diffTime = Math.abs(end.getTime() - start.getTime());
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+          
+          return (
+            <div className="flex items-center justify-center">
+              <div className="text-xs md:text-sm text-center">
+                {diffDays} day{diffDays > 1 ? 's' : ''}
+              </div>
+            </div>
+          );
+        },
+        sortingFn: (rowA, rowB) => {
+          const startDateA = rowA.original.leaveRequest?.start_date;
+          const endDateA = rowA.original.leaveRequest?.end_date;
+          const startDateB = rowB.original.leaveRequest?.start_date;
+          const endDateB = rowB.original.leaveRequest?.end_date;
+          
+          // Calculate duration for row A
+          let durationA = 0;
+          if (startDateA && endDateA) {
+            const startA = new Date(startDateA);
+            const endA = new Date(endDateA);
+            const diffTimeA = Math.abs(endA.getTime() - startA.getTime());
+            durationA = Math.ceil(diffTimeA / (1000 * 60 * 60 * 24)) + 1;
+          }
+          
+          // Calculate duration for row B
+          let durationB = 0;
+          if (startDateB && endDateB) {
+            const startB = new Date(startDateB);
+            const endB = new Date(endDateB);
+            const diffTimeB = Math.abs(endB.getTime() - startB.getTime());
+            durationB = Math.ceil(diffTimeB / (1000 * 60 * 60 * 24)) + 1;
+          }
+          
+          return durationA - durationB;
+        },
+        meta: { className: 'w-[80px] md:w-[100px] text-center' },
+        enableSorting: true,
+        enableColumnFilter: false,
       },
       {
         header: 'Leave Type',
@@ -216,7 +332,6 @@ export default function CheckClockApprovalTab() {
     ],
     [openApprovalModal, handleSheetViewDetails],
   );
-
   const table = useReactTable<ApprovalItem>({
     data: approvalData,
     columns,
@@ -234,8 +349,9 @@ export default function CheckClockApprovalTab() {
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     autoResetPageIndex: false,
-  });  return (
+  });return (
     <>
       <Card className='border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900 relative'>
         {/* Refresh loading overlay */}

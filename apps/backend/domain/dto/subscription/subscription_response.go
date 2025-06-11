@@ -108,6 +108,31 @@ type InvoiceResponse struct {
 	ExpiryDate string          `json:"expiry_date"`
 }
 
+// New upgrade/downgrade response DTOs
+type UpgradePreviewResponse struct {
+	CurrentPlan     *SubscriptionPlanResponse `json:"current_plan"`
+	NewPlan         *SubscriptionPlanResponse `json:"new_plan"`
+	CurrentSeatPlan *SeatPlanResponse         `json:"current_seat_plan"`
+	NewSeatPlan     *SeatPlanResponse         `json:"new_seat_plan"`
+	PriceDifference decimal.Decimal           `json:"price_difference"`
+	ProrationAmount decimal.Decimal           `json:"proration_amount"`
+	IsUpgrade       bool                      `json:"is_upgrade"`
+	EffectiveDate   time.Time                 `json:"effective_date"`
+	NextBillingDate time.Time                 `json:"next_billing_date"`
+	RequiresPayment bool                      `json:"requires_payment"`
+}
+
+type SubscriptionChangeResponse struct {
+	Subscription    *SubscriptionResponse    `json:"subscription"`
+	ChangeType      string                   `json:"change_type"` // "plan_upgrade", "plan_downgrade", "seat_upgrade", "seat_downgrade", "trial_conversion"
+	PaymentRequired bool                     `json:"payment_required"`
+	PaymentAmount   *decimal.Decimal         `json:"payment_amount,omitempty"`
+	CheckoutSession *CheckoutSessionResponse `json:"checkout_session,omitempty"`
+	Invoice         *InvoiceResponse         `json:"invoice,omitempty"`
+	EffectiveDate   time.Time                `json:"effective_date"`
+	Message         string                   `json:"message"`
+}
+
 // Conversion functions
 
 func ToSubscriptionPlanResponse(plan *domain.SubscriptionPlan) *SubscriptionPlanResponse {

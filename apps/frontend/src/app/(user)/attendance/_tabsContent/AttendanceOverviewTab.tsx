@@ -182,8 +182,7 @@ export default function AttendanceOverviewTab() {
 		100, // pageSize
 		shouldFetchLeaveRequests ? leaveRequestFilters : undefined
 	);
-
-	// Filter leave requests that overlap with the selected attendance date
+	// Filter leave requests that overlap with the selected attendance date and have approved status
 	const filteredLeaveRequests = useMemo(() => {
 		if (
 			!leaveRequestsData?.items ||
@@ -197,8 +196,8 @@ export default function AttendanceOverviewTab() {
 		return leaveRequestsData.items.filter((request: LeaveRequest) => {
 			const startDate = new Date(request.start_date);
 			const endDate = new Date(request.end_date);
-			// Check if the selected date falls within the leave request period
-			return selectedDate >= startDate && selectedDate <= endDate;
+			// Check if the selected date falls within the leave request period and status is approved
+			return selectedDate >= startDate && selectedDate <= endDate && request.status.toLowerCase() === 'approved';
 		});
 	}, [leaveRequestsData, selectedDateForLeave, selectedData?.status]);
 

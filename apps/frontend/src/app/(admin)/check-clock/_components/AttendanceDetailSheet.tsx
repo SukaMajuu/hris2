@@ -50,8 +50,7 @@ export function AttendanceDetailSheet({
 		100, 
 		selectedData?.employee_id ? { employee_id: selectedData.employee_id } : undefined
 	);
-
-	// Filter leave requests for the specific date when status is 'leave'
+	// Filter leave requests for the specific date when status is 'leave' and only show approved requests
 	const filteredLeaveRequests = React.useMemo(() => {
 		if (!selectedData || selectedData.status !== 'leave' || !leaveRequestsData?.items) {
 			return [];
@@ -62,8 +61,8 @@ export function AttendanceDetailSheet({
 			const startDate = new Date(request.start_date);
 			const endDate = new Date(request.end_date);
 			
-			// Check if attendance date falls within leave request date range
-			return attendanceDate >= startDate && attendanceDate <= endDate;
+			// Check if attendance date falls within leave request date range and status is approved
+			return attendanceDate >= startDate && attendanceDate <= endDate && request.status.toLowerCase() === 'approved';
 		});
 	}, [selectedData, leaveRequestsData]);
 

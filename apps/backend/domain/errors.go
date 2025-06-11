@@ -36,7 +36,8 @@ var (
 
 // Leave Request errors
 var (
-	ErrLeaveRequestNotFound = errors.New("leave request not found")
+	ErrLeaveRequestNotFound      = errors.New("leave request not found")
+	ErrOverlappingLeaveRequest   = errors.New("overlapping leave request already exists")
 )
 
 // Location errors

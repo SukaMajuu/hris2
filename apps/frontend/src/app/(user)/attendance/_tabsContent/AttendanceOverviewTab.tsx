@@ -3,6 +3,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { useCheckClock } from "../_hooks/useAttendance";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { DataTable } from "@/components/dataTable";
 import { Button } from "@/components/ui/button";
 import {
@@ -279,7 +280,6 @@ export default function AttendanceOverviewTab() {
 
 		return currentTime < checkoutStartLocal;
 	}, [workSchedule, canClockOut]);
-
 	// Check if user has already clocked out today
 	const hasAlreadyClockedOut = useMemo(() => {
 		if (!currentEmployee) return false;
@@ -294,6 +294,33 @@ export default function AttendanceOverviewTab() {
 
 		return !!todayAttendance; // User has already clocked out if there's a complete record for today
 	}, [checkClockData, currentEmployee]);
+
+	// Check if user has a leave record for today (prevents clock-in)
+	const hasLeaveToday = useMemo(() => {
+		if (!currentEmployee) return false;
+
+		const today = new Date().toISOString().split("T")[0];
+
+		// Find today's attendance record with leave status
+		const todayLeaveAttendance = checkClockData.find(
+			(record) => record.date === today && record.status === "leave"
+		);
+
+		return !!todayLeaveAttendance; // User has leave today if there's a leave record
+	}, [checkClockData, currentEmployee]);
+
+	// Check if user can clock in (not on leave and hasn't already clocked in)
+	const canClockIn = useMemo(() => {
+		if (!currentEmployee || hasLeaveToday) return false;
+
+		const today = new Date().toISOString().split("T")[0];
+
+		// Find today's attendance record that already has clock_in
+		const todayAttendance = checkClockData.find(
+			(record) => record.date === today && record.clock_in		);
+
+		return !todayAttendance; // Can clock in only if no attendance record with clock_in exists for today
+	}, [checkClockData, currentEmployee, hasLeaveToday]);
 
 	const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
 		pageIndex: 0,
@@ -386,9 +413,26 @@ export default function AttendanceOverviewTab() {
 		});
 		setPagination((prev) => ({ ...prev, pageIndex: 0 }));
 	};
-
 	const openDialogHandler = (action: "clock-in" | "clock-out") => {
 		if (!currentEmployee) {
+			return;
+		}
+
+		// Add validation for clock-in on leave days
+		if (action === "clock-in" && hasLeaveToday) {
+			toast.error(
+				"Clock-in is not allowed on leave days. You have an active leave record for today.",
+				{ duration: 5000 }
+			);
+			return;
+		}
+
+		// Add validation for clock-in permission
+		if (action === "clock-in" && !canClockIn) {
+			toast.error(
+				"Clock-in is not available. You may have already clocked in today or are on leave.",
+				{ duration: 5000 }
+			);
 			return;
 		}
 
@@ -590,8 +634,7 @@ export default function AttendanceOverviewTab() {
 						<div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
 							<h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">
 								Attendance Overview
-							</h2>
-							<div className="flex flex-wrap gap-2">
+							</h2>							<div className="flex flex-wrap gap-2">
 								<Button
 									variant="outline"
 									className="gap-2 border-green-500 bg-green-500 text-white hover:bg-green-600 disabled:bg-gray-400 disabled:border-gray-400"
@@ -601,10 +644,15 @@ export default function AttendanceOverviewTab() {
 									disabled={
 										isClockingIn ||
 										!currentEmployee ||
+										!canClockIn ||
 										!isWithinCheckInTime
 									}
 									title={
-										!isWithinCheckInTime
+										hasLeaveToday
+											? "Cannot clock-in: You have a leave record for today"
+											: !canClockIn
+											? "Clock-in not available: Already clocked in or on leave"
+											: !isWithinCheckInTime
 											? "Clock-in is not available at this time"
 											: ""
 									}
@@ -612,8 +660,12 @@ export default function AttendanceOverviewTab() {
 									<LogIn className="h-4 w-4" />
 									{isClockingIn
 										? "Clocking In..."
-										: !isWithinCheckInTime
+										: hasLeaveToday
+										? "Clock In (On Leave)"
+										: !canClockIn
 										? "Clock In (Disabled)"
+										: !isWithinCheckInTime
+										? "Clock In (Outside Hours)"
 										: "Clock In"}
 								</Button>
 								<Button

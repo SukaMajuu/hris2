@@ -65,9 +65,13 @@ func (h *AttendanceHandler) ClockIn(c *gin.Context) {
 			response.NotFound(c, "Work schedule not found", err)
 			return
 		}
-
 		if strings.Contains(errMsg, "has already checked in") {
 			response.Conflict(c, "Employee has already checked in today", err)
+			return
+		}
+
+		if strings.Contains(errMsg, "has a leave record") {
+			response.Conflict(c, "Cannot clock-in on a leave day", err)
 			return
 		}
 

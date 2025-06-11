@@ -32,7 +32,7 @@ export const useLogin = () => {
 		try {
 			const response = await loginMutation.mutateAsync(data);
 			setUser(response.user);
-			
+
 			// Check subscription status and show appropriate notification
 			const isAdmin = response.user?.role === ROLES.admin;
 			const hasActiveSubscription = Boolean(
@@ -40,9 +40,15 @@ export const useLogin = () => {
 					(userSubscription?.status === "active" ||
 						userSubscription?.status === "trial")
 			);
-			
-			if (isAdmin && !hasActiveSubscription && userSubscription?.status === "expired") {
-				toast.success("Login successful, but your access is currently restricted due to expired subscription.");
+
+			if (
+				isAdmin &&
+				!hasActiveSubscription &&
+				userSubscription?.status === "expired"
+			) {
+				toast.success(
+					"Login successful, but your access is currently restricted due to expired subscription."
+				);
 			} else {
 				toast.success("Login successful! Welcome back.");
 			}
@@ -53,7 +59,7 @@ export const useLogin = () => {
 
 			if (error instanceof AxiosError) {
 				if (error.response?.status === 401) {
-					errorMessage = "Invalid email or password.";
+					errorMessage = "Invalid Credentials.";
 				} else if (error.response?.data?.message) {
 					errorMessage = error.response.data.message;
 				} else if (error.message) {

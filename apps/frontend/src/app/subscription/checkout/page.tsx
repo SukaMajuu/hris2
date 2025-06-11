@@ -170,7 +170,22 @@ function CheckoutPageContent() {
 						"Payment required, amount:",
 						response.payment_amount
 					);
-					// If payment is required, redirect to payment with the payment amount
+
+					// Check if we have a checkout session with payment URL (for upgrades/changes)
+					if (response.checkout_session?.payment_url) {
+						console.log(
+							"Using direct payment URL from upgrade API"
+						);
+						// Redirect directly to Midtrans payment URL from the upgrade transaction
+						window.location.href =
+							response.checkout_session.payment_url;
+						return;
+					}
+
+					// Fallback: If no direct payment URL, redirect to payment process page
+					console.log(
+						"No direct payment URL, redirecting to payment process"
+					);
 					const params = new URLSearchParams({
 						planId: planId.toString(),
 						seatPlanId: seatPlanId.toString(),

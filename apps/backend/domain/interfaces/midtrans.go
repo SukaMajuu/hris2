@@ -27,8 +27,8 @@ type MidtransSnapRequest struct {
 }
 
 type MidtransTransactionDetails struct {
-	OrderID     string          `json:"order_id"`
-	GrossAmount decimal.Decimal `json:"gross_amount"`
+	OrderID     string `json:"order_id"`
+	GrossAmount int64  `json:"gross_amount"`
 }
 
 type MidtransCustomerDetails struct {
@@ -51,13 +51,13 @@ type MidtransCustomerAddress struct {
 }
 
 type MidtransItemDetails struct {
-	ID       string          `json:"id"`
-	Price    decimal.Decimal `json:"price"`
-	Quantity int             `json:"quantity"`
-	Name     string          `json:"name"`
-	Brand    *string         `json:"brand,omitempty"`
-	Category *string         `json:"category,omitempty"`
-	URL      *string         `json:"merchant_name,omitempty"`
+	ID       string  `json:"id"`
+	Price    int64   `json:"price"`
+	Quantity int     `json:"quantity"`
+	Name     string  `json:"name"`
+	Brand    *string `json:"brand,omitempty"`
+	Category *string `json:"category,omitempty"`
+	URL      *string `json:"merchant_name,omitempty"`
 }
 
 type MidtransCallbacks struct {

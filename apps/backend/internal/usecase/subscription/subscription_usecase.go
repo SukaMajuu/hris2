@@ -16,6 +16,15 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+// Constants for repeated string values
+const (
+	OrderIDPrefix     = "HRIS-"
+	SeatUpgradeType   = "seat_upgrade"
+	PlanUpgradeType   = "plan_upgrade"
+	PlanDowngradeType = "plan_downgrade"
+	SeatDowngradeType = "seat_downgrade"
+)
+
 // convertToIDRWholeNumber converts decimal amount to whole number for IDR currency
 // Midtrans requires whole numbers for IDR, no cents allowed
 func convertToIDRWholeNumber(amount decimal.Decimal) decimal.Decimal {
@@ -155,7 +164,7 @@ func (uc *SubscriptionUseCase) InitiatePaidCheckout(ctx context.Context, userID,
 	}
 
 	// Create Midtrans Snap transaction instead of Xendit invoice
-	orderID := fmt.Sprintf("HRIS-%s", sessionID)
+	orderID := fmt.Sprintf("%s%s", OrderIDPrefix, sessionID)
 
 	// Ensure amount meets Midtrans minimum requirement (1000 IDR)
 	paymentAmount := amount
@@ -169,7 +178,7 @@ func (uc *SubscriptionUseCase) InitiatePaidCheckout(ctx context.Context, userID,
 	snapReq := interfaces.MidtransSnapRequest{
 		TransactionDetails: interfaces.MidtransTransactionDetails{
 			OrderID:     orderID,
-			GrossAmount: paymentAmount,
+			GrossAmount: paymentAmount.IntPart(), // Convert to int64
 		},
 		CustomerDetails: &interfaces.MidtransCustomerDetails{
 			Email: user.Email,
@@ -178,7 +187,7 @@ func (uc *SubscriptionUseCase) InitiatePaidCheckout(ctx context.Context, userID,
 			{
 				ID:       fmt.Sprintf("subscription-%d", seatPlanID),
 				Name:     description,
-				Price:    paymentAmount,
+				Price:    paymentAmount.IntPart(), // Convert to int64
 				Quantity: 1,
 				Category: func() *string { s := "subscription"; return &s }(),
 			},
@@ -307,56 +316,61 @@ func (uc *SubscriptionUseCase) processInvoicePaidWebhook(ctx context.Context, da
 		return fmt.Errorf("missing invoice ID")
 	}
 
-	sessionID := externalID[9:]
-	session, err := uc.xenditRepo.GetCheckoutSession(ctx, sessionID)
-	if err != nil {
-		return fmt.Errorf("failed to get checkout session: %w", err)
-	}
-
-	paidAtStr, _ := data["paid_at"].(string)
-	paidAt, _ := time.Parse(time.RFC3339, paidAtStr)
-
-	// Convert data to JSON string for storage
-	gatewayResponseJSON, _ := json.Marshal(data)
-	gatewayResponseStr := string(gatewayResponseJSON)
-
-	transaction := &domain.PaymentTransaction{
-		SubscriptionID:  *session.SubscriptionID,
-		TransactionID:   &invoiceID,
-		OrderID:         externalID,
-		Amount:          session.Amount,
-		Currency:        session.Currency,
-		Status:          enums.PaymentPaid,
-		PaymentMethod:   func() *string { s, _ := data["payment_method"].(string); return &s }(),
-		Description:     "Subscription payment",
-		PaidAt:          &paidAt,
-		GatewayResponse: &gatewayResponseStr,
-	}
-
-	if err := uc.xenditRepo.CreatePaymentTransaction(ctx, transaction); err != nil {
-		return fmt.Errorf("failed to create payment transaction: %w", err)
-	}
-
-	subscription, err := uc.xenditRepo.GetSubscriptionByAdminUserID(ctx, session.UserID)
-	if err != nil {
-		return fmt.Errorf("failed to get subscription: %w", err)
-	}
-
-	if subscription.Status == enums.StatusTrial {
-		subscription.ConvertFromTrialWithCheckoutSession(session.Amount)
-		if err := uc.xenditRepo.UpdateSubscription(ctx, subscription); err != nil {
-			return fmt.Errorf("failed to update subscription: %w", err)
+	// Try to extract session ID from order ID if it has HRIS prefix
+	if strings.HasPrefix(externalID, OrderIDPrefix) {
+		sessionID := externalID[len(OrderIDPrefix):] // Remove prefix
+		session, err := uc.xenditRepo.GetCheckoutSession(ctx, sessionID)
+		if err != nil {
+			return fmt.Errorf("failed to get checkout session: %w", err)
 		}
 
-		trialActivity, err := uc.xenditRepo.GetTrialActivityBySubscription(ctx, subscription.ID)
-		if err == nil {
-			trialActivity.MarkAsConverted()
-			_ = uc.xenditRepo.UpdateTrialActivity(ctx, trialActivity)
+		paidAtStr, _ := data["paid_at"].(string)
+		paidAt, _ := time.Parse(time.RFC3339, paidAtStr)
+
+		// Convert data to JSON string for storage
+		gatewayResponseJSON, _ := json.Marshal(data)
+		gatewayResponseStr := string(gatewayResponseJSON)
+
+		transaction := &domain.PaymentTransaction{
+			SubscriptionID:  *session.SubscriptionID,
+			TransactionID:   &invoiceID,
+			OrderID:         externalID,
+			Amount:          session.Amount,
+			Currency:        session.Currency,
+			Status:          enums.PaymentPaid,
+			PaymentMethod:   func() *string { s, _ := data["payment_method"].(string); return &s }(),
+			Description:     "Subscription payment",
+			PaidAt:          &paidAt,
+			GatewayResponse: &gatewayResponseStr,
 		}
+
+		if err := uc.xenditRepo.CreatePaymentTransaction(ctx, transaction); err != nil {
+			return fmt.Errorf("failed to create payment transaction: %w", err)
+		}
+
+		subscription, err := uc.xenditRepo.GetSubscriptionByAdminUserID(ctx, session.UserID)
+		if err != nil {
+			return fmt.Errorf("failed to get subscription: %w", err)
+		}
+
+		if subscription.Status == enums.StatusTrial {
+			subscription.ConvertFromTrialWithCheckoutSession(session.Amount)
+			if err := uc.xenditRepo.UpdateSubscription(ctx, subscription); err != nil {
+				return fmt.Errorf("failed to update subscription: %w", err)
+			}
+
+			trialActivity, err := uc.xenditRepo.GetTrialActivityBySubscription(ctx, subscription.ID)
+			if err == nil {
+				trialActivity.MarkAsConverted()
+				_ = uc.xenditRepo.UpdateTrialActivity(ctx, trialActivity)
+			}
+		}
+
+		session.MarkAsCompleted(subscription.ID, &transaction.ID)
+		return uc.xenditRepo.UpdateCheckoutSession(ctx, session)
 	}
 
-	session.MarkAsCompleted(subscription.ID, &transaction.ID)
-	return uc.xenditRepo.UpdateCheckoutSession(ctx, session)
+	return fmt.Errorf("missing or invalid external ID format")
 }
 
 func (uc *SubscriptionUseCase) processInvoiceExpiredWebhook(ctx context.Context, data map[string]interface{}) error {
@@ -365,14 +379,19 @@ func (uc *SubscriptionUseCase) processInvoiceExpiredWebhook(ctx context.Context,
 		return fmt.Errorf("missing external ID")
 	}
 
-	sessionID := externalID[9:]
-	session, err := uc.xenditRepo.GetCheckoutSession(ctx, sessionID)
-	if err != nil {
-		return fmt.Errorf("failed to get checkout session: %w", err)
+	// Try to extract session ID from order ID if it has HRIS prefix
+	if strings.HasPrefix(externalID, OrderIDPrefix) {
+		sessionID := externalID[len(OrderIDPrefix):]
+		session, err := uc.xenditRepo.GetCheckoutSession(ctx, sessionID)
+		if err != nil {
+			return fmt.Errorf("failed to get checkout session: %w", err)
+		}
+
+		session.Status = enums.CheckoutExpired
+		return uc.xenditRepo.UpdateCheckoutSession(ctx, session)
 	}
 
-	session.Status = enums.CheckoutExpired
-	return uc.xenditRepo.UpdateCheckoutSession(ctx, session)
+	return fmt.Errorf("invalid external ID format")
 }
 
 func (uc *SubscriptionUseCase) processInvoiceFailedWebhook(ctx context.Context, data map[string]interface{}) error {
@@ -602,26 +621,25 @@ func (uc *SubscriptionUseCase) validateTripaySignature(signature, rawBody string
 }
 
 func (uc *SubscriptionUseCase) ProcessMidtransWebhook(ctx context.Context, notification map[string]interface{}) error {
-	// Extract required fields from notification
-	orderID, ok := notification["order_id"].(string)
-	if !ok {
+	// Validate required fields
+	orderID, exists := notification["order_id"].(string)
+	if !exists || orderID == "" {
 		return fmt.Errorf("missing order_id")
 	}
 
-	transactionStatus, ok := notification["transaction_status"].(string)
-	if !ok {
+	// Validate transaction status
+	transactionStatus, exists := notification["transaction_status"].(string)
+	if !exists || transactionStatus == "" {
 		return fmt.Errorf("missing transaction_status")
 	}
 
-	fmt.Printf("ProcessMidtransWebhook: Processing order %s with status %s\n", orderID, transactionStatus)
-
 	// Extract session ID from order ID (format: HRIS-{sessionID})
-	if len(orderID) < 6 || orderID[:5] != "HRIS-" {
+	if len(orderID) < 6 || !strings.HasPrefix(orderID, OrderIDPrefix) {
 		return fmt.Errorf("invalid order ID format: %s", orderID)
 	}
-	sessionID := orderID[5:] // Remove "HRIS-" prefix
+	sessionID := orderID[len(OrderIDPrefix):] // Remove prefix
 
-	fmt.Printf("ProcessMidtransWebhook: Extracted session ID: %s\n", sessionID)
+	fmt.Printf("ProcessMidtransWebhook: Processing order %s with status %s\n", orderID, transactionStatus)
 
 	// Find checkout session
 	checkoutSession, err := uc.xenditRepo.GetCheckoutSession(ctx, sessionID)
@@ -648,8 +666,13 @@ func (uc *SubscriptionUseCase) ProcessMidtransWebhook(ctx context.Context, notif
 			return fmt.Errorf("failed to activate subscription: %w", err)
 		}
 
-		fmt.Printf("ProcessMidtransWebhook: Subscription activated successfully, SubscriptionID=%d\n",
-			*checkoutSession.SubscriptionID)
+		// Safely access subscription ID
+		if checkoutSession.SubscriptionID != nil {
+			fmt.Printf("ProcessMidtransWebhook: Subscription activated successfully, SubscriptionID=%d\n",
+				*checkoutSession.SubscriptionID)
+		} else {
+			fmt.Printf("ProcessMidtransWebhook: Warning: Subscription activation completed but SubscriptionID is nil\n")
+		}
 
 		// Create payment transaction record (after subscription is created)
 		if err := uc.createMidtransPaymentTransaction(ctx, checkoutSession, notification); err != nil {
@@ -703,7 +726,7 @@ func (uc *SubscriptionUseCase) createMidtransPaymentTransaction(ctx context.Cont
 	transaction := &domain.PaymentTransaction{
 		SubscriptionID:  *session.SubscriptionID,
 		TransactionID:   &transactionID,
-		OrderID:         fmt.Sprintf("HRIS-%s", session.SessionID),
+		OrderID:         fmt.Sprintf("%s%s", OrderIDPrefix, session.SessionID),
 		Amount:          session.Amount,
 		Currency:        session.Currency,
 		Status:          enums.PaymentPaid,
@@ -805,15 +828,16 @@ func (uc *SubscriptionUseCase) activateMidtransSubscription(ctx context.Context,
 	fmt.Printf("activateMidtransSubscription: Found existing subscription ID=%d, Status=%s\n",
 		subscription.ID, subscription.Status)
 
-	// Existing subscription found - convert from trial if applicable
-	if subscription.Status == enums.StatusTrial {
+	// Existing subscription found - handle trial conversion OR active subscription upgrade
+	switch subscription.Status {
+	case enums.StatusTrial:
 		fmt.Printf("activateMidtransSubscription: Converting trial subscription to paid\n")
 
 		// Update subscription plan and seat plan from checkout session
 		subscription.SubscriptionPlanID = checkoutSession.SubscriptionPlanID
 		subscription.SeatPlanID = checkoutSession.SeatPlanID
+		subscription.Status = enums.StatusActive
 
-		// subscription.ConvertFromTrialWithCheckoutSession(checkoutSession.Amount)
 		if err := uc.xenditRepo.UpdateSubscription(ctx, subscription); err != nil {
 			fmt.Printf("activateMidtransSubscription: Failed to update subscription: %v\n", err)
 			return fmt.Errorf("failed to update subscription: %w", err)
@@ -822,19 +846,40 @@ func (uc *SubscriptionUseCase) activateMidtransSubscription(ctx context.Context,
 		fmt.Printf("activateMidtransSubscription: Trial converted to paid subscription (PlanID=%d, SeatPlanID=%d)\n",
 			subscription.SubscriptionPlanID, subscription.SeatPlanID)
 
-		// Update trial activity
+		// Update trial activity to mark as converted
 		trialActivity, err := uc.xenditRepo.GetTrialActivityBySubscription(ctx, subscription.ID)
-		if err == nil {
+		if err == nil && trialActivity != nil {
 			trialActivity.MarkAsConverted()
-			_ = uc.xenditRepo.UpdateTrialActivity(ctx, trialActivity)
-			fmt.Printf("activateMidtransSubscription: Updated trial activity\n")
+			if updateErr := uc.xenditRepo.UpdateTrialActivity(ctx, trialActivity); updateErr != nil {
+				fmt.Printf("activateMidtransSubscription: Failed to update trial activity: %v\n", updateErr)
+			} else {
+				fmt.Printf("activateMidtransSubscription: Updated trial activity\n")
+			}
 		}
 
-		// Update checkout session with subscription ID
 		checkoutSession.SubscriptionID = &subscription.ID
 		fmt.Printf("activateMidtransSubscription: Updated checkout session with existing SubscriptionID=%d\n", subscription.ID)
-	} else {
-		fmt.Printf("activateMidtransSubscription: Existing subscription is not trial (Status=%s), skipping conversion\n", subscription.Status)
+
+	case enums.StatusActive:
+		fmt.Printf("activateMidtransSubscription: Upgrading active subscription\n")
+
+		// Apply the upgrade for active subscriptions
+		subscription.SubscriptionPlanID = checkoutSession.SubscriptionPlanID
+		subscription.SeatPlanID = checkoutSession.SeatPlanID
+
+		if err := uc.xenditRepo.UpdateSubscription(ctx, subscription); err != nil {
+			fmt.Printf("activateMidtransSubscription: Failed to update subscription: %v\n", err)
+			return fmt.Errorf("failed to update subscription: %w", err)
+		}
+
+		fmt.Printf("activateMidtransSubscription: Active subscription upgraded (PlanID=%d, SeatPlanID=%d)\n",
+			subscription.SubscriptionPlanID, subscription.SeatPlanID)
+
+		checkoutSession.SubscriptionID = &subscription.ID
+		fmt.Printf("activateMidtransSubscription: Updated checkout session with existing SubscriptionID=%d\n", subscription.ID)
+
+	default:
+		fmt.Printf("activateMidtransSubscription: Existing subscription has status %s, skipping modification\n", subscription.Status)
 		checkoutSession.SubscriptionID = &subscription.ID
 	}
 
@@ -895,6 +940,10 @@ func (uc *SubscriptionUseCase) PreviewSubscriptionPlanChange(ctx context.Context
 	effectiveDate := time.Now().UTC()
 	nextBillingDate := effectiveDate
 
+	// Debug logging
+	fmt.Printf("DEBUG: Starting proration calculation - Status=%s, NextBillingDate=%v, PriceDifference=%s\n",
+		currentSubscription.Status, currentSubscription.NextBillingDate, priceDifference.String())
+
 	if currentSubscription.NextBillingDate != nil {
 		nextBillingDate = *currentSubscription.NextBillingDate
 
@@ -910,14 +959,37 @@ func (uc *SubscriptionUseCase) PreviewSubscriptionPlanChange(ctx context.Context
 				// For upgrades, charge prorated amount for remaining period
 				dailyDifference := priceDifference.Div(decimal.NewFromInt(int64(totalDays)))
 				prorationAmount = dailyDifference.Mul(decimal.NewFromInt(int64(remainingDays)))
+
+				// Debug logging
+				fmt.Printf("DEBUG: remainingDays=%d, totalDays=%d, priceDifference=%s, dailyDifference=%s, prorationAmount=%s\n",
+					remainingDays, totalDays, priceDifference.String(), dailyDifference.String(), prorationAmount.String())
 			}
 		}
 	} else {
-		// For trial users, set next billing based on billing frequency
+		// For trial users or users without billing date, set next billing based on billing frequency
 		if isMonthly {
 			nextBillingDate = effectiveDate.AddDate(0, 1, 0)
 		} else {
 			nextBillingDate = effectiveDate.AddDate(1, 0, 0)
+		}
+
+		// For trial users or users without billing date, calculate proration for full billing period
+		if isUpgrade {
+			// For trial users upgrading, calculate proration based on remaining time until next billing
+			totalDays := 30 // Monthly
+			if !isMonthly {
+				totalDays = 365 // Yearly
+			}
+
+			remainingDays := int(nextBillingDate.Sub(effectiveDate).Hours() / 24)
+			if remainingDays > 0 {
+				dailyDifference := priceDifference.Div(decimal.NewFromInt(int64(totalDays)))
+				prorationAmount = dailyDifference.Mul(decimal.NewFromInt(int64(remainingDays)))
+
+				// Debug logging
+				fmt.Printf("DEBUG: Trial user proration - remainingDays=%d, totalDays=%d, priceDifference=%s, dailyDifference=%s, prorationAmount=%s\n",
+					remainingDays, totalDays, priceDifference.String(), dailyDifference.String(), prorationAmount.String())
+			}
 		}
 	}
 
@@ -934,11 +1006,6 @@ func (uc *SubscriptionUseCase) PreviewSubscriptionPlanChange(ctx context.Context
 
 				// Start with proration amount
 				finalAmount := prorationAmount
-
-				// If proration is less than price difference, use price difference
-				if priceDifference.GreaterThan(finalAmount) {
-					finalAmount = priceDifference
-				}
 
 				// Ensure it meets minimum requirement
 				if finalAmount.LessThan(minAmount) {
@@ -957,139 +1024,152 @@ func (uc *SubscriptionUseCase) PreviewSubscriptionPlanChange(ctx context.Context
 	}, nil
 }
 
-// UpgradeSubscriptionPlan upgrades or downgrades subscription plan
-func (uc *SubscriptionUseCase) UpgradeSubscriptionPlan(ctx context.Context, userID uint, newPlanID uint, isMonthly bool) (*subscriptionDto.SubscriptionChangeResponse, error) {
-	// Get preview first
-	preview, err := uc.PreviewSubscriptionPlanChange(ctx, userID, newPlanID, isMonthly)
-	if err != nil {
-		return nil, err
+// createUpgradeCheckoutSession creates a checkout session for subscription upgrade
+func (uc *SubscriptionUseCase) createUpgradeCheckoutSession(
+	ctx context.Context,
+	userID uint,
+	newPlanID uint,
+	sessionID string,
+	preview *subscriptionDto.UpgradePreviewResponse,
+	currentSubscription *domain.Subscription,
+) (*subscriptionDto.CheckoutSessionResponse, *subscriptionDto.InvoiceResponse, error) {
+	session := &domain.CheckoutSession{
+		SessionID:          sessionID,
+		UserID:             userID,
+		SubscriptionPlanID: newPlanID,
+		SeatPlanID:         preview.NewSeatPlan.ID,
+		IsTrialCheckout:    false,
+		Amount:             preview.ProrationAmount,
+		Currency:           "IDR",
+		Status:             enums.CheckoutInitiated,
+		InitiatedAt:        time.Now().UTC(),
+		ExpiresAt:          func() *time.Time { t := time.Now().UTC().Add(24 * time.Hour); return &t }(),
 	}
 
+	if err := uc.xenditRepo.CreateCheckoutSession(ctx, session); err != nil {
+		return nil, nil, fmt.Errorf("failed to create checkout session: %w", err)
+	}
+
+	// Get user for payment details
+	user, err := uc.authRepo.GetUserByID(ctx, userID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get user: %w", err)
+	}
+
+	// Create Midtrans Snap transaction
+	orderID := fmt.Sprintf("%s%s", OrderIDPrefix, sessionID)
+	description := fmt.Sprintf("HRIS Plan Upgrade - %s to %s",
+		currentSubscription.SubscriptionPlan.Name,
+		preview.NewPlan.Name)
+
+	// Ensure amount meets Midtrans minimum requirement (1000 IDR)
+	paymentAmount := preview.ProrationAmount
+	fmt.Printf("DEBUG PLAN UPGRADE: Original preview.ProrationAmount=%s\n", preview.ProrationAmount.String())
+
+	if paymentAmount.LessThan(decimal.NewFromInt(1000)) {
+		paymentAmount = decimal.NewFromInt(1000)
+		fmt.Printf("DEBUG PLAN UPGRADE: Amount too small, using minimum: %s\n", paymentAmount.String())
+	}
+
+	// Convert to whole number for IDR currency
+	paymentAmount = convertToIDRWholeNumber(paymentAmount)
+	fmt.Printf("DEBUG PLAN UPGRADE: Final paymentAmount after convertToIDRWholeNumber=%s\n", paymentAmount.String())
+
+	// Debug logging
+	fmt.Printf("DEBUG: Sending to Midtrans - preview.ProrationAmount=%s, paymentAmount=%s\n",
+		preview.ProrationAmount.String(), paymentAmount.String())
+
+	snapResp, err := uc.createMidtransSnapTransaction(ctx, orderID, description, paymentAmount, user.Email, sessionID, fmt.Sprintf("upgrade-%d", newPlanID), "subscription_upgrade")
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create Midtrans Snap transaction: %w", err)
+	}
+
+	// Update checkout session with Midtrans info
+	session.PaymentToken = &snapResp.Token
+	session.PaymentURL = &snapResp.RedirectURL
+	session.PaymentReference = &orderID
+	session.Status = enums.CheckoutPending
+
+	if err := uc.xenditRepo.UpdateCheckoutSession(ctx, session); err != nil {
+		return nil, nil, fmt.Errorf("failed to update checkout session: %w", err)
+	}
+
+	checkoutSession := subscriptionDto.ToCheckoutSessionResponse(session)
+	invoice := &subscriptionDto.InvoiceResponse{
+		ID:         snapResp.Token,
+		Amount:     paymentAmount, // Use the actual payment amount sent to Midtrans
+		Currency:   "IDR",
+		ExpiryDate: time.Now().UTC().Add(24 * time.Hour).Format(time.RFC3339),
+	}
+
+	return checkoutSession, invoice, nil
+}
+
+// createMidtransSnapTransaction creates a Midtrans Snap transaction
+func (uc *SubscriptionUseCase) createMidtransSnapTransaction(
+	ctx context.Context,
+	orderID, description string,
+	paymentAmount decimal.Decimal,
+	userEmail, sessionID, itemID, category string,
+) (*interfaces.MidtransSnapResponse, error) {
+	fmt.Printf("DEBUG MIDTRANS: createMidtransSnapTransaction called with paymentAmount=%s\n", paymentAmount.String())
+
+	// Convert decimal to int64 for proper JSON serialization
+	amountInt := paymentAmount.IntPart()
+
+	snapReq := interfaces.MidtransSnapRequest{
+		TransactionDetails: interfaces.MidtransTransactionDetails{
+			OrderID:     orderID,
+			GrossAmount: amountInt, // Use int64 instead of decimal.Decimal
+		},
+		CustomerDetails: &interfaces.MidtransCustomerDetails{
+			Email: userEmail,
+		},
+		ItemDetails: []interfaces.MidtransItemDetails{
+			{
+				ID:       itemID,
+				Name:     description,
+				Price:    amountInt, // Use int64 instead of decimal.Decimal
+				Quantity: 1,
+				Category: func() *string { s := category; return &s }(),
+			},
+		},
+		Callbacks: &interfaces.MidtransCallbacks{
+			Finish:  "https://hrispblfrontend.agreeablecoast-95647c57.southeastasia.azurecontainerapps.io/payment/success",
+			Error:   "https://hrispblfrontend.agreeablecoast-95647c57.southeastasia.azurecontainerapps.io/payment/error",
+			Pending: "https://hrispblfrontend.agreeablecoast-95647c57.southeastasia.azurecontainerapps.io/payment/pending",
+		},
+		Expiry: &interfaces.MidtransExpiry{
+			Unit:     "hour",
+			Duration: 24,
+		},
+		PageExpiry: &interfaces.MidtransPageExpiry{
+			Duration: 24,
+			Unit:     "hour",
+		},
+		CustomField1: &sessionID,
+	}
+
+	fmt.Printf("DEBUG MIDTRANS: Request GrossAmount=%d, ItemDetails[0].Price=%d\n",
+		snapReq.TransactionDetails.GrossAmount, snapReq.ItemDetails[0].Price)
+
+	return uc.midtransClient.CreateSnapTransaction(ctx, snapReq)
+}
+
+// applySubscriptionUpgrade applies the subscription upgrade immediately (for downgrades or free upgrades)
+func (uc *SubscriptionUseCase) applySubscriptionUpgrade(
+	ctx context.Context,
+	userID uint,
+	newPlanID uint,
+	preview *subscriptionDto.UpgradePreviewResponse,
+	isMonthly bool,
+) (*domain.Subscription, error) {
 	// Get current subscription
 	currentSubscription, err := uc.xenditRepo.GetSubscriptionByAdminUserID(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get current subscription: %w", err)
 	}
 
-	changeType := "plan_downgrade"
-	if preview.IsUpgrade {
-		changeType = "plan_upgrade"
-	}
-
-	// If payment is required for upgrade, create checkout session
-	var checkoutSession *subscriptionDto.CheckoutSessionResponse
-	var invoice *subscriptionDto.InvoiceResponse
-
-	if preview.RequiresPayment {
-		sessionID := uuid.New().String()
-		session := &domain.CheckoutSession{
-			SessionID:          sessionID,
-			UserID:             userID,
-			SubscriptionPlanID: newPlanID,
-			SeatPlanID:         preview.NewSeatPlan.ID,
-			IsTrialCheckout:    false,
-			Amount:             preview.ProrationAmount,
-			Currency:           "IDR",
-			Status:             enums.CheckoutInitiated,
-			InitiatedAt:        time.Now().UTC(),
-			ExpiresAt:          func() *time.Time { t := time.Now().UTC().Add(24 * time.Hour); return &t }(),
-		}
-
-		if err := uc.xenditRepo.CreateCheckoutSession(ctx, session); err != nil {
-			return nil, fmt.Errorf("failed to create checkout session: %w", err)
-		}
-
-		// Get user for payment details
-		user, err := uc.authRepo.GetUserByID(ctx, userID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get user: %w", err)
-		}
-
-		// Create Midtrans Snap transaction instead of Xendit invoice
-		orderID := fmt.Sprintf("HRIS-%s", sessionID)
-		description := fmt.Sprintf("HRIS Plan Upgrade - %s to %s",
-			currentSubscription.SubscriptionPlan.Name,
-			preview.NewPlan.Name)
-
-		// Ensure amount meets Midtrans minimum requirement (1000 IDR)
-		paymentAmount := preview.ProrationAmount
-		if paymentAmount.LessThan(decimal.NewFromInt(1000)) {
-			paymentAmount = decimal.NewFromInt(1000)
-		}
-
-		// Convert to whole number for IDR currency (Midtrans requirement)
-		paymentAmount = convertToIDRWholeNumber(paymentAmount)
-
-		snapReq := interfaces.MidtransSnapRequest{
-			TransactionDetails: interfaces.MidtransTransactionDetails{
-				OrderID:     orderID,
-				GrossAmount: paymentAmount,
-			},
-			CustomerDetails: &interfaces.MidtransCustomerDetails{
-				Email: user.Email,
-			},
-			ItemDetails: []interfaces.MidtransItemDetails{
-				{
-					ID:       fmt.Sprintf("upgrade-%d", newPlanID),
-					Name:     description,
-					Price:    paymentAmount,
-					Quantity: 1,
-					Category: func() *string { s := "subscription_upgrade"; return &s }(),
-				},
-			},
-			Callbacks: &interfaces.MidtransCallbacks{
-				Finish:  "https://hrispblfrontend.agreeablecoast-95647c57.southeastasia.azurecontainerapps.io/payment/success",
-				Error:   "https://hrispblfrontend.agreeablecoast-95647c57.southeastasia.azurecontainerapps.io/payment/error",
-				Pending: "https://hrispblfrontend.agreeablecoast-95647c57.southeastasia.azurecontainerapps.io/payment/pending",
-			},
-			Expiry: &interfaces.MidtransExpiry{
-				Unit:     "hour",
-				Duration: 24,
-			},
-			PageExpiry: &interfaces.MidtransPageExpiry{
-				Duration: 24,
-				Unit:     "hour",
-			},
-			CustomField1: &sessionID, // Store session ID for reference
-		}
-
-		snapResp, err := uc.midtransClient.CreateSnapTransaction(ctx, snapReq)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create Midtrans Snap transaction: %w", err)
-		}
-
-		// Update checkout session with Midtrans info
-		session.PaymentToken = &snapResp.Token
-		session.PaymentURL = &snapResp.RedirectURL
-		session.PaymentReference = &orderID
-		session.Status = enums.CheckoutPending
-
-		if err := uc.xenditRepo.UpdateCheckoutSession(ctx, session); err != nil {
-			return nil, fmt.Errorf("failed to update checkout session: %w", err)
-		}
-
-		checkoutSession = subscriptionDto.ToCheckoutSessionResponse(session)
-		invoice = &subscriptionDto.InvoiceResponse{
-			ID:         snapResp.Token,
-			Amount:     preview.ProrationAmount,
-			Currency:   "IDR",
-			ExpiryDate: time.Now().UTC().Add(24 * time.Hour).Format(time.RFC3339),
-		}
-
-		// Return response indicating payment is required
-		return &subscriptionDto.SubscriptionChangeResponse{
-			Subscription:    subscriptionDto.ToSubscriptionResponse(currentSubscription),
-			ChangeType:      changeType,
-			PaymentRequired: true,
-			PaymentAmount:   &preview.ProrationAmount,
-			CheckoutSession: checkoutSession,
-			Invoice:         invoice,
-			EffectiveDate:   preview.EffectiveDate,
-			Message:         fmt.Sprintf("Payment of %s required to complete plan upgrade", preview.ProrationAmount.String()),
-		}, nil
-	}
-
-	// No payment required (downgrade or trial), apply changes immediately
 	// Update billing dates
 	if isMonthly {
 		nextBilling := time.Now().UTC().AddDate(0, 1, 0)
@@ -1113,6 +1193,55 @@ func (uc *SubscriptionUseCase) UpgradeSubscriptionPlan(ctx context.Context, user
 	updatedSubscription, err := uc.xenditRepo.GetSubscriptionByAdminUserID(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get updated subscription: %w", err)
+	}
+
+	return updatedSubscription, nil
+}
+
+// UpgradeSubscriptionPlan upgrades or downgrades subscription plan
+func (uc *SubscriptionUseCase) UpgradeSubscriptionPlan(ctx context.Context, userID uint, newPlanID uint, isMonthly bool) (*subscriptionDto.SubscriptionChangeResponse, error) {
+	// Get preview first
+	preview, err := uc.PreviewSubscriptionPlanChange(ctx, userID, newPlanID, isMonthly)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get current subscription
+	currentSubscription, err := uc.xenditRepo.GetSubscriptionByAdminUserID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get current subscription: %w", err)
+	}
+
+	changeType := PlanDowngradeType
+	if preview.IsUpgrade {
+		changeType = PlanUpgradeType
+	}
+
+	// If payment is required for upgrade, create checkout session
+	if preview.RequiresPayment {
+		sessionID := uuid.New().String()
+		checkoutSession, invoice, err := uc.createUpgradeCheckoutSession(ctx, userID, newPlanID, sessionID, preview, currentSubscription)
+		if err != nil {
+			return nil, err
+		}
+
+		// Return response indicating payment is required
+		return &subscriptionDto.SubscriptionChangeResponse{
+			Subscription:    subscriptionDto.ToSubscriptionResponse(currentSubscription),
+			ChangeType:      changeType,
+			PaymentRequired: true,
+			PaymentAmount:   &preview.ProrationAmount,
+			CheckoutSession: checkoutSession,
+			Invoice:         invoice,
+			EffectiveDate:   preview.EffectiveDate,
+			Message:         fmt.Sprintf("Payment of %s required to complete plan upgrade", preview.ProrationAmount.String()),
+		}, nil
+	}
+
+	// No payment required (downgrade or trial), apply changes immediately
+	updatedSubscription, err := uc.applySubscriptionUpgrade(ctx, userID, newPlanID, preview, isMonthly)
+	if err != nil {
+		return nil, err
 	}
 
 	message := fmt.Sprintf("Successfully %s to %s plan",
@@ -1191,6 +1320,25 @@ func (uc *SubscriptionUseCase) PreviewSeatPlanChange(ctx context.Context, userID
 		} else {
 			nextBillingDate = effectiveDate.AddDate(1, 0, 0)
 		}
+
+		// For trial users or users without billing date, calculate proration for full billing period
+		if isUpgrade {
+			// For trial users upgrading, calculate proration based on remaining time until next billing
+			totalDays := 30 // Monthly
+			if !isMonthly {
+				totalDays = 365 // Yearly
+			}
+
+			remainingDays := int(nextBillingDate.Sub(effectiveDate).Hours() / 24)
+			if remainingDays > 0 {
+				dailyDifference := priceDifference.Div(decimal.NewFromInt(int64(totalDays)))
+				prorationAmount = dailyDifference.Mul(decimal.NewFromInt(int64(remainingDays)))
+
+				// Debug logging
+				fmt.Printf("DEBUG: Trial user proration - remainingDays=%d, totalDays=%d, priceDifference=%s, dailyDifference=%s, prorationAmount=%s\n",
+					remainingDays, totalDays, priceDifference.String(), dailyDifference.String(), prorationAmount.String())
+			}
+		}
 	}
 
 	return &subscriptionDto.UpgradePreviewResponse{
@@ -1206,11 +1354,6 @@ func (uc *SubscriptionUseCase) PreviewSeatPlanChange(ctx context.Context, userID
 
 				// Start with proration amount
 				finalAmount := prorationAmount
-
-				// If proration is less than price difference, use price difference
-				if priceDifference.GreaterThan(finalAmount) {
-					finalAmount = priceDifference
-				}
 
 				// Ensure it meets minimum requirement
 				if finalAmount.LessThan(minAmount) {
@@ -1243,9 +1386,9 @@ func (uc *SubscriptionUseCase) ChangeSeatPlan(ctx context.Context, userID uint, 
 		return nil, fmt.Errorf("failed to get current subscription: %w", err)
 	}
 
-	changeType := "seat_downgrade"
+	changeType := SeatDowngradeType
 	if preview.IsUpgrade {
-		changeType = "seat_upgrade"
+		changeType = SeatUpgradeType
 	}
 
 	// Check if current employee count fits in new seat plan
@@ -1284,7 +1427,7 @@ func (uc *SubscriptionUseCase) ChangeSeatPlan(ctx context.Context, userID uint, 
 		}
 
 		// Create Midtrans Snap transaction instead of Xendit invoice
-		orderID := fmt.Sprintf("HRIS-%s", sessionID)
+		orderID := fmt.Sprintf("%s%s", OrderIDPrefix, sessionID)
 		description := fmt.Sprintf("HRIS Seat Upgrade - %d-%d to %d-%d employees",
 			preview.CurrentSeatPlan.MinEmployees, preview.CurrentSeatPlan.MaxEmployees,
 			preview.NewSeatPlan.MinEmployees, preview.NewSeatPlan.MaxEmployees)
@@ -1301,7 +1444,7 @@ func (uc *SubscriptionUseCase) ChangeSeatPlan(ctx context.Context, userID uint, 
 		snapReq := interfaces.MidtransSnapRequest{
 			TransactionDetails: interfaces.MidtransTransactionDetails{
 				OrderID:     orderID,
-				GrossAmount: paymentAmount,
+				GrossAmount: paymentAmount.IntPart(), // Convert to int64
 			},
 			CustomerDetails: &interfaces.MidtransCustomerDetails{
 				Email: user.Email,
@@ -1310,9 +1453,9 @@ func (uc *SubscriptionUseCase) ChangeSeatPlan(ctx context.Context, userID uint, 
 				{
 					ID:       fmt.Sprintf("seat-%d", newSeatPlanID),
 					Name:     description,
-					Price:    paymentAmount,
+					Price:    paymentAmount.IntPart(), // Convert to int64
 					Quantity: 1,
-					Category: func() *string { s := "seat_upgrade"; return &s }(),
+					Category: func() *string { s := SeatUpgradeType; return &s }(),
 				},
 			},
 			Callbacks: &interfaces.MidtransCallbacks{
@@ -1349,7 +1492,7 @@ func (uc *SubscriptionUseCase) ChangeSeatPlan(ctx context.Context, userID uint, 
 		checkoutSession = subscriptionDto.ToCheckoutSessionResponse(session)
 		invoice = &subscriptionDto.InvoiceResponse{
 			ID:         snapResp.Token,
-			Amount:     preview.ProrationAmount,
+			Amount:     paymentAmount,
 			Currency:   "IDR",
 			ExpiryDate: time.Now().UTC().Add(24 * time.Hour).Format(time.RFC3339),
 		}
@@ -1454,7 +1597,7 @@ func (uc *SubscriptionUseCase) ConvertTrialToPaid(ctx context.Context, userID ui
 	}
 
 	// Create Midtrans Snap transaction instead of Xendit invoice
-	orderID := fmt.Sprintf("HRIS-%s", sessionID)
+	orderID := fmt.Sprintf("%s%s", OrderIDPrefix, sessionID)
 	description := fmt.Sprintf("HRIS Trial Conversion - %s Plan (%d-%d employees)",
 		targetSeatPlan.SubscriptionPlan.Name,
 		targetSeatPlan.MinEmployees,
@@ -1472,7 +1615,7 @@ func (uc *SubscriptionUseCase) ConvertTrialToPaid(ctx context.Context, userID ui
 	snapReq := interfaces.MidtransSnapRequest{
 		TransactionDetails: interfaces.MidtransTransactionDetails{
 			OrderID:     orderID,
-			GrossAmount: paymentAmount,
+			GrossAmount: paymentAmount.IntPart(), // Convert to int64
 		},
 		CustomerDetails: &interfaces.MidtransCustomerDetails{
 			Email: user.Email,
@@ -1481,7 +1624,7 @@ func (uc *SubscriptionUseCase) ConvertTrialToPaid(ctx context.Context, userID ui
 			{
 				ID:       fmt.Sprintf("trial-conversion-%d", targetSeatPlanID),
 				Name:     description,
-				Price:    paymentAmount,
+				Price:    paymentAmount.IntPart(), // Convert to int64
 				Quantity: 1,
 				Category: func() *string { s := "trial_conversion"; return &s }(),
 			},
@@ -1581,8 +1724,8 @@ func (uc *SubscriptionUseCase) VerifyPaymentAndActivateSubscription(
 	if orderID != "" {
 		// Extract session ID from order ID if it follows our pattern
 		var sessionID string
-		if strings.HasPrefix(orderID, "HRIS-") {
-			sessionID = orderID[5:] // Remove "HRIS-" prefix
+		if strings.HasPrefix(orderID, OrderIDPrefix) {
+			sessionID = orderID[len(OrderIDPrefix):] // Remove prefix
 		} else if strings.HasPrefix(orderID, "checkout_") {
 			sessionID = orderID[9:] // Remove "checkout_" prefix
 		}
@@ -1663,7 +1806,7 @@ func (uc *SubscriptionUseCase) manuallyActivateSubscription(ctx context.Context,
 	}
 
 	// Use existing webhook processing logic
-	if strings.HasPrefix(orderID, "HRIS-") {
+	if strings.HasPrefix(orderID, OrderIDPrefix) {
 		// This is a Midtrans-style order ID
 		return uc.ProcessMidtransWebhook(ctx, mockNotification)
 	}

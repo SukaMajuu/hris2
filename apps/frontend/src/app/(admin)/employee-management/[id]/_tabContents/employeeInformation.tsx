@@ -438,38 +438,38 @@ const EmployeeInformation: React.FC<EmployeeInformationProps> = ({
                 </SelectContent>
               </Select>
             </div>
-          </div>
-          <div>
-            <Label
-              htmlFor='lastEducation'
-              className='text-sm font-medium text-slate-600 dark:text-slate-400'
-            >
-              Last Education
-            </Label>
-            <Select
-              value={lastEducation}
-              onValueChange={(value) => setLastEducation(value)}
-              disabled={!editPersonal}
-            >
-              <SelectTrigger
-                id='lastEducation'
-                className='mt-1 h-8 w-full cursor-pointer border-slate-300 bg-slate-50 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-70 dark:border-slate-600 dark:bg-slate-800'
+            <div>
+              <Label
+                htmlFor='lastEducation'
+                className='text-sm font-medium text-slate-600 dark:text-slate-400'
               >
-                <SelectValue placeholder='Select education level' />
-              </SelectTrigger>
-              <SelectContent className='bg-white dark:bg-slate-800'>
-                <SelectItem value='SD'>SD</SelectItem>
-                <SelectItem value='SMP'>SMP</SelectItem>
-                <SelectItem value='SMA/SMK'>SMA/SMK</SelectItem>
-                <SelectItem value='D1'>D1</SelectItem>
-                <SelectItem value='D2'>D2</SelectItem>
-                <SelectItem value='D3'>D3</SelectItem>
-                <SelectItem value='S1/D4'>S1/D4</SelectItem>
-                <SelectItem value='S2'>S2</SelectItem>
-                <SelectItem value='S3'>S3</SelectItem>
-                <SelectItem value='Other'>Other</SelectItem>
-              </SelectContent>
-            </Select>
+                Last Education
+              </Label>
+              <Select
+                value={lastEducation}
+                onValueChange={(value) => setLastEducation(value)}
+                disabled={!editPersonal}
+              >
+                <SelectTrigger
+                  id='lastEducation'
+                  className='mt-1 w-full cursor-pointer border-slate-300 bg-slate-50 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-70 dark:border-slate-600 dark:bg-slate-800'
+                >
+                  <SelectValue placeholder='Select education level' />
+                </SelectTrigger>
+                <SelectContent className='bg-white dark:bg-slate-800'>
+                  <SelectItem value='SD'>SD</SelectItem>
+                  <SelectItem value='SMP'>SMP</SelectItem>
+                  <SelectItem value='SMA/SMK'>SMA/SMK</SelectItem>
+                  <SelectItem value='D1'>D1</SelectItem>
+                  <SelectItem value='D2'>D2</SelectItem>
+                  <SelectItem value='D3'>D3</SelectItem>
+                  <SelectItem value='S1/D4'>S1/D4</SelectItem>
+                  <SelectItem value='S2'>S2</SelectItem>
+                  <SelectItem value='S3'>S3</SelectItem>
+                  <SelectItem value='Other'>Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {editPersonal && (

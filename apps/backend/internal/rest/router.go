@@ -198,6 +198,7 @@ func (r *Router) Setup() *gin.Engine {
 			webhooks.POST("/tripay", r.subscriptionHandler.ProcessTripayWebhook)
 			webhooks.POST("/midtrans", r.subscriptionHandler.ProcessMidtransWebhook)
 			webhooks.POST("/midtrans/test", r.subscriptionHandler.TestMidtransWebhook)
+			webhooks.GET("/midtrans/health", r.subscriptionHandler.HealthCheckWebhook)
 		}
 
 		// Cron job endpoints (secured with API key)

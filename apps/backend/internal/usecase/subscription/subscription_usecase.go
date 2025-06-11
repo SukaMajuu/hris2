@@ -624,16 +624,22 @@ func (uc *SubscriptionUseCase) ProcessMidtransWebhook(ctx context.Context, notif
 	// Validate required fields
 	orderID, exists := notification["order_id"].(string)
 	if !exists || orderID == "" {
-		return fmt.Errorf("missing or invalid order_id")
+		return fmt.Errorf("missing order_id")
+	}
+
+	// Validate transaction status
+	transactionStatus, exists := notification["transaction_status"].(string)
+	if !exists || transactionStatus == "" {
+		return fmt.Errorf("missing transaction_status")
 	}
 
 	// Extract session ID from order ID (format: HRIS-{sessionID})
 	if len(orderID) < 6 || !strings.HasPrefix(orderID, OrderIDPrefix) {
-		return fmt.Errorf("invalid order ID format")
+		return fmt.Errorf("invalid order ID format: %s", orderID)
 	}
 	sessionID := orderID[len(OrderIDPrefix):] // Remove prefix
 
-	fmt.Printf("ProcessMidtransWebhook: Processing order %s with status %s\n", orderID, notification["transaction_status"])
+	fmt.Printf("ProcessMidtransWebhook: Processing order %s with status %s\n", orderID, transactionStatus)
 
 	// Find checkout session
 	checkoutSession, err := uc.xenditRepo.GetCheckoutSession(ctx, sessionID)
@@ -646,7 +652,7 @@ func (uc *SubscriptionUseCase) ProcessMidtransWebhook(ctx context.Context, notif
 		checkoutSession.UserID, checkoutSession.Status, checkoutSession.Amount.String())
 
 	// Update checkout session status based on Midtrans transaction status
-	switch notification["transaction_status"] {
+	switch transactionStatus {
 	case statusCapture, statusSettlement:
 		// Payment successful
 		fmt.Printf("ProcessMidtransWebhook: Payment successful for order %s, activating subscription\n", orderID)
@@ -660,8 +666,13 @@ func (uc *SubscriptionUseCase) ProcessMidtransWebhook(ctx context.Context, notif
 			return fmt.Errorf("failed to activate subscription: %w", err)
 		}
 
-		fmt.Printf("ProcessMidtransWebhook: Subscription activated successfully, SubscriptionID=%d\n",
-			*checkoutSession.SubscriptionID)
+		// Safely access subscription ID
+		if checkoutSession.SubscriptionID != nil {
+			fmt.Printf("ProcessMidtransWebhook: Subscription activated successfully, SubscriptionID=%d\n",
+				*checkoutSession.SubscriptionID)
+		} else {
+			fmt.Printf("ProcessMidtransWebhook: Warning: Subscription activation completed but SubscriptionID is nil\n")
+		}
 
 		// Create payment transaction record (after subscription is created)
 		if err := uc.createMidtransPaymentTransaction(ctx, checkoutSession, notification); err != nil {
@@ -682,7 +693,7 @@ func (uc *SubscriptionUseCase) ProcessMidtransWebhook(ctx context.Context, notif
 		checkoutSession.MarkAsFailed()
 
 	default:
-		return fmt.Errorf("unknown transaction status: %s", notification["transaction_status"])
+		return fmt.Errorf("unknown transaction status: %s", transactionStatus)
 	}
 
 	// Update checkout session

@@ -204,6 +204,7 @@ func (h *WorkScheduleHandler) UpdateWorkSchedule(c *gin.Context) {
 	domainWorkSchedule := &domain.WorkSchedule{
 		Name:     req.Name,
 		WorkType: enums.WorkType(req.WorkType),
+		IsActive: true, // Explicitly set IsActive to true to maintain active status
 	}
 
 	updatedWorkSchedule, err := h.workScheduleUseCase.UpdateByUser(c.Request.Context(), id, userID, domainWorkSchedule, domainDetails, req.ToDelete)

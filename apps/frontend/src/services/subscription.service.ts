@@ -41,7 +41,7 @@ class SubscriptionService {
 	async getUserSubscription(): Promise<UserSubscription> {
 		const response = await this.apiService.get<
 			ApiResponse<UserSubscription>
-		>("/api/subscription/user");
+		>("/api/subscription/me");
 		return response.data.data;
 	}
 

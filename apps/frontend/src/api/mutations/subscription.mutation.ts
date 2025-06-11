@@ -26,17 +26,11 @@ export const useInitiateTrialCheckout = () => {
 };
 
 export const useInitiatePaidCheckout = () => {
-	const queryClient = useQueryClient();
-
 	return useMutation({
 		mutationFn: (request: InitiatePaidCheckoutRequest) =>
 			subscriptionService.initiatePaidCheckout(request),
-		onSuccess: () => {
-			// Invalidate user subscription query to refresh data
-			queryClient.invalidateQueries({
-				queryKey: queryKeys.subscription.userSubscription,
-			});
-		},
+		// Don't invalidate subscription query on payment initiation
+		// as it doesn't change subscription status
 	});
 };
 
@@ -47,7 +41,7 @@ export const useCompleteTrialCheckout = () => {
 		mutationFn: (request: CompleteTrialCheckoutRequest) =>
 			subscriptionService.completeTrialCheckout(request),
 		onSuccess: () => {
-			// Invalidate user subscription query to refresh data
+			// Invalidate user subscription query to refresh data after trial completion
 			queryClient.invalidateQueries({
 				queryKey: queryKeys.subscription.userSubscription,
 			});
@@ -61,7 +55,7 @@ export const useActivateTrial = () => {
 	return useMutation({
 		mutationFn: () => subscriptionService.activateTrial(),
 		onSuccess: () => {
-			// Invalidate user subscription query to refresh data
+			// Invalidate user subscription query to refresh data after trial activation
 			queryClient.invalidateQueries({
 				queryKey: queryKeys.subscription.userSubscription,
 			});
@@ -75,6 +69,7 @@ export const usePreviewSubscriptionPlanChange = () => {
 	return useMutation({
 		mutationFn: (request: UpgradeSubscriptionPlanRequest) =>
 			subscriptionService.previewSubscriptionPlanChange(request),
+		// Don't invalidate subscription query on preview as it doesn't change status
 	});
 };
 
@@ -84,11 +79,13 @@ export const useChangeSubscriptionPlan = () => {
 	return useMutation({
 		mutationFn: (request: UpgradeSubscriptionPlanRequest) =>
 			subscriptionService.changeSubscriptionPlan(request),
-		onSuccess: () => {
-			// Invalidate user subscription query to refresh data
-			queryClient.invalidateQueries({
-				queryKey: queryKeys.subscription.userSubscription,
-			});
+		onSuccess: (data) => {
+			// Only invalidate if subscription was actually changed (no payment required)
+			if (!data.payment_required) {
+				queryClient.invalidateQueries({
+					queryKey: queryKeys.subscription.userSubscription,
+				});
+			}
 		},
 	});
 };
@@ -97,6 +94,7 @@ export const usePreviewSeatPlanChange = () => {
 	return useMutation({
 		mutationFn: (request: ChangeSeatPlanRequest) =>
 			subscriptionService.previewSeatPlanChange(request),
+		// Don't invalidate subscription query on preview as it doesn't change status
 	});
 };
 
@@ -106,11 +104,13 @@ export const useChangeSeatPlan = () => {
 	return useMutation({
 		mutationFn: (request: ChangeSeatPlanRequest) =>
 			subscriptionService.changeSeatPlan(request),
-		onSuccess: () => {
-			// Invalidate user subscription query to refresh data
-			queryClient.invalidateQueries({
-				queryKey: queryKeys.subscription.userSubscription,
-			});
+		onSuccess: (data) => {
+			// Only invalidate if subscription was actually changed (no payment required)
+			if (!data.payment_required) {
+				queryClient.invalidateQueries({
+					queryKey: queryKeys.subscription.userSubscription,
+				});
+			}
 		},
 	});
 };
@@ -121,11 +121,13 @@ export const useConvertTrialToPaid = () => {
 	return useMutation({
 		mutationFn: (request: ConvertTrialToPaidRequest) =>
 			subscriptionService.convertTrialToPaid(request),
-		onSuccess: () => {
-			// Invalidate user subscription query to refresh data
-			queryClient.invalidateQueries({
-				queryKey: queryKeys.subscription.userSubscription,
-			});
+		onSuccess: (data) => {
+			// Only invalidate if subscription was actually changed (no payment required)
+			if (!data.payment_required) {
+				queryClient.invalidateQueries({
+					queryKey: queryKeys.subscription.userSubscription,
+				});
+			}
 		},
 	});
 };

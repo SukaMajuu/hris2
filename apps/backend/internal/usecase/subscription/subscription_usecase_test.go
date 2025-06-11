@@ -930,7 +930,7 @@ func TestSubscriptionUseCase_PreviewSubscriptionPlanChange(t *testing.T) {
 				}
 			}
 
-			actualResponse, actualErr := uc.PreviewSubscriptionPlanChange(ctx, userID, newPlanID, tt.isMonthly)
+			actualResponse, actualErr := uc.PreviewSubscriptionPlanChange(ctx, userID, newPlanID, nil, tt.isMonthly)
 
 			if tt.expectedErrorMsg != "" {
 				assert.Error(t, actualErr)

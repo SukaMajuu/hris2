@@ -254,14 +254,6 @@ func (h *SubscriptionHandler) ProcessMidtransWebhook(c *gin.Context) {
 	// Log the notification for debugging
 	fmt.Printf("Midtrans webhook received: %+v\n", notification)
 
-	// Extract signature key for validation (optional but recommended)
-	signatureKey := c.GetHeader("X-Signature-Key")
-	if signatureKey == "" {
-		if sig, ok := notification["signature_key"].(string); ok {
-			signatureKey = sig
-		}
-	}
-
 	// Basic validation - ensure required fields are present
 	orderID, ok := notification["order_id"].(string)
 	if !ok {

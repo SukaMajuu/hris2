@@ -22,6 +22,8 @@ type MidtransSnapRequest struct {
 	CustomField1       *string                    `json:"custom_field1,omitempty"`
 	CustomField2       *string                    `json:"custom_field2,omitempty"`
 	CustomField3       *string                    `json:"custom_field3,omitempty"`
+	EnabledPayments    []string                   `json:"enabled_payments,omitempty"`
+	PageExpiry         *MidtransPageExpiry        `json:"page_expiry,omitempty"`
 }
 
 type MidtransTransactionDetails struct {
@@ -68,6 +70,11 @@ type MidtransExpiry struct {
 	StartTime string `json:"start_time,omitempty"`
 	Unit      string `json:"unit,omitempty"`
 	Duration  int    `json:"duration,omitempty"`
+}
+
+type MidtransPageExpiry struct {
+	Duration int    `json:"duration,omitempty"`
+	Unit     string `json:"unit,omitempty"`
 }
 
 // MidtransSnapResponse from Snap API

@@ -2,7 +2,9 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"strconv"
+	"time"
 
 	subscriptionDTO "github.com/SukaMajuu/hris/apps/backend/internal/rest/dto/subscription"
 	subscriptionUseCase "github.com/SukaMajuu/hris/apps/backend/internal/usecase/subscription"
@@ -249,14 +251,99 @@ func (h *SubscriptionHandler) ProcessMidtransWebhook(c *gin.Context) {
 		return
 	}
 
+	// Log the notification for debugging
+	fmt.Printf("Midtrans webhook received: %+v\n", notification)
+
+	// Extract signature key for validation (optional but recommended)
+	signatureKey := c.GetHeader("X-Signature-Key")
+	if signatureKey == "" {
+		if sig, ok := notification["signature_key"].(string); ok {
+			signatureKey = sig
+		}
+	}
+
+	// Basic validation - ensure required fields are present
+	orderID, ok := notification["order_id"].(string)
+	if !ok {
+		response.BadRequest(c, "Missing order_id in notification", nil)
+		return
+	}
+
+	transactionStatus, ok := notification["transaction_status"].(string)
+	if !ok {
+		response.BadRequest(c, "Missing transaction_status in notification", nil)
+		return
+	}
+
+	fmt.Printf("Processing Midtrans webhook for order: %s, status: %s\n", orderID, transactionStatus)
+
 	// Process Midtrans webhook notification using the regular subscription use case
 	// (which already has ProcessMidtransWebhook implemented)
 	if err := h.subscriptionUseCase.ProcessMidtransWebhook(c.Request.Context(), notification); err != nil {
+		fmt.Printf("Error processing Midtrans webhook: %v\n", err)
 		response.InternalServerError(c, err)
 		return
 	}
 
+	fmt.Printf("Midtrans webhook processed successfully for order: %s\n", orderID)
 	response.OK(c, "Midtrans webhook processed successfully", nil)
+}
+
+// TestMidtransWebhook - Helper endpoint to manually test Midtrans webhook processing
+func (h *SubscriptionHandler) TestMidtransWebhook(c *gin.Context) {
+	var req struct {
+		OrderID           string `json:"order_id" binding:"required"`
+		TransactionStatus string `json:"transaction_status" binding:"required"`
+		TransactionID     string `json:"transaction_id"`
+		GrossAmount       string `json:"gross_amount"`
+		PaymentType       string `json:"payment_type"`
+		TransactionTime   string `json:"transaction_time"`
+		StatusCode        string `json:"status_code"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request payload", err)
+		return
+	}
+
+	// Create a test notification
+	notification := map[string]interface{}{
+		"order_id":           req.OrderID,
+		"transaction_status": req.TransactionStatus,
+		"transaction_id":     req.TransactionID,
+		"gross_amount":       req.GrossAmount,
+		"payment_type":       req.PaymentType,
+		"transaction_time":   req.TransactionTime,
+		"status_code":        req.StatusCode,
+	}
+
+	// Set defaults if not provided
+	if notification["transaction_id"] == "" {
+		notification["transaction_id"] = "test-" + req.OrderID
+	}
+	if notification["gross_amount"] == "" {
+		notification["gross_amount"] = "100000"
+	}
+	if notification["payment_type"] == "" {
+		notification["payment_type"] = "bank_transfer"
+	}
+	if notification["transaction_time"] == "" {
+		notification["transaction_time"] = time.Now().Format("2006-01-02 15:04:05")
+	}
+	if notification["status_code"] == "" {
+		notification["status_code"] = "200"
+	}
+
+	fmt.Printf("Testing Midtrans webhook with notification: %+v\n", notification)
+
+	// Process the test webhook
+	if err := h.subscriptionUseCase.ProcessMidtransWebhook(c.Request.Context(), notification); err != nil {
+		fmt.Printf("Error processing test Midtrans webhook: %v\n", err)
+		response.InternalServerError(c, err)
+		return
+	}
+
+	response.OK(c, "Test Midtrans webhook processed successfully", notification)
 }
 
 func (h *SubscriptionHandler) ActivateTrial(c *gin.Context) {

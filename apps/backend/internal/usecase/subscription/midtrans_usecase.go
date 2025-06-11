@@ -129,6 +129,10 @@ func (uc *MidtransSubscriptionUseCase) InitiatePaidCheckout(ctx context.Context,
 			Unit:     "hour",
 			Duration: 24,
 		},
+		PageExpiry: &interfaces.MidtransPageExpiry{
+			Duration: 24,
+			Unit:     "hour",
+		},
 		CustomField1: &sessionID, // Store session ID for reference
 	}
 

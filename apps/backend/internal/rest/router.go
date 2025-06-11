@@ -197,6 +197,7 @@ func (r *Router) Setup() *gin.Engine {
 			webhooks.POST("/xendit", r.subscriptionHandler.ProcessWebhook)
 			webhooks.POST("/tripay", r.subscriptionHandler.ProcessTripayWebhook)
 			webhooks.POST("/midtrans", r.subscriptionHandler.ProcessMidtransWebhook)
+			webhooks.POST("/midtrans/test", r.subscriptionHandler.TestMidtransWebhook)
 		}
 
 		// Cron job endpoints (secured with API key)

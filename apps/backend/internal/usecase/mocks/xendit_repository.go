@@ -121,6 +121,12 @@ func (m *XenditRepository) UpdateSubscription(ctx context.Context, subscription 
 	return args.Error(0)
 }
 
+// UpdateSubscriptionFields updates specific fields of a subscription
+func (m *XenditRepository) UpdateSubscriptionFields(ctx context.Context, subscriptionID uint, fields map[string]interface{}) error {
+	args := m.Called(ctx, subscriptionID, fields)
+	return args.Error(0)
+}
+
 // SubscriptionPlan operations
 func (m *XenditRepository) GetSubscriptionPlans(ctx context.Context) ([]domain.SubscriptionPlan, error) {
 	args := m.Called(ctx)

@@ -696,7 +696,8 @@ func TestSubscriptionUseCase_ProcessMidtransWebhook(t *testing.T) {
 						}
 					} else if tt.mockSubscription != nil {
 						// Trial conversion flow
-						if tt.mockSubscription.Status == enums.StatusTrial {
+						switch tt.mockSubscription.Status {
+						case enums.StatusTrial:
 							mockXenditRepo.On("UpdateSubscriptionFields", ctx, tt.mockSubscription.ID, mock.AnythingOfType("map[string]interface {}")).
 								Return(tt.mockUpdateSubscriptionError).Maybe()
 
@@ -711,7 +712,7 @@ func TestSubscriptionUseCase_ProcessMidtransWebhook(t *testing.T) {
 
 							mockXenditRepo.On("UpdateTrialActivity", ctx, mock.AnythingOfType("*domain.TrialActivity")).
 								Return(nil).Maybe()
-						} else if tt.mockSubscription.Status == enums.StatusActive {
+						case enums.StatusActive:
 							// Active subscription upgrade flow
 							mockXenditRepo.On("UpdateSubscriptionFields", ctx, tt.mockSubscription.ID, mock.AnythingOfType("map[string]interface {}")).
 								Return(tt.mockUpdateSubscriptionError).Maybe()

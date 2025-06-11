@@ -70,6 +70,14 @@ func (m *XenditRepository) GetPaymentTransactionByOrderID(ctx context.Context, o
 	return args.Get(0).(*domain.PaymentTransaction), args.Error(1)
 }
 
+func (m *XenditRepository) GetPaymentTransactionByTransactionID(ctx context.Context, transactionID string) (*domain.PaymentTransaction, error) {
+	args := m.Called(ctx, transactionID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*domain.PaymentTransaction), args.Error(1)
+}
+
 func (m *XenditRepository) UpdatePaymentTransaction(ctx context.Context, transaction *domain.PaymentTransaction) error {
 	args := m.Called(ctx, transaction)
 	return args.Error(0)

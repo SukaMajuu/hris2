@@ -133,6 +133,14 @@ type SubscriptionChangeResponse struct {
 	Message         string                   `json:"message"`
 }
 
+// Payment verification response
+type PaymentVerificationResponse struct {
+	SubscriptionActivated bool                  `json:"subscription_activated"`
+	PaymentStatus         string                `json:"payment_status"` // "completed", "pending", "failed", "not_found"
+	Subscription          *SubscriptionResponse `json:"subscription,omitempty"`
+	Message               string                `json:"message"`
+}
+
 // Conversion functions
 
 func ToSubscriptionPlanResponse(plan *domain.SubscriptionPlan) *SubscriptionPlanResponse {

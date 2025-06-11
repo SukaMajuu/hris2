@@ -93,6 +93,7 @@ type PaymentRepository interface {
 	CreatePaymentTransaction(ctx context.Context, transaction *domain.PaymentTransaction) error
 	GetPaymentTransaction(ctx context.Context, transactionID uint) (*domain.PaymentTransaction, error)
 	GetPaymentTransactionByOrderID(ctx context.Context, orderID string) (*domain.PaymentTransaction, error)
+	GetPaymentTransactionByTransactionID(ctx context.Context, transactionID string) (*domain.PaymentTransaction, error)
 	UpdatePaymentTransaction(ctx context.Context, transaction *domain.PaymentTransaction) error
 
 	// CustomerBillingInfo operations

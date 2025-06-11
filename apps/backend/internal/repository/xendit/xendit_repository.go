@@ -97,6 +97,22 @@ func (r *Repository) GetPaymentTransactionByOrderID(ctx context.Context, orderID
 	return &transaction, nil
 }
 
+func (r *Repository) GetPaymentTransactionByTransactionID(ctx context.Context, transactionID string) (*domain.PaymentTransaction, error) {
+	var transaction domain.PaymentTransaction
+	if err := r.db.WithContext(ctx).
+		Preload("Subscription").
+		Preload("Subscription.AdminUser").
+		Preload("Subscription.SubscriptionPlan").
+		Preload("Subscription.SubscriptionPlan.PlanFeatures").
+		Preload("Subscription.SubscriptionPlan.PlanFeatures.SubscriptionFeature").
+		Preload("Subscription.SeatPlan").
+		Where("transaction_id = ?", transactionID).
+		First(&transaction).Error; err != nil {
+		return nil, err
+	}
+	return &transaction, nil
+}
+
 func (r *Repository) UpdatePaymentTransaction(ctx context.Context, transaction *domain.PaymentTransaction) error {
 	return r.db.WithContext(ctx).Save(transaction).Error
 }

@@ -3,8 +3,9 @@
 import React, { Suspense, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { CheckCircle, Loader2, ArrowRight } from "lucide-react";
-import { useSearchParams } from "next/navigation";
+import { CheckCircle, Loader2, ArrowRight, AlertCircle } from "lucide-react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 const formatCurrency = (value: number) => {
 	return `Rp ${value.toLocaleString("id-ID")}`;
@@ -12,7 +13,12 @@ const formatCurrency = (value: number) => {
 
 function PaymentSuccessContent() {
 	const searchParams = useSearchParams();
+	const router = useRouter();
 	const [isLoading, setIsLoading] = useState(true);
+	const [verificationError, setVerificationError] = useState<string | null>(
+		null
+	);
+	const [subscriptionActivated, setSubscriptionActivated] = useState(false);
 
 	// Get parameters from URL (these would typically be provided by Midtrans)
 	const transactionId = searchParams.get("transaction_id");
@@ -20,14 +26,68 @@ function PaymentSuccessContent() {
 	const amount = searchParams.get("gross_amount");
 	const paymentType = searchParams.get("payment_type");
 
-	useEffect(() => {
-		// Simulate loading time to verify payment status
-		const timer = setTimeout(() => {
-			setIsLoading(false);
-		}, 1500);
+	// Get checkout session parameters for verification
+	const planId = searchParams.get("planId");
+	const seatPlanId = searchParams.get("seatPlanId");
+	const isMonthly = searchParams.get("isMonthly");
 
-		return () => clearTimeout(timer);
-	}, []);
+	useEffect(() => {
+		const verifyPaymentAndActivateSubscription = async () => {
+			try {
+				// If we have checkout session parameters, verify the payment completion
+				// This is important because webhooks might be delayed
+				if (planId && seatPlanId && transactionId) {
+					// Call backend to verify payment status and ensure subscription is activated
+					const response = await fetch(
+						"/api/subscription/verify-payment",
+						{
+							method: "POST",
+							headers: {
+								"Content-Type": "application/json",
+								// Add authorization header if needed
+							},
+							body: JSON.stringify({
+								transaction_id: transactionId,
+								order_id: orderId,
+								plan_id: planId,
+								seat_plan_id: seatPlanId,
+								is_monthly: isMonthly === "true",
+							}),
+						}
+					);
+
+					if (!response.ok) {
+						const errorData = await response.json();
+						throw new Error(
+							errorData.message || "Failed to verify payment"
+						);
+					}
+
+					const result = await response.json();
+					setSubscriptionActivated(
+						result.data?.subscription_activated || false
+					);
+				} else {
+					// No checkout parameters, assume payment is successful
+					setSubscriptionActivated(true);
+				}
+			} catch (error) {
+				console.error("Payment verification error:", error);
+				setVerificationError(
+					error instanceof Error
+						? error.message
+						: "Failed to verify payment status"
+				);
+			} finally {
+				// Add a delay to show loading state
+				setTimeout(() => {
+					setIsLoading(false);
+				}, 1500);
+			}
+		};
+
+		verifyPaymentAndActivateSubscription();
+	}, [transactionId, orderId, planId, seatPlanId, isMonthly]);
 
 	if (isLoading) {
 		return (
@@ -36,8 +96,83 @@ function PaymentSuccessContent() {
 					<div className="text-center">
 						<Loader2 className="h-8 w-8 animate-spin text-slate-600 mx-auto mb-4" />
 						<p className="text-slate-600 dark:text-slate-400">
-							Verifying your payment...
+							Verifying your payment and activating
+							subscription...
 						</p>
+					</div>
+				</div>
+			</div>
+		);
+	}
+
+	// Show error if verification failed
+	if (verificationError && !subscriptionActivated) {
+		return (
+			<div className="bg-slate-100 dark:bg-slate-950 p-4 md:p-8">
+				<div className="max-w-3xl mx-auto">
+					<div className="bg-white dark:bg-slate-900 p-6 rounded-lg shadow-lg">
+						<div className="text-center mb-8">
+							<AlertCircle className="h-16 w-16 text-orange-600 dark:text-orange-500 mx-auto mb-4" />
+							<h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100 mb-2">
+								Payment Verification Issue
+							</h1>
+							<p className="text-slate-600 dark:text-slate-400">
+								Your payment was processed, but we're still
+								verifying the subscription activation
+							</p>
+						</div>
+
+						<div className="bg-orange-50 dark:bg-orange-900/20 p-6 rounded-lg border border-orange-200 dark:border-orange-800 mb-6">
+							<h3 className="font-semibold text-orange-800 dark:text-orange-400 mb-2">
+								What's happening?
+							</h3>
+							<p className="text-sm text-orange-700 dark:text-orange-400 mb-4">
+								{verificationError}
+							</p>
+							<ul className="space-y-2 text-sm text-orange-700 dark:text-orange-400">
+								<li className="flex items-start space-x-2">
+									<div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
+									<span>
+										Your payment has been processed
+										successfully
+									</span>
+								</li>
+								<li className="flex items-start space-x-2">
+									<div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
+									<span>
+										We're working to activate your
+										subscription
+									</span>
+								</li>
+								<li className="flex items-start space-x-2">
+									<div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
+									<span>
+										This usually takes a few minutes
+									</span>
+								</li>
+							</ul>
+						</div>
+
+						<div className="space-y-4">
+							<Button
+								size="lg"
+								className="w-full bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white text-base py-3"
+								onClick={() => window.location.reload()}
+							>
+								Check Again
+							</Button>
+
+							<Button
+								variant="outline"
+								size="lg"
+								className="w-full dark:text-slate-400 dark:border-slate-600 dark:hover:bg-slate-800"
+								asChild
+							>
+								<Link href="/subscription">
+									View Subscription Status
+								</Link>
+							</Button>
+						</div>
 					</div>
 				</div>
 			</div>
@@ -54,7 +189,9 @@ function PaymentSuccessContent() {
 							Payment Successful!
 						</h1>
 						<p className="text-slate-600 dark:text-slate-400">
-							Your subscription has been activated successfully
+							{subscriptionActivated
+								? "Your subscription has been activated successfully"
+								: "Your payment was processed and subscription is being activated"}
 						</p>
 					</div>
 
@@ -115,13 +252,19 @@ function PaymentSuccessContent() {
 						<ul className="space-y-2 text-sm text-green-700 dark:text-green-400">
 							<li className="flex items-start space-x-2">
 								<div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-								<span>Your subscription is now active</span>
+								<span>
+									{subscriptionActivated
+										? "Your subscription is now active"
+										: "Your subscription will be activated shortly"}
+								</span>
 							</li>
 							<li className="flex items-start space-x-2">
 								<div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
 								<span>
 									You can access all premium features
-									immediately
+									{subscriptionActivated
+										? " immediately"
+										: " once activation is complete"}
 								</span>
 							</li>
 							<li className="flex items-start space-x-2">

@@ -8,7 +8,7 @@ import {
 	SheetTitle,
 } from "@/components/ui/sheet";
 import { Attendance } from "@/types/attendance";
-import { formatWorkHours } from "@/utils/time";
+import { formatWorkHours, utcToLocalTime } from "@/utils/timezone";
 import { useLeaveRequestsQuery } from "@/api/queries/leave-request.queries";
 import { Badge } from "@/components/ui/badge";
 import { LeaveRequest } from "@/types/leave-request";
@@ -90,21 +90,33 @@ export function AttendanceDetailSheet({
 							<h4 className="text-md font-semibold text-slate-700 mb-4 pb-2 border-b">
 								Attendance Information
 							</h4>
-							<div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-								<div>
+							<div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">								<div>
 									<p className="text-xs font-medium text-slate-500">
 										Date
 									</p>
 									<p className="text-slate-700">
-										{selectedData.date}
+										{(() => {
+											const dateToUse = selectedData.clock_in || selectedData.date;
+											const date = new Date(dateToUse);
+											
+											// Check if the date is valid
+											if (isNaN(date.getTime())) {
+												return "Invalid Date";
+											}
+											
+											return date.toLocaleDateString("en-US", {
+												year: "numeric",
+												month: "long",
+												day: "2-digit",
+											});
+										})()}
 									</p>
-								</div>
-								<div>
+								</div>								<div>
 									<p className="text-xs font-medium text-slate-500">
 										Clock In
 									</p>
 									<p className="text-slate-700">
-										{selectedData.clock_in || "-"}
+										{utcToLocalTime(selectedData.clock_in) || "-"}
 									</p>
 								</div>
 								<div>
@@ -112,7 +124,7 @@ export function AttendanceDetailSheet({
 										Clock Out
 									</p>
 									<p className="text-slate-700">
-										{selectedData.clock_out || "-"}
+										{utcToLocalTime(selectedData.clock_out) || "-"}
 									</p>
 								</div>
 								<div>

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/SukaMajuu/hris/apps/backend/domain"
@@ -1327,6 +1328,144 @@ func (uc *SubscriptionUseCase) ConvertTrialToPaid(ctx context.Context, userID ui
 		EffectiveDate: time.Now().UTC(),
 		Message:       fmt.Sprintf("Payment of %s required to convert trial to paid subscription", amount.String()),
 	}, nil
+}
+
+// VerifyPaymentAndActivateSubscription verifies payment status and ensures subscription is activated
+func (uc *SubscriptionUseCase) VerifyPaymentAndActivateSubscription(
+	ctx context.Context,
+	userID uint,
+	transactionID, orderID string,
+	planID, seatPlanID uint,
+	isMonthly bool,
+) (*subscriptionDto.PaymentVerificationResponse, error) {
+	// Look for payment transaction by transaction ID or order ID
+	var paymentTransaction *domain.PaymentTransaction
+	var err error
+
+	// Try to find by transaction ID first
+	if transactionID != "" {
+		// Search for payment transaction by transaction ID
+		// Note: You'll need to implement this method in your repository
+		paymentTransaction, err = uc.xenditRepo.GetPaymentTransactionByTransactionID(ctx, transactionID)
+		if err != nil {
+			// If not found by transaction ID, try order ID
+			if orderID != "" {
+				paymentTransaction, err = uc.xenditRepo.GetPaymentTransactionByOrderID(ctx, orderID)
+			}
+		}
+	} else if orderID != "" {
+		paymentTransaction, err = uc.xenditRepo.GetPaymentTransactionByOrderID(ctx, orderID)
+	}
+
+	// Check current subscription status
+	currentSubscription, subErr := uc.xenditRepo.GetSubscriptionByAdminUserID(ctx, userID)
+
+	// If payment transaction found and subscription exists, check if it's already activated
+	if paymentTransaction != nil && subErr == nil {
+		if paymentTransaction.Status == enums.PaymentPaid && currentSubscription.Status == enums.StatusActive {
+			return &subscriptionDto.PaymentVerificationResponse{
+				SubscriptionActivated: true,
+				PaymentStatus:         "completed",
+				Subscription:          subscriptionDto.ToSubscriptionResponse(currentSubscription),
+				Message:               "Payment completed and subscription is active",
+			}, nil
+		}
+	}
+
+	// If payment not found or subscription not activated, try to find and process checkout session
+	// This handles cases where webhook might be delayed
+	if orderID != "" {
+		// Extract session ID from order ID if it follows our pattern
+		var sessionID string
+		if strings.HasPrefix(orderID, "HRIS-") {
+			sessionID = orderID[5:] // Remove "HRIS-" prefix
+		} else if strings.HasPrefix(orderID, "checkout_") {
+			sessionID = orderID[9:] // Remove "checkout_" prefix
+		}
+
+		if sessionID != "" {
+			// Try to get and process checkout session
+			checkoutSession, sessionErr := uc.xenditRepo.GetCheckoutSession(ctx, sessionID)
+			if sessionErr == nil {
+				// If session exists but not completed, and we have payment confirmation,
+				// try to manually activate the subscription
+				if checkoutSession.Status != enums.CheckoutCompleted && transactionID != "" {
+					// Try to manually activate subscription (simulate webhook processing)
+					if err := uc.manuallyActivateSubscription(ctx, checkoutSession, transactionID, orderID); err == nil {
+						// Reload subscription after activation
+						activatedSubscription, _ := uc.xenditRepo.GetSubscriptionByAdminUserID(ctx, userID)
+						if activatedSubscription != nil && activatedSubscription.Status == enums.StatusActive {
+							return &subscriptionDto.PaymentVerificationResponse{
+								SubscriptionActivated: true,
+								PaymentStatus:         "completed",
+								Subscription:          subscriptionDto.ToSubscriptionResponse(activatedSubscription),
+								Message:               "Payment verified and subscription activated",
+							}, nil
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Check if subscription exists but payment status is unclear
+	if subErr == nil {
+		switch currentSubscription.Status {
+		case enums.StatusActive:
+			return &subscriptionDto.PaymentVerificationResponse{
+				SubscriptionActivated: true,
+				PaymentStatus:         "completed",
+				Subscription:          subscriptionDto.ToSubscriptionResponse(currentSubscription),
+				Message:               "Subscription is already active",
+			}, nil
+		case enums.StatusTrial:
+			return &subscriptionDto.PaymentVerificationResponse{
+				SubscriptionActivated: false,
+				PaymentStatus:         "pending",
+				Subscription:          subscriptionDto.ToSubscriptionResponse(currentSubscription),
+				Message:               "Payment is being processed, subscription will be activated soon",
+			}, nil
+		}
+	}
+
+	// If we can't find payment or subscription, return appropriate response
+	if err != nil && subErr != nil {
+		return &subscriptionDto.PaymentVerificationResponse{
+			SubscriptionActivated: false,
+			PaymentStatus:         "not_found",
+			Message:               "Payment not found, please contact support if you believe this is an error",
+		}, nil
+	}
+
+	// Default case - payment found but subscription not activated
+	return &subscriptionDto.PaymentVerificationResponse{
+		SubscriptionActivated: false,
+		PaymentStatus:         "pending",
+		Message:               "Payment received, subscription activation in progress",
+	}, nil
+}
+
+// manuallyActivateSubscription tries to manually activate subscription when webhook might be delayed
+func (uc *SubscriptionUseCase) manuallyActivateSubscription(ctx context.Context, checkoutSession *domain.CheckoutSession, transactionID, orderID string) error {
+	// Create a mock notification to simulate webhook processing
+	mockNotification := map[string]interface{}{
+		"transaction_id":     transactionID,
+		"order_id":           orderID,
+		"transaction_status": "settlement",
+		"payment_type":       "unknown",
+		"transaction_time":   time.Now().Format("2006-01-02 15:04:05"),
+		"gross_amount":       checkoutSession.Amount.String(),
+		"status_code":        "200",
+	}
+
+	// Use existing webhook processing logic
+	if strings.HasPrefix(orderID, "HRIS-") {
+		// This is a Midtrans-style order ID
+		return uc.ProcessMidtransWebhook(ctx, mockNotification)
+	}
+
+	// Default processing (could be Xendit or other)
+	return fmt.Errorf("unable to determine payment provider for manual activation")
 }
 
 func (uc *SubscriptionUseCase) CreateAutomaticTrialForPremiumUser(ctx context.Context, userID uint) error {

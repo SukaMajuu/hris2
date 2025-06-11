@@ -18,6 +18,7 @@ import {
   getFilteredRowModel,
   PaginationState,
 } from '@tanstack/react-table';
+import type { LeaveRequest } from '@/types/leave-request';
 
 interface ApprovalItem {
   id: number;
@@ -26,6 +27,7 @@ interface ApprovalItem {
   admin_note: string | null;
   approved: boolean | null;
   status: string;
+  leaveRequest?: LeaveRequest;
 }
 
 interface ApprovalDetail {
@@ -118,7 +120,8 @@ export default function CheckClockApprovalTab() {
         meta: { className: 'w-[50px] md:w-[80px] text-center' },
         enableSorting: false,
         enableColumnFilter: false,
-      },      {
+      },     
+      {
         header: 'Name',
         accessorKey: 'name',
         enableColumnFilter: true,
@@ -133,6 +136,72 @@ export default function CheckClockApprovalTab() {
           );
         },
         meta: { className: 'w-[120px] md:w-[180px] text-center' },
+      },      
+      {
+        header: 'Start Date',
+        id: 'start_date',
+        cell: ({ row }) => {
+          const item = row.original;
+          const startDate = item.leaveRequest?.start_date;
+          return (
+            <div className="flex items-center justify-center">
+              <div className="text-xs md:text-sm text-center">
+                {startDate ? new Date(startDate).toLocaleDateString() : '-'}
+              </div>
+            </div>
+          );
+        },
+        meta: { className: 'w-[100px] md:w-[120px] text-center' },
+        enableSorting: false,
+        enableColumnFilter: false,
+      },
+      {
+        header: 'End Date',
+        id: 'end_date',
+        cell: ({ row }) => {
+          const item = row.original;
+          const endDate = item.leaveRequest?.end_date;
+          return (
+            <div className="flex items-center justify-center">
+              <div className="text-xs md:text-sm text-center">
+                {endDate ? new Date(endDate).toLocaleDateString() : '-'}
+              </div>
+            </div>
+          );
+        },        meta: { className: 'w-[100px] md:w-[120px] text-center' },
+        enableSorting: false,
+        enableColumnFilter: false,
+      },
+      {
+        header: 'Duration',
+        id: 'duration',
+        cell: ({ row }) => {
+          const item = row.original;
+          const startDate = item.leaveRequest?.start_date;
+          const endDate = item.leaveRequest?.end_date;
+          
+          if (!startDate || !endDate) return (
+            <div className="flex items-center justify-center">
+              <div className="text-xs md:text-sm text-center">-</div>
+            </div>
+          );
+          
+          const start = new Date(startDate);
+          const end = new Date(endDate);
+          const diffTime = Math.abs(end.getTime() - start.getTime());
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+          
+          return (
+            <div className="flex items-center justify-center">
+              <div className="text-xs md:text-sm text-center">
+                {diffDays} day{diffDays > 1 ? 's' : ''}
+              </div>
+            </div>
+          );
+        },
+        meta: { className: 'w-[80px] md:w-[100px] text-center' },
+        enableSorting: false,
+        enableColumnFilter: false,
       },
       {
         header: 'Leave Type',

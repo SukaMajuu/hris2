@@ -697,14 +697,30 @@ func TestSubscriptionUseCase_ProcessMidtransWebhook(t *testing.T) {
 					} else if tt.mockSubscription != nil {
 						// Trial conversion flow
 						if tt.mockSubscription.Status == enums.StatusTrial {
-							mockXenditRepo.On("UpdateSubscription", ctx, mock.AnythingOfType("*domain.Subscription")).
+							mockXenditRepo.On("UpdateSubscriptionFields", ctx, tt.mockSubscription.ID, mock.AnythingOfType("map[string]interface {}")).
 								Return(tt.mockUpdateSubscriptionError).Maybe()
+
+							// Mock verification call after update
+							if tt.mockUpdateSubscriptionError == nil {
+								mockXenditRepo.On("GetSubscriptionByAdminUserID", ctx, tt.mockCheckoutSession.UserID).
+									Return(tt.mockSubscription, nil).Maybe()
+							}
 
 							mockXenditRepo.On("GetTrialActivityBySubscription", ctx, tt.mockSubscription.ID).
 								Return(&domain.TrialActivity{}, nil).Maybe()
 
 							mockXenditRepo.On("UpdateTrialActivity", ctx, mock.AnythingOfType("*domain.TrialActivity")).
 								Return(nil).Maybe()
+						} else if tt.mockSubscription.Status == enums.StatusActive {
+							// Active subscription upgrade flow
+							mockXenditRepo.On("UpdateSubscriptionFields", ctx, tt.mockSubscription.ID, mock.AnythingOfType("map[string]interface {}")).
+								Return(tt.mockUpdateSubscriptionError).Maybe()
+
+							// Mock verification call after update
+							if tt.mockUpdateSubscriptionError == nil {
+								mockXenditRepo.On("GetSubscriptionByAdminUserID", ctx, tt.mockCheckoutSession.UserID).
+									Return(tt.mockSubscription, nil).Maybe()
+							}
 						}
 					}
 

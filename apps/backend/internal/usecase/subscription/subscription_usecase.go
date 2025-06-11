@@ -838,9 +838,24 @@ func (uc *SubscriptionUseCase) activateMidtransSubscription(ctx context.Context,
 		subscription.SeatPlanID = checkoutSession.SeatPlanID
 		subscription.Status = enums.StatusActive
 
-		if err := uc.xenditRepo.UpdateSubscription(ctx, subscription); err != nil {
+		// Use explicit field update to fix GORM tracking issue
+		err = uc.xenditRepo.UpdateSubscriptionFields(ctx, subscription.ID, map[string]interface{}{
+			"subscription_plan_id": checkoutSession.SubscriptionPlanID,
+			"seat_plan_id":         checkoutSession.SeatPlanID,
+			"status":               enums.StatusActive,
+		})
+		if err != nil {
 			fmt.Printf("activateMidtransSubscription: Failed to update subscription: %v\n", err)
 			return fmt.Errorf("failed to update subscription: %w", err)
+		}
+
+		// Verify the update was successful by reloading from database
+		updatedSubscription, err := uc.xenditRepo.GetSubscriptionByAdminUserID(ctx, checkoutSession.UserID)
+		if err != nil {
+			fmt.Printf("activateMidtransSubscription: Warning: Failed to verify subscription update: %v\n", err)
+		} else {
+			fmt.Printf("activateMidtransSubscription: Database verification - PlanID=%d, SeatPlanID=%d\n",
+				updatedSubscription.SubscriptionPlanID, updatedSubscription.SeatPlanID)
 		}
 
 		fmt.Printf("activateMidtransSubscription: Trial converted to paid subscription (PlanID=%d, SeatPlanID=%d)\n",
@@ -863,13 +878,36 @@ func (uc *SubscriptionUseCase) activateMidtransSubscription(ctx context.Context,
 	case enums.StatusActive:
 		fmt.Printf("activateMidtransSubscription: Upgrading active subscription\n")
 
+		// Debug: Show checkout session values before assignment
+		fmt.Printf("activateMidtransSubscription: CheckoutSession values - PlanID=%d, SeatPlanID=%d\n",
+			checkoutSession.SubscriptionPlanID, checkoutSession.SeatPlanID)
+		fmt.Printf("activateMidtransSubscription: Current subscription values - PlanID=%d, SeatPlanID=%d\n",
+			subscription.SubscriptionPlanID, subscription.SeatPlanID)
+
 		// Apply the upgrade for active subscriptions
 		subscription.SubscriptionPlanID = checkoutSession.SubscriptionPlanID
 		subscription.SeatPlanID = checkoutSession.SeatPlanID
 
-		if err := uc.xenditRepo.UpdateSubscription(ctx, subscription); err != nil {
+		fmt.Printf("activateMidtransSubscription: After assignment - PlanID=%d, SeatPlanID=%d\n",
+			subscription.SubscriptionPlanID, subscription.SeatPlanID)
+
+		// Use explicit field update to fix GORM tracking issue
+		err = uc.xenditRepo.UpdateSubscriptionFields(ctx, subscription.ID, map[string]interface{}{
+			"subscription_plan_id": checkoutSession.SubscriptionPlanID,
+			"seat_plan_id":         checkoutSession.SeatPlanID,
+		})
+		if err != nil {
 			fmt.Printf("activateMidtransSubscription: Failed to update subscription: %v\n", err)
 			return fmt.Errorf("failed to update subscription: %w", err)
+		}
+
+		// Verify the update was successful by reloading from database
+		updatedSubscription, err := uc.xenditRepo.GetSubscriptionByAdminUserID(ctx, checkoutSession.UserID)
+		if err != nil {
+			fmt.Printf("activateMidtransSubscription: Warning: Failed to verify subscription update: %v\n", err)
+		} else {
+			fmt.Printf("activateMidtransSubscription: Database verification - PlanID=%d, SeatPlanID=%d\n",
+				updatedSubscription.SubscriptionPlanID, updatedSubscription.SeatPlanID)
 		}
 
 		fmt.Printf("activateMidtransSubscription: Active subscription upgraded (PlanID=%d, SeatPlanID=%d)\n",

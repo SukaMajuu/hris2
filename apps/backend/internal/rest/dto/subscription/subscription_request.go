@@ -34,8 +34,9 @@ type ProcessWebhookRequest struct {
 
 // New upgrade/downgrade request DTOs
 type UpgradeSubscriptionPlanRequest struct {
-	NewSubscriptionPlanID uint `json:"new_subscription_plan_id" binding:"required"`
-	IsMonthly             bool `json:"is_monthly"`
+	NewSubscriptionPlanID uint  `json:"new_subscription_plan_id" binding:"required"`
+	NewSeatPlanID         *uint `json:"new_seat_plan_id,omitempty"` // Optional, auto-match if not provided
+	IsMonthly             bool  `json:"is_monthly"`
 }
 
 type ChangeSeatPlanRequest struct {

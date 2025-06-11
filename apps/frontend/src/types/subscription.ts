@@ -144,6 +144,7 @@ export interface SubscriptionChangeResponse {
 // Request types for upgrade/downgrade
 export interface UpgradeSubscriptionPlanRequest {
 	new_subscription_plan_id: number;
+	new_seat_plan_id?: number; // Optional, auto-match if not provided
 	is_monthly: boolean;
 }
 

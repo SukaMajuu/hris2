@@ -747,82 +747,8 @@ func (uc *SubscriptionUseCase) activateMidtransSubscription(ctx context.Context,
 	subscription, err := uc.xenditRepo.GetSubscriptionByAdminUserID(ctx, checkoutSession.UserID)
 
 	if err != nil {
-		fmt.Printf("activateMidtransSubscription: No existing subscription found, creating new subscription\n")
-
-		// No existing subscription found - this is a new paid subscription
-		// Get seat plan to calculate subscription period
-		seatPlan, err := uc.xenditRepo.GetSeatPlan(ctx, checkoutSession.SeatPlanID)
-		if err != nil {
-			fmt.Printf("activateMidtransSubscription: Failed to get seat plan: %v\n", err)
-			return fmt.Errorf("failed to get seat plan: %w", err)
-		}
-
-		fmt.Printf("activateMidtransSubscription: Got seat plan: %s (%d-%d employees)\n",
-			seatPlan.SubscriptionPlan.Name, seatPlan.MinEmployees, seatPlan.MaxEmployees)
-
-		// Calculate subscription period
-		var startDate, endDate time.Time
-		startDate = time.Now().UTC()
-
-		// Determine if it's monthly or yearly based on amount
-		if checkoutSession.Amount.Cmp(seatPlan.PricePerMonth) == 0 {
-			// Monthly subscription
-			endDate = startDate.AddDate(0, 1, 0)
-			fmt.Printf("activateMidtransSubscription: Creating monthly subscription (ends: %s)\n", endDate.Format("2006-01-02"))
-		} else {
-			// Yearly subscription
-			endDate = startDate.AddDate(1, 0, 0)
-			fmt.Printf("activateMidtransSubscription: Creating yearly subscription (ends: %s)\n", endDate.Format("2006-01-02"))
-		}
-
-		// Create new subscription
-		newSubscription := &domain.Subscription{
-			AdminUserID:          checkoutSession.UserID,
-			SubscriptionPlanID:   checkoutSession.SubscriptionPlanID,
-			SeatPlanID:           checkoutSession.SeatPlanID,
-			Status:               enums.StatusActive,
-			StartDate:            time.Now().UTC(),
-			EndDate:              &endDate,
-			IsAutoRenew:          true,
-			CurrentEmployeeCount: 0,
-		}
-
-		if err := uc.xenditRepo.CreateSubscription(ctx, newSubscription); err != nil {
-			fmt.Printf("activateMidtransSubscription: Failed to create subscription: %v\n", err)
-			return fmt.Errorf("failed to create subscription: %w", err)
-		}
-
-		fmt.Printf("activateMidtransSubscription: Created subscription with ID=%d, Status=%s\n",
-			newSubscription.ID, newSubscription.Status)
-
-		// Get user info for billing
-		user, err := uc.authRepo.GetUserByID(ctx, checkoutSession.UserID)
-		if err != nil {
-			fmt.Printf("activateMidtransSubscription: Failed to get user: %v\n", err)
-			return fmt.Errorf("failed to get user: %w", err)
-		}
-
-		// Create basic billing info for paid subscriptions
-		billingInfo := &domain.CustomerBillingInfo{
-			SubscriptionID:      newSubscription.ID,
-			CompanyName:         fmt.Sprintf("%s Company", user.Email), // Use email as fallback
-			CompanyAddress:      "Address not provided",                // Default address
-			CompanyEmail:        user.Email,
-			BillingContactName:  user.Email, // Use email as contact name
-			BillingContactEmail: user.Email,
-		}
-
-		if err := uc.xenditRepo.CreateCustomerBillingInfo(ctx, billingInfo); err != nil {
-			fmt.Printf("activateMidtransSubscription: Failed to create billing info: %v\n", err)
-			return fmt.Errorf("failed to create billing info: %w", err)
-		}
-
-		fmt.Printf("activateMidtransSubscription: Created billing info for subscription\n")
-
-		// Update checkout session with subscription ID
-		checkoutSession.SubscriptionID = &newSubscription.ID
-		fmt.Printf("activateMidtransSubscription: Updated checkout session with SubscriptionID=%d\n", newSubscription.ID)
-		return nil
+		// No existing subscription found - create new paid subscription
+		return uc.createNewPaidSubscription(ctx, checkoutSession)
 	}
 
 	fmt.Printf("activateMidtransSubscription: Found existing subscription ID=%d, Status=%s\n",
@@ -831,101 +757,177 @@ func (uc *SubscriptionUseCase) activateMidtransSubscription(ctx context.Context,
 	// Existing subscription found - handle trial conversion OR active subscription upgrade
 	switch subscription.Status {
 	case enums.StatusTrial:
-		fmt.Printf("activateMidtransSubscription: Converting trial subscription to paid\n")
-
-		// Update subscription plan and seat plan from checkout session
-		subscription.SubscriptionPlanID = checkoutSession.SubscriptionPlanID
-		subscription.SeatPlanID = checkoutSession.SeatPlanID
-		subscription.Status = enums.StatusActive
-
-		// Use explicit field update to fix GORM tracking issue
-		err = uc.xenditRepo.UpdateSubscriptionFields(ctx, subscription.ID, map[string]interface{}{
-			"subscription_plan_id": checkoutSession.SubscriptionPlanID,
-			"seat_plan_id":         checkoutSession.SeatPlanID,
-			"status":               enums.StatusActive,
-		})
-		if err != nil {
-			fmt.Printf("activateMidtransSubscription: Failed to update subscription: %v\n", err)
-			return fmt.Errorf("failed to update subscription: %w", err)
-		}
-
-		// Verify the update was successful by reloading from database
-		updatedSubscription, err := uc.xenditRepo.GetSubscriptionByAdminUserID(ctx, checkoutSession.UserID)
-		if err != nil {
-			fmt.Printf("activateMidtransSubscription: Warning: Failed to verify subscription update: %v\n", err)
-		} else {
-			fmt.Printf("activateMidtransSubscription: Database verification - PlanID=%d, SeatPlanID=%d\n",
-				updatedSubscription.SubscriptionPlanID, updatedSubscription.SeatPlanID)
-		}
-
-		fmt.Printf("activateMidtransSubscription: Trial converted to paid subscription (PlanID=%d, SeatPlanID=%d)\n",
-			subscription.SubscriptionPlanID, subscription.SeatPlanID)
-
-		// Update trial activity to mark as converted
-		trialActivity, err := uc.xenditRepo.GetTrialActivityBySubscription(ctx, subscription.ID)
-		if err == nil && trialActivity != nil {
-			trialActivity.MarkAsConverted()
-			if updateErr := uc.xenditRepo.UpdateTrialActivity(ctx, trialActivity); updateErr != nil {
-				fmt.Printf("activateMidtransSubscription: Failed to update trial activity: %v\n", updateErr)
-			} else {
-				fmt.Printf("activateMidtransSubscription: Updated trial activity\n")
-			}
-		}
-
-		checkoutSession.SubscriptionID = &subscription.ID
-		fmt.Printf("activateMidtransSubscription: Updated checkout session with existing SubscriptionID=%d\n", subscription.ID)
-
+		return uc.convertTrialSubscription(ctx, checkoutSession, subscription)
 	case enums.StatusActive:
-		fmt.Printf("activateMidtransSubscription: Upgrading active subscription\n")
-
-		// Debug: Show checkout session values before assignment
-		fmt.Printf("activateMidtransSubscription: CheckoutSession values - PlanID=%d, SeatPlanID=%d\n",
-			checkoutSession.SubscriptionPlanID, checkoutSession.SeatPlanID)
-		fmt.Printf("activateMidtransSubscription: Current subscription values - PlanID=%d, SeatPlanID=%d\n",
-			subscription.SubscriptionPlanID, subscription.SeatPlanID)
-
-		// Apply the upgrade for active subscriptions
-		subscription.SubscriptionPlanID = checkoutSession.SubscriptionPlanID
-		subscription.SeatPlanID = checkoutSession.SeatPlanID
-
-		fmt.Printf("activateMidtransSubscription: After assignment - PlanID=%d, SeatPlanID=%d\n",
-			subscription.SubscriptionPlanID, subscription.SeatPlanID)
-
-		// Use explicit field update to fix GORM tracking issue
-		err = uc.xenditRepo.UpdateSubscriptionFields(ctx, subscription.ID, map[string]interface{}{
-			"subscription_plan_id": checkoutSession.SubscriptionPlanID,
-			"seat_plan_id":         checkoutSession.SeatPlanID,
-		})
-		if err != nil {
-			fmt.Printf("activateMidtransSubscription: Failed to update subscription: %v\n", err)
-			return fmt.Errorf("failed to update subscription: %w", err)
-		}
-
-		// Verify the update was successful by reloading from database
-		updatedSubscription, err := uc.xenditRepo.GetSubscriptionByAdminUserID(ctx, checkoutSession.UserID)
-		if err != nil {
-			fmt.Printf("activateMidtransSubscription: Warning: Failed to verify subscription update: %v\n", err)
-		} else {
-			fmt.Printf("activateMidtransSubscription: Database verification - PlanID=%d, SeatPlanID=%d\n",
-				updatedSubscription.SubscriptionPlanID, updatedSubscription.SeatPlanID)
-		}
-
-		fmt.Printf("activateMidtransSubscription: Active subscription upgraded (PlanID=%d, SeatPlanID=%d)\n",
-			subscription.SubscriptionPlanID, subscription.SeatPlanID)
-
-		checkoutSession.SubscriptionID = &subscription.ID
-		fmt.Printf("activateMidtransSubscription: Updated checkout session with existing SubscriptionID=%d\n", subscription.ID)
-
+		return uc.upgradeActiveSubscription(ctx, checkoutSession, subscription)
 	default:
 		fmt.Printf("activateMidtransSubscription: Existing subscription has status %s, skipping modification\n", subscription.Status)
 		checkoutSession.SubscriptionID = &subscription.ID
+		return nil
+	}
+}
+
+// createNewPaidSubscription creates a new paid subscription for users without existing subscriptions
+func (uc *SubscriptionUseCase) createNewPaidSubscription(ctx context.Context, checkoutSession *domain.CheckoutSession) error {
+	fmt.Printf("activateMidtransSubscription: No existing subscription found, creating new subscription\n")
+
+	// Get seat plan to calculate subscription period
+	seatPlan, err := uc.xenditRepo.GetSeatPlan(ctx, checkoutSession.SeatPlanID)
+	if err != nil {
+		fmt.Printf("activateMidtransSubscription: Failed to get seat plan: %v\n", err)
+		return fmt.Errorf("failed to get seat plan: %w", err)
 	}
 
+	fmt.Printf("activateMidtransSubscription: Got seat plan: %s (%d-%d employees)\n",
+		seatPlan.SubscriptionPlan.Name, seatPlan.MinEmployees, seatPlan.MaxEmployees)
+
+	// Calculate subscription period
+	var startDate, endDate time.Time
+	startDate = time.Now().UTC()
+
+	// Determine if it's monthly or yearly based on amount
+	if checkoutSession.Amount.Cmp(seatPlan.PricePerMonth) == 0 {
+		// Monthly subscription
+		endDate = startDate.AddDate(0, 1, 0)
+		fmt.Printf("activateMidtransSubscription: Creating monthly subscription (ends: %s)\n", endDate.Format("2006-01-02"))
+	} else {
+		// Yearly subscription
+		endDate = startDate.AddDate(1, 0, 0)
+		fmt.Printf("activateMidtransSubscription: Creating yearly subscription (ends: %s)\n", endDate.Format("2006-01-02"))
+	}
+
+	// Create new subscription
+	newSubscription := &domain.Subscription{
+		AdminUserID:          checkoutSession.UserID,
+		SubscriptionPlanID:   checkoutSession.SubscriptionPlanID,
+		SeatPlanID:           checkoutSession.SeatPlanID,
+		Status:               enums.StatusActive,
+		StartDate:            time.Now().UTC(),
+		EndDate:              &endDate,
+		IsAutoRenew:          true,
+		CurrentEmployeeCount: 0,
+	}
+
+	if err := uc.xenditRepo.CreateSubscription(ctx, newSubscription); err != nil {
+		fmt.Printf("activateMidtransSubscription: Failed to create subscription: %v\n", err)
+		return fmt.Errorf("failed to create subscription: %w", err)
+	}
+
+	fmt.Printf("activateMidtransSubscription: Created subscription with ID=%d, Status=%s\n",
+		newSubscription.ID, newSubscription.Status)
+
+	// Get user info for billing
+	user, err := uc.authRepo.GetUserByID(ctx, checkoutSession.UserID)
+	if err != nil {
+		fmt.Printf("activateMidtransSubscription: Failed to get user: %v\n", err)
+		return fmt.Errorf("failed to get user: %w", err)
+	}
+
+	// Create basic billing info for paid subscriptions
+	billingInfo := &domain.CustomerBillingInfo{
+		SubscriptionID:      newSubscription.ID,
+		CompanyName:         fmt.Sprintf("%s Company", user.Email), // Use email as fallback
+		CompanyAddress:      "Address not provided",                // Default address
+		CompanyEmail:        user.Email,
+		BillingContactName:  user.Email, // Use email as contact name
+		BillingContactEmail: user.Email,
+	}
+
+	if err := uc.xenditRepo.CreateCustomerBillingInfo(ctx, billingInfo); err != nil {
+		fmt.Printf("activateMidtransSubscription: Failed to create billing info: %v\n", err)
+		return fmt.Errorf("failed to create billing info: %w", err)
+	}
+
+	fmt.Printf("activateMidtransSubscription: Created billing info for subscription\n")
+
+	// Update checkout session with subscription ID
+	checkoutSession.SubscriptionID = &newSubscription.ID
+	fmt.Printf("activateMidtransSubscription: Updated checkout session with SubscriptionID=%d\n", newSubscription.ID)
+	return nil
+}
+
+// convertTrialSubscription converts a trial subscription to paid
+func (uc *SubscriptionUseCase) convertTrialSubscription(ctx context.Context, checkoutSession *domain.CheckoutSession, subscription *domain.Subscription) error {
+	fmt.Printf("activateMidtransSubscription: Converting trial subscription to paid\n")
+
+	// Use explicit field update to fix GORM tracking issue
+	err := uc.xenditRepo.UpdateSubscriptionFields(ctx, subscription.ID, map[string]interface{}{
+		"subscription_plan_id": checkoutSession.SubscriptionPlanID,
+		"seat_plan_id":         checkoutSession.SeatPlanID,
+		"status":               enums.StatusActive,
+	})
+	if err != nil {
+		fmt.Printf("activateMidtransSubscription: Failed to update subscription: %v\n", err)
+		return fmt.Errorf("failed to update subscription: %w", err)
+	}
+
+	// Verify the update was successful by reloading from database
+	updatedSubscription, err := uc.xenditRepo.GetSubscriptionByAdminUserID(ctx, checkoutSession.UserID)
+	if err != nil {
+		fmt.Printf("activateMidtransSubscription: Warning: Failed to verify subscription update: %v\n", err)
+	} else {
+		fmt.Printf("activateMidtransSubscription: Database verification - PlanID=%d, SeatPlanID=%d\n",
+			updatedSubscription.SubscriptionPlanID, updatedSubscription.SeatPlanID)
+	}
+
+	fmt.Printf("activateMidtransSubscription: Trial converted to paid subscription (PlanID=%d, SeatPlanID=%d)\n",
+		checkoutSession.SubscriptionPlanID, checkoutSession.SeatPlanID)
+
+	// Update trial activity to mark as converted
+	trialActivity, err := uc.xenditRepo.GetTrialActivityBySubscription(ctx, subscription.ID)
+	if err == nil && trialActivity != nil {
+		trialActivity.MarkAsConverted()
+		if updateErr := uc.xenditRepo.UpdateTrialActivity(ctx, trialActivity); updateErr != nil {
+			fmt.Printf("activateMidtransSubscription: Failed to update trial activity: %v\n", updateErr)
+		} else {
+			fmt.Printf("activateMidtransSubscription: Updated trial activity\n")
+		}
+	}
+
+	checkoutSession.SubscriptionID = &subscription.ID
+	fmt.Printf("activateMidtransSubscription: Updated checkout session with existing SubscriptionID=%d\n", subscription.ID)
+	return nil
+}
+
+// upgradeActiveSubscription upgrades an active subscription
+func (uc *SubscriptionUseCase) upgradeActiveSubscription(ctx context.Context, checkoutSession *domain.CheckoutSession, subscription *domain.Subscription) error {
+	fmt.Printf("activateMidtransSubscription: Upgrading active subscription\n")
+
+	// Debug: Show checkout session values before assignment
+	fmt.Printf("activateMidtransSubscription: CheckoutSession values - PlanID=%d, SeatPlanID=%d\n",
+		checkoutSession.SubscriptionPlanID, checkoutSession.SeatPlanID)
+	fmt.Printf("activateMidtransSubscription: Current subscription values - PlanID=%d, SeatPlanID=%d\n",
+		subscription.SubscriptionPlanID, subscription.SeatPlanID)
+
+	// Use explicit field update to fix GORM tracking issue
+	err := uc.xenditRepo.UpdateSubscriptionFields(ctx, subscription.ID, map[string]interface{}{
+		"subscription_plan_id": checkoutSession.SubscriptionPlanID,
+		"seat_plan_id":         checkoutSession.SeatPlanID,
+	})
+	if err != nil {
+		fmt.Printf("activateMidtransSubscription: Failed to update subscription: %v\n", err)
+		return fmt.Errorf("failed to update subscription: %w", err)
+	}
+
+	// Verify the update was successful by reloading from database
+	updatedSubscription, err := uc.xenditRepo.GetSubscriptionByAdminUserID(ctx, checkoutSession.UserID)
+	if err != nil {
+		fmt.Printf("activateMidtransSubscription: Warning: Failed to verify subscription update: %v\n", err)
+	} else {
+		fmt.Printf("activateMidtransSubscription: Database verification - PlanID=%d, SeatPlanID=%d\n",
+			updatedSubscription.SubscriptionPlanID, updatedSubscription.SeatPlanID)
+	}
+
+	fmt.Printf("activateMidtransSubscription: Active subscription upgraded (PlanID=%d, SeatPlanID=%d)\n",
+		checkoutSession.SubscriptionPlanID, checkoutSession.SeatPlanID)
+
+	checkoutSession.SubscriptionID = &subscription.ID
+	fmt.Printf("activateMidtransSubscription: Updated checkout session with existing SubscriptionID=%d\n", subscription.ID)
 	return nil
 }
 
 // PreviewSubscriptionPlanChange previews the changes when upgrading/downgrading subscription plan
-func (uc *SubscriptionUseCase) PreviewSubscriptionPlanChange(ctx context.Context, userID uint, newPlanID uint, isMonthly bool) (*subscriptionDto.UpgradePreviewResponse, error) {
+func (uc *SubscriptionUseCase) PreviewSubscriptionPlanChange(ctx context.Context, userID uint, newPlanID uint, newSeatPlanID *uint, isMonthly bool) (*subscriptionDto.UpgradePreviewResponse, error) {
 	// Get current subscription
 	currentSubscription, err := uc.xenditRepo.GetSubscriptionByAdminUserID(ctx, userID)
 	if err != nil {
@@ -938,26 +940,42 @@ func (uc *SubscriptionUseCase) PreviewSubscriptionPlanChange(ctx context.Context
 		return nil, fmt.Errorf("failed to get new subscription plan: %w", err)
 	}
 
-	// Get appropriate seat plan for new plan (same tier)
-	newSeatPlans, err := uc.xenditRepo.GetSeatPlansBySubscriptionPlan(ctx, newPlanID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get seat plans for new plan: %w", err)
-	}
-
-	// Find matching seat plan by employee range
 	var newSeatPlan *domain.SeatPlan
-	currentMinEmployees := currentSubscription.SeatPlan.MinEmployees
-	currentMaxEmployees := currentSubscription.SeatPlan.MaxEmployees
 
-	for _, seatPlan := range newSeatPlans {
-		if seatPlan.MinEmployees == currentMinEmployees && seatPlan.MaxEmployees == currentMaxEmployees {
-			newSeatPlan = &seatPlan
-			break
+	// If specific seat plan ID is provided, use it
+	if newSeatPlanID != nil {
+		seatPlan, err := uc.xenditRepo.GetSeatPlan(ctx, *newSeatPlanID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get specified seat plan: %w", err)
 		}
-	}
 
-	if newSeatPlan == nil {
-		return nil, fmt.Errorf("no matching seat plan found for new subscription plan")
+		// Verify seat plan belongs to the new subscription plan
+		if seatPlan.SubscriptionPlanID != newPlanID {
+			return nil, fmt.Errorf("specified seat plan does not belong to the new subscription plan")
+		}
+
+		newSeatPlan = seatPlan
+	} else {
+		// Auto-match seat plan by employee range (existing logic)
+		newSeatPlans, err := uc.xenditRepo.GetSeatPlansBySubscriptionPlan(ctx, newPlanID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get seat plans for new plan: %w", err)
+		}
+
+		// Find matching seat plan by employee range
+		currentMinEmployees := currentSubscription.SeatPlan.MinEmployees
+		currentMaxEmployees := currentSubscription.SeatPlan.MaxEmployees
+
+		for _, seatPlan := range newSeatPlans {
+			if seatPlan.MinEmployees == currentMinEmployees && seatPlan.MaxEmployees == currentMaxEmployees {
+				newSeatPlan = &seatPlan
+				break
+			}
+		}
+
+		if newSeatPlan == nil {
+			return nil, fmt.Errorf("no matching seat plan found for new subscription plan")
+		}
 	}
 
 	// Calculate price difference
@@ -1237,9 +1255,9 @@ func (uc *SubscriptionUseCase) applySubscriptionUpgrade(
 }
 
 // UpgradeSubscriptionPlan upgrades or downgrades subscription plan
-func (uc *SubscriptionUseCase) UpgradeSubscriptionPlan(ctx context.Context, userID uint, newPlanID uint, isMonthly bool) (*subscriptionDto.SubscriptionChangeResponse, error) {
+func (uc *SubscriptionUseCase) UpgradeSubscriptionPlan(ctx context.Context, userID uint, newPlanID uint, newSeatPlanID *uint, isMonthly bool) (*subscriptionDto.SubscriptionChangeResponse, error) {
 	// Get preview first
-	preview, err := uc.PreviewSubscriptionPlanChange(ctx, userID, newPlanID, isMonthly)
+	preview, err := uc.PreviewSubscriptionPlanChange(ctx, userID, newPlanID, newSeatPlanID, isMonthly)
 	if err != nil {
 		return nil, err
 	}

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Menu, X } from 'lucide-react';
 import { Button } from '../ui/button';
+import Link from 'next/link';
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -49,16 +50,11 @@ const Header: React.FC = () => {
           <a href='#pricing' className='font-medium text-gray-700 hover:text-blue-800'>
             Pricing
           </a>
-          <a href='/login'>
-            <Button variant='outline' size='sm'>
+          <Link href='/login'>
+            <Button variant='default' size='sm'>
               Log In
             </Button>
-          </a>
-          <a href='#contact'>
-            <Button size='sm' className='flex-1'>
-              Request Demo
-            </Button>
-          </a>
+          </Link>
         </nav>
         {/* Mobile Menu Button */}
         <button className='text-gray-700 md:hidden' onClick={() => setIsMenuOpen(!isMenuOpen)}>

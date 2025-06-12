@@ -2,6 +2,7 @@ import React from 'react';
 import { Button } from '../ui/button';
 import { ArrowRight } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 
 const Hero: React.FC = () => {
   return (
@@ -17,13 +18,12 @@ const Hero: React.FC = () => {
               to retirement, manage your entire employee lifecycle in one place.
             </p>
             <div className='flex flex-col space-y-4 sm:flex-row sm:space-y-0 sm:space-x-4'>
-              <Button size='lg' className='w-full sm:w-auto'>
-                Get Started
-                <ArrowRight size={20} className='ml-2' />
-              </Button>
-              <Button variant='outline' size='lg' className='w-full sm:w-auto'>
-                Schedule Demo
-              </Button>
+              <Link href='/auth/login'>
+                <Button size='lg' className='w-full sm:w-auto'>
+                  Get Started
+                  <ArrowRight size={20} className='ml-2' />
+                </Button>
+              </Link>
             </div>
             <div className='mt-8 flex items-center text-sm text-gray-500'>
               <span className='flex items-center'>

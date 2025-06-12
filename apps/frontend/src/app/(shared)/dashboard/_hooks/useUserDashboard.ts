@@ -57,9 +57,11 @@ export function useUserDashboard({
     const month = now.getMonth() + 1; // getMonth() returns 0-11, we need 1-12
     return `${year}-${month.toString().padStart(2, '0')}`;
   };
+
   const validSelectedMonth =
     selectedMonth && selectedMonth.includes('-') ? selectedMonth : getCurrentMonthString();
   const [year, month] = validSelectedMonth.split('-').map(Number);
+
   const generateMonthYearOptions = () => {
     const options = [];
     const now = new Date();

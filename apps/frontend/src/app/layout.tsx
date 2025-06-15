@@ -5,6 +5,7 @@ import { AuthProvider } from "./_components/AuthProvider";
 import { Toaster } from "sonner";
 import AppQueryProvider from "./_components/AppQueryProvider";
 import { AuthGuard } from "@/components/auth/AuthGuard";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 
 const inter = Inter({
 	variable: "--font-inter",
@@ -24,12 +25,14 @@ export default function RootLayout({
 	return (
 		<html lang="en">
 			<body className={inter.variable} suppressHydrationWarning={true}>
-				<AppQueryProvider>
-					<AuthProvider>
-						<AuthGuard>{children}</AuthGuard>
-						<Toaster />
-					</AuthProvider>
-				</AppQueryProvider>
+				<ErrorBoundary>
+					<AppQueryProvider>
+						<AuthProvider>
+							<AuthGuard>{children}</AuthGuard>
+							<Toaster />
+						</AuthProvider>
+					</AppQueryProvider>
+				</ErrorBoundary>
 			</body>
 		</html>
 	);

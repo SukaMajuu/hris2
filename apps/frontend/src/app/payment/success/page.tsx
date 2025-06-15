@@ -117,14 +117,14 @@ function PaymentSuccessContent() {
 								Payment Verification Issue
 							</h1>
 							<p className="text-slate-600 dark:text-slate-400">
-								Your payment was processed, but we're still
+								Your payment was processed, but we&apos;re still
 								verifying the subscription activation
 							</p>
 						</div>
 
 						<div className="bg-orange-50 dark:bg-orange-900/20 p-6 rounded-lg border border-orange-200 dark:border-orange-800 mb-6">
 							<h3 className="font-semibold text-orange-800 dark:text-orange-400 mb-2">
-								What's happening?
+								What&apos;s happening?
 							</h3>
 							<p className="text-sm text-orange-700 dark:text-orange-400 mb-4">
 								{verificationError}
@@ -140,7 +140,7 @@ function PaymentSuccessContent() {
 								<li className="flex items-start space-x-2">
 									<div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
 									<span>
-										We're working to activate your
+										We&apos;re working to activate your
 										subscription
 									</span>
 								</li>

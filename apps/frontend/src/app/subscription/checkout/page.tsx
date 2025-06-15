@@ -526,8 +526,9 @@ function CheckoutPageContent() {
 									</p>
 									{isUpgradeAmount && (
 										<p className="mt-1 text-green-600 dark:text-green-400">
-											You're only paying the difference
-											for the remaining billing period.
+											You&apos;re only paying the
+											difference for the remaining billing
+											period.
 										</p>
 									)}
 								</>

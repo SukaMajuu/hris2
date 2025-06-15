@@ -73,5 +73,7 @@ export async function emergencyAuthCleanup(): Promise<void> {
 }
 
 if (typeof window !== "undefined") {
-	(window as any).emergencyAuthCleanup = emergencyAuthCleanup;
+	(window as typeof window & {
+		emergencyAuthCleanup: typeof emergencyAuthCleanup;
+	}).emergencyAuthCleanup = emergencyAuthCleanup;
 }

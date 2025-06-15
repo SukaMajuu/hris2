@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
 	Select,
 	SelectContent,
@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import {
 	WorkScheduleDetailItem,
 	WorkSchedule,
@@ -58,13 +58,13 @@ const emptyWorkScheduleDetail: WorkScheduleDetailItem = {
 };
 
 const daysOfWeek = [
-	{ label: 'Monday', value: 'Monday' },
-	{ label: 'Tuesday', value: 'Tuesday' },
-	{ label: 'Wednesday', value: 'Wednesday' },
-	{ label: 'Thursday', value: 'Thursday' },
-	{ label: 'Friday', value: 'Friday' },
-	{ label: 'Saturday', value: 'Saturday' },
-	{ label: 'Sunday', value: 'Sunday' },
+	{ label: "Monday", value: "Monday" },
+	{ label: "Tuesday", value: "Tuesday" },
+	{ label: "Wednesday", value: "Wednesday" },
+	{ label: "Thursday", value: "Thursday" },
+	{ label: "Friday", value: "Friday" },
+	{ label: "Saturday", value: "Saturday" },
+	{ label: "Sunday", value: "Sunday" },
 ];
 
 export function WorkScheduleForm({
@@ -101,29 +101,32 @@ export function WorkScheduleForm({
 				return date.toTimeString().substring(0, 5);
 			}
 		} catch (error) {
-			console.warn("Could not parse time:", timeString);
+			console.error("Could not parse time:", timeString);
 		}
 
 		return timeString;
 	};
 
 	// Format initial data times
-	const formatInitialData = (data: WorkSchedule): WorkSchedule => {
-		if (!data) return data;
+	const formatInitialData = useCallback(
+		(data: WorkSchedule): WorkSchedule => {
+			if (!data) return data;
 
-		return {
-			...data,
-			details: data.details.map((detail) => ({
-				...detail,
-				checkin_start: formatTimeToHHMM(detail.checkin_start),
-				checkin_end: formatTimeToHHMM(detail.checkin_end),
-				break_start: formatTimeToHHMM(detail.break_start),
-				break_end: formatTimeToHHMM(detail.break_end),
-				checkout_start: formatTimeToHHMM(detail.checkout_start),
-				checkout_end: formatTimeToHHMM(detail.checkout_end),
-			})),
-		};
-	};
+			return {
+				...data,
+				details: data.details.map((detail) => ({
+					...detail,
+					checkin_start: formatTimeToHHMM(detail.checkin_start),
+					checkin_end: formatTimeToHHMM(detail.checkin_end),
+					break_start: formatTimeToHHMM(detail.break_start),
+					break_end: formatTimeToHHMM(detail.break_end),
+					checkout_start: formatTimeToHHMM(detail.checkout_start),
+					checkout_end: formatTimeToHHMM(detail.checkout_end),
+				})),
+			};
+		},
+		[]
+	);
 
 	// Track which existing details (with IDs) should be deleted
 	const [detailsToDelete, setDetailsToDelete] = useState<number[]>([]);
@@ -133,9 +136,11 @@ export function WorkScheduleForm({
 		work_type: initialData?.work_type || "",
 		details: initialData?.details
 			? formatInitialData(initialData).details
-			: [({
-				...emptyWorkScheduleDetail
-			} as WorkScheduleDetailItem)],
+			: [
+					{
+						...emptyWorkScheduleDetail,
+					} as WorkScheduleDetailItem,
+			  ],
 	});
 	useEffect(() => {
 		if (initialData) {
@@ -144,7 +149,7 @@ export function WorkScheduleForm({
 			// Reset the detailsToDelete when initialData changes
 			setDetailsToDelete([]);
 		}
-	}, [initialData]);
+	}, [initialData, formatInitialData]);
 
 	useEffect(() => {
 		formRefs.current = formRefs.current.slice(0, formData.details.length);
@@ -206,12 +211,12 @@ export function WorkScheduleForm({
 				onValidationErrorsChange();
 			}
 		}
-	}; 
-	
+	};
+
 	const handleAddDetail = () => {
 		setFormData((prev) => {
 			const newDetail: WorkScheduleDetailItem = {
-				...emptyWorkScheduleDetail
+				...emptyWorkScheduleDetail,
 			};
 
 			if (prev.work_type === "WFO") {
@@ -220,8 +225,12 @@ export function WorkScheduleForm({
 				newDetail.worktype_detail = WORK_TYPES.WFA;
 			} else if (prev.work_type === "Hybrid") {
 				// For Hybrid, determine the work type based on existing details
-				const hasWFO = prev.details.some(detail => detail.worktype_detail === WORK_TYPES.WFO);
-				const hasWFA = prev.details.some(detail => detail.worktype_detail === WORK_TYPES.WFA);
+				const hasWFO = prev.details.some(
+					(detail) => detail.worktype_detail === WORK_TYPES.WFO
+				);
+				const hasWFA = prev.details.some(
+					(detail) => detail.worktype_detail === WORK_TYPES.WFA
+				);
 
 				// Default to WFO if both types exist or if no preference
 				// User can change it manually using the dropdown
@@ -241,21 +250,29 @@ export function WorkScheduleForm({
 
 			return { ...prev, details: newDetails };
 		});
-	}; 
-	
+	};
+
 	const handleRemoveDetail = (idx: number) => {
 		setFormData((prev) => {
 			// For Hybrid type, check if removing this detail would violate the WFO/WFA requirement
 			if (prev.work_type === "Hybrid") {
 				const detailToRemove = prev.details[idx];
-				const remainingDetails = prev.details.filter((_, index) => index !== idx);
+				const remainingDetails = prev.details.filter(
+					(_, index) => index !== idx
+				);
 
 				// Check if remaining details have at least one WFO and one WFA
-				const hasWFO = remainingDetails.some(detail => detail.worktype_detail === WORK_TYPES.WFO);
-				const hasWFA = remainingDetails.some(detail => detail.worktype_detail === WORK_TYPES.WFA);
+				const hasWFO = remainingDetails.some(
+					(detail) => detail.worktype_detail === WORK_TYPES.WFO
+				);
+				const hasWFA = remainingDetails.some(
+					(detail) => detail.worktype_detail === WORK_TYPES.WFA
+				);
 
 				if (!hasWFO || !hasWFA) {
-					toast.error("Hybrid work type requires at least two different work type details (WFO and WFA)");
+					toast.error(
+						"Hybrid work type requires at least two different work type details (WFO and WFA)"
+					);
 					return prev;
 				}
 			}
@@ -264,16 +281,21 @@ export function WorkScheduleForm({
 
 			// If this detail has an ID (existing detail), add it to the deletion list
 			if (detailToRemove && detailToRemove.id && detailToRemove.id > 0) {
-				setDetailsToDelete(prevToDelete => [...prevToDelete, detailToRemove.id!]);
+				setDetailsToDelete((prevToDelete) => [
+					...prevToDelete,
+					detailToRemove.id!,
+				]);
 			}
 
 			const details = prev.details.filter((_, index) => index !== idx);
 			if (details.length === 0) {
 				return {
 					...prev,
-					details: [({
-						...emptyWorkScheduleDetail
-					} as WorkScheduleDetailItem)],
+					details: [
+						{
+							...emptyWorkScheduleDetail,
+						} as WorkScheduleDetailItem,
+					],
 				};
 			}
 			return { ...prev, details };
@@ -293,13 +315,13 @@ export function WorkScheduleForm({
 			// Toggle the is_active status
 			details[idx] = {
 				...currentDetail,
-				is_active: !currentDetail.is_active
+				is_active: !currentDetail.is_active,
 			};
 
 			return { ...prev, details };
 		});
-	}; 
-	
+	};
+
 	const handleMainWorkTypeChange = (value: string) => {
 		setFormData((prev) => {
 			let updatedDetails = [...prev.details];
@@ -343,9 +365,11 @@ export function WorkScheduleForm({
 	const handleDetailWorkTypeChange = (idx: number, value: string) => {
 		setFormData((prev) => {
 			const details = [...prev.details];
-			const currentDetail = details[idx] || ({
-				...emptyWorkScheduleDetail,
-			} as WorkScheduleDetailItem);
+			const currentDetail =
+				details[idx] ||
+				({
+					...emptyWorkScheduleDetail,
+				} as WorkScheduleDetailItem);
 
 			let updatedDetail: WorkScheduleDetailItem = {
 				...currentDetail,
@@ -423,10 +447,11 @@ export function WorkScheduleForm({
 									handleInputChange("name", e.target.value)
 								}
 								placeholder="Enter Schedule Name"
-								className={`focus-visible:ring-[#6B9AC4] focus-visible:border-[#6B9AC4] ${validationErrors.name
-									? "border-red-500"
-									: ""
-									}`}
+								className={`focus-visible:ring-[#6B9AC4] focus-visible:border-[#6B9AC4] ${
+									validationErrors.name
+										? "border-red-500"
+										: ""
+								}`}
 								required
 							/>
 							{validationErrors.name && (
@@ -457,10 +482,11 @@ export function WorkScheduleForm({
 								required
 							>
 								<SelectTrigger
-									className={`w-full bg-white border-gray-300 ${validationErrors.work_type
-										? "border-red-500"
-										: ""
-										}`}
+									className={`w-full bg-white border-gray-300 ${
+										validationErrors.work_type
+											? "border-red-500"
+											: ""
+									}`}
 								>
 									<SelectValue placeholder="Select main work type" />
 								</SelectTrigger>
@@ -493,7 +519,7 @@ export function WorkScheduleForm({
 							)}
 						</div>
 					</div>
-				</CardContent>			
+				</CardContent>
 			</Card>
 
 			{/* Work Schedule Details */}
@@ -504,7 +530,9 @@ export function WorkScheduleForm({
 						<div className="w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
 							<span className="text-white text-xs">!</span>
 						</div>
-						<h4 className="font-medium text-red-800">Validation Error</h4>
+						<h4 className="font-medium text-red-800">
+							Validation Error
+						</h4>
 					</div>
 					<p className="text-sm text-red-700 mt-2">
 						{validationErrors.details}
@@ -518,8 +546,18 @@ export function WorkScheduleForm({
 					ref={(el) => {
 						formRefs.current[idx] = el;
 					}}
-				>				<Card className={`border-none ${!detail.is_active ? 'opacity-60' : ''}`}>
-						<div className={`flex items-center justify-between p-4 rounded-t-lg ${!detail.is_active ? 'bg-gray-100' : 'bg-gray-50'}`}>
+				>
+					{" "}
+					<Card
+						className={`border-none ${
+							!detail.is_active ? "opacity-60" : ""
+						}`}
+					>
+						<div
+							className={`flex items-center justify-between p-4 rounded-t-lg ${
+								!detail.is_active ? "bg-gray-100" : "bg-gray-50"
+							}`}
+						>
 							<div className="flex items-center gap-2">
 								<CalendarCog className="h-5 w-5 text-gray-600" />
 								<h4 className="font-semibold text-md text-gray-700">
@@ -536,17 +574,30 @@ export function WorkScheduleForm({
 									type="button"
 									variant="ghost"
 									size="sm"
-									onClick={() => handleToggleDetailActive(idx)}
-									className={`${detail.is_active
-										? 'text-orange-500 hover:text-orange-700 hover:bg-orange-50'
-										: 'text-green-500 hover:text-green-700 hover:bg-green-50'
-										}`}
-									title={detail.is_active ? 'Deactivate' : 'Activate'}
+									onClick={() =>
+										handleToggleDetailActive(idx)
+									}
+									className={`${
+										detail.is_active
+											? "text-orange-500 hover:text-orange-700 hover:bg-orange-50"
+											: "text-green-500 hover:text-green-700 hover:bg-green-50"
+									}`}
+									title={
+										detail.is_active
+											? "Deactivate"
+											: "Activate"
+									}
 								>
 									{detail.is_active ? (
-										<><EyeOff className="h-4 w-4 mr-1" /> Deactivate</>
+										<>
+											<EyeOff className="h-4 w-4 mr-1" />{" "}
+											Deactivate
+										</>
 									) : (
-										<><Eye className="h-4 w-4 mr-1" /> Activate</>
+										<>
+											<Eye className="h-4 w-4 mr-1" />{" "}
+											Activate
+										</>
 									)}
 								</Button>
 								{formData.details.length > 1 && (
@@ -557,7 +608,8 @@ export function WorkScheduleForm({
 										onClick={() => handleRemoveDetail(idx)}
 										className="text-red-500 hover:text-red-700 hover:bg-red-50"
 									>
-										<Trash2 className="h-4 w-4 mr-1" /> Remove
+										<Trash2 className="h-4 w-4 mr-1" />{" "}
+										Remove
 									</Button>
 								)}
 							</div>
@@ -584,12 +636,13 @@ export function WorkScheduleForm({
 										required
 									>
 										<SelectTrigger
-											className={`w-full bg-white border-gray-300 ${validationErrors[
-												`details.${idx}.worktype_detail`
-											]
-												? "border-red-500"
-												: ""
-												}`}
+											className={`w-full bg-white border-gray-300 ${
+												validationErrors[
+													`details.${idx}.worktype_detail`
+												]
+													? "border-red-500"
+													: ""
+											}`}
 										>
 											<SelectValue placeholder="Select detail work type" />
 										</SelectTrigger>
@@ -597,30 +650,30 @@ export function WorkScheduleForm({
 											{getAvailableWorkTypes().includes(
 												"WFO"
 											) && (
-													<SelectItem value="WFO">
-														Work From Office (WFO)
-													</SelectItem>
-												)}
+												<SelectItem value="WFO">
+													Work From Office (WFO)
+												</SelectItem>
+											)}
 											{getAvailableWorkTypes().includes(
 												"WFA"
 											) && (
-													<SelectItem value="WFA">
-														Work From Anywhere (WFA)
-													</SelectItem>
-												)}
+												<SelectItem value="WFA">
+													Work From Anywhere (WFA)
+												</SelectItem>
+											)}
 										</SelectContent>
 									</Select>
 									{validationErrors[
 										`details.${idx}.worktype_detail`
 									] && (
-											<p className="text-sm text-red-500 mt-1">
-												{
-													validationErrors[
+										<p className="text-sm text-red-500 mt-1">
+											{
+												validationErrors[
 													`details.${idx}.worktype_detail`
-													]
-												}
-											</p>
-										)}
+												]
+											}
+										</p>
+									)}
 								</div>
 								<div className="space-y-2">
 									<Label
@@ -629,7 +682,8 @@ export function WorkScheduleForm({
 									>
 										Work Days{" "}
 										<span className="text-red-500">*</span>
-									</Label>									<MultiSelect
+									</Label>{" "}
+									<MultiSelect
 										options={daysOfWeek}
 										value={detail.work_days}
 										onChange={(selected) =>
@@ -640,25 +694,28 @@ export function WorkScheduleForm({
 											)
 										}
 										placeholder="Select work days"
-										className={`bg-white border-gray-300 ${validationErrors[
-											`details.${idx}.work_days`
-										]
-											? "border-red-500"
-											: ""
-											}`}
-										disabledOptions={getDisabledDaysForDetail(idx)}
+										className={`bg-white border-gray-300 ${
+											validationErrors[
+												`details.${idx}.work_days`
+											]
+												? "border-red-500"
+												: ""
+										}`}
+										disabledOptions={getDisabledDaysForDetail(
+											idx
+										)}
 									/>
 									{validationErrors[
 										`details.${idx}.work_days`
 									] && (
-											<p className="text-sm text-red-500 mt-1">
-												{
-													validationErrors[
+										<p className="text-sm text-red-500 mt-1">
+											{
+												validationErrors[
 													`details.${idx}.work_days`
-													]
-												}
-											</p>
-										)}
+												]
+											}
+										</p>
+									)}
 								</div>
 							</div>
 
@@ -685,24 +742,25 @@ export function WorkScheduleForm({
 														e.target.value
 													)
 												}
-												className={`bg-white ${validationErrors[
-													`details.${idx}.checkin_start`
-												]
-													? "border-red-500"
-													: ""
-													}`}
+												className={`bg-white ${
+													validationErrors[
+														`details.${idx}.checkin_start`
+													]
+														? "border-red-500"
+														: ""
+												}`}
 											/>
 											{validationErrors[
 												`details.${idx}.checkin_start`
 											] && (
-													<p className="text-xs text-red-500 mt-1">
-														{
-															validationErrors[
+												<p className="text-xs text-red-500 mt-1">
+													{
+														validationErrors[
 															`details.${idx}.checkin_start`
-															]
-														}
-													</p>
-												)}
+														]
+													}
+												</p>
+											)}
 										</div>
 										<div className="flex-1">
 											<Input
@@ -715,24 +773,25 @@ export function WorkScheduleForm({
 														e.target.value
 													)
 												}
-												className={`bg-white ${validationErrors[
-													`details.${idx}.checkin_end`
-												]
-													? "border-red-500"
-													: ""
-													}`}
+												className={`bg-white ${
+													validationErrors[
+														`details.${idx}.checkin_end`
+													]
+														? "border-red-500"
+														: ""
+												}`}
 											/>
 											{validationErrors[
 												`details.${idx}.checkin_end`
 											] && (
-													<p className="text-xs text-red-500 mt-1">
-														{
-															validationErrors[
+												<p className="text-xs text-red-500 mt-1">
+													{
+														validationErrors[
 															`details.${idx}.checkin_end`
-															]
-														}
-													</p>
-												)}
+														]
+													}
+												</p>
+											)}
 										</div>
 									</div>
 								</div>
@@ -755,24 +814,25 @@ export function WorkScheduleForm({
 														e.target.value
 													)
 												}
-												className={`bg-white ${validationErrors[
-													`details.${idx}.break_start`
-												]
-													? "border-red-500"
-													: ""
-													}`}
+												className={`bg-white ${
+													validationErrors[
+														`details.${idx}.break_start`
+													]
+														? "border-red-500"
+														: ""
+												}`}
 											/>
 											{validationErrors[
 												`details.${idx}.break_start`
 											] && (
-													<p className="text-xs text-red-500 mt-1">
-														{
-															validationErrors[
+												<p className="text-xs text-red-500 mt-1">
+													{
+														validationErrors[
 															`details.${idx}.break_start`
-															]
-														}
-													</p>
-												)}
+														]
+													}
+												</p>
+											)}
 										</div>
 										<div className="flex-1">
 											<Input
@@ -785,24 +845,25 @@ export function WorkScheduleForm({
 														e.target.value
 													)
 												}
-												className={`bg-white ${validationErrors[
-													`details.${idx}.break_end`
-												]
-													? "border-red-500"
-													: ""
-													}`}
+												className={`bg-white ${
+													validationErrors[
+														`details.${idx}.break_end`
+													]
+														? "border-red-500"
+														: ""
+												}`}
 											/>
 											{validationErrors[
 												`details.${idx}.break_end`
 											] && (
-													<p className="text-xs text-red-500 mt-1">
-														{
-															validationErrors[
+												<p className="text-xs text-red-500 mt-1">
+													{
+														validationErrors[
 															`details.${idx}.break_end`
-															]
-														}
-													</p>
-												)}
+														]
+													}
+												</p>
+											)}
 										</div>
 									</div>
 								</div>
@@ -827,24 +888,25 @@ export function WorkScheduleForm({
 														e.target.value
 													)
 												}
-												className={`bg-white ${validationErrors[
-													`details.${idx}.checkout_start`
-												]
-													? "border-red-500"
-													: ""
-													}`}
+												className={`bg-white ${
+													validationErrors[
+														`details.${idx}.checkout_start`
+													]
+														? "border-red-500"
+														: ""
+												}`}
 											/>
 											{validationErrors[
 												`details.${idx}.checkout_start`
 											] && (
-													<p className="text-xs text-red-500 mt-1">
-														{
-															validationErrors[
+												<p className="text-xs text-red-500 mt-1">
+													{
+														validationErrors[
 															`details.${idx}.checkout_start`
-															]
-														}
-													</p>
-												)}
+														]
+													}
+												</p>
+											)}
 										</div>
 										<div className="flex-1">
 											<Input
@@ -859,24 +921,25 @@ export function WorkScheduleForm({
 														e.target.value
 													)
 												}
-												className={`bg-white ${validationErrors[
-													`details.${idx}.checkout_end`
-												]
-													? "border-red-500"
-													: ""
-													}`}
+												className={`bg-white ${
+													validationErrors[
+														`details.${idx}.checkout_end`
+													]
+														? "border-red-500"
+														: ""
+												}`}
 											/>
 											{validationErrors[
 												`details.${idx}.checkout_end`
 											] && (
-													<p className="text-xs text-red-500 mt-1">
-														{
-															validationErrors[
+												<p className="text-xs text-red-500 mt-1">
+													{
+														validationErrors[
 															`details.${idx}.checkout_end`
-															]
-														}
-													</p>
-												)}
+														]
+													}
+												</p>
+											)}
 										</div>
 									</div>
 								</div>
@@ -919,12 +982,13 @@ export function WorkScheduleForm({
 												}
 											>
 												<SelectTrigger
-													className={`w-full bg-white border-gray-300 ${validationErrors[
-														`details.${idx}.location_id`
-													]
-														? "border-red-500"
-														: ""
-														}`}
+													className={`w-full bg-white border-gray-300 ${
+														validationErrors[
+															`details.${idx}.location_id`
+														]
+															? "border-red-500"
+															: ""
+													}`}
 												>
 													<SelectValue placeholder="Select location" />
 												</SelectTrigger>
@@ -942,14 +1006,14 @@ export function WorkScheduleForm({
 											{validationErrors[
 												`details.${idx}.location_id`
 											] && (
-													<p className="text-sm text-red-500 mt-1">
-														{
-															validationErrors[
+												<p className="text-sm text-red-500 mt-1">
+													{
+														validationErrors[
 															`details.${idx}.location_id`
-															]
-														}
-													</p>
-												)}
+														]
+													}
+												</p>
+											)}
 										</div>
 										{detail.location &&
 											detail.location.name && (
@@ -1013,8 +1077,8 @@ export function WorkScheduleForm({
 						{isLoading
 							? "Saving..."
 							: isEditMode
-								? "Save Changes"
-								: "Create Schedule"}
+							? "Save Changes"
+							: "Create Schedule"}
 					</Button>
 				</div>
 			</div>

@@ -21,6 +21,7 @@ import type {
 	WorkSchedule,
 	WorkScheduleDetailItem,
 } from "@/types/work-schedule.types";
+import Image from "next/image";
 
 interface WorkScheduleAssignmentData {
 	employee_id: number;
@@ -176,10 +177,12 @@ export function CheckClockForm({
 							<div className="flex flex-col items-center text-center mb-4">
 								<div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-3">
 									{employee.profile_photo_url ? (
-										<img
+										<Image
 											src={employee.profile_photo_url}
 											alt={`${employee.first_name} ${employee.last_name}`}
 											className="w-full h-full rounded-full object-cover"
+											width={80}
+											height={80}
 										/>
 									) : (
 										<User className="h-10 w-10 text-gray-500" />

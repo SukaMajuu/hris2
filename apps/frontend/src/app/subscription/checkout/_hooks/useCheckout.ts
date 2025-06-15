@@ -424,6 +424,8 @@ export const useCheckout = () => {
 		calculatedAmounts.yearly,
 		previewPlanMutation,
 		previewSeatMutation,
+		calculatedAmounts,
+		selectedBillingOptionId,
 	]);
 
 	// Update calculatedAmount when billing period changes (using cached values)

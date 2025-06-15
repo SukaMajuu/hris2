@@ -23,6 +23,7 @@ import {
 import { LeaveRequest } from "@/types/leave-request";
 import { WorkSchedule } from "@/types/work-schedule.types";
 import { AttendanceFormData } from "@/types/attendance";
+import { Attendance } from "@/types/attendance";
 
 // Combined interface for table display (matching the hook)
 // NOTE: Now only handles attendance records, including those auto-created from approved leave requests
@@ -272,7 +273,7 @@ export default function CheckClockOverviewTab() {
 			<AttendanceDetailSheet
 				open={openSheet}
 				onOpenChange={setOpenSheet}
-				selectedData={selectedData as any}
+				selectedData={(selectedData as unknown) as Attendance}
 			/>
 			{/* Add Attendance Dialog */}
 			<AddAttendanceDialog

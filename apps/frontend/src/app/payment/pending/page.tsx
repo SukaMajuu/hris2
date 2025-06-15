@@ -269,7 +269,7 @@ function PaymentPendingContent() {
 							asChild
 						>
 							<Link href="/dashboard">
-								I've Completed Payment
+								I&apos;ve Completed Payment
 							</Link>
 						</Button>
 

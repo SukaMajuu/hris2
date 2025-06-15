@@ -311,7 +311,15 @@ export function ClockInOutDialog({
 				});
 			}
 		);
-	}, [open, actionType, isWFA, setValue, validateLocation]);
+	}, [
+		open,
+		actionType,
+		isWFA,
+		setValue,
+		validateLocation,
+		formData.clock_in_request,
+		formData.clock_out_request,
+	]);
 
 	const getCurrentLocation = () => {
 		if (!isWFA && navigator.geolocation) {

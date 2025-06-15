@@ -59,7 +59,7 @@ function PaymentFailedContent() {
 							Payment Failed
 						</h1>
 						<p className="text-slate-600 dark:text-slate-400">
-							We couldn't process your payment at this time
+							We couldn&apos;t process your payment at this time
 						</p>
 					</div>
 

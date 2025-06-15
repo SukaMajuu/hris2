@@ -24,12 +24,6 @@ const LandingPageContent: React.FC = () => {
 		const statusCode = searchParams.get("status_code");
 
 		if (orderId && transactionStatus) {
-			console.log("Midtrans callback detected:", {
-				orderId,
-				transactionStatus,
-				statusCode,
-			});
-
 			// Extract planId, seatPlanId, and other details from order_id if needed
 			// Assuming your order_id contains this information or you can get it from your backend
 

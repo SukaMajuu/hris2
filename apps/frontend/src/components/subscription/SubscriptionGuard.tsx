@@ -60,6 +60,7 @@ export function SubscriptionGuard({
 			}
 		}
 	}, [
+		isFetchingSubscription,
 		hasActiveSubscription,
 		isLoading,
 		isAdmin,

@@ -59,6 +59,7 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { formatWorkHours, utcToLocalTime } from "@/utils/timezone";
+import React from "react";
 
 // Status mapping for user-friendly display
 const statusMapping = {
@@ -127,6 +128,32 @@ const getLeaveStatusBadge = (status: string) => {
 			return <Badge className="bg-gray-600 text-white">{status}</Badge>;
 	}
 };
+
+// Define render functions outside the component instead of components
+const renderStatusCell = (item: Attendance) => {
+	const bgColor = getStatusStyle(item.status);
+	const displayStatus = getDisplayStatus(item.status);
+
+	return (
+		<Badge
+			className={`rounded-md text-sm font-medium ${bgColor} text-white`}
+		>
+			{displayStatus}
+		</Badge>
+	);
+};
+
+const renderDetailsCell = (id: number, onViewDetails: (id: number) => void) => (
+	<Button
+		variant="default"
+		size="sm"
+		className="bg-blue-500 px-6 text-white hover:bg-blue-600"
+		onClick={() => onViewDetails(id)}
+	>
+		<Eye className="mr-1 h-4 w-4" />
+		View
+	</Button>
+);
 
 export default function AttendanceOverviewTab() {
 	const {
@@ -198,7 +225,11 @@ export default function AttendanceOverviewTab() {
 			const startDate = new Date(request.start_date);
 			const endDate = new Date(request.end_date);
 			// Check if the selected date falls within the leave request period and status is approved
-			return selectedDate >= startDate && selectedDate <= endDate && request.status.toLowerCase() === 'approved';
+			return (
+				selectedDate >= startDate &&
+				selectedDate <= endDate &&
+				request.status.toLowerCase() === "approved"
+			);
 		});
 	}, [leaveRequestsData, selectedDateForLeave, selectedData?.status]);
 
@@ -317,7 +348,8 @@ export default function AttendanceOverviewTab() {
 
 		// Find today's attendance record that already has clock_in
 		const todayAttendance = checkClockData.find(
-			(record) => record.date === today && record.clock_in		);
+			(record) => record.date === today && record.clock_in
+		);
 
 		return !todayAttendance; // Can clock in only if no attendance record with clock_in exists for today
 	}, [checkClockData, currentEmployee, hasLeaveToday]);
@@ -517,7 +549,8 @@ export default function AttendanceOverviewTab() {
 				meta: {
 					className: "max-w-[80px]",
 				},
-			},			{
+			},
+			{
 				header: "Date",
 				accessorKey: "date",
 				cell: ({ row }) => {
@@ -575,36 +608,16 @@ export default function AttendanceOverviewTab() {
 			{
 				header: "Status",
 				accessorKey: "status",
-				cell: ({ row }) => {
-					const item = row.original;
-					const bgColor = getStatusStyle(item.status);
-					const displayStatus = getDisplayStatus(item.status);
-
-					return (
-						<Badge
-							className={`rounded-md text-sm font-medium ${bgColor} text-white`}
-						>
-							{displayStatus}
-						</Badge>
-					);
-				},
+				cell: ({ row }) => renderStatusCell(row.original),
 			},
 			{
 				header: "Details",
 				accessorKey: "id",
-				cell: ({ row }) => (
-					<Button
-						variant="default"
-						size="sm"
-						className="bg-blue-500 px-6 text-white hover:bg-blue-600"
-						onClick={() =>
-							handleViewDetails(Number(row.original.id))
-						}
-					>
-						<Eye className="mr-1 h-4 w-4" />
-						View
-					</Button>
-				),
+				cell: ({ row }) =>
+					renderDetailsCell(
+						Number(row.original.id),
+						handleViewDetails
+					),
 			},
 		],
 		[handleViewDetails]
@@ -634,7 +647,8 @@ export default function AttendanceOverviewTab() {
 						<div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
 							<h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">
 								Attendance Overview
-							</h2>							<div className="flex flex-wrap gap-2">
+							</h2>{" "}
+							<div className="flex flex-wrap gap-2">
 								<Button
 									variant="outline"
 									className="gap-2 border-green-500 bg-green-500 text-white hover:bg-green-600 disabled:bg-gray-400 disabled:border-gray-400"
@@ -760,16 +774,20 @@ export default function AttendanceOverviewTab() {
 					</SheetHeader>
 					{selectedData && (
 						<div className="mx-2 space-y-6 text-sm sm:mx-4">
-							<div className="mb-6 rounded-lg bg-white p-6 shadow-md">								<h3 className="mb-1 text-lg font-bold text-slate-700">
+							<div className="mb-6 rounded-lg bg-white p-6 shadow-md">
+								{" "}
+								<h3 className="mb-1 text-lg font-bold text-slate-700">
 									{(() => {
-										const dateToUse = selectedData.clock_in || selectedData.date;
+										const dateToUse =
+											selectedData.clock_in ||
+											selectedData.date;
 										const date = new Date(dateToUse);
-										
+
 										// Check if the date is valid
 										if (isNaN(date.getTime())) {
 											return "Invalid Date";
 										}
-										
+
 										return date.toLocaleDateString(
 											"en-US",
 											{

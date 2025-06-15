@@ -9,19 +9,36 @@ import { useInitiatePaidCheckout } from "@/api/mutations/subscription.mutation";
 import { toast } from "sonner";
 import Script from "next/script";
 
+// Define proper types for Midtrans
+interface MidtransResult {
+	transaction_id?: string;
+	order_id?: string;
+	gross_amount?: string;
+	payment_type?: string;
+	va_number?: string;
+	bank?: string;
+	status_code?: string;
+	status_message?: string;
+}
+
+interface MidtransCallbacks {
+	onSuccess?: (result: MidtransResult) => void;
+	onPending?: (result: MidtransResult) => void;
+	onError?: (result: MidtransResult) => void;
+	onClose?: () => void;
+}
+
+interface CheckoutResponse {
+	invoice?: {
+		id: string;
+	};
+}
+
 // Declare Midtrans Snap interface
 declare global {
 	interface Window {
 		snap: {
-			pay: (
-				token: string,
-				callbacks: {
-					onSuccess?: (result: any) => void;
-					onPending?: (result: any) => void;
-					onError?: (result: any) => void;
-					onClose?: () => void;
-				}
-			) => void;
+			pay: (token: string, callbacks: MidtransCallbacks) => void;
 		};
 	}
 }
@@ -36,7 +53,10 @@ function PaymentProcessContent() {
 	const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 	const [paymentError, setPaymentError] = useState<string | null>(null);
 	const [snapScriptLoaded, setSnapScriptLoaded] = useState(false);
-	const [checkoutResponse, setCheckoutResponse] = useState<any>(null);
+	const [
+		checkoutResponse,
+		setCheckoutResponse,
+	] = useState<CheckoutResponse | null>(null);
 	const [initializationAttempted, setInitializationAttempted] = useState(
 		false
 	);
@@ -51,7 +71,57 @@ function PaymentProcessContent() {
 
 	const initiatePaidCheckoutMutation = useInitiatePaidCheckout();
 
-	// Validation
+	// Initialize payment checkout on component mount
+	useEffect(() => {
+		// Only run if we have valid parameters
+		if (!planId || !seatPlanId || !amount) return;
+
+		const initializePayment = async () => {
+			if (checkoutResponse) return; // Already initialized
+
+			try {
+				setIsProcessingPayment(true);
+				setPaymentError(null);
+
+				const response = await initiatePaidCheckoutMutation.mutateAsync(
+					{
+						subscription_plan_id: parseInt(planId),
+						seat_plan_id: parseInt(seatPlanId),
+						is_monthly: isMonthly,
+					}
+				);
+
+				setCheckoutResponse(response);
+			} catch (error) {
+				console.error("Payment initialization error:", error);
+				setPaymentError(
+					error && typeof error === "object" && "response" in error
+						? (error as {
+								response?: { data?: { message?: string } };
+						  }).response?.data?.message ||
+								"Failed to initialize payment. Please try again."
+						: "Failed to initialize payment. Please try again."
+				);
+			} finally {
+				setIsProcessingPayment(false);
+			}
+		};
+
+		if (!checkoutResponse && !initializationAttempted) {
+			setInitializationAttempted(true);
+			initializePayment();
+		}
+	}, [
+		planId,
+		seatPlanId,
+		isMonthly,
+		amount,
+		checkoutResponse,
+		initializationAttempted,
+		initiatePaidCheckoutMutation,
+	]);
+
+	// Validation - now after all hooks
 	if (!planId || !seatPlanId || !amount) {
 		return (
 			<div className="min-h-screen bg-slate-100 dark:bg-slate-950 p-4 md:p-8">
@@ -78,42 +148,6 @@ function PaymentProcessContent() {
 			</div>
 		);
 	}
-
-	// Initialize payment checkout on component mount
-	useEffect(() => {
-		const initializePayment = async () => {
-			if (checkoutResponse) return; // Already initialized
-
-			try {
-				setIsProcessingPayment(true);
-				setPaymentError(null);
-
-				const response = await initiatePaidCheckoutMutation.mutateAsync(
-					{
-						subscription_plan_id: parseInt(planId),
-						seat_plan_id: parseInt(seatPlanId),
-						is_monthly: isMonthly,
-					}
-				);
-
-				setCheckoutResponse(response);
-			} catch (error) {
-				console.error("Payment initialization error:", error);
-				setPaymentError(
-					(error as any)?.response?.data?.message ||
-						"Failed to initialize payment. Please try again."
-				);
-			} finally {
-				setIsProcessingPayment(false);
-			}
-		};
-
-		if (!checkoutResponse && !initializationAttempted) {
-			setInitializationAttempted(true);
-			initializePayment();
-		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [planId, seatPlanId, isMonthly]);
 
 	const handleInitiatePayment = async () => {
 		if (!snapScriptLoaded) {
@@ -148,8 +182,7 @@ function PaymentProcessContent() {
 
 			// Initialize Midtrans Snap payment
 			window.snap.pay(snapToken, {
-				onSuccess: (result: any) => {
-					console.log("Payment success:", result);
+				onSuccess: (result: MidtransResult) => {
 					toast.success("Payment successful!");
 
 					// Redirect with all payment details and checkout context
@@ -167,8 +200,7 @@ function PaymentProcessContent() {
 
 					router.push(`/payment/success?${finalParams.toString()}`);
 				},
-				onPending: (result: any) => {
-					console.log("Payment pending:", result);
+				onPending: (result: MidtransResult) => {
 					toast.info("Payment is being processed...");
 
 					// Redirect with payment details and checkout context
@@ -188,8 +220,7 @@ function PaymentProcessContent() {
 
 					router.push(`/payment/pending?${finalParams.toString()}`);
 				},
-				onError: (result: any) => {
-					console.error("Payment error:", result);
+				onError: (result: MidtransResult) => {
 					toast.error("Payment failed. Please try again.");
 
 					// Redirect with error details and checkout context for retry
@@ -208,7 +239,6 @@ function PaymentProcessContent() {
 					router.push(`/payment/failed?${finalParams.toString()}`);
 				},
 				onClose: () => {
-					console.log("Payment popup closed");
 					setIsProcessingPayment(false);
 				},
 			});
@@ -237,28 +267,23 @@ function PaymentProcessContent() {
 	return (
 		<>
 			{/* Load Midtrans Snap Script only if using Midtrans */}
-			{
-				<Script
-					src={"https://app.sandbox.midtrans.com/snap/snap.js"}
-					data-client-key={
-						process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY ||
-						"SB-Mid-client-YOUR_CLIENT_KEY"
-					}
-					onLoad={() => {
-						setSnapScriptLoaded(true);
-					}}
-					onError={(e) => {
-						console.error(
-							"Failed to load Midtrans Snap script:",
-							e
-						);
-						setPaymentError(
-							"Failed to load payment system. Please refresh the page."
-						);
-						toast.error("Failed to load payment system");
-					}}
-				/>
-			}
+			<Script
+				src={"https://app.sandbox.midtrans.com/snap/snap.js"}
+				data-client-key={
+					process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY ||
+					"SB-Mid-client-YOUR_CLIENT_KEY"
+				}
+				onLoad={() => {
+					setSnapScriptLoaded(true);
+				}}
+				onError={(e) => {
+					console.error("Failed to load Midtrans Snap script:", e);
+					setPaymentError(
+						"Failed to load payment system. Please refresh the page."
+					);
+					toast.error("Failed to load payment system");
+				}}
+			/>
 
 			<div className="bg-slate-100 dark:bg-slate-950 p-4 md:p-8">
 				<div className="max-w-3xl mx-auto">
@@ -354,30 +379,25 @@ function PaymentProcessContent() {
 						{/* Payment Actions */}
 						<div className="space-y-4">
 							{checkoutResponse && (
-								<>
-									{
-										<Button
-											size="lg"
-											className="w-full bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white text-base py-3"
-											onClick={handleInitiatePayment}
-											disabled={
-												!snapScriptLoaded ||
-												isProcessingPayment
-											}
-										>
-											{isProcessingPayment ? (
-												<>
-													<Loader2 className="h-4 w-4 animate-spin mr-2" />
-													Processing Payment...
-												</>
-											) : !snapScriptLoaded ? (
-												"Loading Payment System..."
-											) : (
-												"Pay with Midtrans"
-											)}
-										</Button>
+								<Button
+									size="lg"
+									className="w-full bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white text-base py-3"
+									onClick={handleInitiatePayment}
+									disabled={
+										!snapScriptLoaded || isProcessingPayment
 									}
-								</>
+								>
+									{isProcessingPayment ? (
+										<>
+											<Loader2 className="h-4 w-4 animate-spin mr-2" />
+											Processing Payment...
+										</>
+									) : !snapScriptLoaded ? (
+										"Loading Payment System..."
+									) : (
+										"Pay with Midtrans"
+									)}
+								</Button>
 							)}
 
 							<Button

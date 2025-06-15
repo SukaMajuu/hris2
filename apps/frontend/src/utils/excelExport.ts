@@ -1,10 +1,10 @@
-export function exportToExcel<T extends Record<string, any>>(
+export function exportToExcel<T extends Record<string, unknown>>(
 	data: T[],
 	filename: string,
 	columns?: Array<{
 		key: keyof T;
 		header: string;
-		transform?: (value: any) => string;
+		transform?: (value: unknown) => string;
 	}>
 ) {
 	if (!data || data.length === 0) {
@@ -13,7 +13,7 @@ export function exportToExcel<T extends Record<string, any>>(
 
 	import("xlsx")
 		.then((XLSX) => {
-			let worksheetData: any[][] = [];
+			let worksheetData: unknown[][] = [];
 
 			if (columns) {
 				const headers = columns.map((col) => col.header);

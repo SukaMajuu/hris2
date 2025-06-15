@@ -138,7 +138,7 @@ export const useLogout = () => {
 				// window.location.replace('/login');
 			}, 1000); // Increased from 500ms to 1000ms
 		}
-	}, [logoutFromStore, logoutMutation, clearAllCaches]);
+	}, [logoutFromStore, logoutMutation, clearAllCaches, isProcessing]);
 
 	return {
 		logout: performLogout,

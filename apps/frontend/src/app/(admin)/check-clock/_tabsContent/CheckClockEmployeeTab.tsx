@@ -101,16 +101,6 @@ export default function CheckClockEmployeeTab() {
 					? updater(currentPaginationState)
 					: updater;
 
-			console.log("Table pagination change:", {
-				current: currentPaginationState,
-				new: newPagination,
-				pageChanged:
-					newPagination.pageIndex !==
-					currentPaginationState.pageIndex,
-				pageSizeChanged:
-					newPagination.pageSize !== currentPaginationState.pageSize,
-			});
-
 			// Only update if values actually changed
 			if (newPagination.pageIndex !== currentPaginationState.pageIndex) {
 				setPage(newPagination.pageIndex + 1);

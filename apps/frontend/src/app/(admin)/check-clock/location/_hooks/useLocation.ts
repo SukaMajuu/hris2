@@ -46,7 +46,9 @@ export const useLocation = (initialPage = 1, initialPageSize = 10) => {
 
 	// Extract data from server response
 	const locationData = locationsQuery.data?.data;
-	const serverLocations = locationData?.items || [];
+	const serverLocations = useMemo(() => locationData?.items || [], [
+		locationData?.items,
+	]);
 
 	// Apply client-side filtering and sorting for fields not handled by backend
 	const processedLocations = useMemo(() => {

@@ -42,6 +42,7 @@ const NoColumn = React.memo(({ row, table }: TableRowProps) => {
 		</div>
 	);
 });
+NoColumn.displayName = "NoColumn";
 
 const NameColumn = React.memo(({ row }: TableRowProps) => {
 	const name = row.original.name;
@@ -53,6 +54,7 @@ const NameColumn = React.memo(({ row }: TableRowProps) => {
 		</div>
 	);
 });
+NameColumn.displayName = "NameColumn";
 
 const StartDateColumn = React.memo(({ row }: TableRowProps) => {
 	const item = row.original;
@@ -65,6 +67,7 @@ const StartDateColumn = React.memo(({ row }: TableRowProps) => {
 		</div>
 	);
 });
+StartDateColumn.displayName = "StartDateColumn";
 
 const EndDateColumn = React.memo(({ row }: TableRowProps) => {
 	const item = row.original;
@@ -77,6 +80,7 @@ const EndDateColumn = React.memo(({ row }: TableRowProps) => {
 		</div>
 	);
 });
+EndDateColumn.displayName = "EndDateColumn";
 
 const DurationColumn = React.memo(({ row }: TableRowProps) => {
 	const item = row.original;
@@ -98,6 +102,7 @@ const DurationColumn = React.memo(({ row }: TableRowProps) => {
 		</div>
 	);
 });
+DurationColumn.displayName = "DurationColumn";
 
 const LeaveTypeColumn = React.memo(({ row }: TableRowProps) => {
 	const status = row.original.status;
@@ -109,6 +114,7 @@ const LeaveTypeColumn = React.memo(({ row }: TableRowProps) => {
 		</div>
 	);
 });
+LeaveTypeColumn.displayName = "LeaveTypeColumn";
 
 const ApprovalColumn = React.memo(
 	({
@@ -158,6 +164,7 @@ const ApprovalColumn = React.memo(
 		);
 	}
 );
+ApprovalColumn.displayName = "ApprovalColumn";
 
 const DetailsColumn = React.memo(
 	({
@@ -193,6 +200,7 @@ const DetailsColumn = React.memo(
 		);
 	}
 );
+DetailsColumn.displayName = "DetailsColumn";
 
 export function createApprovalColumns(
 	onApprove: (item: ApprovalItem) => void,

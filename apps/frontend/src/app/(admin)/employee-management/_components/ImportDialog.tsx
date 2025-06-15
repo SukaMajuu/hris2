@@ -207,7 +207,7 @@ export function ImportDialog({ open, onOpenChange, onImportComplete }: ImportDia
           <DialogTitle>Import Employees</DialogTitle>
           <DialogDescription>
             Upload a CSV or Excel file to import multiple employees at once. Each employee will get
-            a user account with default password 'password'.
+            a user account with default password &apos;password&apos;.
             <br />
             <strong>⚠️ Important:</strong> If any employee has an error, the entire import will be
             cancelled and no employees will be created. Please ensure all data is valid before

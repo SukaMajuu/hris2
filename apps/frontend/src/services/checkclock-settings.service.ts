@@ -87,4 +87,9 @@ class CheckclockSettingsService {
 	}
 }
 
-export default new CheckclockSettingsService(new ApiService());
+const checkclockSettingsService = new CheckclockSettingsService(
+	new ApiService()
+);
+
+export { checkclockSettingsService };
+export default checkclockSettingsService;

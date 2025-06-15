@@ -1,10 +1,10 @@
-export function exportToCSV<T extends Record<string, any>>(
+export function exportToCSV<T extends Record<string, unknown>>(
 	data: T[],
 	filename: string,
 	columns?: Array<{
 		key: keyof T;
 		header: string;
-		transform?: (value: any) => string;
+		transform?: (value: unknown) => string;
 	}>
 ) {
 	if (!data || data.length === 0) {

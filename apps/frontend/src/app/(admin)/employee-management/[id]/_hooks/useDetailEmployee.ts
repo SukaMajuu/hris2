@@ -12,17 +12,7 @@ import {
 import { toast } from "sonner";
 import type { Document } from "@/services/document.service";
 import { EmployeeService } from "@/services/employee.service";
-
-function debounce<T extends (...args: Parameters<T>) => ReturnType<T>>(
-	func: T,
-	delay: number
-): T {
-	let timeoutId: NodeJS.Timeout;
-	return ((...args: Parameters<T>) => {
-		clearTimeout(timeoutId);
-		timeoutId = setTimeout(() => func(...args), delay);
-	}) as T;
-}
+import { debounce } from "@/utils/debounce";
 
 interface ValidationState {
 	isValidating: boolean;

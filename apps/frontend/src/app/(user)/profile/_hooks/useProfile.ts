@@ -10,19 +10,9 @@ import {
 import { toast } from "sonner";
 import type { Document } from "@/services/document.service";
 import { EmployeeService } from "@/services/employee.service";
+import { debounce } from "@/utils/debounce";
 
 const PHONE_REGEX = /^\+[1-9]\d{8,14}$/;
-
-function debounce<T extends (...args: Parameters<T>) => ReturnType<T>>(
-	func: T,
-	delay: number
-): T {
-	let timeoutId: NodeJS.Timeout;
-	return ((...args: Parameters<T>) => {
-		clearTimeout(timeoutId);
-		timeoutId = setTimeout(() => func(...args), delay);
-	}) as T;
-}
 
 export interface ClientDocument {
 	name: string;

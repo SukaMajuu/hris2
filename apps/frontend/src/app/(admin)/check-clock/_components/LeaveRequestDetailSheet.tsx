@@ -20,7 +20,10 @@ export function LeaveRequestDetailSheet({
 	onOpenChange,
 	leaveRequest,
 }: LeaveRequestDetailSheetProps) {
-	if (!leaveRequest) return null;
+	// Remove the debug logging that's causing the infinite loop
+	if (!leaveRequest) {
+		return null;
+	}
 
 	// Get employee name from different possible fields
 	const employeeName =

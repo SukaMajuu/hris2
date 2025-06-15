@@ -5,11 +5,10 @@ import { useForm, Controller } from "react-hook-form";
 import dynamic from "next/dynamic";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Crosshair, MapPin } from "lucide-react";
+import { MapPin } from "lucide-react";
 import {
 	Dialog,
 	DialogContent,
@@ -45,6 +44,7 @@ import { useClockIn, useClockOut } from "@/api/mutations/attendance.mutation";
 import {
 	ClockInAttendanceRequest,
 	ClockOutAttendanceRequest,
+	AttendanceFormData,
 } from "@/types/attendance";
 import { useCreateLeaveRequestForEmployeeMutation } from "@/api/mutations/leave-request.mutations";
 import { CreateLeaveRequestRequest, LeaveType } from "@/types/leave-request";
@@ -82,7 +82,7 @@ interface AddAttendanceDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	employeeList: Employee[];
-	createAttendance: (data: any) => Promise<void>;
+	createAttendance: (data: AttendanceFormData) => Promise<void>;
 	isCreating: boolean;
 }
 
@@ -319,7 +319,8 @@ export function AddAttendanceDialog({
 		try {
 			const selectedEmployee = filteredEmployeeList.find(
 				(emp: { id: number }) => emp.id.toString() === data.employee_id
-			);			if (!selectedEmployee) {
+			);
+			if (!selectedEmployee) {
 				toast.error("Please select a valid employee");
 				return;
 			}
@@ -336,7 +337,7 @@ export function AddAttendanceDialog({
 					}
 
 					// Generate clock_in timestamp if not provided
-					const clockInTime = data.clockIn 
+					const clockInTime = data.clockIn
 						? `${data.date}T${data.clockIn}:00Z`
 						: new Date().toISOString(); // Use current time if no specific time provided
 
@@ -362,7 +363,7 @@ export function AddAttendanceDialog({
 					}
 
 					// Generate clock_out timestamp if not provided
-					const clockOutTime = data.clockOut 
+					const clockOutTime = data.clockOut
 						? `${data.date}T${data.clockOut}:00Z`
 						: new Date().toISOString(); // Use current time if no specific time provided
 

@@ -3,9 +3,11 @@ import { useAttendances } from "@/api/queries/attendance.queries";
 import { useEmployeesQuery } from "@/api/queries/employee.queries";
 import { useCreateAttendance } from "@/api/mutations/attendance.mutation";
 import { useCreateLeaveRequestForEmployeeMutation } from "@/api/mutations/leave-request.mutations";
-import { Attendance } from "@/types/attendance";
+import { Attendance, AttendanceListResponse } from "@/types/attendance";
 import { LeaveRequest } from "@/types/leave-request";
 import { Employee, EmployeeFilters } from "@/types/employee";
+import { WorkSchedule } from "@/types/work-schedule.types";
+import { CreateLeaveRequestRequest } from "@/types/leave-request";
 
 // Combined interface for table display
 // NOTE: This interface now only handles attendance records
@@ -21,7 +23,7 @@ interface CombinedAttendanceData {
 		position_name?: string;
 	};
 	work_schedule_id?: number;
-	work_schedule?: any;
+	work_schedule?: WorkSchedule;
 	date: string;
 	clock_in: string | null;
 	clock_out: string | null;
@@ -45,9 +47,14 @@ interface FilterOptions {
 	status?: string;
 }
 
-export function useCheckClockOverview() {
-	const [page, setPage] = useState(1);
-	const [pageSize, setPageSize] = useState(10);
+export function useCheckClockOverview(initialPage = 1, initialPageSize = 10) {
+	const [page, setPage] = useState(initialPage);
+	const [pageSize, setPageSize] = useState(initialPageSize);
+	const [
+		selectedRecord,
+		setSelectedRecord,
+	] = useState<CombinedAttendanceData | null>(null);
+	const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
 	const [nameFilter, setNameFilter] = useState("");
 	const [filters, setFilters] = useState<FilterOptions>({});
 	const {
@@ -241,7 +248,10 @@ export function useCheckClockOverview() {
 			throw error;
 		}
 	};
-	const createLeaveRequest = async (employeeId: number, data: any) => {
+	const createLeaveRequest = async (
+		employeeId: number,
+		data: CreateLeaveRequestRequest
+	) => {
 		try {
 			await createLeaveRequestMutation.mutateAsync({ employeeId, data });
 		} catch (error) {
@@ -260,6 +270,12 @@ export function useCheckClockOverview() {
 		setFilters({});
 		setPage(1);
 	};
+
+	const handleViewDetails = (record: CombinedAttendanceData) => {
+		setSelectedRecord(record);
+		setIsDetailSheetOpen(true);
+	};
+
 	return {
 		page,
 		setPage,
@@ -279,5 +295,6 @@ export function useCheckClockOverview() {
 		createAttendance,
 		isCreating: createAttendanceMutation.isPending,
 		createLeaveRequest,
+		handleViewDetails,
 	};
 }

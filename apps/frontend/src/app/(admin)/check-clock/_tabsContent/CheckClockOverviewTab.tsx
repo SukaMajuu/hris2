@@ -2,27 +2,27 @@
 
 import { useCheckClockOverview } from "../_hooks/useCheckClockOverview";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Filter, Search, Plus, Eye } from "lucide-react";
+import { Filter, Search, Plus } from "lucide-react";
 import { DataTable } from "@/components/dataTable";
 import { PaginationComponent } from "@/components/pagination";
 import { PageSizeComponent } from "@/components/pageSize";
 import { AttendanceDetailSheet } from "../_components/AttendanceDetailSheet";
 import { AddAttendanceDialog } from "../_components/AddAttendanceDialog";
 import { CheckClockOverviewFilter } from "../_components/CheckClockOverviewFilter";
-import { formatWorkHours, formatTime } from "@/utils/time";
+import { createOverviewColumns } from "../_components/OverviewTableColumns";
 import * as React from "react";
 import {
 	ColumnDef,
 	useReactTable,
 	getCoreRowModel,
 	getPaginationRowModel,
-	getFilteredRowModel,
 	PaginationState,
 } from "@tanstack/react-table";
 import { LeaveRequest } from "@/types/leave-request";
+import { WorkSchedule } from "@/types/work-schedule.types";
+import { AttendanceFormData } from "@/types/attendance";
 
 // Combined interface for table display (matching the hook)
 // NOTE: Now only handles attendance records, including those auto-created from approved leave requests
@@ -37,7 +37,7 @@ interface CombinedAttendanceData {
 		position_name?: string;
 	};
 	work_schedule_id?: number;
-	work_schedule?: any;
+	work_schedule?: WorkSchedule;
 	date: string;
 	clock_in: string | null;
 	clock_out: string | null;
@@ -94,6 +94,22 @@ export default function CheckClockOverviewTab() {
 			pageSize: pageSize,
 		});
 	}, [page, pageSize]);
+
+	// Wrapper function to convert between types
+	const handleCreateAttendance = React.useCallback(
+		async (data: AttendanceFormData) => {
+			if (data.attendance_type === "clock-in" && data.clock_in_request) {
+				await createAttendance(data.clock_in_request);
+			} else if (
+				data.attendance_type === "clock-out" &&
+				data.clock_out_request
+			) {
+				await createAttendance(data.clock_out_request);
+			}
+		},
+		[createAttendance]
+	);
+
 	const handleViewDetails = React.useCallback(
 		(id: number) => {
 			const data = overviewData.find((item) => item.id === id);
@@ -108,192 +124,19 @@ export default function CheckClockOverviewTab() {
 		[overviewData]
 	);
 
-	const baseColumns = React.useMemo<ColumnDef<CombinedAttendanceData>[]>(
-		() => [
-			{ header: "No.", id: "no-placeholder" },
-			{
-				header: "Name",
-				accessorKey: "employee.name",
-				cell: ({ row }) => {
-					const employee = row.original.employee;
-					const fullName = `${employee?.first_name || ""} ${
-						employee?.last_name || ""
-					}`.trim();
-					return (
-						<div className="flex items-center justify-center">
-							<div className="max-w-[120px] truncate text-center text-xs md:max-w-[180px] md:text-sm">
-								{fullName}
-							</div>
-						</div>
-					);
-				},
-				meta: { className: "w-[120px] md:w-[180px] text-center" },
-			},
-			{
-				header: "Date",
-				accessorKey: "date",
-				cell: ({ row }) => {
-					const date = new Date(row.original.date);
-					const formattedDate = date.toLocaleDateString("en-US", {
-						year: "numeric",
-						month: "long",
-						day: "2-digit",
-					});
-					return (
-						<div className="flex items-center justify-center">
-							<div className="max-w-[100px] truncate text-center text-xs md:max-w-[140px] md:text-sm">
-								{formattedDate}
-							</div>
-						</div>
-					);
-				},
-				meta: { className: "w-[100px] md:w-[140px] text-center" },
-			},
-			{
-				header: "Clock In",
-				accessorKey: "clock_in",
-				cell: ({ row }) => {
-					const clockIn = formatTime(row.original.clock_in);
-					return (
-						<div className="flex items-center justify-center">
-							<div className="text-center text-xs md:text-sm">
-								{clockIn}
-							</div>
-						</div>
-					);
-				},
-				meta: { className: "w-[80px] md:w-[100px] text-center" },
-			},
-			{
-				header: "Clock Out",
-				accessorKey: "clock_out",
-				cell: ({ row }) => {
-					const clockOut = formatTime(row.original.clock_out);
-					return (
-						<div className="flex items-center justify-center">
-							<div className="text-center text-xs md:text-sm">
-								{clockOut}
-							</div>
-						</div>
-					);
-				},
-				meta: { className: "w-[80px] md:w-[100px] text-center" },
-			},
-			{
-				header: "Work Hours",
-				accessorKey: "work_hours",
-				cell: ({ row }) => {
-					const workHours = formatWorkHours(row.original.work_hours);
-					return (
-						<div className="flex items-center justify-center">
-							<div className="text-center text-xs md:text-sm">
-								{workHours}
-							</div>
-						</div>
-					);
-				},
-				meta: { className: "w-[80px] md:w-[120px] text-center" },
-			},
-			{
-				header: "Status",
-				accessorKey: "status",
-				cell: ({ row }) => {
-					let variant:
-						| "default"
-						| "secondary"
-						| "destructive"
-						| "outline" = "default";
-					let displayText: string = row.original.status;
-
-					// Handle attendance statuses - only show 5 specific types
-					switch (row.original.status) {
-						case "late":
-							variant = "destructive";
-							displayText = "Late";
-							break;
-						case "early_leave":
-							variant = "outline";
-							displayText = "Early Leave";
-							break;
-						case "absent":
-							variant = "secondary";
-							displayText = "Absent";
-							break;
-						case "leave":
-							variant = "outline";
-							displayText = "Leave";
-							break;
-						case "ontime":
-						case "on_time":
-						default:
-							variant = "default";
-							displayText = "Ontime";
-							break;
-					}
-
-					return (
-						<div className="flex items-center justify-center">
-							<Badge
-								variant={variant}
-								className="text-xs font-medium md:text-sm max-w-[100px] md:max-w-[140px] truncate"
-							>
-								{displayText}
-							</Badge>
-						</div>
-					);
-				},
-				meta: { className: "w-[100px] md:w-[140px] text-center" },
-			},
-			{
-				header: "Details",
-				id: "details",
-				cell: ({ row }) => (
-					<div className="flex items-center justify-center">
-						<Button
-							variant="default"
-							size="sm"
-							className="h-7 w-full cursor-pointer bg-blue-500 px-1 text-xs hover:cursor-pointer hover:bg-blue-600 text-white md:h-8 md:w-auto md:px-2"
-							onClick={() => handleViewDetails(row.original.id)}
-						>
-							<Eye className="mr-0 h-3 w-3 md:mr-1 md:h-4 md:w-4" />
-							<span className="hidden md:inline">View</span>
-							<span className="md:hidden">View</span>
-						</Button>
-					</div>
-				),
-				meta: { className: "w-[80px] md:w-[100px] text-center" },
-				enableSorting: false,
-				enableColumnFilter: false,
-			},
-		],
-		[handleViewDetails]
+	const columns = React.useMemo(
+		() =>
+			(createOverviewColumns(
+				page,
+				pageSize,
+				handleViewDetails
+			) as unknown) as ColumnDef<CombinedAttendanceData, unknown>[],
+		[page, pageSize, handleViewDetails]
 	);
-	const finalColumns = React.useMemo<ColumnDef<CombinedAttendanceData>[]>(
-		() => [
-			{
-				header: "No.",
-				id: "no",
-				cell: ({ row, table }) => {
-					const { pageIndex, pageSize } = table.getState().pagination;
-					return (
-						<div className="flex items-center justify-center text-center">
-							<div className="text-xs md:text-sm">
-								{pageIndex * pageSize + row.index + 1}
-							</div>
-						</div>
-					);
-				},
-				meta: { className: "w-[50px] md:w-[80px] text-center" },
-				enableSorting: false,
-				enableColumnFilter: false,
-			},
-			...baseColumns.slice(1),
-		],
-		[baseColumns]
-	);
+
 	const table = useReactTable<CombinedAttendanceData>({
 		data: overviewData,
-		columns: finalColumns,
+		columns: columns,
 		state: {
 			pagination,
 		},
@@ -436,7 +279,7 @@ export default function CheckClockOverviewTab() {
 				open={openDialog}
 				onOpenChange={setOpenDialog}
 				employeeList={employeeList}
-				createAttendance={createAttendance}
+				createAttendance={handleCreateAttendance}
 				isCreating={isCreating}
 			/>
 		</>

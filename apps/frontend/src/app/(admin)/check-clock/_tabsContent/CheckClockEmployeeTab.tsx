@@ -10,13 +10,12 @@ import {
 	AlertCircle,
 	Users,
 } from "lucide-react";
-import WorkTypeBadge from "@/components/workTypeBadge";
-import { WorkType } from "@/const/work";
 import { DataTable } from "@/components/dataTable";
 import { useCheckClockEmployee } from "../_hooks/useCheckClockEmployee";
 import { CheckClockEmployeeFilter } from "../_components/CheckClockEmployeeFilter";
 import { PaginationComponent } from "@/components/pagination";
 import { PageSizeComponent } from "@/components/pageSize";
+import { createEmployeeColumns } from "../_components/EmployeeTableColumns";
 
 import Link from "next/link";
 import * as React from "react";
@@ -62,163 +61,14 @@ export default function CheckClockEmployeeTab() {
 		handleEdit,
 	} = useCheckClockEmployee(1, 10);
 
-	const columns = React.useMemo<ColumnDef<EmployeeWorkScheduleData>[]>(
-		() => [
-			{
-				header: "No.",
-				id: "no",
-				cell: ({ row }) => {
-					const currentPage = serverPagination.currentPage;
-					const pageSize = serverPagination.pageSize;
-					return (
-						<div className="flex items-center justify-center text-center">
-							<div className="text-xs md:text-sm">
-								{(currentPage - 1) * pageSize + row.index + 1}
-							</div>
-						</div>
-					);
-				},
-				meta: { className: "w-[50px] md:w-[80px] text-center" },
-				enableSorting: false,
-				enableColumnFilter: false,
-			},
-			{
-				header: "Name",
-				id: "employee_name",
-				accessorKey: "employee.first_name",
-				enableColumnFilter: true,
-				filterFn: "includesString",
-				cell: ({ row }) => {
-					const employee = row.original.employee;
-					if (!employee) return (
-						<div className="flex items-center justify-center">
-							<div className="max-w-[120px] truncate text-center text-xs md:max-w-[180px] md:text-sm">
-								Unknown Employee
-							</div>
-						</div>
-					);
-					const fullName = `${employee.first_name || ""} ${employee.last_name || ""}`.trim();
-					return (
-						<div className="flex items-center justify-center">
-							<div className="max-w-[120px] truncate text-center text-xs md:max-w-[180px] md:text-sm">
-								{fullName}
-							</div>
-						</div>
-					);
-				},
-				meta: { className: "w-[120px] md:w-[180px] text-center" },
-			},
-			{
-				header: "Position",
-				accessorKey: "employee.position_name",
-				cell: ({ row }) => {
-					const position = row.original.employee?.position_name || "Unknown Position";
-					return (
-						<div className="flex items-center justify-center">
-							<div className="max-w-[100px] truncate text-center text-xs md:max-w-[150px] md:text-sm">
-								{position}
-							</div>
-						</div>
-					);
-				},
-				meta: { className: "w-[100px] md:w-[150px] text-center" },
-			},
-			{
-				header: "Work Schedule",
-				accessorKey: "work_schedule.name",
-				cell: ({ row }) => {
-					const workSchedule = row.original.work_schedule;
-					if (!workSchedule) {
-						return (
-							<div className="flex items-center justify-center">
-								<div className="flex items-center gap-1 text-red-600 text-xs md:text-sm">
-									<AlertCircle className="h-3 w-3 md:h-4 md:w-4" />
-									<span className="font-medium truncate max-w-[80px] md:max-w-[120px]">
-										Not Assigned
-									</span>
-								</div>
-							</div>
-						);
-					}
-					return (
-						<div className="flex items-center justify-center">
-							<div className="max-w-[100px] truncate text-center text-xs md:max-w-[140px] md:text-sm">
-								<span className="font-medium text-green-700">
-									{workSchedule.name}
-								</span>
-							</div>
-						</div>
-					);
-				},
-				meta: { className: "w-[100px] md:w-[140px] text-center" },
-			},
-			{
-				header: "Work Type",
-				accessorKey: "work_schedule.work_type",
-				cell: ({ row }) => {
-					const workType = row.original.work_schedule?.work_type;
-					if (!workType) {
-						return (
-							<div className="flex items-center justify-center">
-								<span className="text-gray-500 italic text-xs md:text-sm">
-									No Schedule
-								</span>
-							</div>
-						);
-					}
-					return (
-						<div className="flex items-center justify-center">
-							<WorkTypeBadge workType={workType as WorkType} />
-						</div>
-					);
-				},
-				meta: { className: "w-[80px] md:w-[120px] text-center" },
-			},
-			{
-				header: "Action",
-				accessorKey: "id",
-				cell: ({ row }) => {
-					const hasWorkSchedule = !!row.original.work_schedule_id;
-					return (
-						<div className="flex flex-col justify-center gap-1 md:flex-row">
-							{hasWorkSchedule ? (
-								<Button
-									size="sm"
-									variant="outline"
-									className="h-7 w-full cursor-pointer bg-[#FFA500] px-1 text-xs hover:cursor-pointer hover:bg-[#E69500] border-none text-white md:h-8 md:w-auto md:px-2"
-									onClick={(e) => {
-										e.stopPropagation();
-										handleEdit(row.original.employee_id);
-									}}
-								>
-									<Edit className="mr-0 h-3 w-3 md:mr-1" />
-									<span className="hidden md:inline">Edit Schedule</span>
-									<span className="md:hidden">Edit</span>
-								</Button>
-							) : (
-								<Button
-									size="sm"
-									variant="outline"
-									className="h-7 w-full cursor-pointer bg-[#6B9AC4] px-1 text-xs hover:cursor-pointer hover:bg-[#5A89B3] border-none text-white md:h-8 md:w-auto md:px-2"
-									onClick={(e) => {
-										e.stopPropagation();
-										handleEdit(row.original.employee_id);
-									}}
-								>
-									<UserPlus className="mr-0 h-3 w-3 md:mr-1" />
-									<span className="hidden md:inline">Assign Schedule</span>
-									<span className="md:hidden">Assign</span>
-								</Button>
-							)}
-						</div>
-					);
-				},
-				meta: { className: "w-[90px] md:w-[160px] text-center" },
-				enableSorting: false,
-				enableColumnFilter: false,
-			},
-		],
-		[handleEdit, serverPagination.currentPage, serverPagination.pageSize]
+	const columns = React.useMemo(
+		() =>
+			(createEmployeeColumns(
+				serverPagination.currentPage,
+				serverPagination.pageSize,
+				handleEdit
+			) as unknown) as ColumnDef<EmployeeWorkScheduleData, unknown>[],
+		[serverPagination.currentPage, serverPagination.pageSize, handleEdit]
 	);
 
 	const table = useReactTable<EmployeeWorkScheduleData>({
@@ -339,7 +189,6 @@ export default function CheckClockEmployeeTab() {
 						</Button>
 					</div>
 				</header>
-
 				{/* Advanced Filter Component */}
 				<CheckClockEmployeeFilter
 					onApplyFilters={(newFilters) => {
@@ -351,7 +200,8 @@ export default function CheckClockEmployeeTab() {
 					}}
 					currentFilters={filters}
 					isVisible={showAdvancedFilter}
-				/>				{isLoading ? (
+				/>{" "}
+				{isLoading ? (
 					<div className="flex justify-center items-center py-8">
 						<div className="text-center">
 							<div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600"></div>
@@ -376,8 +226,12 @@ export default function CheckClockEmployeeTab() {
 									/>
 								</svg>
 							</div>
-							<p className="font-medium text-red-600">Error loading data</p>
-							<p className="mt-1 text-sm text-gray-600">{error.message}</p>
+							<p className="font-medium text-red-600">
+								Error loading data
+							</p>
+							<p className="mt-1 text-sm text-gray-600">
+								{error.message}
+							</p>
 							<button
 								onClick={() => window.location.reload()}
 								className="mt-4 rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
@@ -389,7 +243,6 @@ export default function CheckClockEmployeeTab() {
 				) : (
 					<DataTable table={table} />
 				)}
-
 				<footer className="flex flex-col md:flex-row items-center justify-between mt-4 gap-4">
 					<PageSizeComponent table={table} />
 					<PaginationComponent table={table} />

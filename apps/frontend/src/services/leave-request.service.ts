@@ -38,7 +38,6 @@ class LeaveRequestService extends ApiService {
 			if (filters.leave_type)
 				params.append("leave_type", filters.leave_type);
 			if (filters.status) {
-				console.log("Original status value:", filters.status);
 				params.append("status", filters.status);
 			}
 			if (filters.start_date)
@@ -50,7 +49,6 @@ class LeaveRequestService extends ApiService {
 		const finalUrl = `${
 			API_ROUTES.v1.api.leaveRequests.list
 		}?${params.toString()}`;
-		console.log("Final URL being called:", finalUrl);
 
 		const response = await this.get<
 			ApiResponse<PaginatedResponse<LeaveRequest>>

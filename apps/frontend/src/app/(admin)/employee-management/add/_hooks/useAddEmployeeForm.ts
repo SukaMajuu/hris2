@@ -188,23 +188,17 @@ export function useAddEmployeeForm() {
     if (!currentStepSchema) return false;
 
     const currentData = getValues();
-    console.log('Validating step', activeStep, 'with data:', currentData);
 
     try {
       currentStepSchema.parse(currentData);
-      console.log('Step validation successful');
       return true;
     } catch (error) {
-      console.log('Step validation failed:', error);
       return false;
     }
   };
 
   const handleNextStep = async () => {
-    console.log('HandleNextStep called for step:', activeStep);
-
     if (activeStep === 1 && hasRealtimeValidationErrors) {
-      console.log('Cannot proceed: Real-time validation errors detected');
       return;
     }
 
@@ -231,13 +225,11 @@ export function useAddEmployeeForm() {
       const isValid = await form.trigger(currentStepFields);
 
       if (!isValid) {
-        console.log('Current step validation failed');
         return;
       }
     }
 
     if (activeStep < steps.length) {
-      console.log('Moving to next step:', activeStep + 1);
       setActiveStep((prev) => prev + 1);
     }
   };
@@ -301,8 +293,6 @@ export function useAddEmployeeForm() {
         bank_account_holder_name: validData.bankAccountHolder,
         photo_file: validData.profilePhoto,
       };
-
-      console.log('Submitting employee data:', createData);
 
       await createEmployeeMutation.mutateAsync(createData);
 
@@ -374,7 +364,6 @@ export function useAddEmployeeForm() {
 
     for (let step = activeStep; step < stepNumber; step++) {
       if (step === 1 && hasRealtimeValidationErrors) {
-        console.log('Cannot proceed: Real-time validation errors detected');
         canProceed = false;
         break;
       }
@@ -401,7 +390,6 @@ export function useAddEmployeeForm() {
       if (currentStepFields && currentStepFields.length > 0) {
         const isValid = await form.trigger(currentStepFields);
         if (!isValid) {
-          console.log(`Step ${step} validation failed, cannot proceed to step ${stepNumber}`);
           canProceed = false;
           break;
         }

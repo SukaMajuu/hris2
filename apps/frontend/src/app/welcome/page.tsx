@@ -18,9 +18,7 @@ export default function WelcomePage() {
 
 	const handleStartTrial = async () => {
 		try {
-			console.log("Starting trial activation...");
 			await activateTrialMutation.mutateAsync();
-			console.log("Trial activation successful!");
 
 			// Invalidate all subscription-related queries to refresh status
 			await queryClient.invalidateQueries({
@@ -35,20 +33,17 @@ export default function WelcomePage() {
 			await queryClient.refetchQueries({
 				queryKey: ["userSubscription"],
 			});
-			console.log("Subscription queries refreshed");
 
 			setIsNewUser(false);
-			console.log("isNewUser set to false");
 
 			toast.success("Trial Anda telah aktif! Selamat datang di HRIS.");
 
 			// Use longer delay to ensure subscription status is fully updated
 			setTimeout(() => {
-				console.log("Attempting redirect to dashboard...");
 				try {
 					window.location.href = "/dashboard";
 				} catch (error) {
-					console.warn(
+					console.error(
 						"window.location.href failed, trying router.replace",
 						error
 					);

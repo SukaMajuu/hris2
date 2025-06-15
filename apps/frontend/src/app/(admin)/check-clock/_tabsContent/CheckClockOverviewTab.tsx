@@ -75,21 +75,6 @@ export default function CheckClockOverviewTab() {
 		isCreating,
 	} = useCheckClockOverview();
 
-	// Debug: Log data information
-	React.useEffect(() => {
-		console.log('=== CheckClock Debug Info ===');
-		console.log('Total Records:', totalRecords);
-		console.log('Total Pages:', totalPages);
-		console.log('Current Page:', page);
-		console.log('Page Size:', pageSize);
-		console.log('Overview Data Length:', overviewData?.length || 0);
-		console.log('Overview Data:', overviewData);
-		console.log('Is Loading:', isLoading);
-		console.log('Error:', error);
-		console.log('Name Filter:', nameFilter);
-		console.log('Filters:', filters);
-		console.log('===============================');
-	}, [overviewData, totalRecords, totalPages, page, pageSize, isLoading, error, nameFilter, filters]);
 	const [openSheet, setOpenSheet] = React.useState(false);
 	const [
 		selectedData,
@@ -131,7 +116,9 @@ export default function CheckClockOverviewTab() {
 				accessorKey: "employee.name",
 				cell: ({ row }) => {
 					const employee = row.original.employee;
-					const fullName = `${employee?.first_name || ""} ${employee?.last_name || ""}`.trim();
+					const fullName = `${employee?.first_name || ""} ${
+						employee?.last_name || ""
+					}`.trim();
 					return (
 						<div className="flex items-center justify-center">
 							<div className="max-w-[120px] truncate text-center text-xs md:max-w-[180px] md:text-sm">
@@ -323,16 +310,6 @@ export default function CheckClockOverviewTab() {
 		pageCount: totalPages,
 	});
 
-	// Debug: Log table data
-	React.useEffect(() => {
-		console.log('=== Table Debug Info ===');
-		console.log('Table Data Length:', table.getFilteredRowModel().rows.length);
-		console.log('Table Total Row Count:', table.getRowCount());
-		console.log('Table Page Count:', table.getPageCount());
-		console.log('Current Pagination State:', table.getState().pagination);
-		console.log('========================');
-	}, [table, overviewData]);
-
 	if (error) {
 		return (
 			<Card className="border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm">
@@ -377,7 +354,8 @@ export default function CheckClockOverviewTab() {
 									placeholder="Search by employee name..."
 									disabled={isLoading}
 								/>
-							</div>							<Button
+							</div>{" "}
+							<Button
 								variant="outline"
 								className="gap-2 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-800 dark:hover:text-slate-200 px-4 py-2 rounded-md"
 								onClick={() => setShowFilters(!showFilters)}
@@ -386,7 +364,8 @@ export default function CheckClockOverviewTab() {
 								<Filter className="h-4 w-4" />
 								Filter
 							</Button>
-						</div>					</header>
+						</div>{" "}
+					</header>
 
 					{/* Filter Component */}
 					<CheckClockOverviewFilter
@@ -421,8 +400,12 @@ export default function CheckClockOverviewTab() {
 										/>
 									</svg>
 								</div>
-								<p className="font-medium text-red-600">Error loading data</p>
-								<p className="mt-1 text-sm text-gray-600">{error}</p>
+								<p className="font-medium text-red-600">
+									Error loading data
+								</p>
+								<p className="mt-1 text-sm text-gray-600">
+									{error}
+								</p>
 								<button
 									onClick={() => window.location.reload()}
 									className="mt-4 rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
@@ -441,13 +424,13 @@ export default function CheckClockOverviewTab() {
 						</div>
 					)}
 				</CardContent>
-			</Card>			{/* Attendance Detail Sheet */}
+			</Card>{" "}
+			{/* Attendance Detail Sheet */}
 			<AttendanceDetailSheet
 				open={openSheet}
 				onOpenChange={setOpenSheet}
 				selectedData={selectedData as any}
 			/>
-
 			{/* Add Attendance Dialog */}
 			<AddAttendanceDialog
 				open={openDialog}

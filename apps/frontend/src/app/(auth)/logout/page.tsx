@@ -14,9 +14,6 @@ export default function LogoutPage() {
 
 			const initiateLogout = async () => {
 				try {
-					console.log(
-						"[LogoutPage] Calling logout from useLogout hook..."
-					);
 					await logout();
 				} catch (err) {
 					console.error(

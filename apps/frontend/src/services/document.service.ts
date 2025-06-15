@@ -47,7 +47,6 @@ export class DocumentService {
 				}
 			);
 
-			console.log("Document uploaded successfully:", response.data);
 			return response.data.data;
 		} catch (error) {
 			console.error("Error uploading document:", error);
@@ -57,13 +56,10 @@ export class DocumentService {
 
 	async getDocumentsByEmployee(employeeId: number): Promise<Document[]> {
 		try {
-			console.log("Getting documents for employee:", employeeId);
-
 			const response = await this.api.get<DocumentListResponse>(
 				API_ROUTES.v1.api.employees.documents.list(employeeId)
 			);
 
-			console.log("Documents retrieved successfully:", response.data);
 			return response.data.data;
 		} catch (error) {
 			console.error("Error getting documents:", error);
@@ -73,13 +69,9 @@ export class DocumentService {
 
 	async deleteDocument(documentId: number): Promise<void> {
 		try {
-			console.log("Deleting document:", documentId);
-
 			await this.api.delete(
 				API_ROUTES.v1.api.documents.delete(documentId)
 			);
-
-			console.log("Document deleted successfully");
 		} catch (error) {
 			console.error("Error deleting document:", error);
 			throw error;

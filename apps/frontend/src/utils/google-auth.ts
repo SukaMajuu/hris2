@@ -54,8 +54,7 @@ export async function clearSupabaseSession(): Promise<void> {
 	try {
 		await supabase.auth.signOut();
 	} catch (error) {
-		console.warn("Failed to clear Supabase session:", error);
-		// Don't throw error, just warn
+		throw error;
 	}
 }
 

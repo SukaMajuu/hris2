@@ -37,11 +37,8 @@ export const useLogout = () => {
 
 	const clearAllCaches = useCallback(() => {
 		try {
-			console.log("[useLogout] Clearing all caches and storage...");
-
 			// 1. Clear React Query cache
 			queryClient.clear();
-			console.log("[useLogout] React Query cache cleared");
 
 			// 2. Clear all localStorage (tokens, etc.)
 			tokenService.clearAllAuthStorage(); // This clears auth tokens including Supabase
@@ -53,18 +50,16 @@ export const useLogout = () => {
 					localStorage.removeItem(key);
 				}
 			});
-			console.log("[useLogout] localStorage cleared");
 
 			// 3. Clear all sessionStorage
 			sessionStorage.clear();
-			console.log("[useLogout] sessionStorage cleared");
 
 			// 4. Clear Zustand persisted storage (this should be handled by logoutFromStore, but let's be explicit)
 			// The auth store will reset automatically, but let's clear the persisted storage key as well
 			try {
 				localStorage.removeItem("auth-storage");
 			} catch (e) {
-				console.warn("[useLogout] Could not clear auth-storage:", e);
+				console.error("[useLogout] Could not clear auth-storage:", e);
 			}
 
 			// 5. Clear cookies (best effort)
@@ -82,17 +77,12 @@ export const useLogout = () => {
 						document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.${window.location.hostname}`;
 					}
 				});
-				console.log("[useLogout] Cookies cleared");
 			} catch (e) {
-				console.warn("[useLogout] Could not clear cookies:", e);
+				console.error("[useLogout] Could not clear cookies:", e);
 			}
 
 			// 6. Clear any IndexedDB or other storage if needed (for future use)
 			// indexedDB can be cleared here if we use it in the future
-
-			console.log(
-				"[useLogout] All caches and storage cleared successfully"
-			);
 		} catch (error) {
 			console.error("[useLogout] Error clearing caches:", error);
 			// Don't throw error - logout should still proceed
@@ -102,9 +92,6 @@ export const useLogout = () => {
 	const performLogout = useCallback(async () => {
 		// Prevent spam clicking
 		if (isLoggingOut.current || isProcessing) {
-			console.log(
-				"[useLogout] Logout already in progress, ignoring duplicate call"
-			);
 			return;
 		}
 
@@ -112,11 +99,8 @@ export const useLogout = () => {
 		setIsProcessing(true);
 
 		try {
-			console.log("[useLogout] Starting logout process...");
-
 			// Try to logout from server first (best effort)
 			await logoutMutation.mutateAsync();
-			console.log("[useLogout] Server logout successful");
 		} catch (error) {
 			console.error(
 				"[useLogout] Error during backend logout call:",
@@ -124,9 +108,6 @@ export const useLogout = () => {
 			);
 			if (error instanceof AxiosError && error.response?.status === 401) {
 				// Token already invalid, proceed with local logout
-				console.log(
-					"[useLogout] Token already invalid, proceeding with local logout"
-				);
 			} else {
 				toast.error(
 					"Logout request to server failed, but logging out locally."
@@ -134,8 +115,6 @@ export const useLogout = () => {
 			}
 		} finally {
 			// Always clear local state and caches, regardless of server response
-			console.log("[useLogout] Clearing local state and caches...");
-
 			// Clear all caches and storage first
 			clearAllCaches();
 

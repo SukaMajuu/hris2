@@ -64,7 +64,6 @@ const PlanCardComponent: React.FC<PlanCardComponentProps> = ({
 		if (isInactive) return;
 
 		if (userSubscription && isUpgrade) {
-			console.log("Upgrade detected, calling onSelectPlan");
 			onSelectPlan(plan.id);
 		} else if (userSubscription && isDowngrade) {
 			// Store downgrade context for the subscription page
@@ -83,7 +82,6 @@ const PlanCardComponent: React.FC<PlanCardComponentProps> = ({
 		} else if (userSubscription && !isUpgrade && !isDowngrade) {
 			onSelectPlan(plan.id);
 		} else if (!userSubscription) {
-			console.log("New subscription, calling onSelectPlan");
 			onSelectPlan(plan.id);
 		}
 	};

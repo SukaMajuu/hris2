@@ -162,7 +162,7 @@ const ActionColumn = ({
 		<Button
 			size="sm"
 			variant="outline"
-			className="h-7 w-full cursor-pointer bg-[#6B9AC4] px-1 text-xs hover:cursor-pointer hover:bg-[#5A89B3] border-none text-white md:h-8 md:w-auto md:px-2"
+			className="h-7 w-full cursor-pointer bg-blue-500 px-1 text-xs hover:cursor-pointer hover:bg-blue-600 border-none text-white md:h-8 md:w-auto md:px-2"
 			onClick={(e) => {
 				e.stopPropagation();
 				onView(row.original.id);

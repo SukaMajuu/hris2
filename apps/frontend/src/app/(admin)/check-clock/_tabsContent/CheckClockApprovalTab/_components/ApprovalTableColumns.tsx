@@ -150,9 +150,9 @@ const ApprovalColumn = React.memo(
 			return (
 				<div className="flex items-center justify-center">
 					<Button
-						variant="outline"
+						variant="default"
 						size="sm"
-						className="text-xs md:text-sm"
+						className="text-xs md:text-sm hover:cursor-pointer"
 						onClick={handleApprove}
 					>
 						Approve

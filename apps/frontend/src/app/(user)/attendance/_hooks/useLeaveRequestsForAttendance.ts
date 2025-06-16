@@ -14,9 +14,9 @@ export const useLeaveRequestsForAttendance = (
 ) => {
 	// Only fetch when needed to avoid unnecessary API calls
 	const { leaveRequestsData, isLoading, error } = useLeaveRequestsData(
+		shouldFetch ? {} : undefined, // Don't filter by date in API, handle client-side
 		1, // page
-		100, // pageSize - get more records to ensure we have all relevant leaves
-		shouldFetch ? {} : undefined // Don't filter by date in API, handle client-side
+		100 // pageSize - get more records to ensure we have all relevant leaves
 	);
 
 	// Filter leave requests that overlap with the selected attendance date and have approved status

@@ -22,9 +22,9 @@ interface ApiResponse<T> {
 
 class LeaveRequestService extends ApiService {
 	async getLeaveRequests(
+		filters?: LeaveRequestFilters,
 		page = 1,
-		pageSize = 10,
-		filters?: LeaveRequestFilters
+		pageSize = 10
 	): Promise<PaginatedResponse<LeaveRequest>> {
 		const params = new URLSearchParams({
 			page: page.toString(),
@@ -51,9 +51,9 @@ class LeaveRequestService extends ApiService {
 	}
 
 	async getMyLeaveRequests(
+		filters?: Omit<LeaveRequestFilters, "employee_id">,
 		page = 1,
-		pageSize = 10,
-		filters?: Omit<LeaveRequestFilters, "employee_id">
+		pageSize = 10
 	): Promise<PaginatedResponse<LeaveRequest>> {
 		const params = new URLSearchParams({
 			page: page.toString(),

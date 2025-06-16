@@ -48,7 +48,7 @@ export const useUserDashboard = ({
 		isLoading,
 		error,
 		refetch,
-	} = useLeaveRequestsData(1, 100); // Fetch more records to get all leaves
+	} = useLeaveRequestsData(undefined, 1, 100); // Fetch more records to get all leaves
 
 	// Also fetch using the new query hook for more comprehensive data (without filters to get all leave requests)
 	const { data: myLeaveRequestsData } = useMyLeaveRequestsQuery(1, 100);

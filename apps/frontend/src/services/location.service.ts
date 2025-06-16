@@ -27,6 +27,7 @@ interface LocationListData {
 }
 
 class LocationService {
+	// eslint-disable-next-line no-useless-constructor, no-empty-function
 	constructor(private apiService: ApiService) {}
 
 	public async getLocations(

@@ -14,7 +14,7 @@ export const useLeaveRequestsQuery = (
 	useQuery({
 		queryKey: queryKeys.leaveRequests.list(page, pageSize, filters),
 		queryFn: () =>
-			leaveRequestService.getLeaveRequests(page, pageSize, filters),
+			leaveRequestService.getLeaveRequests(filters, page, pageSize),
 		staleTime: 30 * 1000,
 	});
 
@@ -27,7 +27,7 @@ export const useMyLeaveRequestsQuery = (
 	useQuery({
 		queryKey: queryKeys.leaveRequests.my(page, pageSize, filters),
 		queryFn: () =>
-			leaveRequestService.getMyLeaveRequests(page, pageSize, filters),
+			leaveRequestService.getMyLeaveRequests(filters, page, pageSize),
 		staleTime: 30 * 1000,
 	});
 

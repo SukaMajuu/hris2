@@ -21,9 +21,9 @@ import {
  * Can be used across different components without breaking separation of concerns
  */
 export const useLeaveRequestsData = (
+	filters?: Omit<LeaveRequestFilters, "employee_id">,
 	initialPage: number = 1,
-	initialPageSize: number = 10,
-	filters?: Omit<LeaveRequestFilters, "employee_id">
+	initialPageSize: number = 10
 ) => {
 	const [page, setPage] = useState(initialPage);
 	const [pageSize, setPageSize] = useState(initialPageSize);

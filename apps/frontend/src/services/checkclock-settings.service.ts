@@ -27,7 +27,10 @@ interface CheckclockSettingsListData {
 }
 
 class CheckclockSettingsService {
-	constructor(private apiService: ApiService) {}
+	// eslint-disable-next-line no-useless-constructor, no-empty-function
+	constructor(private apiService: ApiService) {
+		// Constructor parameter properties are automatically assigned
+	}
 
 	public async getCheckclockSettings(
 		params: Record<string, string | number>

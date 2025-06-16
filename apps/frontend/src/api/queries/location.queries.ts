@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { queryKeys } from "../query-keys";
+
 import locationService from "@/services/location.service";
+
+import { queryKeys } from "../query-keys";
 
 export const useLocations = (params?: Record<string, string | number | undefined>) => {
 	// Clean params to remove undefined values
@@ -17,9 +19,7 @@ export const useLocations = (params?: Record<string, string | number | undefined
 	});
 };
 
-export const useLocationDetail = (id: string) => {
-	return useQuery({
+export const useLocationDetail = (id: string) => useQuery({
 		queryKey: queryKeys.locations.detail(id),
 		queryFn: () => locationService.getLocationById(id),
 	});
-};

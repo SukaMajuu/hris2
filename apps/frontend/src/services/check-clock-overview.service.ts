@@ -1,4 +1,4 @@
-import { ApiService, PaginatedResponse } from "./api.service";
+import { API_ROUTES } from "@/config/api.routes";
 import {
     CheckClockEntryPayload,
     CheckClockOverviewItem,
@@ -7,7 +7,8 @@ import {
     CheckClockApprovalFilters,  // Pastikan ini diimpor dari file types yang benar
     CheckClockEmployeeFilters   // Pastikan ini diimpor dari file types yang benar
 } from "@/types/check-clock-overview.types"; // Menggunakan path yang Anda berikan
-import { API_ROUTES } from "@/config/api.routes";
+
+import { ApiService, PaginatedResponse } from "./api.service";
 
 class CheckClockService {
     private api: ApiService;

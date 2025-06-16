@@ -1,15 +1,17 @@
-import React from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardHeader } from "@/components/ui/card";
 import {
 	ArrowRightIcon,
 	ArrowUpIcon,
 	ArrowDownIcon,
 	Settings,
 } from "lucide-react";
-import { UserSubscription } from "@/types/subscription";
 import { useRouter } from "next/navigation";
+import React from "react";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardHeader } from "@/components/ui/card";
 import { useSubscriptionUpgrade } from "@/hooks/useSubscriptionUpgrade";
+import { UserSubscription } from "@/types/subscription.types";
+import { formatCurrency } from "@/utils/currency";
 
 export interface SeatTier {
 	id: number;
@@ -26,7 +28,6 @@ interface SeatTierCardComponentProps {
 	isCurrentTier: boolean;
 	userSubscription?: UserSubscription | null;
 	onSelectSeatTier: (planId: number, seatPlanId: number) => void;
-	onUpgradeSuccess?: () => void;
 }
 
 const SeatTierCardComponent: React.FC<SeatTierCardComponentProps> = ({
@@ -34,10 +35,9 @@ const SeatTierCardComponent: React.FC<SeatTierCardComponentProps> = ({
 	isCurrentTier,
 	userSubscription,
 	onSelectSeatTier,
-	onUpgradeSuccess,
 }) => {
 	const router = useRouter();
-	const { changeSeat, isLoading: isUpgrading } = useSubscriptionUpgrade();
+	const { isLoading: isUpgrading } = useSubscriptionUpgrade();
 
 	const [isInDowngradeContext, setIsInDowngradeContext] = React.useState(
 		false
@@ -61,10 +61,6 @@ const SeatTierCardComponent: React.FC<SeatTierCardComponentProps> = ({
 		}
 	}, []);
 
-	const formatCurrency = (value: number) => {
-		return `Rp ${value.toLocaleString("id-ID")}`;
-	};
-
 	const currentSeatPlan = userSubscription?.seat_plan;
 	const hasActiveSubscription =
 		userSubscription?.status === "active" ||
@@ -79,15 +75,20 @@ const SeatTierCardComponent: React.FC<SeatTierCardComponentProps> = ({
 		userSubscription?.subscription_plan?.id !== tier.planId &&
 		currentSeatPlan.min_employees ===
 			parseInt(
-				tier.employeeRangeDescription.match(/(\d+)-/)?.[1] || "0"
+				tier.employeeRangeDescription.match(/(\d+)-/)?.[1] || "0",
+				10
 			) &&
 		currentSeatPlan.max_employees ===
-			parseInt(tier.employeeRangeDescription.match(/-(\d+)/)?.[1] || "0");
+			parseInt(
+				tier.employeeRangeDescription.match(/-(\d+)/)?.[1] || "0",
+				10
+			);
 
 	let isUpgrade = false;
 	let isDowngrade = false;
 
 	if (isInDowngradeContext && !isCurrentTier) {
+		// This is intentionally empty - we're in downgrade context but not current tier
 	} else if (canUpgradeDowngrade && currentSeatPlan) {
 		const currentCapacity = currentSeatPlan.max_employees;
 
@@ -96,12 +97,12 @@ const SeatTierCardComponent: React.FC<SeatTierCardComponentProps> = ({
 
 		let tierMaxCapacity = 0;
 		if (tierCapacityMatch && tierCapacityMatch[2]) {
-			tierMaxCapacity = parseInt(tierCapacityMatch[2]);
+			tierMaxCapacity = parseInt(tierCapacityMatch[2], 10);
 		} else {
 			const allNumbers = tierDescription.match(/\d+/g);
 			if (allNumbers && allNumbers.length > 0) {
 				tierMaxCapacity = Math.max(
-					...allNumbers.map((n) => parseInt(n))
+					...allNumbers.map((n) => parseInt(n, 10))
 				);
 			}
 		}
@@ -176,7 +177,7 @@ const SeatTierCardComponent: React.FC<SeatTierCardComponentProps> = ({
 			return <ArrowRightIcon className="ml-1.5 w-4 h-4" />;
 		if (isUpgrade) return <ArrowUpIcon className="ml-1.5 w-4 h-4" />;
 		if (isDowngrade) return <ArrowDownIcon className="ml-1.5 w-4 h-4" />;
-		return;
+		return null;
 	};
 
 	const getButtonColor = () => {

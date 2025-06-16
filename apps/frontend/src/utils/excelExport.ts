@@ -1,67 +1,78 @@
-export function exportToExcel<T extends Record<string, any>>(
-  data: T[],
-  filename: string,
-  columns?: Array<{
-    key: keyof T;
-    header: string;
-    transform?: (value: any) => string;
-  }>,
-) {
-  if (!data || data.length === 0) {
-    console.warn('No data to export');
-    return;
-  }
+import { toast } from "sonner";
 
-  import('xlsx')
-    .then((XLSX) => {
-      let worksheetData: any[][] = [];
+const exportToExcel = <T extends Record<string, unknown>>(
+	data: T[],
+	filename: string,
+	columns?: Array<{
+		key: keyof T;
+		header: string;
+		transform?: (value: unknown) => string;
+	}>
+) => {
+	if (!data || data.length === 0) {
+		return;
+	}
 
-      if (columns) {
-        const headers = columns.map((col) => col.header);
-        worksheetData.push(headers);
+	import("xlsx")
+		.then((XLSX) => {
+			const worksheetData: unknown[][] = [];
 
-        data.forEach((row) => {
-          const values = columns.map((col) => {
-            const value = row[col.key];
-            const transformedValue = col.transform ? col.transform(value) : value;
-            return transformedValue || '';
-          });
-          worksheetData.push(values);
-        });
-      } else {
-        const firstRow = data[0];
-        if (!firstRow) {
-          console.warn('No data to export');
-          return;
-        }
+			if (columns) {
+				const headers = columns.map((col) => col.header);
+				worksheetData.push(headers);
 
-        const headers = Object.keys(firstRow);
-        worksheetData.push(headers);
+				data.forEach((row) => {
+					const values = columns.map((col) => {
+						const value = row[col.key];
+						const transformedValue = col.transform
+							? col.transform(value)
+							: value;
+						return transformedValue || "";
+					});
+					worksheetData.push(values);
+				});
+			} else {
+				const firstRow = data[0];
+				if (!firstRow) {
+					return;
+				}
 
-        data.forEach((row) => {
-          const values = Object.values(row).map((value) => value || '');
-          worksheetData.push(values);
-        });
-      }
+				const headers = Object.keys(firstRow);
+				worksheetData.push(headers);
 
-      const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+				data.forEach((row) => {
+					const values = Object.values(row).map(
+						(value) => value || ""
+					);
+					worksheetData.push(values);
+				});
+			}
 
-      if (worksheetData.length > 0 && worksheetData[0]) {
-        const colWidths = worksheetData[0].map((_, colIndex) => {
-          const columnValues = worksheetData.map((row) => String(row[colIndex] || ''));
-          const maxLength = Math.max(...columnValues.map((val) => val.length));
-          return { wch: Math.min(Math.max(maxLength + 2, 10), 50) };
-        });
-        worksheet['!cols'] = colWidths;
-      }
+			const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
 
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Employees');
+			if (worksheetData.length > 0 && worksheetData[0]) {
+				const colWidths = worksheetData[0].map((_, colIndex) => {
+					const columnValues = worksheetData.map((row) =>
+						String(row[colIndex] || "")
+					);
+					const maxLength = Math.max(
+						...columnValues.map((val) => val.length)
+					);
+					return { wch: Math.min(Math.max(maxLength + 2, 10), 50) };
+				});
+				worksheet["!cols"] = colWidths;
+			}
 
-      XLSX.writeFile(workbook, filename);
-    })
-    .catch((error) => {
-      console.error('Failed to load xlsx library:', error);
-      alert('Excel export failed. Please make sure the xlsx library is installed.');
-    });
-}
+			const workbook = XLSX.utils.book_new();
+			XLSX.utils.book_append_sheet(workbook, worksheet, "Employees");
+
+			XLSX.writeFile(workbook, filename);
+		})
+		.catch(() => {
+			toast.error(
+				"Excel export failed. Please make sure the xlsx library is installed."
+			);
+		});
+};
+
+export { exportToExcel };

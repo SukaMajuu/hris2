@@ -1,16 +1,17 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { useQueryClient } from "@tanstack/react-query";
 import { CheckCircle, Crown, Users, Calendar, BarChart3 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { useActivateTrial } from "@/api/mutations/subscription.mutation";
-import { useAuthStore } from "@/stores/auth.store";
-import { useQueryClient } from "@tanstack/react-query";
 
-export default function WelcomePage() {
+import { useActivateTrial } from "@/api/mutations/subscription.mutation";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { useAuthStore } from "@/stores/auth.store";
+
+const WelcomePage = () => {
 	const router = useRouter();
 	const queryClient = useQueryClient();
 	const activateTrialMutation = useActivateTrial();
@@ -18,9 +19,7 @@ export default function WelcomePage() {
 
 	const handleStartTrial = async () => {
 		try {
-			console.log("Starting trial activation...");
 			await activateTrialMutation.mutateAsync();
-			console.log("Trial activation successful!");
 
 			// Invalidate all subscription-related queries to refresh status
 			await queryClient.invalidateQueries({
@@ -35,20 +34,17 @@ export default function WelcomePage() {
 			await queryClient.refetchQueries({
 				queryKey: ["userSubscription"],
 			});
-			console.log("Subscription queries refreshed");
 
 			setIsNewUser(false);
-			console.log("isNewUser set to false");
 
 			toast.success("Trial Anda telah aktif! Selamat datang di HRIS.");
 
 			// Use longer delay to ensure subscription status is fully updated
 			setTimeout(() => {
-				console.log("Attempting redirect to dashboard...");
 				try {
 					window.location.href = "/dashboard";
 				} catch (error) {
-					console.warn(
+					console.error(
 						"window.location.href failed, trying router.replace",
 						error
 					);
@@ -147,4 +143,6 @@ export default function WelcomePage() {
 			</Card>
 		</div>
 	);
-}
+};
+
+export default WelcomePage;

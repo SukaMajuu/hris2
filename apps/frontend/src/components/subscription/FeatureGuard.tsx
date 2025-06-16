@@ -1,13 +1,15 @@
 "use client";
 
+import { Lock, Zap, Mail } from "lucide-react";
+import Link from "next/link";
 import React from "react";
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { type FeatureCode } from "@/const/features";
 import { useFeatureAccess } from "@/hooks/useFeatureAccess";
 import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus";
-import { type FeatureCode } from "@/const/features";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { AlertCircle, Lock, Zap, Mail } from "lucide-react";
-import Link from "next/link";
 
 interface FeatureGuardProps {
 	children: React.ReactNode;
@@ -22,8 +24,7 @@ interface UpgradePromptProps {
 	isAdmin: boolean;
 }
 
-const UpgradePrompt: React.FC<UpgradePromptProps> = ({ featureName, currentPlan, isAdmin }) => {
-	return (
+const UpgradePrompt: React.FC<UpgradePromptProps> = ({ featureName, currentPlan, isAdmin }) => (
 		<Card className="border-2 border-dashed border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800/50">
 			<CardContent className="p-6 text-center">
 				<div className="flex flex-col items-center gap-4">
@@ -64,8 +65,7 @@ const UpgradePrompt: React.FC<UpgradePromptProps> = ({ featureName, currentPlan,
 								variant="outline"
 								className="text-slate-600 dark:text-slate-300"
 								onClick={() => {
-									// You could implement a contact admin feature here
-									alert("Please contact your administrator to upgrade your plan.");
+									toast.error("Please contact your administrator to upgrade your plan.");
 								}}
 							>
 								<Mail className="w-4 h-4 mr-2" />
@@ -77,7 +77,6 @@ const UpgradePrompt: React.FC<UpgradePromptProps> = ({ featureName, currentPlan,
 			</CardContent>
 		</Card>
 	);
-};
 
 const getFeatureName = (featureCode: FeatureCode): string => {
 	const featureNames: Record<FeatureCode, string> = {
@@ -92,12 +91,12 @@ const getFeatureName = (featureCode: FeatureCode): string => {
 	return featureNames[featureCode] || featureCode;
 };
 
-export function FeatureGuard({
+export const FeatureGuard = ({
 	children,
 	feature,
 	fallback,
 	showUpgradePrompt = true
-}: FeatureGuardProps) {
+}: FeatureGuardProps) => {
 	const { hasFeature } = useFeatureAccess();
 	const { getCurrentPlanType } = useFeatureAccess();
 	const { isLoading, isAdmin } = useSubscriptionStatus();
@@ -106,7 +105,7 @@ export function FeatureGuard({
 	if (isLoading) {
 		return (
 			<div className="flex items-center justify-center p-8">
-				<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+				<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
 			</div>
 		);
 	}
@@ -144,12 +143,12 @@ interface MultiFeatureGuardProps {
 	showUpgradePrompt?: boolean;
 }
 
-export function MultiFeatureGuard({
+export const MultiFeatureGuard = ({
 	children,
 	features,
 	fallback,
 	showUpgradePrompt = true
-}: MultiFeatureGuardProps) {
+}: MultiFeatureGuardProps) => {
 	const { hasFeatures } = useFeatureAccess();
 	const { getCurrentPlanType } = useFeatureAccess();
 	const { isLoading, isAdmin } = useSubscriptionStatus();
@@ -157,7 +156,7 @@ export function MultiFeatureGuard({
 	if (isLoading) {
 		return (
 			<div className="flex items-center justify-center p-8">
-				<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+				<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
 			</div>
 		);
 	}

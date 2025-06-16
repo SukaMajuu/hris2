@@ -1,18 +1,20 @@
 "use client";
 
-import React, { Suspense, useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
 import { ArrowLeftIcon, AlertCircle, LogOut } from "lucide-react";
 import Link from "next/link";
+import React, { Suspense } from "react";
+
+import { Button } from "@/components/ui/button";
+
 import PlanCardComponent from "./_components/PlanCardComponent";
 import SeatTierCardComponent from "./_components/SeatTierCardComponent";
-import TrialConversionBanner from "./_components/TrialConversionBanner";
-import SubscriptionPageSkeleton from "./_components/SubscriptionPageSkeleton";
 import SeatTierCardSkeleton from "./_components/SeatTierCardSkeleton";
+import SubscriptionPageSkeleton from "./_components/SubscriptionPageSkeleton";
+import TrialConversionBanner from "./_components/TrialConversionBanner";
 import { useSubscription } from "./_hooks/useSubscription";
 import { useLogout } from "../(auth)/logout/useLogout";
 
-function SubscriptionPageContent() {
+const SubscriptionPageContent = () => {
 	const { logout, isLoading: isLoggingOut } = useLogout();
 
 	const {
@@ -38,6 +40,79 @@ function SubscriptionPageContent() {
 		handleViewChange,
 	} = useSubscription();
 
+	const getHeaderText = () => {
+		if (activeView === "package") {
+			if (userSubscription?.subscription_plan) {
+				return "Step 1: Choose a new plan that best suits your business features.";
+			}
+			return "Step 1: Choose the plan that best suits your business features.";
+		}
+		return `Step 2: Select an employee tier for the ${selectedPlanName} plan.`;
+	};
+
+	const getPackageButtonClasses = () => {
+		if (activeView === "package") {
+			return "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow cursor-default";
+		}
+		return "text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600 cursor-pointer";
+	};
+
+	const getSeatButtonClasses = () => {
+		if (activeView === "seat") {
+			return "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow";
+		}
+		return "text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600";
+	};
+
+	const renderSeatPlansContent = () => {
+		if (isLoadingSeatPlans) {
+			return (
+				<div className="flex justify-center">
+					<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 max-w-6xl">
+						{Array.from({ length: 6 }, (_, i) => (
+							<SeatTierCardSkeleton
+								key={`seat-skeleton-${i + 1}`}
+							/>
+						))}
+					</div>
+				</div>
+			);
+		}
+
+		if (seatPlansError) {
+			return (
+				<div className="flex items-center justify-center min-h-48">
+					<div className="text-center">
+						<AlertCircle className="h-6 w-6 text-red-500 mx-auto mb-2" />
+						<p className="text-red-600 dark:text-red-400">
+							Failed to load seat plans. Please try again.
+						</p>
+					</div>
+				</div>
+			);
+		}
+
+		return (
+			<div className="flex justify-center">
+				<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 max-w-6xl">
+					{transformedSeatTiers.map((tier) => (
+						<SeatTierCardComponent
+							key={tier.id}
+							tier={tier}
+							isCurrentTier={
+								userSubscription?.seat_plan?.id === tier.id &&
+								userSubscription?.subscription_plan?.id ===
+									selectedPlanId
+							}
+							userSubscription={userSubscription}
+							onSelectSeatTier={handleSelectSeatTier}
+						/>
+					))}
+				</div>
+			</div>
+		);
+	};
+
 	// Loading state
 	if (isLoading) {
 		return <SubscriptionPageSkeleton view={activeView} />;
@@ -58,11 +133,6 @@ function SubscriptionPageContent() {
 			</div>
 		);
 	}
-
-	const handleUpgradeSuccess = () => {
-		// Refresh the page data or refetch queries
-		window.location.reload();
-	};
 
 	return (
 		<div className="container mx-auto min-h-[95vh] flex flex-col gap-12">
@@ -105,7 +175,6 @@ function SubscriptionPageContent() {
 				{userSubscription?.is_in_trial && (
 					<TrialConversionBanner
 						userSubscription={userSubscription}
-						onConversionSuccess={handleUpgradeSuccess}
 					/>
 				)}
 			</div>
@@ -116,11 +185,7 @@ function SubscriptionPageContent() {
 						HRIS Pricing Plans
 					</h1>
 					<p className="mt-4 text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
-						{activeView === "package"
-							? userSubscription?.subscription_plan
-								? "Step 1: Choose a new plan that best suits your business features."
-								: "Step 1: Choose the plan that best suits your business features."
-							: `Step 2: Select an employee tier for the ${selectedPlanName} plan.`}
+						{getHeaderText()}
 					</p>
 				</header>
 
@@ -131,13 +196,7 @@ function SubscriptionPageContent() {
 								activeView === "package" ? "default" : "ghost"
 							}
 							onClick={() => handleViewChange("package")}
-							className={`px-6 py-2 rounded-md text-sm font-medium
-							${
-								activeView === "package"
-									? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow cursor-default"
-									: "text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600 cursor-pointer"
-							}
-						`}
+							className={`px-6 py-2 rounded-md text-sm font-medium ${getPackageButtonClasses()}`}
 						>
 							Package
 						</Button>
@@ -145,12 +204,7 @@ function SubscriptionPageContent() {
 							variant={
 								activeView === "seat" ? "default" : "ghost"
 							}
-							className={`px-6 py-2 rounded-md text-sm font-medium cursor-default
-							${
-								activeView === "seat"
-									? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow"
-									: "text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600"
-							}`}
+							className={`px-6 py-2 rounded-md text-sm font-medium cursor-default ${getSeatButtonClasses()}`}
 						>
 							Seat
 						</Button>
@@ -169,7 +223,6 @@ function SubscriptionPageContent() {
 									}
 									userSubscription={userSubscription}
 									onSelectPlan={handleSelectPlan}
-									onUpgradeSuccess={handleUpgradeSuccess}
 								/>
 							</div>
 						))}
@@ -177,52 +230,7 @@ function SubscriptionPageContent() {
 				)}
 
 				{activeView === "seat" && selectedPlanId && (
-					<>
-						{isLoadingSeatPlans ? (
-							<div className="flex justify-center">
-								<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 max-w-6xl">
-									{[...Array(6)].map((_, index) => (
-										<SeatTierCardSkeleton key={index} />
-									))}
-								</div>
-							</div>
-						) : seatPlansError ? (
-							<div className="flex items-center justify-center min-h-48">
-								<div className="text-center">
-									<AlertCircle className="h-6 w-6 text-red-500 mx-auto mb-2" />
-									<p className="text-red-600 dark:text-red-400">
-										Failed to load seat plans. Please try
-										again.
-									</p>
-								</div>
-							</div>
-						) : (
-							<div className="flex justify-center">
-								<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 max-w-6xl">
-									{transformedSeatTiers.map((tier) => (
-										<SeatTierCardComponent
-											key={tier.id}
-											tier={tier}
-											isCurrentTier={
-												userSubscription?.seat_plan
-													?.id === tier.id &&
-												userSubscription
-													?.subscription_plan?.id ===
-													selectedPlanId
-											}
-											userSubscription={userSubscription}
-											onSelectSeatTier={
-												handleSelectSeatTier
-											}
-											onUpgradeSuccess={
-												handleUpgradeSuccess
-											}
-										/>
-									))}
-								</div>
-							</div>
-						)}
-					</>
+					<>{renderSeatPlansContent()}</>
 				)}
 
 				{activeView === "seat" && !selectedPlanId && (
@@ -241,12 +249,12 @@ function SubscriptionPageContent() {
 			</div>
 		</div>
 	);
-}
+};
 
-export default function SubscriptionPage() {
-	return (
-		<Suspense fallback={<SubscriptionPageSkeleton view="package" />}>
-			<SubscriptionPageContent />
-		</Suspense>
-	);
-}
+const SubscriptionPage = () => (
+	<Suspense fallback={<SubscriptionPageSkeleton view="package" />}>
+		<SubscriptionPageContent />
+	</Suspense>
+);
+
+export default SubscriptionPage;

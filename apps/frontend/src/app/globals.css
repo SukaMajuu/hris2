@@ -13,8 +13,8 @@
   --primary: hsl(216 100% 19%); /* Berkeley Blue #1E3A5F */
   --primary-foreground: hsl(0 0% 100%);
 
-  --secondary: hsl(201 30% 65%); /* Air Superiority Gray #7CA5BF */
-  --secondary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(216 100% 28%); /* Light Berkeley Blue - 80% lightness of primary */
+  --secondary-foreground: hsl(216 100% 19%); /* Use primary color as text on light secondary */
 
   --accent: hsl(216 100% 19%); /* Berkeley Blue #1E3A5F */
   --accent-foreground: hsl(0 0% 100%);

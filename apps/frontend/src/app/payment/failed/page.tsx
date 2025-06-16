@@ -1,16 +1,14 @@
 "use client";
 
-import React, { Suspense } from "react";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
 import { XCircle, Loader2, RefreshCw } from "lucide-react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import React, { Suspense } from "react";
 
-const formatCurrency = (value: number) => {
-	return `Rp ${value.toLocaleString("id-ID")}`;
-};
+import { Button } from "@/components/ui/button";
+import { formatCurrency } from "@/utils/currency";
 
-function PaymentFailedContent() {
+const PaymentFailedContent = () => {
 	const searchParams = useSearchParams();
 
 	// Get parameters from URL (these would typically be provided by Midtrans)
@@ -59,7 +57,7 @@ function PaymentFailedContent() {
 							Payment Failed
 						</h1>
 						<p className="text-slate-600 dark:text-slate-400">
-							We couldn't process your payment at this time
+							We couldn&apos;t process your payment at this time
 						</p>
 					</div>
 
@@ -114,7 +112,7 @@ function PaymentFailedContent() {
 										Amount:
 									</span>
 									<span className="text-red-800 dark:text-red-300">
-										{formatCurrency(parseInt(amount))}
+										{formatCurrency(parseInt(amount, 10))}
 									</span>
 								</div>
 							)}
@@ -128,27 +126,27 @@ function PaymentFailedContent() {
 						</h3>
 						<ul className="space-y-2 text-sm text-slate-700 dark:text-slate-300">
 							<li className="flex items-start space-x-2">
-								<div className="w-2 h-2 bg-slate-500 rounded-full mt-2 flex-shrink-0"></div>
+								<div className="w-2 h-2 bg-slate-500 rounded-full mt-2 flex-shrink-0" />
 								<span>
 									Check your internet connection and try again
 								</span>
 							</li>
 							<li className="flex items-start space-x-2">
-								<div className="w-2 h-2 bg-slate-500 rounded-full mt-2 flex-shrink-0"></div>
+								<div className="w-2 h-2 bg-slate-500 rounded-full mt-2 flex-shrink-0" />
 								<span>
 									Verify your payment method details are
 									correct
 								</span>
 							</li>
 							<li className="flex items-start space-x-2">
-								<div className="w-2 h-2 bg-slate-500 rounded-full mt-2 flex-shrink-0"></div>
+								<div className="w-2 h-2 bg-slate-500 rounded-full mt-2 flex-shrink-0" />
 								<span>
 									Ensure you have sufficient funds in your
 									account
 								</span>
 							</li>
 							<li className="flex items-start space-x-2">
-								<div className="w-2 h-2 bg-slate-500 rounded-full mt-2 flex-shrink-0"></div>
+								<div className="w-2 h-2 bg-slate-500 rounded-full mt-2 flex-shrink-0" />
 								<span>
 									Contact your bank if the issue persists
 								</span>
@@ -204,20 +202,20 @@ function PaymentFailedContent() {
 			</div>
 		</div>
 	);
-}
+};
 
-export default function PaymentFailedPage() {
-	return (
-		<Suspense
-			fallback={
-				<div className="min-h-screen bg-slate-100 dark:bg-slate-950 p-4 md:p-8">
-					<div className="max-w-3xl mx-auto flex items-center justify-center min-h-96">
-						<Loader2 className="h-8 w-8 animate-spin text-slate-600" />
-					</div>
+const PaymentFailedPage = () => (
+	<Suspense
+		fallback={
+			<div className="min-h-screen bg-slate-100 dark:bg-slate-950 p-4 md:p-8">
+				<div className="max-w-3xl mx-auto flex items-center justify-center min-h-96">
+					<Loader2 className="h-8 w-8 animate-spin text-slate-600" />
 				</div>
-			}
-		>
-			<PaymentFailedContent />
-		</Suspense>
-	);
-}
+			</div>
+		}
+	>
+		<PaymentFailedContent />
+	</Suspense>
+);
+
+export default PaymentFailedPage;

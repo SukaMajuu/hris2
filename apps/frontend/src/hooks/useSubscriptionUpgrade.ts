@@ -1,6 +1,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+
 import {
 	useChangeSeatPlan,
 	useChangeSubscriptionPlan,
@@ -11,13 +12,11 @@ import {
 	UpgradeSubscriptionPlanRequest,
 	ConvertTrialToPaidRequest,
 	SubscriptionChangeResponse,
-} from "@/types/subscription";
+} from "@/types/subscription.types";
 
 export const useSubscriptionUpgrade = () => {
 	const router = useRouter();
 	const [isLoading, setIsLoading] = useState(false);
-	const [isConverting, setIsConverting] = useState(false);
-	const [isChangingSeat, setIsChangingSeat] = useState(false);
 
 	const changePlanMutation = useChangeSubscriptionPlan();
 	const changeSeatMutation = useChangeSeatPlan();
@@ -30,10 +29,6 @@ export const useSubscriptionUpgrade = () => {
 			setIsLoading(true);
 			const response = await changePlanMutation.mutateAsync(request);
 
-			console.log("ChangePlan API Response:", response);
-			console.log("Payment Required:", response.payment_required);
-			console.log("Payment Amount:", response.payment_amount);
-
 			if (response.payment_required && response.payment_amount) {
 				const params = new URLSearchParams({
 					planId: request.new_subscription_plan_id.toString(),
@@ -45,16 +40,11 @@ export const useSubscriptionUpgrade = () => {
 					upgrade: "true",
 				});
 
-				console.log(
-					"Redirecting to checkout with params:",
-					params.toString()
-				);
 				router.push(`/subscription/checkout?${params.toString()}`);
 				toast.success(
 					"Redirecting to checkout to complete the change..."
 				);
 			} else {
-				console.log("No payment required, applying changes directly");
 				toast.success(response.message || "Plan changed successfully!");
 			}
 
@@ -78,10 +68,6 @@ export const useSubscriptionUpgrade = () => {
 			setIsLoading(true);
 			const response = await changeSeatMutation.mutateAsync(request);
 
-			console.log("ChangeSeat API Response:", response);
-			console.log("Payment Required:", response.payment_required);
-			console.log("Payment Amount:", response.payment_amount);
-
 			if (response.payment_required && response.payment_amount) {
 				const params = new URLSearchParams({
 					planId:
@@ -94,16 +80,11 @@ export const useSubscriptionUpgrade = () => {
 					upgrade: "true",
 				});
 
-				console.log(
-					"Redirecting to checkout with params:",
-					params.toString()
-				);
 				router.push(`/subscription/checkout?${params.toString()}`);
 				toast.success(
 					"Redirecting to checkout to complete the upgrade..."
 				);
 			} else {
-				console.log("No payment required, applying changes directly");
 				toast.success(
 					response.message || "Seat plan changed successfully!"
 				);

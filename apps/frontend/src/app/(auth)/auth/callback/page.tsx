@@ -1,17 +1,18 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { AxiosError } from "axios";
 import { useRouter } from "next/navigation";
+import { useEffect, useState, useRef } from "react";
+import { toast } from "sonner";
+
+import { useGoogleAuthMutation } from "@/api/mutations/auth.mutation";
 import { useAuthStore } from "@/stores/auth.store";
 import {
 	getAccessTokenFromSession,
 	clearSupabaseSession,
 } from "@/utils/google-auth";
-import { toast } from "sonner";
-import { useGoogleAuthMutation } from "@/api/mutations/auth.mutation";
-import { AxiosError } from "axios";
 
-export default function AuthCallbackPage() {
+const AuthCallbackPage = () => {
 	const router = useRouter();
 	const setUser = useAuthStore((state) => state.setUser);
 	const setIsLoading = useAuthStore((state) => state.setIsLoading);
@@ -161,4 +162,6 @@ export default function AuthCallbackPage() {
 				)}
 		</div>
 	);
-}
+};
+
+export default AuthCallbackPage;

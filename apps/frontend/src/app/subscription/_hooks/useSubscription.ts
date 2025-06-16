@@ -1,10 +1,12 @@
-import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { useState, useEffect, useMemo } from "react";
+
 import {
 	useSubscriptionPlans,
 	useUserSubscription,
 	useSeatPlans,
 } from "@/api/queries/subscription.queries";
+
 import { SeatTier } from "../_components/SeatTierCardComponent";
 
 export const useSubscription = () => {
@@ -45,21 +47,13 @@ export const useSubscription = () => {
 			const targetPlanName = searchParams.get("targetPlanName");
 
 			if (isDowngradeFromURL && targetPlanId && targetPlanName) {
-				console.log(
-					"useSubscription: Found downgrade context in URL params:",
-					{
-						targetPlanId,
-						targetPlanName,
-					}
-				);
-
-				setSelectedPlanId(parseInt(targetPlanId));
+				setSelectedPlanId(parseInt(targetPlanId, 10));
 				setActiveView("seat");
 				setIsDowngradeContext(true);
 
 				// Store in sessionStorage for consistency
 				const downgradeData = {
-					planId: parseInt(targetPlanId),
+					planId: parseInt(targetPlanId, 10),
 					planName: targetPlanName,
 					isDowngrade: true,
 				};
@@ -82,18 +76,10 @@ export const useSubscription = () => {
 
 			// Fallback to sessionStorage (for page refreshes or direct navigation)
 			const stored = sessionStorage.getItem("targetDowngradePlan");
-			console.log(
-				"useSubscription: Checking sessionStorage downgrade context:",
-				stored
-			);
 
 			if (stored) {
 				try {
 					const parsed = JSON.parse(stored);
-					console.log(
-						"useSubscription: Found downgrade context in sessionStorage, setting selectedPlanId to:",
-						parsed.planId
-					);
 					setSelectedPlanId(parsed.planId);
 					setActiveView("seat");
 					setIsDowngradeContext(true);
@@ -143,18 +129,11 @@ export const useSubscription = () => {
 	};
 
 	const handleViewChange = (view: "package" | "seat") => {
-		console.log(
-			"handleViewChange called:",
-			view,
-			"isDowngradeContext:",
-			isDowngradeContext
-		);
 		setActiveView(view);
 		if (view === "package") {
 			// Clear downgrade context when going back to package view
 			const stored = sessionStorage.getItem("targetDowngradePlan");
 			if (stored) {
-				console.log("Clearing downgrade context on package view");
 				sessionStorage.removeItem("targetDowngradePlan");
 				setIsDowngradeContext(false);
 			}

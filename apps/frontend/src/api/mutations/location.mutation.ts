@@ -1,7 +1,12 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { queryKeys } from "../query-keys";
+
 import locationService from "@/services/location.service";
-import { CreateLocationRequest, UpdateLocationRequest } from "@/types/location";
+import {
+	CreateLocationRequest,
+	UpdateLocationRequest,
+} from "@/types/location.types";
+
+import { queryKeys } from "../query-keys";
 
 export const useCreateLocation = () => {
 	const queryClient = useQueryClient();
@@ -12,14 +17,11 @@ export const useCreateLocation = () => {
 		onSuccess: () => {
 			// Invalidate all location list queries regardless of params
 			queryClient.invalidateQueries({
-				predicate: (query) => {
-					return (
-						Array.isArray(query.queryKey) &&
-						Array.isArray(query.queryKey[0]) &&
-						query.queryKey[0][0] === "locations" &&
-						query.queryKey[0][1] === "list"
-					);
-				},
+				predicate: (query) =>
+					Array.isArray(query.queryKey) &&
+					Array.isArray(query.queryKey[0]) &&
+					query.queryKey[0][0] === "locations" &&
+					query.queryKey[0][1] === "list",
 			});
 		},
 	});
@@ -37,14 +39,11 @@ export const useUpdateLocation = () => {
 			});
 
 			queryClient.invalidateQueries({
-				predicate: (query) => {
-					return (
-						Array.isArray(query.queryKey) &&
-						Array.isArray(query.queryKey[0]) &&
-						query.queryKey[0][0] === "locations" &&
-						query.queryKey[0][1] === "list"
-					);
-				},
+				predicate: (query) =>
+					Array.isArray(query.queryKey) &&
+					Array.isArray(query.queryKey[0]) &&
+					query.queryKey[0][0] === "locations" &&
+					query.queryKey[0][1] === "list",
 			});
 		},
 	});
@@ -58,14 +57,11 @@ export const useDeleteLocation = () => {
 		onSuccess: () => {
 			// Invalidate all location list queries regardless of params
 			queryClient.invalidateQueries({
-				predicate: (query) => {
-					return (
-						Array.isArray(query.queryKey) &&
-						Array.isArray(query.queryKey[0]) &&
-						query.queryKey[0][0] === "locations" &&
-						query.queryKey[0][1] === "list"
-					);
-				},
+				predicate: (query) =>
+					Array.isArray(query.queryKey) &&
+					Array.isArray(query.queryKey[0]) &&
+					query.queryKey[0][0] === "locations" &&
+					query.queryKey[0][1] === "list",
 			});
 		},
 	});

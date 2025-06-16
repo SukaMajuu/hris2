@@ -1,10 +1,12 @@
 'use client';
 
 import React from 'react';
+import { FieldErrors } from 'react-hook-form';
+
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
+
 import type { FormEmployeeData } from '../_hooks/useAddEmployeeForm';
-import { FieldErrors } from 'react-hook-form';
 
 interface BankInformationStepProps {
   formData: FormEmployeeData;
@@ -12,8 +14,7 @@ interface BankInformationStepProps {
   onInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
-export function BankInformationStep({ formData, errors, onInputChange }: BankInformationStepProps) {
-  return (
+export const BankInformationStep = ({ formData, errors, onInputChange }: BankInformationStepProps) => (
     <>
       <h2 className='text-center text-xl font-semibold text-slate-800 dark:text-slate-100'>
         Bank Information
@@ -95,5 +96,4 @@ export function BankInformationStep({ formData, errors, onInputChange }: BankInf
         </div>
       </form>
     </>
-  );
-}
+  )

@@ -6,10 +6,10 @@
   "plugin:@typescript-eslint/recommended",
   "plugin:storybook/recommended"
  ],
+ "parser": "@typescript-eslint/parser",
  "plugins": [
   "@typescript-eslint",
   "react",
-  "react-hooks",
   "import",
   "promise"
  ],
@@ -29,6 +29,11 @@
     ]
    }
   ],
+  "@typescript-eslint/no-explicit-any": "error",
+  "react/no-unstable-nested-components": "error",
+  "react/jsx-no-constructed-context-values": "error",
+  "react/state-in-constructor": "error",
+
   "promise/catch-or-return": "warn",
   "jsx-a11y/control-has-associated-label": "warn",
   "import/no-relative-packages": "off",
@@ -123,7 +128,6 @@
    }
   ],
   "@typescript-eslint/no-empty-function": "off",
-  "@typescript-eslint/no-explicit-any": "error",
   "no-underscore-dangle": [
    "error",
    {

@@ -1,15 +1,14 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus";
-import { toast } from "sonner";
-import FullPageLoader from "@/components/ui/full-page-loader";
-import { Button } from "@/components/ui/button";
 import { AlertCircle, LogOut } from "lucide-react";
+import { useRouter , usePathname , redirect } from "next/navigation";
+import { useEffect } from "react";
+import { toast } from "sonner";
+
 import { useLogout } from "@/app/(auth)/logout/useLogout";
-import { usePathname } from "next/navigation";
-import { redirect } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import FullPageLoader from "@/components/ui/full-page-loader";
+import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus";
 
 interface SubscriptionGuardProps {
 	children: React.ReactNode;
@@ -17,11 +16,11 @@ interface SubscriptionGuardProps {
 	showToast?: boolean;
 }
 
-export function SubscriptionGuard({
+export const SubscriptionGuard = ({
 	children,
 	adminRedirectTo = "/subscription",
 	showToast = true,
-}: SubscriptionGuardProps) {
+}: SubscriptionGuardProps) => {
 	const router = useRouter();
 	const { logout, isLoading: isLoggingOut } = useLogout();
 	const pathname = usePathname();
@@ -60,6 +59,7 @@ export function SubscriptionGuard({
 			}
 		}
 	}, [
+		isFetchingSubscription,
 		hasActiveSubscription,
 		isLoading,
 		isAdmin,

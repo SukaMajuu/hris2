@@ -1,22 +1,21 @@
 "use client";
 
+import { Clock, Star, ArrowRight } from "lucide-react";
+import { useRouter } from "next/navigation";
 import React from "react";
+
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Clock, Star, ArrowRight } from "lucide-react";
-import { UserSubscription } from "@/types/subscription";
-import { useRouter } from "next/navigation";
+import { UserSubscription } from "@/types/subscription.types";
 
 interface TrialConversionBannerProps {
 	userSubscription: UserSubscription;
-	onConversionSuccess?: () => void;
 }
 
-export default function TrialConversionBanner({
+const TrialConversionBanner = ({
 	userSubscription,
-	onConversionSuccess,
-}: TrialConversionBannerProps) {
+}: TrialConversionBannerProps) => {
 	const router = useRouter();
 
 	if (!userSubscription.is_in_trial) {
@@ -152,4 +151,6 @@ export default function TrialConversionBanner({
 			</CardContent>
 		</Card>
 	);
-}
+};
+
+export default TrialConversionBanner;

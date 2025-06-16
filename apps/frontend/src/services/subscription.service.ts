@@ -1,4 +1,3 @@
-import { ApiService } from "./api.service";
 import {
 	SubscriptionPlan,
 	SeatPlan,
@@ -16,7 +15,9 @@ import {
 	ConvertTrialToPaidRequest,
 	VerifyPaymentRequest,
 	PaymentVerificationResponse,
-} from "@/types/subscription";
+} from "@/types/subscription.types";
+
+import { ApiService } from "./api.service";
 
 class SubscriptionService {
 	private apiService = new ApiService();

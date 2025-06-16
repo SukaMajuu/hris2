@@ -1,11 +1,12 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
 import { Mail } from "lucide-react";
+import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 
-export default function CheckEmailPage() {
+import { Button } from "@/components/ui/button";
+
+const CheckEmailPage = () => {
 	const searchParams = useSearchParams();
 	const router = useRouter();
 	const userEmail = searchParams.get("email") || "your email address";
@@ -45,4 +46,6 @@ export default function CheckEmailPage() {
 			</div>
 		</div>
 	);
-}
+};
+
+export default CheckEmailPage;

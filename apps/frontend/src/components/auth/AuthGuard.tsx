@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
-import { useAuthStore } from "@/stores/auth.store";
 import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
+
 import FullPageLoader from "@/components/ui/full-page-loader";
+import { useAuthStore } from "@/stores/auth.store";
 
 // Pages that don't require authentication
 const PUBLIC_PAGES = [
@@ -23,7 +24,7 @@ interface AuthGuardProps {
 	children: React.ReactNode;
 }
 
-export function AuthGuard({ children }: AuthGuardProps) {
+export const AuthGuard = ({ children }: AuthGuardProps) => {
 	const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 	const isAuthStoreLoading = useAuthStore((state) => state.isLoading);
 	const isPasswordRecovery = useAuthStore(
@@ -65,7 +66,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
 		if (!isAuthenticated && !isPublicPage && !isCallbackPage) {
 			router.replace("/login");
-			return;
+			
 		}
 	}, [
 		isAuthStoreLoading,

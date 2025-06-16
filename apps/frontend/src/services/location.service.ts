@@ -2,9 +2,10 @@ import {
 	CreateLocationRequest,
 	LocationResponse,
 	UpdateLocationRequest,
-} from "@/types/location";
-import { API_ROUTES } from "../config/api.routes";
+} from "@/types/location.types";
+
 import { ApiService } from "./api.service";
+import { API_ROUTES } from "../config/api.routes";
 
 // Backend response structure based on swagger/backend code
 interface ApiResponse<T> {
@@ -26,6 +27,7 @@ interface LocationListData {
 }
 
 class LocationService {
+	// eslint-disable-next-line no-useless-constructor, no-empty-function
 	constructor(private apiService: ApiService) {}
 
 	public async getLocations(

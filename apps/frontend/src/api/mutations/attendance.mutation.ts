@@ -1,13 +1,15 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { AxiosError } from "axios";
+import { toast } from "sonner";
+
 import { attendanceService } from "@/services/attendance.service";
-import { queryKeys } from "../query-keys";
 import {
 	ClockInAttendanceRequest,
 	ClockOutAttendanceRequest,
 	Attendance,
-} from "@/types/attendance";
-import { toast } from "sonner";
-import { AxiosError } from "axios";
+} from "@/types/attendance.types";
+
+import { queryKeys } from "../query-keys";
 
 const handleAttendanceError = (error: unknown, action: string) => {
 	console.error(`${action} error:`, error);

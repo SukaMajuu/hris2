@@ -1,8 +1,10 @@
 'use client';
 
-import React from 'react';
-import { Separator } from '@/components/ui/separator';
 import Image from 'next/image';
+import React from 'react';
+
+import { Separator } from '@/components/ui/separator';
+
 import type { FormEmployeeData } from '../_hooks/useAddEmployeeForm';
 
 interface ReviewItemProps {
@@ -21,8 +23,7 @@ interface ReviewStepProps {
   formData: FormEmployeeData;
 }
 
-export function ReviewStep({ formData }: ReviewStepProps) {
-  return (
+export const ReviewStep = ({ formData }: ReviewStepProps) => (
     <>
       <h2 className='text-center text-xl font-semibold text-slate-800 dark:text-slate-100'>
         Review & Submit
@@ -94,5 +95,4 @@ export function ReviewStep({ formData }: ReviewStepProps) {
         </div>
       </div>
     </>
-  );
-}
+  )

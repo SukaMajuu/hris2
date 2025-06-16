@@ -1,13 +1,17 @@
 import { useState, useCallback, useMemo } from "react";
-import { useLocations } from "@/api/queries/location.queries";
+import { toast } from "sonner";
+
 import {
 	useCreateLocation,
 	useUpdateLocation,
 	useDeleteLocation,
 } from "@/api/mutations/location.mutation";
-import { toast } from "sonner";
-import { CreateLocationRequest, UpdateLocationRequest } from "@/types/location";
-import { Location } from "@/types/location";
+import { useLocations } from "@/api/queries/location.queries";
+import {
+	CreateLocationRequest,
+	UpdateLocationRequest,
+	Location,
+} from "@/types/location.types";
 
 interface FilterOptions {
 	name?: string;
@@ -27,7 +31,9 @@ export const useLocation = (initialPage = 1, initialPageSize = 10) => {
 	const [formData, setFormData] = useState<Partial<Location>>({});
 	const [isEditing, setIsEditing] = useState(false);
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-	const [locationToDelete, setLocationToDelete] = useState<Location | null>(null);
+	const [locationToDelete, setLocationToDelete] = useState<Location | null>(
+		null
+	);
 
 	// Build params for API call
 	const params = {
@@ -44,7 +50,9 @@ export const useLocation = (initialPage = 1, initialPageSize = 10) => {
 
 	// Extract data from server response
 	const locationData = locationsQuery.data?.data;
-	const serverLocations = locationData?.items || [];
+	const serverLocations = useMemo(() => locationData?.items || [], [
+		locationData?.items,
+	]);
 
 	// Apply client-side filtering and sorting for fields not handled by backend
 	const processedLocations = useMemo(() => {
@@ -52,7 +60,7 @@ export const useLocation = (initialPage = 1, initialPageSize = 10) => {
 
 		// Apply radius range filter (client-side)
 		if (filters.radius_range && filters.radius_range !== "all") {
-			filteredLocations = filteredLocations.filter(location => {
+			filteredLocations = filteredLocations.filter((location) => {
 				const radius = location.radius_m;
 				switch (filters.radius_range) {
 					case "0":
@@ -72,23 +80,29 @@ export const useLocation = (initialPage = 1, initialPageSize = 10) => {
 		// Apply sorting (client-side)
 		if (filters.sort_by && filters.sort_order) {
 			filteredLocations.sort((a, b) => {
-				let aValue: any = a[filters.sort_by as keyof Location];
-				let bValue: any = b[filters.sort_by as keyof Location];
+				let aValue: string | number = a[
+					filters.sort_by as keyof Location
+				] as string | number;
+				let bValue: string | number = b[
+					filters.sort_by as keyof Location
+				] as string | number;
 
 				// Handle string comparison for name
 				if (filters.sort_by === "name") {
-					aValue = (aValue || "").toLowerCase();
-					bValue = (bValue || "").toLowerCase();
+					aValue = (aValue || "").toString().toLowerCase();
+					bValue = (bValue || "").toString().toLowerCase();
 				}
-				
+
 				// Handle numeric comparison for radius
 				if (filters.sort_by === "radius_m") {
 					aValue = Number(aValue) || 0;
 					bValue = Number(bValue) || 0;
 				}
 
-				if (aValue < bValue) return filters.sort_order === "asc" ? -1 : 1;
-				if (aValue > bValue) return filters.sort_order === "asc" ? 1 : -1;
+				if (aValue < bValue)
+					return filters.sort_order === "asc" ? -1 : 1;
+				if (aValue > bValue)
+					return filters.sort_order === "asc" ? 1 : -1;
 				return 0;
 			});
 		}
@@ -235,7 +249,7 @@ export const useLocation = (initialPage = 1, initialPageSize = 10) => {
 	};
 
 	const handleToggleFilterVisibility = () => {
-		setIsFilterVisible(prev => !prev);
+		setIsFilterVisible((prev) => !prev);
 	};
 
 	return {

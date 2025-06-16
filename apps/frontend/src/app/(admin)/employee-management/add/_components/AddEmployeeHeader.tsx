@@ -1,12 +1,13 @@
 'use client';
 
-import React from 'react';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
+import React from 'react';
 
-export function AddEmployeeHeader() {
-  return (
+import { Button } from '@/components/ui/button';
+
+
+export const AddEmployeeHeader = () => (
     <div className='mb-6 flex items-center justify-between'>
       <Link href='/employee-management'>
         <Button
@@ -18,5 +19,4 @@ export function AddEmployeeHeader() {
         </Button>
       </Link>
     </div>
-  );
-}
+  )

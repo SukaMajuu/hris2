@@ -1,3 +1,5 @@
+import { Table as TanStackTableType } from "@tanstack/react-table";
+
 import {
 	Pagination,
 	PaginationContent,
@@ -8,16 +10,15 @@ import {
 	PaginationPrevious,
 } from "@/components/ui/pagination";
 import { cn } from "@/lib/utils";
-import { Table as TanStackTableType } from "@tanstack/react-table";
 
 interface PaginationComponentProps<TData> {
 	table: TanStackTableType<TData>;
 }
 
-export function PaginationComponent<TData>({
+export const PaginationComponent = <TData,>({
 	table,
-}: PaginationComponentProps<TData>) {
-	const pageIndex = table.getState().pagination.pageIndex;
+}: PaginationComponentProps<TData>) => {
+	const { pageIndex } = table.getState().pagination;
 	const totalPages = table.getPageCount();
 
 	const generatePaginationItems = () => {
@@ -50,12 +51,14 @@ export function PaginationComponent<TData>({
 		if (totalPages <= 0) return [];
 
 		if (totalPages <= maxVisiblePages + 2 * edgePageCount) {
-			for (let i = 1; i <= totalPages; i++) {
-				items.push(createPageLink(i));
+			for (let index = 0; index < totalPages; index += 1) {
+				const pageNumber = index + 1;
+				items.push(createPageLink(pageNumber));
 			}
 		} else {
-			for (let i = 1; i <= edgePageCount; i++) {
-				items.push(createPageLink(i));
+			for (let index = 0; index < edgePageCount; index += 1) {
+				const pageNumber = index + 1;
+				items.push(createPageLink(pageNumber));
 			}
 
 			let startRange = Math.max(
@@ -92,9 +95,13 @@ export function PaginationComponent<TData>({
 				);
 			}
 
-			for (let i = startRange; i <= endRange; i++) {
-				if (i > edgePageCount && i <= totalPages - edgePageCount) {
-					items.push(createPageLink(i));
+			for (let index = 0; index < endRange - startRange + 1; index += 1) {
+				const pageNumber = startRange + index;
+				if (
+					pageNumber > edgePageCount &&
+					pageNumber <= totalPages - edgePageCount
+				) {
+					items.push(createPageLink(pageNumber));
 				}
 			}
 
@@ -106,25 +113,30 @@ export function PaginationComponent<TData>({
 				);
 			}
 
+			const startIndex = Math.max(
+				totalPages - edgePageCount + 1,
+				endRange + 1
+			);
 			for (
-				let i = Math.max(totalPages - edgePageCount + 1, endRange + 1);
-				i <= totalPages;
-				i++
+				let index = 0;
+				index < totalPages - startIndex + 1;
+				index += 1
 			) {
-				items.push(createPageLink(i));
+				const pageNumber = startIndex + index;
+				items.push(createPageLink(pageNumber));
 			}
 		}
 
-		const uniqueItems = [];
+		const uniqueItems: React.ReactElement[] = [];
 		const keys = new Set();
-		for (const item of items) {
+		items.forEach((item) => {
 			if (item && item.key && !keys.has(item.key)) {
 				uniqueItems.push(item);
 				keys.add(item.key);
 			} else if (item && !item.key) {
 				uniqueItems.push(item);
 			}
-		}
+		});
 		return uniqueItems;
 	};
 
@@ -161,4 +173,4 @@ export function PaginationComponent<TData>({
 			</PaginationContent>
 		</Pagination>
 	);
-}
+};

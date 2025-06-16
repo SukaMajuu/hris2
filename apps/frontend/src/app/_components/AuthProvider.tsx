@@ -2,7 +2,7 @@
 
 import { useAuthListener } from "@/hooks/useAuthListener";
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 	const { initialAuthCheckCompleted } = useAuthListener();
 
 	if (!initialAuthCheckCompleted) {

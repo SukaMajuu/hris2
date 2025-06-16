@@ -1,5 +1,9 @@
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Download, FileText, Lock, Mail } from "lucide-react";
+import React from "react";
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
 	Table,
 	TableBody,
@@ -8,11 +12,8 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { FeatureGuard } from "@/components/subscription/FeatureGuard";
 import { FEATURE_CODES } from "@/const/features";
 import { useFeatureAccess } from "@/hooks/useFeatureAccess";
-import React from "react";
 
 // Define the shape of a document object for the user profile
 export interface UserDisplayDocument {
@@ -137,7 +138,7 @@ const UserDocumentList: React.FC<UserDocumentListProps> = ({
 								variant="outline"
 								className="text-slate-600 dark:text-slate-300"
 								onClick={() => {
-									alert(
+									toast.error(
 										"Please contact your administrator to upgrade your plan."
 									);
 								}}

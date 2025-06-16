@@ -1,9 +1,8 @@
-import React from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import Image from 'next/image';
+import React from 'react';
 
-const Benefits: React.FC = () => {
-  return (
+const Benefits: React.FC = () => (
     <section id="benefits" className="py-20 bg-gradient-to-br from-blue-50 to-white">
       <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row items-center">
@@ -71,6 +70,5 @@ const Benefits: React.FC = () => {
       </div>
     </section>
   );
-};
 
 export default Benefits;

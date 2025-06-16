@@ -1,12 +1,14 @@
 "use client";
 
-import React from "react";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
 import { Clock, Zap, ArrowRight } from "lucide-react";
-import { useUserSubscription } from "@/api/queries/subscription.queries";
+import Link from "next/link";
+import React from "react";
 
-export function TrialBanner() {
+import { useUserSubscription } from "@/api/queries/subscription.queries";
+import { Button } from "@/components/ui/button";
+
+
+export const TrialBanner = () => {
 	const { data: userSubscription } = useUserSubscription();
 
 	// Only show banner for trial users
@@ -28,7 +30,7 @@ export function TrialBanner() {
 				text: "text-red-800 dark:text-red-200",
 				button: "bg-red-600 hover:bg-red-700",
 			};
-		} else if (remainingDays <= 7) {
+		} if (remainingDays <= 7) {
 			return {
 				bg:
 					"bg-gradient-to-r from-orange-50 to-yellow-50 dark:from-orange-950 dark:to-yellow-950",
@@ -37,7 +39,7 @@ export function TrialBanner() {
 				text: "text-orange-800 dark:text-orange-200",
 				button: "bg-orange-600 hover:bg-orange-700",
 			};
-		} else {
+		} 
 			return {
 				bg:
 					"bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950",
@@ -46,7 +48,7 @@ export function TrialBanner() {
 				text: "text-blue-800 dark:text-blue-200",
 				button: "bg-blue-600 hover:bg-blue-700",
 			};
-		}
+		
 	};
 
 	const style = getBannerStyle();
@@ -54,13 +56,13 @@ export function TrialBanner() {
 	const getUrgencyMessage = () => {
 		if (remainingDays <= 1) {
 			return "Your trial expires today! Upgrade now to continue using premium features.";
-		} else if (remainingDays <= 3) {
+		} if (remainingDays <= 3) {
 			return `Only ${remainingDays} days left in your trial. Upgrade now to avoid interruption.`;
-		} else if (remainingDays <= 7) {
+		} if (remainingDays <= 7) {
 			return `${remainingDays} days remaining in your trial. Upgrade anytime to continue.`;
-		} else {
+		} 
 			return `You're currently on a ${remainingDays}-day free trial of ${planName}. Enjoy full access!`;
-		}
+		
 	};
 
 	return (

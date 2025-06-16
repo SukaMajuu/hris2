@@ -1,13 +1,15 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
-import { WorkScheduleForm } from "@/app/(admin)/check-clock/work-schedule/_components/WorkScheduleForm";
-import { useEditWorkSchedule } from "./_hooks/useEditWorkSchedule";
+
+import { WorkScheduleForm } from "@/app/(admin)/check-clock/work-schedule/_components/workScheduleForm/WorkScheduleForm";
 import { FeatureGuard } from "@/components/subscription/FeatureGuard";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { FEATURE_CODES } from "@/const/features";
 
-export default function EditWorkSchedulePage() {
+import { useEditWorkSchedule } from "./_hooks/useEditWorkSchedule";
+
+const EditWorkSchedulePage = () => {
 	const params = useParams();
 	const id = Number(params.id);
 
@@ -34,8 +36,10 @@ export default function EditWorkSchedulePage() {
 		return (
 			<main className="flex min-h-screen items-center justify-center">
 				<div className="text-center">
-					<div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600"></div>
-					<p className="text-slate-500 dark:text-slate-400">Loading work schedule data...</p>
+					<div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600" />
+					<p className="text-slate-500 dark:text-slate-400">
+						Loading work schedule data...
+					</p>
 				</div>
 			</main>
 		);
@@ -63,7 +67,7 @@ export default function EditWorkSchedulePage() {
 				<WorkScheduleForm
 					onSubmit={handleSubmit}
 					onCancel={handleCancel}
-					isEditMode={true}
+					isEditMode
 					initialData={workSchedule}
 					isLoading={isUpdating}
 					locations={locations}
@@ -73,4 +77,6 @@ export default function EditWorkSchedulePage() {
 			</div>
 		</FeatureGuard>
 	);
-}
+};
+
+export default EditWorkSchedulePage;

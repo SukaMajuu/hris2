@@ -1,12 +1,5 @@
 "use client";
 
-import React from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import Link from "next/link";
-import { useUserSubscription } from "@/api/queries/subscription.queries";
-import { useEmployeeStatsQuery } from "@/api/queries/employee.queries";
 import {
 	Loader2,
 	AlertCircle,
@@ -18,12 +11,19 @@ import {
 	Clock,
 	XCircle,
 	Pause,
-	Calendar,
 	ArrowRight,
 	TrendingUp,
 } from "lucide-react";
+import Link from "next/link";
+import React from "react";
 
-export default function SettingsPage() {
+import { useEmployeeStatsQuery } from "@/api/queries/employee.queries";
+import { useUserSubscription } from "@/api/queries/subscription.queries";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+const SettingsPage = () => {
 	const { data: userSubscription, isLoading, error } = useUserSubscription();
 	const {
 		data: employeeStats,
@@ -43,7 +43,7 @@ export default function SettingsPage() {
 	const getSubscriptionStatusDisplay = () => {
 		if (!userSubscription) return "No subscription";
 
-		const status = userSubscription.status;
+		const { status } = userSubscription;
 		switch (status) {
 			case "trial":
 				return "Trial";
@@ -67,7 +67,7 @@ export default function SettingsPage() {
 		if (!userSubscription)
 			return <XCircle className="h-4 w-4 text-gray-600" />;
 
-		const status = userSubscription.status;
+		const { status } = userSubscription;
 		switch (status) {
 			case "active":
 				return <CheckCircle className="h-4 w-4 text-green-600" />;
@@ -270,17 +270,21 @@ export default function SettingsPage() {
 									<>
 										<div className="mb-2 h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
 											<div
-												className={`h-2 rounded-full transition-all duration-300 ${
-													usagePercentage >= 90
-														? "bg-red-500"
-														: usagePercentage >= 70
-														? "bg-yellow-500"
-														: "bg-green-500"
-												}`}
+												className={(() => {
+													if (usagePercentage >= 90) {
+														return "h-2 rounded-full transition-all duration-300 bg-red-500";
+													}
+
+													if (usagePercentage >= 70) {
+														return "h-2 rounded-full transition-all duration-300 bg-yellow-500";
+													}
+
+													return "h-2 rounded-full transition-all duration-300 bg-green-500";
+												})()}
 												style={{
 													width: `${usagePercentage}%`,
 												}}
-											></div>
+											/>
 										</div>
 										<div className="flex items-center justify-between text-xs text-muted-foreground">
 											<span>
@@ -313,4 +317,6 @@ export default function SettingsPage() {
 			)}
 		</div>
 	);
-}
+};
+
+export default SettingsPage;

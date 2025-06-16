@@ -10,27 +10,27 @@ permissions:
     pull-requests: write
 
 jobs:
-    # frontend-checks:
-    #     name: Frontend Lint & Test
-    #     runs-on: ubuntu-latest
+    frontend-checks:
+        name: Frontend Lint & Test
+        runs-on: ubuntu-latest
 
-    #     steps:
-    #         - uses: actions/checkout@v3
+        steps:
+            - uses: actions/checkout@v3
 
-    #         - name: Set up Node.js
-    #           uses: actions/setup-node@v3
-    #           with:
-    #               node-version: 18
-    #               cache: "npm"
-    #               cache-dependency-path: "apps/frontend/package-lock.json"
+            - name: Set up Node.js
+              uses: actions/setup-node@v3
+              with:
+                  node-version: 18
+                  cache: "npm"
+                  cache-dependency-path: "apps/frontend/package-lock.json"
 
-    #         - name: Install dependencies
-    #           run: npm install
-    #           working-directory: apps/frontend
+            - name: Install dependencies
+              run: npm install
+              working-directory: apps/frontend
 
-    #         - name: Lint
-    #           run: npm run lint
-    #           working-directory: apps/frontend
+            - name: Lint
+              run: npm run lint:fix
+              working-directory: apps/frontend
 
     # - name: Run tests
     #   run: npm run test

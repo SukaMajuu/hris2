@@ -1,6 +1,7 @@
-import { useUserSubscription } from '@/api/queries/subscription.queries';
-import { useEmployeeStatsQuery } from '@/api/queries/employee.queries';
 import { useCallback, useMemo } from 'react';
+
+import { useEmployeeStatsQuery } from '@/api/queries/employee.queries';
+import { useUserSubscription } from '@/api/queries/subscription.queries';
 
 export interface SubscriptionLimitInfo {
   currentCount: number;
@@ -59,9 +60,7 @@ export const useSubscriptionLimit = () => {
   }, [userSubscription, employeeStats]);
 
   const checkCanAddEmployees = useCallback(
-    (count = 1): boolean => {
-      return limitInfo.canAddEmployees && limitInfo.canAddCount >= count;
-    },
+    (count = 1): boolean => limitInfo.canAddEmployees && limitInfo.canAddCount >= count,
     [limitInfo.canAddEmployees, limitInfo.canAddCount],
   );
 
@@ -98,7 +97,7 @@ export const useSubscriptionLimit = () => {
 
       if (usagePercentage >= 100) {
         return `You've reached the employee limit (${limitInfo.maxCount} employees). Upgrade your plan for more employees.`;
-      } else if (usagePercentage >= 80) {
+      } if (usagePercentage >= 80) {
         return `You're approaching the employee limit (${limitInfo.currentCount}/${limitInfo.maxCount}). Consider upgrading your plan.`;
       }
 
@@ -109,7 +108,7 @@ export const useSubscriptionLimit = () => {
 
     if (usagePercentage >= 100) {
       return `You've reached your ${limitInfo.planName} plan limit (${limitInfo.tierInfo.minEmployees}-${limitInfo.tierInfo.maxEmployees} employees). Upgrade to a higher tier for more employees.`;
-    } else if (usagePercentage >= 80) {
+    } if (usagePercentage >= 80) {
       return `You're approaching your ${limitInfo.planName} plan limit (${limitInfo.tierInfo.minEmployees}-${limitInfo.tierInfo.maxEmployees} employees). Consider upgrading to a higher tier.`;
     }
 

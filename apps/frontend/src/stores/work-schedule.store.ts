@@ -1,4 +1,5 @@
 import { create } from "zustand";
+
 import { WorkSchedule } from "@/types/work-schedule.types";
 
 interface WorkScheduleState {

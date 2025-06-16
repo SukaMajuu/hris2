@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuthStore } from "@/stores/auth.store";
-import { Role } from "@/const/role";
+import { useEffect } from "react";
 import { toast } from "sonner";
+
 import FullPageLoader from "@/components/ui/full-page-loader";
+import { Role } from "@/const/role";
+import { useAuthStore } from "@/stores/auth.store";
 
 interface RoleGuardProps {
 	children: React.ReactNode;
@@ -13,11 +14,11 @@ interface RoleGuardProps {
 	fallbackPath?: string;
 }
 
-export function RoleGuard({
+export const RoleGuard = ({
 	children,
 	allowedRoles,
 	fallbackPath = "/unauthorized",
-}: RoleGuardProps) {
+}: RoleGuardProps) => {
 	const router = useRouter();
 	const user = useAuthStore((state) => state.user);
 	const isAuthStoreLoading = useAuthStore((state) => state.isLoading);

@@ -1,15 +1,15 @@
-import { useState } from "react";
-import { useAuthStore } from "@/stores/auth.store";
-import { LoginFormData } from "@/schemas/auth.schema";
-import { toast } from "sonner";
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { loginSchema } from "@/schemas/auth.schema";
-import { getSupabaseGoogleToken } from "@/utils/google-auth";
 import { AxiosError } from "axios";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+
 import { useLoginMutation } from "@/api/mutations/auth.mutation";
 import { useUserSubscription } from "@/api/queries/subscription.queries";
 import { ROLES } from "@/const/role";
+import { loginSchema , LoginFormData } from "@/schemas/auth.schema";
+import { useAuthStore } from "@/stores/auth.store";
+import { getSupabaseGoogleToken } from "@/utils/google-auth";
 
 export const useLogin = () => {
 	const [isLoading, setIsLoading] = useState(false);
@@ -53,10 +53,10 @@ export const useLogin = () => {
 				toast.success("Login successful! Welcome back.");
 			}
 		} catch (error) {
-			let errorMessage =
+			const errorMessage =
 				"Login failed. Please check your credentials and try again.";
 
-			toast.error("LOGIN ERROR: " + errorMessage, {
+			toast.error(`LOGIN ERROR: ${  errorMessage}`, {
 				duration: 10000,
 				description:
 					error instanceof AxiosError

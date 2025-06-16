@@ -1,11 +1,13 @@
 'use client';
 
-import React from 'react';
+import { ChevronDown, Loader2, LogOut } from 'lucide-react';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import React from 'react';
+
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   Sidebar,
   SidebarHeader,
@@ -20,22 +22,21 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { type Role } from '../../const/role';
-import { getMainMenuItemsByRole, getFooterItemsByRole } from '../_config/menuConfig';
-import { useAuthStore } from '@/stores/auth.store';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, ChevronRight, Loader2, LogOut } from 'lucide-react';
 import { useProactiveTokenRefresh } from '@/hooks/useProactiveTokenRefresh';
 import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/stores/auth.store';
+
 import { useLogout } from '../(auth)/logout/useLogout';
+import { type Role } from '../../const/role';
+import { getMainMenuItemsByRole, getFooterItemsByRole } from '../_config/menuConfig';
 
 interface MainLayoutProps {
   children: React.ReactNode;
 }
 
-function LogoComponent() {
+const LogoComponent = () => {
   const { open } = useSidebar();
   return (
     <div className='flex flex-1 items-center justify-center overflow-hidden p-2'>
@@ -51,7 +52,7 @@ function LogoComponent() {
 }
 
 // Special LogoutButton component with loading state
-function LogoutButton({ className }: { className?: string }) {
+const LogoutButton = ({ className }: { className?: string }) => {
   const { logout, isLoading } = useLogout();
 
   const handleLogout = async (e: React.MouseEvent) => {
@@ -89,8 +90,7 @@ interface NavContentProps {
   pathname: string;
 }
 
-function NavContent({ menuItems, footerItems, pathname }: NavContentProps) {
-  return (
+const NavContent = ({ menuItems, footerItems, pathname }: NavContentProps) => (
     <>
       <SidebarContent className='flex-1 space-y-1.5 overflow-y-auto p-2'>
         <SidebarMenu>
@@ -121,7 +121,7 @@ function NavContent({ menuItems, footerItems, pathname }: NavContentProps) {
                           </span>
                         </div>
                         <ChevronDown
-                          className={`sidebar-item-label-and-chevron h-4 w-4 text-gray-500 transition-transform duration-200 ease-in-out`}
+                          className="sidebar-item-label-and-chevron h-4 w-4 text-gray-500 transition-transform duration-200 ease-in-out"
                         />
                       </SidebarMenuButton>
                     </CollapsibleTrigger>
@@ -212,8 +212,7 @@ function NavContent({ menuItems, footerItems, pathname }: NavContentProps) {
         </SidebarMenu>
       </SidebarFooter>
     </>
-  );
-}
+  )
 
 const hideLayoutForPaths = [
   '/subscription',
@@ -226,7 +225,7 @@ const hideLayoutForPaths = [
   '/welcome',
 ];
 
-export default function MainLayout({ children }: MainLayoutProps) {
+const MainLayout = ({ children }: MainLayoutProps) => {
   const pathname = usePathname();
   const { user } = useAuthStore();
   useProactiveTokenRefresh();
@@ -239,6 +238,48 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
   const shouldHideLayout =
     hideLayoutForPaths.includes(pathname) || (!hasActiveSubscription && pathname !== '/welcome');
+
+  // Add sidebar styles to document head
+  React.useEffect(() => {
+    const styleId = 'sidebar-styles';
+    if (document.getElementById(styleId)) return () => {};
+
+    const style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = `
+      .group[data-state='collapsed'] .sidebar-item-label-and-chevron {
+        display: none !important;
+      }
+      .group[data-state='collapsed'] .sidebar-collapsible-content {
+        display: none !important;
+      }
+
+      .group[data-state='collapsed'] .sidebar-collapsible-trigger > div.gap-3 {
+        gap: 0 !important;
+      }
+
+      .sidebar-collapsible-trigger[data-state='closed'] > svg.sidebar-item-label-and-chevron {
+        transform: rotate(-90deg) !important;
+      }
+
+      .sidebar-collapsible-trigger[data-state='open'] > svg.sidebar-item-label-and-chevron {
+        transform: rotate(0deg) !important;
+      }
+
+      .group[data-state='collapsed'] .flex.items-center.justify-start,
+      .group[data-state='collapsed'] .flex.items-center.justify-between {
+        justify-content: center !important;
+      }
+    `;
+    document.head.appendChild(style);
+
+    return () => {
+      const existingStyle = document.getElementById(styleId);
+      if (existingStyle) {
+        existingStyle.remove();
+      }
+    };
+  }, []);
 
   const getPageTitle = () => {
     const allMenuItems = [...getMainMenuItemsByRole(role), ...getFooterItemsByRole(role)];
@@ -317,33 +358,8 @@ export default function MainLayout({ children }: MainLayoutProps) {
           </main>
         </SidebarInset>
       </div>
-
-      <style jsx global>{`
-        .group[data-state='collapsed'] .sidebar-item-label-and-chevron {
-          display: none !important;
-        }
-        .group[data-state='collapsed'] .sidebar-collapsible-content {
-          display: none !important;
-        }
-
-        .group[data-state='collapsed'] .sidebar-collapsible-trigger > div.gap-3 {
-          gap: 0 !important;
-        }
-
-        /* Chevron rotation for collapsible trigger */
-        .sidebar-collapsible-trigger[data-state='closed'] > svg.sidebar-item-label-and-chevron {
-          transform: rotate(-90deg) !important;
-        }
-
-        .sidebar-collapsible-trigger[data-state='open'] > svg.sidebar-item-label-and-chevron {
-          transform: rotate(0deg) !important;
-        }
-
-        .group[data-state='collapsed'] .flex.items-center.justify-start,
-        .group[data-state='collapsed'] .flex.items-center.justify-between {
-          justify-content: center !important;
-        }
-      `}</style>
     </SidebarProvider>
   );
-}
+};
+
+export default MainLayout;

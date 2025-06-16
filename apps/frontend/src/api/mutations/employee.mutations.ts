@@ -1,10 +1,12 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { queryKeys } from '../query-keys';
+
 import {
   employeeService,
   type CreateEmployeeRequest,
   type UpdateEmployeeRequest,
 } from '@/services/employee.service';
+
+import { queryKeys } from '../query-keys';
 
 export const useResignEmployeeMutation = () => {
   const queryClient = useQueryClient();
@@ -16,14 +18,12 @@ export const useResignEmployeeMutation = () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       queryClient.invalidateQueries({ queryKey: ['subscription'] });
       queryClient.invalidateQueries({
-        predicate: (query) => {
-          return (
+        predicate: (query) => (
             Array.isArray(query.queryKey) &&
             Array.isArray(query.queryKey[0]) &&
             query.queryKey[0][0] === 'checkclockSettings' &&
             query.queryKey[0][1] === 'list'
-          );
-        },
+          ),
       });
     },
   });
@@ -38,9 +38,7 @@ export const useCreateEmployee = () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.employees.list(1, 10) });
       queryClient.invalidateQueries({ queryKey: queryKeys.employees.stats() });
       queryClient.invalidateQueries({
-        predicate: (query) => {
-          return Array.isArray(query.queryKey) && query.queryKey[0] === 'subscription';
-        },
+        predicate: (query) => Array.isArray(query.queryKey) && query.queryKey[0] === 'subscription',
       });
     },
   });
@@ -56,33 +54,27 @@ export const useUpdateEmployee = () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.employees.detail(id) });
 
       queryClient.invalidateQueries({
-        predicate: (query) => {
-          return (
+        predicate: (query) => (
             Array.isArray(query.queryKey) &&
             query.queryKey[0] === 'employees' &&
             query.queryKey[1] === 'list'
-          );
-        },
+          ),
       });
 
       queryClient.invalidateQueries({ queryKey: queryKeys.employees.stats() });
 
       queryClient.invalidateQueries({
-        predicate: (query) => {
-          return Array.isArray(query.queryKey) && query.queryKey[0] === 'subscription';
-        },
+        predicate: (query) => Array.isArray(query.queryKey) && query.queryKey[0] === 'subscription',
       });
 
       queryClient.invalidateQueries({ queryKey: queryKeys.employees.currentProfile });
 
       queryClient.invalidateQueries({
-        predicate: (query) => {
-          return (
+        predicate: (query) => (
             Array.isArray(query.queryKey) &&
             query.queryKey[0] === 'employees' &&
             (query.queryKey[1] === 'checkClock' || query.queryKey[1] === 'assign')
-          );
-        },
+          ),
       });
     },
   });
@@ -97,9 +89,7 @@ export const useResignEmployee = () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.employees.list(1, 10) });
       queryClient.invalidateQueries({ queryKey: queryKeys.employees.stats() });
       queryClient.invalidateQueries({
-        predicate: (query) => {
-          return Array.isArray(query.queryKey) && query.queryKey[0] === 'subscription';
-        },
+        predicate: (query) => Array.isArray(query.queryKey) && query.queryKey[0] === 'subscription',
       });
     },
   });
@@ -114,9 +104,7 @@ export const useBulkImportEmployees = () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.employees.list(1, 10) });
       queryClient.invalidateQueries({ queryKey: queryKeys.employees.stats() });
       queryClient.invalidateQueries({
-        predicate: (query) => {
-          return Array.isArray(query.queryKey) && query.queryKey[0] === 'subscription';
-        },
+        predicate: (query) => Array.isArray(query.queryKey) && query.queryKey[0] === 'subscription',
       });
     },
   });
@@ -133,8 +121,6 @@ export const useUpdateCurrentUserProfile = () => {
   });
 };
 
-export const useResetEmployeePassword = () => {
-  return useMutation({
+export const useResetEmployeePassword = () => useMutation({
     mutationFn: (employeeId: number) => employeeService.resetEmployeePassword(employeeId),
   });
-};

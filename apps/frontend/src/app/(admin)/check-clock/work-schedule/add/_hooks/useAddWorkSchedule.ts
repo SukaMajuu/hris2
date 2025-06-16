@@ -1,11 +1,12 @@
+import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
+import { toast } from "sonner";
+import { ZodError } from "zod";
+
 import { useCreateWorkSchedule } from "@/api/mutations/work-schedule.mutation";
 import { useLocations } from "@/api/queries/location.queries";
-import { toast } from "sonner";
-import { WorkSchedule } from "@/types/work-schedule.types";
 import { workScheduleSchema } from "@/schemas/work-schedule.schema";
-import { useRouter } from "next/navigation";
-import { ZodError } from "zod";
+import { WorkSchedule } from "@/types/work-schedule.types";
 
 export const useAddWorkSchedule = () => {
 	const router = useRouter();
@@ -23,11 +24,8 @@ export const useAddWorkSchedule = () => {
 	}, []);
 
 	const handleSubmit = useCallback(
-		async (data: WorkSchedule, detailsToDelete?: number[]) => {
-			// Note: detailsToDelete is not used for creating new work schedules
-			// but we accept it to maintain consistency with the form component interface
+		async (data: WorkSchedule) => {
 			try {
-				// Clear previous validation errors
 				setValidationErrors({});
 
 				const validatedData = workScheduleSchema.parse(data);
@@ -42,7 +40,6 @@ export const useAddWorkSchedule = () => {
 				console.error("Create work schedule error:", error);
 
 				if (error instanceof ZodError) {
-					// Map Zod errors to form fields
 					const fieldErrors: Record<string, string> = {};
 
 					error.issues.forEach((issue) => {

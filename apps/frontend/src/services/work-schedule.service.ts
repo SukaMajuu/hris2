@@ -1,6 +1,6 @@
-import { WorkSchedule } from "@/types/work-schedule.types";
-import { ApiService, PaginatedResponse } from "@/services/api.service";
 import { API_ROUTES } from "@/config/api.routes";
+import { ApiService, PaginatedResponse } from "@/services/api.service";
+import { WorkSchedule } from "@/types/work-schedule.types";
 
 export class WorkScheduleService {
 	private api: ApiService;
@@ -55,6 +55,7 @@ export class WorkScheduleService {
 		);
 		return response.data.data;
 	}
+
 	async delete(id: number): Promise<void> {
 		// Use API_ROUTES for the endpoint with PATCH method for soft delete
 		await this.api.patch(API_ROUTES.v1.api.workSchedules.delete(id));

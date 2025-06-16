@@ -1,13 +1,15 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import AttendanceOverviewTab from "./_tabsContent/AttendanceOverviewTab";
-import PermitTab from "./_tabsContent/LeaveRequestTab";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import { FeatureGuard } from "@/components/subscription/FeatureGuard";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FEATURE_CODES } from "@/const/features";
 
-export default function AttendancePage() {
+import AttendanceOverviewTab from "./_tabsContent/AttendanceOverviewTab";
+import LeaveRequestTab from "./_tabsContent/LeaveRequestTab";
+
+const AttendancePage = () => {
 	const searchParams = useSearchParams();
 	const view = searchParams.get("view");
 
@@ -39,11 +41,13 @@ export default function AttendancePage() {
 							<AttendanceOverviewTab />
 						</TabsContent>
 						<TabsContent value="permit">
-							<PermitTab />
+							<LeaveRequestTab />
 						</TabsContent>
 					</Tabs>
 				</div>
 			</FeatureGuard>
 		</div>
 	);
-}
+};
+
+export default AttendancePage;

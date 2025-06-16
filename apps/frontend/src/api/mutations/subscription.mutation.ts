@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+
 import { subscriptionService } from "@/services/subscription.service";
-import { queryKeys } from "../query-keys";
 import {
 	InitiateTrialCheckoutRequest,
 	InitiatePaidCheckoutRequest,
@@ -8,7 +8,9 @@ import {
 	UpgradeSubscriptionPlanRequest,
 	ChangeSeatPlanRequest,
 	ConvertTrialToPaidRequest,
-} from "@/types/subscription";
+} from "@/types/subscription.types";
+
+import { queryKeys } from "../query-keys";
 
 export const useInitiateTrialCheckout = () => {
 	const queryClient = useQueryClient();
@@ -25,14 +27,13 @@ export const useInitiateTrialCheckout = () => {
 	});
 };
 
-export const useInitiatePaidCheckout = () => {
-	return useMutation({
+export const useInitiatePaidCheckout = () =>
+	useMutation({
 		mutationFn: (request: InitiatePaidCheckoutRequest) =>
 			subscriptionService.initiatePaidCheckout(request),
 		// Don't invalidate subscription query on payment initiation
 		// as it doesn't change subscription status
 	});
-};
 
 export const useCompleteTrialCheckout = () => {
 	const queryClient = useQueryClient();
@@ -65,13 +66,12 @@ export const useActivateTrial = () => {
 
 // New upgrade/downgrade mutations
 
-export const usePreviewSubscriptionPlanChange = () => {
-	return useMutation({
+export const usePreviewSubscriptionPlanChange = () =>
+	useMutation({
 		mutationFn: (request: UpgradeSubscriptionPlanRequest) =>
 			subscriptionService.previewSubscriptionPlanChange(request),
 		// Don't invalidate subscription query on preview as it doesn't change status
 	});
-};
 
 export const useChangeSubscriptionPlan = () => {
 	const queryClient = useQueryClient();
@@ -90,13 +90,12 @@ export const useChangeSubscriptionPlan = () => {
 	});
 };
 
-export const usePreviewSeatPlanChange = () => {
-	return useMutation({
+export const usePreviewSeatPlanChange = () =>
+	useMutation({
 		mutationFn: (request: ChangeSeatPlanRequest) =>
 			subscriptionService.previewSeatPlanChange(request),
 		// Don't invalidate subscription query on preview as it doesn't change status
 	});
-};
 
 export const useChangeSeatPlan = () => {
 	const queryClient = useQueryClient();

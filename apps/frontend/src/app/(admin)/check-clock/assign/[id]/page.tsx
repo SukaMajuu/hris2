@@ -1,11 +1,13 @@
 "use client";
 
 import { use } from "react";
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckClockForm } from "@/app/(admin)/check-clock/_components/CheckClockForm";
-import { useAssignWorkSchedule } from "../_hooks/useAssignCheckClock";
+
 import { FeatureGuard } from "@/components/subscription/FeatureGuard";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { FEATURE_CODES } from "@/const/features";
+
+import { AssignForm } from "./_components/AssignForm";
+import { useAssign } from "./_hooks/useAssign";
 
 interface AssignWorkScheduleEmployeeProps {
 	params: Promise<{
@@ -13,9 +15,9 @@ interface AssignWorkScheduleEmployeeProps {
 	}>;
 }
 
-export default function AssignWorkScheduleEmployee({
+const AssignWorkScheduleEmployee = ({
 	params,
-}: AssignWorkScheduleEmployeeProps) {
+}: AssignWorkScheduleEmployeeProps) => {
 	const { id } = use(params);
 
 	const {
@@ -25,7 +27,7 @@ export default function AssignWorkScheduleEmployee({
 		isLoading,
 		isDataLoading,
 		handleSubmit,
-	} = useAssignWorkSchedule(id);
+	} = useAssign(id);
 	if (isDataLoading) {
 		return (
 			<FeatureGuard feature={FEATURE_CODES.CHECK_CLOCK_SYSTEM}>
@@ -39,7 +41,7 @@ export default function AssignWorkScheduleEmployee({
 					</Card>
 					<div className="flex items-center justify-center py-8">
 						<div className="text-center">
-							<div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600"></div>
+							<div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600" />
 							<p>Loading employee data...</p>
 						</div>
 					</div>
@@ -80,7 +82,7 @@ export default function AssignWorkScheduleEmployee({
 						</CardTitle>
 					</CardHeader>
 				</Card>
-				<CheckClockForm
+				<AssignForm
 					employee={employee}
 					currentAssignment={currentAssignment || undefined}
 					onSubmit={handleSubmit}
@@ -90,4 +92,6 @@ export default function AssignWorkScheduleEmployee({
 			</div>
 		</FeatureGuard>
 	);
-}
+};
+
+export default AssignWorkScheduleEmployee;

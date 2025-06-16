@@ -1,19 +1,15 @@
 "use client";
 
-import React, { Suspense, useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
 import { CheckCircle, Loader2, ArrowRight, AlertCircle } from "lucide-react";
-import { useSearchParams, useRouter } from "next/navigation";
-import { toast } from "sonner";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import React, { Suspense, useEffect, useState } from "react";
 
-const formatCurrency = (value: number) => {
-	return `Rp ${value.toLocaleString("id-ID")}`;
-};
+import { Button } from "@/components/ui/button";
+import { formatCurrency } from "@/utils/currency";
 
-function PaymentSuccessContent() {
+const PaymentSuccessContent = () => {
 	const searchParams = useSearchParams();
-	const router = useRouter();
 	const [isLoading, setIsLoading] = useState(true);
 	const [verificationError, setVerificationError] = useState<string | null>(
 		null
@@ -117,35 +113,35 @@ function PaymentSuccessContent() {
 								Payment Verification Issue
 							</h1>
 							<p className="text-slate-600 dark:text-slate-400">
-								Your payment was processed, but we're still
+								Your payment was processed, but we&apos;re still
 								verifying the subscription activation
 							</p>
 						</div>
 
 						<div className="bg-orange-50 dark:bg-orange-900/20 p-6 rounded-lg border border-orange-200 dark:border-orange-800 mb-6">
 							<h3 className="font-semibold text-orange-800 dark:text-orange-400 mb-2">
-								What's happening?
+								What&apos;s happening?
 							</h3>
 							<p className="text-sm text-orange-700 dark:text-orange-400 mb-4">
 								{verificationError}
 							</p>
 							<ul className="space-y-2 text-sm text-orange-700 dark:text-orange-400">
 								<li className="flex items-start space-x-2">
-									<div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
+									<div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0" />
 									<span>
 										Your payment has been processed
 										successfully
 									</span>
 								</li>
 								<li className="flex items-start space-x-2">
-									<div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
+									<div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0" />
 									<span>
-										We're working to activate your
+										We&apos;re working to activate your
 										subscription
 									</span>
 								</li>
 								<li className="flex items-start space-x-2">
-									<div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
+									<div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0" />
 									<span>
 										This usually takes a few minutes
 									</span>
@@ -237,7 +233,7 @@ function PaymentSuccessContent() {
 										Amount Paid:
 									</span>
 									<span className="text-green-600 dark:text-green-500">
-										{formatCurrency(parseInt(amount))}
+										{formatCurrency(parseInt(amount, 10))}
 									</span>
 								</div>
 							)}
@@ -251,7 +247,7 @@ function PaymentSuccessContent() {
 						</h3>
 						<ul className="space-y-2 text-sm text-green-700 dark:text-green-400">
 							<li className="flex items-start space-x-2">
-								<div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+								<div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0" />
 								<span>
 									{subscriptionActivated
 										? "Your subscription is now active"
@@ -259,7 +255,7 @@ function PaymentSuccessContent() {
 								</span>
 							</li>
 							<li className="flex items-start space-x-2">
-								<div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+								<div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0" />
 								<span>
 									You can access all premium features
 									{subscriptionActivated
@@ -268,7 +264,7 @@ function PaymentSuccessContent() {
 								</span>
 							</li>
 							<li className="flex items-start space-x-2">
-								<div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+								<div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0" />
 								<span>
 									A receipt has been sent to your email
 								</span>
@@ -313,20 +309,20 @@ function PaymentSuccessContent() {
 			</div>
 		</div>
 	);
-}
+};
 
-export default function PaymentSuccessPage() {
-	return (
-		<Suspense
-			fallback={
-				<div className="min-h-screen bg-slate-100 dark:bg-slate-950 p-4 md:p-8">
-					<div className="max-w-3xl mx-auto flex items-center justify-center min-h-96">
-						<Loader2 className="h-8 w-8 animate-spin text-slate-600" />
-					</div>
+const PaymentSuccessPage = () => (
+	<Suspense
+		fallback={
+			<div className="min-h-screen bg-slate-100 dark:bg-slate-950 p-4 md:p-8">
+				<div className="max-w-3xl mx-auto flex items-center justify-center min-h-96">
+					<Loader2 className="h-8 w-8 animate-spin text-slate-600" />
 				</div>
-			}
-		>
-			<PaymentSuccessContent />
-		</Suspense>
-	);
-}
+			</div>
+		}
+	>
+		<PaymentSuccessContent />
+	</Suspense>
+);
+
+export default PaymentSuccessPage;

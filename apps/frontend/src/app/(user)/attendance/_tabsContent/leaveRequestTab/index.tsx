@@ -40,7 +40,7 @@ const PermitTab = () => {
 		error,
 		createLeaveRequest,
 		refreshLeaveRequests,
-	} = useLeaveRequests(currentPage, pageSize);
+	} = useLeaveRequests(undefined, currentPage, pageSize);
 
 	// Refresh management hook
 	const {

@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { LEAVE_STATUS, LEAVE_TABLE_HEADERS } from "@/const/leave";
 import type { LeaveRequest } from "@/types/leave-request.types";
 import { formatLeaveType } from "@/utils/leave";
+import { formatLeaveStatus, getLeaveStatusBadgeClasses } from "@/utils/status";
 
 // Helper interface for table display data
 interface PermitTableData {
@@ -43,34 +44,10 @@ interface UseLeaveRequestTableProps {
 }
 
 const getStatusBadge = (status: string): React.JSX.Element => {
-	const normalizedStatus = status.toLowerCase().replace(/\s+/g, "_");
+	const formattedStatus = formatLeaveStatus(status);
+	const badgeClasses = getLeaveStatusBadgeClasses(status);
 
-	switch (normalizedStatus) {
-		case "approved":
-			return (
-				<Badge className="border-green-200 bg-green-100 text-green-800">
-					{LEAVE_STATUS.APPROVED}
-				</Badge>
-			);
-		case "rejected":
-			return (
-				<Badge className="border-red-200 bg-red-100 text-red-800">
-					{LEAVE_STATUS.REJECTED}
-				</Badge>
-			);
-		case "waiting_approval":
-			return (
-				<Badge className="border-yellow-200 bg-yellow-100 text-yellow-800">
-					{LEAVE_STATUS.WAITING_APPROVAL}
-				</Badge>
-			);
-		default:
-			return (
-				<Badge className="border-gray-200 bg-gray-100 text-gray-800">
-					{status}
-				</Badge>
-			);
-	}
+	return <Badge className={badgeClasses}>{formattedStatus}</Badge>;
 };
 
 export const useLeaveRequestTable = ({

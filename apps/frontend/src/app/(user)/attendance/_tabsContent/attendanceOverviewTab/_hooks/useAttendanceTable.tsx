@@ -22,6 +22,10 @@ import {
 import type { Attendance } from "@/types/attendance.types";
 import { formatWorkHours } from "@/utils/time";
 import { utcToLocal } from "@/utils/timezone";
+import {
+	formatAttendanceStatus,
+	getAttendanceStatusBadgeClasses,
+} from "@/utils/status";
 
 interface UseAttendanceTableProps {
 	filteredData: Attendance[];
@@ -30,23 +34,10 @@ interface UseAttendanceTableProps {
 
 // Helper function to get status badge
 const getStatusBadge = (status: string): React.JSX.Element => {
-	const normalizedStatus = status.toLowerCase();
-	const bgColor =
-		ATTENDANCE_STATUS_COLORS[
-			normalizedStatus as keyof typeof ATTENDANCE_STATUS_COLORS
-		] || "bg-gray-600";
-	const displayStatus =
-		ATTENDANCE_STATUS_LABELS[
-			normalizedStatus as keyof typeof ATTENDANCE_STATUS_LABELS
-		] || status;
+	const formattedStatus = formatAttendanceStatus(status);
+	const badgeClasses = getAttendanceStatusBadgeClasses(status);
 
-	return (
-		<Badge
-			className={`rounded-md text-sm font-medium ${bgColor} text-white`}
-		>
-			{displayStatus}
-		</Badge>
-	);
+	return <Badge className={badgeClasses}>{formattedStatus}</Badge>;
 };
 
 // Helper function to get clock in time display

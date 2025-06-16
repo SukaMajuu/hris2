@@ -4,6 +4,7 @@ import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { LeaveRequest } from "@/types/leave-request.types";
+import { formatLeaveStatus, getLeaveStatusBadgeClasses } from "@/utils/status";
 
 // Define the ApprovalItem interface to match what's used in the component
 interface ApprovalItem {
@@ -115,10 +116,13 @@ DurationColumn.displayName = "DurationColumn";
 
 const LeaveTypeColumn = React.memo(({ row }: TableRowProps) => {
 	const { status } = row.original;
+	const formattedStatus = formatLeaveStatus(status);
+	const badgeClasses = getLeaveStatusBadgeClasses(status);
+
 	return (
 		<div className="flex items-center justify-center">
-			<Badge variant="outline" className="text-xs md:text-sm">
-				{status}
+			<Badge className={`text-xs md:text-sm ${badgeClasses}`}>
+				{formattedStatus}
 			</Badge>
 		</div>
 	);

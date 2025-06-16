@@ -453,13 +453,6 @@ const ProfilePage = () => {
 									Gender
 								</Label>
 								{editPersonal ? (
-									<Input
-										id="gender"
-										value={gender}
-										readOnly
-										className={getInputClassName(false)}
-									/>
-								) : (
 									<Select
 										value={gender}
 										onValueChange={setGender}
@@ -476,6 +469,13 @@ const ProfilePage = () => {
 											</SelectItem>
 										</SelectContent>
 									</Select>
+								) : (
+									<Input
+										id="gender"
+										value={gender}
+										readOnly
+										className={getInputClassName(false)}
+									/>
 								)}
 							</div>
 							<div>
@@ -550,7 +550,7 @@ const ProfilePage = () => {
 								>
 									Last Education
 								</Label>
-								{editPersonal ? (
+								{!editPersonal ? (
 									<Input
 										id="lastEducation"
 										value={lastEducation}

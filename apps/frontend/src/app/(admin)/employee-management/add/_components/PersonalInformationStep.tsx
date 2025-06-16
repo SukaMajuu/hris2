@@ -1,15 +1,9 @@
 "use client";
 
-import {
-	Loader2,
-	CheckCircle,
-	XCircle,
-	ChevronDownIcon,
-	CalendarIcon,
-} from "lucide-react";
+import { format } from "date-fns";
+import { Loader2, CheckCircle, XCircle, ChevronDownIcon } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { FieldErrors } from "react-hook-form";
-import { format } from "date-fns";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -513,7 +507,7 @@ export const PersonalInformationStep = ({
 							>
 								<PopoverTrigger asChild>
 									<Button
-										variant={"outline"}
+										variant="outline"
 										className={cn(
 											"focus:ring-primary focus:border-primary mt-1 w-full justify-between text-left font-normal border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800",
 											!formData.dateOfBirth &&

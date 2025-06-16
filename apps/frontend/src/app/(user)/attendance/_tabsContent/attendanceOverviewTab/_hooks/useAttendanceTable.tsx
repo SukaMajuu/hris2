@@ -13,19 +13,17 @@ import React, { useState, useMemo, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-	ATTENDANCE_STATUS_COLORS,
-	ATTENDANCE_STATUS_LABELS,
 	ATTENDANCE_TABLE_HEADERS,
 	ATTENDANCE_UI_MESSAGES,
 	ATTENDANCE_UI_CONFIG,
 } from "@/const/attendance";
 import type { Attendance } from "@/types/attendance.types";
-import { formatWorkHours } from "@/utils/time";
-import { utcToLocal } from "@/utils/timezone";
 import {
 	formatAttendanceStatus,
 	getAttendanceStatusBadgeClasses,
 } from "@/utils/status";
+import { formatWorkHours } from "@/utils/time";
+import { utcToLocal } from "@/utils/timezone";
 
 interface UseAttendanceTableProps {
 	filteredData: Attendance[];

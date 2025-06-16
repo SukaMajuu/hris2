@@ -4,11 +4,11 @@ import { Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { LeaveRequest } from "@/types/leave-request.types";
-import { formatWorkHours, formatTime } from "@/utils/time";
 import {
 	formatAttendanceStatus,
 	getAttendanceStatusBadgeClasses,
 } from "@/utils/status";
+import { formatWorkHours, formatTime } from "@/utils/time";
 
 // Combined interface for table display (matching the hook)
 // NOTE: Now only handles attendance records, including those auto-created from approved leave requests

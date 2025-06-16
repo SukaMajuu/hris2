@@ -11,7 +11,7 @@ import React, { useState, useMemo, useCallback } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { LEAVE_STATUS, LEAVE_TABLE_HEADERS } from "@/const/leave";
+import { LEAVE_TABLE_HEADERS } from "@/const/leave";
 import type { LeaveRequest } from "@/types/leave-request.types";
 import { formatLeaveType } from "@/utils/leave";
 import { formatLeaveStatus, getLeaveStatusBadgeClasses } from "@/utils/status";

@@ -24,13 +24,13 @@ import { Attendance } from "@/types/attendance.types";
 import { Employee } from "@/types/employee.types";
 import { LeaveRequest } from "@/types/leave-request.types";
 import { formatLeaveType } from "@/utils/leave";
-import { formatWorkHours } from "@/utils/time";
-import { utcToLocal } from "@/utils/timezone";
 import {
 	formatLeaveStatus,
 	getLeaveStatusBadgeClasses,
 	formatAttendanceStatus,
 } from "@/utils/status";
+import { formatWorkHours } from "@/utils/time";
+import { utcToLocal } from "@/utils/timezone";
 
 import { AttendanceFilter } from "./_components/AttendanceFilter";
 import { ClockInOutDialog } from "./_components/ClockInOutDialog";

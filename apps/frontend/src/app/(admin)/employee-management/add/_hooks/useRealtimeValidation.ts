@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
+
 import { EmployeeService } from "@/services/employee.service";
 import { debounce } from "@/utils/debounce";
 
@@ -91,6 +92,8 @@ export const useRealtimeValidation = (): UseRealtimeValidationReturn => {
 						case "employee_code":
 							// Employee code doesn't have specific format requirements
 							break;
+						default:
+							break;
 					}
 
 					if (formatError) {
@@ -133,6 +136,7 @@ export const useRealtimeValidation = (): UseRealtimeValidationReturn => {
 							},
 						}));
 					} catch (error) {
+						console.error("Error validating field:", error);
 						setValidationStates((prev) => ({
 							...prev,
 							[field]: {
@@ -192,6 +196,8 @@ export const useRealtimeValidation = (): UseRealtimeValidationReturn => {
 				case "employee_code":
 					// Employee code doesn't have specific format requirements
 					break;
+				default:
+					break;
 			}
 
 			if (formatError) {
@@ -230,11 +236,13 @@ export const useRealtimeValidation = (): UseRealtimeValidationReturn => {
 		[]
 	);
 
-	const hasValidationErrors = useCallback(() => {
-		return Object.values(validationStates).some(
-			(state) => state.isValid === false
-		);
-	}, [validationStates]);
+	const hasValidationErrors = useCallback(
+		() =>
+			Object.values(validationStates).some(
+				(state) => state.isValid === false
+			),
+		[validationStates]
+	);
 
 	return {
 		validationStates,

@@ -1,4 +1,6 @@
-export function exportToExcel<T extends Record<string, unknown>>(
+import { toast } from "sonner";
+
+const exportToExcel = <T extends Record<string, unknown>>(
 	data: T[],
 	filename: string,
 	columns?: Array<{
@@ -6,14 +8,14 @@ export function exportToExcel<T extends Record<string, unknown>>(
 		header: string;
 		transform?: (value: unknown) => string;
 	}>
-) {
+) => {
 	if (!data || data.length === 0) {
 		return;
 	}
 
 	import("xlsx")
 		.then((XLSX) => {
-			let worksheetData: unknown[][] = [];
+			const worksheetData: unknown[][] = [];
 
 			if (columns) {
 				const headers = columns.map((col) => col.header);
@@ -66,10 +68,11 @@ export function exportToExcel<T extends Record<string, unknown>>(
 
 			XLSX.writeFile(workbook, filename);
 		})
-		.catch((error) => {
-			console.error("Failed to load xlsx library:", error);
-			alert(
+		.catch(() => {
+			toast.error(
 				"Excel export failed. Please make sure the xlsx library is installed."
 			);
 		});
-}
+};
+
+export { exportToExcel };

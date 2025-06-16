@@ -1,6 +1,3 @@
-import React from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
 	CheckIcon,
 	ArrowRightIcon,
@@ -8,15 +5,17 @@ import {
 	ArrowDownIcon,
 	Settings,
 } from "lucide-react";
-import { SubscriptionPlan, UserSubscription } from "@/types/subscription";
-import { useRouter } from "next/navigation";
+import React from "react";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SubscriptionPlan, UserSubscription } from "@/types/subscription.types";
 
 interface PlanCardComponentProps {
 	plan: SubscriptionPlan;
 	currentUserPlan: SubscriptionPlan | null;
 	userSubscription?: UserSubscription | null;
 	onSelectPlan: (planId: number) => void;
-	onUpgradeSuccess?: () => void;
 }
 
 const PlanCardComponent: React.FC<PlanCardComponentProps> = ({
@@ -24,20 +23,12 @@ const PlanCardComponent: React.FC<PlanCardComponentProps> = ({
 	currentUserPlan,
 	userSubscription,
 	onSelectPlan,
-	onUpgradeSuccess,
 }) => {
-	const router = useRouter();
-
-	// Ensure safe comparisons for users without subscriptions
 	const isCurrentPlan = currentUserPlan?.id === plan.id;
 	const isInactive = plan.is_active === false;
 	const hasCurrentSubscription =
 		currentUserPlan !== null && currentUserPlan !== undefined;
-	const hasActiveSubscription =
-		userSubscription?.status === "active" ||
-		userSubscription?.status === "trial";
 
-	// Determine if this is an upgrade or downgrade
 	const isUpgrade =
 		hasCurrentSubscription &&
 		currentUserPlan &&
@@ -46,6 +37,16 @@ const PlanCardComponent: React.FC<PlanCardComponentProps> = ({
 		hasCurrentSubscription &&
 		currentUserPlan &&
 		plan.id < currentUserPlan.id;
+
+	const getFeatureDisplayText = (feature: string | { name: string }) => {
+		if (typeof feature === "object" && feature?.name) {
+			return feature.name;
+		}
+		if (typeof feature === "string") {
+			return feature;
+		}
+		return "Feature";
+	};
 
 	const cardClasses = `
 		rounded-xl p-6 flex flex-col h-full shadow-lg relative
@@ -66,7 +67,6 @@ const PlanCardComponent: React.FC<PlanCardComponentProps> = ({
 		if (userSubscription && isUpgrade) {
 			onSelectPlan(plan.id);
 		} else if (userSubscription && isDowngrade) {
-			// Store downgrade context for the subscription page
 			const downgradeData = {
 				planId: plan.id,
 				planName: plan.name,
@@ -162,14 +162,7 @@ const PlanCardComponent: React.FC<PlanCardComponentProps> = ({
 								}
 								className={`flex items-center justify-between gap-2 ${textColor}`}
 							>
-								<span>
-									{typeof feature === "object" &&
-									feature?.name
-										? feature.name
-										: typeof feature === "string"
-										? feature
-										: "Feature"}
-								</span>
+								<span>{getFeatureDisplayText(feature)}</span>
 								<CheckIcon
 									className={`w-4 h-4 bg-green-500 text-white rounded-full p-0.5 flex-shrink-0 ${
 										isInactive ? "opacity-50" : ""

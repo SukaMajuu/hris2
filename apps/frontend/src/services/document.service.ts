@@ -1,5 +1,6 @@
-import { ApiService } from "./api.service";
 import { API_ROUTES } from "@/config/api.routes";
+
+import { ApiService } from "./api.service";
 
 export interface Document {
 	id: number;

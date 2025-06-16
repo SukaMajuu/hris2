@@ -1,7 +1,14 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
 	Form,
 	FormControl,
@@ -11,20 +18,15 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Checkbox } from "@/components/ui/checkbox";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useLogin } from "../_hooks/useLogin";
 import {
 	LoginIdEmployeeFormData,
 	loginIdEmployeeSchema,
 } from "@/schemas/auth.schema";
-import { useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
 
-export default function LoginIdEmployeePage() {
+import { useLogin } from "../_hooks/useLogin";
+
+const LoginIdEmployeePage = () => {
 	const [showPassword, setShowPassword] = useState(false);
 
 	const loginForm = useForm<LoginIdEmployeeFormData>({
@@ -205,4 +207,6 @@ export default function LoginIdEmployeePage() {
 			</div>
 		</div>
 	);
-}
+};
+
+export default LoginIdEmployeePage;

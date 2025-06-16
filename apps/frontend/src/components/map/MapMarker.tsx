@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import L from "leaflet";
+import { useEffect, useRef } from "react";
 
 interface MapMarkerProps {
 	map: L.Map;
-	latitude: number;
-	longitude: number;
+	latitude: number | undefined;
+	longitude: number | undefined;
 	interactive?: boolean;
 	onPositionChange?: (lat: number, lng: number) => void;
 }
@@ -25,6 +25,17 @@ export const MapMarker = ({
 	// Update marker when props change
 	useEffect(() => {
 		if (!map) return;
+
+		// If coordinates are undefined, remove marker and return
+		if (latitude === undefined || longitude === undefined) {
+			if (markerRef.current) {
+				map.removeLayer(markerRef.current);
+				markerRef.current = null;
+			}
+			currentLatRef.current = undefined;
+			currentLngRef.current = undefined;
+			return;
+		}
 
 		// Check if position actually changed to prevent unnecessary updates
 		if (

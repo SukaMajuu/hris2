@@ -1,11 +1,11 @@
-import React from 'react';
-import { Button } from '../ui/button';
 import { ArrowRight } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import React from 'react';
 
-const Hero: React.FC = () => {
-  return (
+import { Button } from '../ui/button';
+
+const Hero: React.FC = () => (
     <section className='bg-gradient-to-br from-gray-50 to-blue-50 pt-32 pb-20 md:pt-40 md:pb-28'>
       <div className='container mx-auto px-4'>
         <div className='flex flex-col items-center md:flex-row'>
@@ -58,7 +58,7 @@ const Hero: React.FC = () => {
           </div>
           <div className='md:w-1/2'>
             <div className='relative'>
-              <div className='absolute -top-6 -left-6 h-32 w-32 rounded-full bg-blue-100 opacity-70'></div>
+              <div className='absolute -top-6 -left-6 h-32 w-32 rounded-full bg-blue-100 opacity-70' />
               {/* <div className="absolute -bottom-8 -right-8 w-40 h-40 bg-teal-100 rounded-full opacity-70"></div> */}
               <Image
                 src='https://images.pexels.com/photos/3184398/pexels-photo-3184398.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2'
@@ -73,6 +73,5 @@ const Hero: React.FC = () => {
       </div>
     </section>
   );
-};
 
 export default Hero;

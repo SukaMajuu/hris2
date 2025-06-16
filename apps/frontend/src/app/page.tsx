@@ -1,15 +1,16 @@
 "use client";
 
-import React, { useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import React, { useEffect, Suspense } from "react";
+
+import Benefits from "../components/landing-page/benefits";
+import Contact from "../components/landing-page/contact";
+import Features from "../components/landing-page/features";
+import Footer from "../components/landing-page/footer";
 import Header from "../components/landing-page/header";
 import Hero from "../components/landing-page/hero";
-import Features from "../components/landing-page/features";
-import Benefits from "../components/landing-page/benefits";
 // import Testimonials from './_component/testimoni';
 import Pricing from "../components/landing-page/pricing";
-import Contact from "../components/landing-page/contact";
-import Footer from "../components/landing-page/footer";
 
 const LandingPageContent: React.FC = () => {
 	const router = useRouter();
@@ -37,16 +38,18 @@ const LandingPageContent: React.FC = () => {
 						searchParams.get("gross_amount") || ""
 					}&payment_type=${searchParams.get("payment_type") || ""}`
 				);
-				return;
-			} else if (transactionStatus === "pending") {
+				return () => {};
+			}
+			if (transactionStatus === "pending") {
 				// Payment pending
 				router.push(
 					`/payment/pending?transaction_id=${orderId}&order_id=${orderId}&gross_amount=${
 						searchParams.get("gross_amount") || ""
 					}&payment_type=${searchParams.get("payment_type") || ""}`
 				);
-				return;
-			} else if (
+				return () => {};
+			}
+			if (
 				transactionStatus === "deny" ||
 				transactionStatus === "cancel" ||
 				transactionStatus === "expire" ||
@@ -56,7 +59,7 @@ const LandingPageContent: React.FC = () => {
 				router.push(
 					`/payment/failed?transaction_id=${orderId}&order_id=${orderId}&status_code=${statusCode}&status_message=${transactionStatus}`
 				);
-				return;
+				return () => {};
 			}
 		}
 
@@ -102,14 +105,12 @@ const LandingPageContent: React.FC = () => {
 	);
 };
 
-const LandingPage: React.FC = () => {
-	return (
-		<Suspense
-			fallback={<div className="min-h-screen bg-white">Loading...</div>}
-		>
-			<LandingPageContent />
-		</Suspense>
-	);
-};
+const LandingPage: React.FC = () => (
+	<Suspense
+		fallback={<div className="min-h-screen bg-white">Loading...</div>}
+	>
+		<LandingPageContent />
+	</Suspense>
+);
 
 export default LandingPage;

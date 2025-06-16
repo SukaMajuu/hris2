@@ -1,13 +1,14 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
-import { useCurrentUserProfileQuery } from "@/api/queries/employee.queries";
-import { useUpdateCurrentUserProfile } from "@/api/mutations/employee.mutations";
+import { toast } from "sonner";
+
 import { useUpdateUserPasswordMutation } from "@/api/mutations/auth.mutation";
-import { useDocumentsByEmployee } from "@/api/queries/document.queries";
 import {
 	useUploadDocumentForEmployee,
 	useDeleteDocument,
 } from "@/api/mutations/document.mutations";
-import { toast } from "sonner";
+import { useUpdateCurrentUserProfile } from "@/api/mutations/employee.mutations";
+import { useDocumentsByEmployee } from "@/api/queries/document.queries";
+import { useCurrentUserProfileQuery } from "@/api/queries/employee.queries";
 import type { Document } from "@/services/document.service";
 import { EmployeeService } from "@/services/employee.service";
 import { debounce } from "@/utils/debounce";
@@ -37,7 +38,7 @@ interface PasswordValidationState {
 
 const employeeService = new EmployeeService();
 
-export function useProfile() {
+export const useProfile = () => {
 	const {
 		data: employee,
 		isLoading,
@@ -191,7 +192,11 @@ export function useProfile() {
 							? result.message || "Phone number already exists"
 							: "",
 					});
-				} catch (error) {
+				} catch (validationError) {
+					console.error(
+						"Error validating phone number:",
+						validationError
+					);
 					setPhoneValidation({
 						isValidating: false,
 						isValid: null,
@@ -414,8 +419,8 @@ export function useProfile() {
 				await updateProfileMutation.mutateAsync(updateData);
 				toast.success("Profile photo updated successfully!");
 				setProfileFile(null);
-			} catch (error) {
-				console.error("Error updating profile photo:", error);
+			} catch (uploadError) {
+				console.error("Error updating profile photo:", uploadError);
 				toast.error(
 					"Failed to update profile photo. Please try again."
 				);
@@ -440,8 +445,11 @@ export function useProfile() {
 					});
 					toast.success("Document uploaded successfully!");
 					e.target.value = "";
-				} catch (error) {
-					console.error("Error uploading document:", error);
+				} catch (documentUploadError) {
+					console.error(
+						"Error uploading document:",
+						documentUploadError
+					);
 					toast.error("Failed to upload document. Please try again.");
 				}
 			}
@@ -456,8 +464,8 @@ export function useProfile() {
 				try {
 					await deleteDocumentMutation.mutateAsync(doc.id);
 					toast.success("Document deleted successfully!");
-				} catch (error) {
-					console.error("Error deleting document:", error);
+				} catch (deleteError) {
+					console.error("Error deleting document:", deleteError);
 					toast.error("Failed to delete document. Please try again.");
 				}
 			}
@@ -511,10 +519,10 @@ export function useProfile() {
 			const updateData: Record<string, unknown> = {
 				first_name: firstName,
 				last_name: lastName,
-				gender: gender,
+				gender,
 				place_of_birth: placeOfBirth,
 				date_of_birth: dateOfBirth,
-				phone: phone,
+				phone,
 				last_education: lastEducation,
 			};
 
@@ -526,8 +534,11 @@ export function useProfile() {
 			toast.success("Personal information updated successfully!");
 			setEditPersonal(false);
 			setProfileFile(null);
-		} catch (error) {
-			console.error("Error updating personal information:", error);
+		} catch (personalUpdateError) {
+			console.error(
+				"Error updating personal information:",
+				personalUpdateError
+			);
 			toast.error(
 				"Failed to update personal information. Please try again."
 			);
@@ -558,8 +569,8 @@ export function useProfile() {
 			await updateProfileMutation.mutateAsync(updateData);
 			toast.success("Bank information updated successfully!");
 			setEditBank(false);
-		} catch (error) {
-			console.error("Error updating bank information:", error);
+		} catch (bankUpdateError) {
+			console.error("Error updating bank information:", bankUpdateError);
 			toast.error("Failed to update bank information. Please try again.");
 		}
 	}, [
@@ -605,7 +616,7 @@ export function useProfile() {
 		try {
 			await changePasswordMutation.mutateAsync({
 				oldPassword: currentPassword,
-				newPassword: newPassword,
+				newPassword,
 			});
 
 			// Clear form on success
@@ -616,12 +627,16 @@ export function useProfile() {
 			setConfirmPasswordValidation({ isValid: null, message: "" });
 
 			toast.success("Password changed successfully!");
-		} catch (error) {
-			console.error("Error changing password:", error);
+		} catch (passwordChangeError) {
+			console.error("Error changing password:", passwordChangeError);
 
 			// Handle specific error messages
-			if (error && typeof error === "object" && "response" in error) {
-				const axiosError = error as {
+			if (
+				passwordChangeError &&
+				typeof passwordChangeError === "object" &&
+				"response" in passwordChangeError
+			) {
+				const axiosError = passwordChangeError as {
 					response?: { data?: { message?: string } };
 					message?: string;
 				};
@@ -738,4 +753,4 @@ export function useProfile() {
 		isPersonalFormValid,
 		validateDateOfBirth,
 	};
-}
+};

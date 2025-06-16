@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { MapContainer, MapMarker, MapCircle, MapControls } from "./map";
 import L from "leaflet";
+import { useState, useCallback, useEffect } from "react";
+
+import { MapContainer, MapMarker, MapCircle, MapControls } from "./map";
 import "leaflet/dist/leaflet.css";
 
 interface MapComponentProps {
@@ -26,7 +27,11 @@ export const MapComponent = ({
 	const [currentLat, setCurrentLat] = useState<number | undefined>(latitude);
 	const [currentLng, setCurrentLng] = useState<number | undefined>(longitude);
 
-	// Memoize the position change callback to prevent infinite loops
+	useEffect(() => {
+		setCurrentLat(latitude);
+		setCurrentLng(longitude);
+	}, [latitude, longitude]);
+
 	const handlePositionChange = useCallback(
 		(lat: number, lng: number) => {
 			setCurrentLat(lat);
@@ -50,7 +55,7 @@ export const MapComponent = ({
 				interactive={interactive}
 				onMapReady={handleMapReady}
 			/>
-			{map && currentLat !== undefined && currentLng !== undefined && (
+			{map && (
 				<>
 					<MapMarker
 						map={map}

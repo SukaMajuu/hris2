@@ -3,8 +3,9 @@ import {
 	UpdateCheckclockSettingsRequest,
 	CheckclockSettingsResponse,
 } from "@/types/checkclock-settings.types";
-import { API_ROUTES } from "../config/api.routes";
+
 import { ApiService } from "./api.service";
+import { API_ROUTES } from "../config/api.routes";
 
 // Backend response structure based on standardized backend code
 interface ApiResponse<T> {

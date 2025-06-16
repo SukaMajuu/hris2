@@ -1,10 +1,6 @@
-import { useState, useMemo, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
-import {
-	useSubscriptionPlans,
-	useSeatPlans,
-	useUserSubscription,
-} from "@/api/queries/subscription.queries";
+import { useState, useMemo, useEffect } from "react";
+
 import {
 	useChangeSubscriptionPlan,
 	useChangeSeatPlan,
@@ -13,10 +9,15 @@ import {
 	usePreviewSeatPlanChange,
 } from "@/api/mutations/subscription.mutation";
 import {
+	useSubscriptionPlans,
+	useSeatPlans,
+	useUserSubscription,
+} from "@/api/queries/subscription.queries";
+import {
 	UpgradeSubscriptionPlanRequest,
 	ChangeSeatPlanRequest,
 	ConvertTrialToPaidRequest,
-} from "@/types/subscription";
+} from "@/types/subscription.types";
 
 interface BillingOption {
 	id: string;
@@ -35,8 +36,8 @@ export const useCheckout = () => {
 	const trialConversionParam = searchParams.get("trial_conversion");
 	const amountParam = searchParams.get("amount");
 
-	const planId = planIdParam ? parseInt(planIdParam) : null;
-	const seatPlanId = seatPlanIdParam ? parseInt(seatPlanIdParam) : null;
+	const planId = planIdParam ? parseInt(planIdParam, 10) : null;
+	const seatPlanId = seatPlanIdParam ? parseInt(seatPlanIdParam, 10) : null;
 	const isUpgrade = upgradeParam === "true";
 	const isTrialConversion = trialConversionParam === "true";
 	const presetAmount = amountParam ? parseFloat(amountParam) : null;
@@ -55,9 +56,6 @@ export const useCheckout = () => {
 		null
 	);
 	const [isCalculatingAmount, setIsCalculatingAmount] = useState(false);
-	const [calculationError, setCalculationError] = useState<string | null>(
-		null
-	);
 
 	// Track calculation for different billing periods
 	const [calculatedAmounts, setCalculatedAmounts] = useState<{
@@ -93,13 +91,15 @@ export const useCheckout = () => {
 	} = useUserSubscription();
 
 	// Find selected plan and seat plan
-	const selectedPlan = useMemo(() => {
-		return subscriptionPlans?.find((plan) => plan.id === planId);
-	}, [subscriptionPlans, planId]);
+	const selectedPlan = useMemo(
+		() => subscriptionPlans?.find((plan) => plan.id === planId),
+		[subscriptionPlans, planId]
+	);
 
-	const selectedSeatPlan = useMemo(() => {
-		return seatPlans?.find((seatPlan) => seatPlan.id === seatPlanId);
-	}, [seatPlans, seatPlanId]);
+	const selectedSeatPlan = useMemo(
+		() => seatPlans?.find((seatPlan) => seatPlan.id === seatPlanId),
+		[seatPlans, seatPlanId]
+	);
 
 	// Determine change type and current subscription info
 	const changeContext = useMemo(() => {
@@ -107,7 +107,6 @@ export const useCheckout = () => {
 
 		// SAFEGUARD: If user has an active subscription, never treat it as trial conversion
 		// even if URL incorrectly contains trial_conversion=true
-		const hasActiveSubscription = userSubscription.status === "active";
 		const isActualTrialConversion =
 			isTrialConversion && userSubscription.is_in_trial;
 
@@ -172,9 +171,10 @@ export const useCheckout = () => {
 	}, [selectedSeatPlan]);
 
 	// Selected billing option
-	const selectedBillingOption = useMemo(() => {
-		return billingOptions.find((bo) => bo.id === selectedBillingOptionId);
-	}, [billingOptions, selectedBillingOptionId]);
+	const selectedBillingOption = useMemo(
+		() => billingOptions.find((bo) => bo.id === selectedBillingOptionId),
+		[billingOptions, selectedBillingOptionId]
+	);
 
 	// Price calculations
 	const priceCalculations = useMemo(() => {
@@ -241,9 +241,10 @@ export const useCheckout = () => {
 	]);
 
 	// Validation
-	const isValidCheckout = useMemo(() => {
-		return planId && seatPlanId && selectedPlan && selectedSeatPlan;
-	}, [planId, seatPlanId, selectedPlan, selectedSeatPlan]);
+	const isValidCheckout = useMemo(
+		() => planId && seatPlanId && selectedPlan && selectedSeatPlan,
+		[planId, seatPlanId, selectedPlan, selectedSeatPlan]
+	);
 
 	// Loading and error states
 	const isLoading =
@@ -320,7 +321,6 @@ export const useCheckout = () => {
 
 		if (shouldCalculateAmount) {
 			setIsCalculatingAmount(true);
-			setCalculationError(null);
 
 			const calculateBothPeriods = async () => {
 				try {
@@ -329,65 +329,85 @@ export const useCheckout = () => {
 						yearly?: number | null;
 					} = {};
 
-					// Calculate for both monthly and yearly
-					for (const isMonthly of [true, false]) {
-						const periodKey = isMonthly ? "monthly" : "yearly";
+					// Calculate for both monthly and yearly using Promise.all for parallel execution
+					const billingPeriods = [
+						{ isMonthly: true, key: "monthly" as const },
+						{ isMonthly: false, key: "yearly" as const },
+					];
 
-						// Skip if we already have this period calculated
-						if (calculatedAmounts[periodKey] !== undefined) {
-							results[periodKey] = calculatedAmounts[periodKey];
-							continue;
-						}
-
-						try {
-							if (changeContext.type === "plan_change") {
-								const request: UpgradeSubscriptionPlanRequest = {
-									new_subscription_plan_id: planId,
-									new_seat_plan_id: seatPlanId,
-									is_monthly: isMonthly,
-								};
-								const response = await previewPlanMutation.mutateAsync(
-									request
-								);
-
-								if (
-									response.requires_payment &&
-									response.proration_amount !== undefined
-								) {
-									results[periodKey] = Number(
-										response.proration_amount
-									);
-								} else {
-									results[periodKey] = 0;
-								}
-							} else if (changeContext.type === "seat_change") {
-								const request: ChangeSeatPlanRequest = {
-									new_seat_plan_id: seatPlanId,
-									is_monthly: isMonthly,
-								};
-								const response = await previewSeatMutation.mutateAsync(
-									request
-								);
-
-								if (
-									response.requires_payment &&
-									response.proration_amount !== undefined
-								) {
-									results[periodKey] = Number(
-										response.proration_amount
-									);
-								} else {
-									results[periodKey] = 0;
-								}
+					const calculations = billingPeriods.map(
+						async ({ isMonthly, key }) => {
+							// Skip if we already have this period calculated
+							if (calculatedAmounts[key] !== undefined) {
+								return { key, result: calculatedAmounts[key] };
 							}
-						} catch (error) {
-							console.error(
-								`Failed to calculate ${periodKey} amount:`,
-								error
-							);
-							results[periodKey] = null; // Mark as failed
+
+							try {
+								if (changeContext.type === "plan_change") {
+									const request: UpgradeSubscriptionPlanRequest = {
+										new_subscription_plan_id: planId,
+										new_seat_plan_id: seatPlanId,
+										is_monthly: isMonthly,
+									};
+									const response = await previewPlanMutation.mutateAsync(
+										request
+									);
+
+									if (
+										response.requires_payment &&
+										response.proration_amount !== undefined
+									) {
+										return {
+											key,
+											result: Number(
+												response.proration_amount
+											),
+										};
+									}
+									return { key, result: 0 };
+								}
+
+								if (changeContext.type === "seat_change") {
+									const request: ChangeSeatPlanRequest = {
+										new_seat_plan_id: seatPlanId,
+										is_monthly: isMonthly,
+									};
+									const response = await previewSeatMutation.mutateAsync(
+										request
+									);
+
+									if (
+										response.requires_payment &&
+										response.proration_amount !== undefined
+									) {
+										return {
+											key,
+											result: Number(
+												response.proration_amount
+											),
+										};
+									}
+									return { key, result: 0 };
+								}
+
+								return { key, result: null };
+							} catch (error) {
+								console.error(
+									`Failed to calculate ${key} amount:`,
+									error
+								);
+								return { key, result: null }; // Mark as failed
+							}
 						}
-					}
+					);
+
+					// Execute all calculations in parallel
+					const calculationResults = await Promise.all(calculations);
+
+					// Process results
+					calculationResults.forEach(({ key, result }) => {
+						results[key] = result;
+					});
 
 					// Update cached amounts
 					setCalculatedAmounts((prev) => ({ ...prev, ...results }));
@@ -400,11 +420,6 @@ export const useCheckout = () => {
 					setCalculatedAmount(results[currentPeriod] ?? null);
 				} catch (error) {
 					console.error("Failed to auto-calculate amounts:", error);
-					const errorMessage =
-						error instanceof Error
-							? error.message
-							: "Unknown error";
-					setCalculationError(errorMessage);
 				} finally {
 					setIsCalculatingAmount(false);
 				}

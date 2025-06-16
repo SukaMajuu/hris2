@@ -1,6 +1,8 @@
 import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
-import { tokenService } from "./token.service";
-import { ApiRefreshResponse } from "@/types/auth";
+
+import { ApiRefreshResponse } from "@/types/auth.types";
+
+import { TokenService } from "./token.service";
 
 type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
@@ -20,7 +22,9 @@ export interface PaginatedResponse<T> {
 
 export class ApiService {
 	private baseURL: string;
+
 	private isRefreshing = false;
+
 	private failedQueue: Array<{
 		resolve: (value?: AxiosResponse<unknown>) => void;
 		reject: (reason?: unknown) => void;
@@ -60,12 +64,12 @@ export class ApiService {
 			currentConfig: AxiosRequestConfig
 		): Promise<AxiosResponse<T>> => {
 			try {
-				const accessToken = tokenService.getAccessToken();
+				const accessToken = TokenService.getAccessToken();
 				const headers: Record<string, string> = {
 					...(currentConfig.headers as Record<string, string>),
 				};
 				if (accessToken) {
-					headers["Authorization"] = `Bearer ${accessToken}`;
+					headers.Authorization = `Bearer ${accessToken}`;
 				}
 
 				const response = await axios.request<T>({
@@ -93,7 +97,7 @@ export class ApiService {
 
 					if (isLoginAttempt || isRefreshAttempt || isLogoutAttempt) {
 						if (isLogoutAttempt) {
-							tokenService.clearTokens();
+							TokenService.clearTokens();
 							window.location.href = "/login";
 						}
 						throw error;
@@ -118,7 +122,7 @@ export class ApiService {
 								);
 							}
 
-							tokenService.setAccessToken(access_token);
+							TokenService.setAccessToken(access_token);
 							this.processQueue(null);
 
 							const newConfig = { ...currentConfig };
@@ -137,7 +141,7 @@ export class ApiService {
 								refreshError
 							);
 							this.processQueue(refreshError as Error);
-							tokenService.clearTokens();
+							TokenService.clearTokens();
 							this.isRefreshing = false;
 							throw refreshError;
 						}
@@ -152,7 +156,7 @@ export class ApiService {
 							}
 						).then(() => {
 							const newConfig = { ...currentConfig };
-							const newAccessToken = tokenService.getAccessToken();
+							const newAccessToken = TokenService.getAccessToken();
 							if (newAccessToken) {
 								newConfig.headers = {
 									...(newConfig.headers as Record<
@@ -202,6 +206,7 @@ export class ApiService {
 	): Promise<AxiosResponse<T>> {
 		return this.request<T>("DELETE", url, undefined, config);
 	}
+
 	async patch<T>(
 		url: string,
 		data?: unknown,

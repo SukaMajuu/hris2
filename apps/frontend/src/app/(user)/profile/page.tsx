@@ -1,6 +1,26 @@
 "use client";
 
+import {
+	Pencil,
+	CheckCircle,
+	XCircle,
+	Loader2,
+	Eye,
+	EyeOff,
+} from "lucide-react";
 import Image from "next/image";
+import { useState } from "react";
+
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,29 +32,11 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import {
-	AlertDialog,
-	AlertDialogAction,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-	Pencil,
-	CheckCircle,
-	XCircle,
-	Loader2,
-	Eye,
-	EyeOff,
-} from "lucide-react";
+
 import UserDocumentList from "./_components/userDocumentList";
 import { useProfile } from "./_hooks/useProfile";
-import { useState } from "react";
 
-export default function ProfilePage() {
+const ProfilePage = () => {
 	const {
 		// Data
 		employee,
@@ -51,10 +53,8 @@ export default function ProfilePage() {
 		lastName,
 		setLastName,
 		email,
-		setEmail,
 		employeeCode,
 		nik,
-		setNik,
 		gender,
 		setGender,
 		placeOfBirth,
@@ -116,6 +116,57 @@ export default function ProfilePage() {
 		setIsConfirmingPasswordChange,
 	] = useState(false);
 
+	// Helper functions for nested ternary replacements
+	const getInputClassName = (
+		isEditable: boolean,
+		hasValidation = false,
+		validationState: boolean | null = null
+	) => {
+		const baseClasses = "mt-1";
+		if (!isEditable) {
+			return `${baseClasses} border-slate-200 bg-slate-100 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400`;
+		}
+
+		let editableClasses =
+			"border-slate-300 bg-white text-slate-900 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100";
+
+		if (hasValidation) {
+			if (validationState === false) {
+				editableClasses += " border-red-500 focus:border-red-500";
+			} else if (validationState === true) {
+				editableClasses += " border-green-500 focus:border-green-500";
+			}
+		}
+
+		return `${baseClasses} ${editableClasses}`;
+	};
+
+	const getPasswordInputClassName = (validationState: boolean | null) => {
+		const baseClasses =
+			"mt-1 bg-white pr-10 text-slate-900 placeholder:text-slate-400 focus:ring-2 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500";
+
+		if (validationState === false) {
+			return `${baseClasses} border-red-500 focus:border-red-500 focus:ring-red-500`;
+		}
+		if (validationState === true) {
+			return `${baseClasses} border-green-500 focus:border-green-500 focus:ring-green-500`;
+		}
+		return `${baseClasses} border-slate-300 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600`;
+	};
+
+	const getValidationFormMessage = () => {
+		if (phoneValidation.isValidating) {
+			return "Validating phone number...";
+		}
+		if (phoneValidation.isValid === false) {
+			return "Please fix phone number error";
+		}
+		if (!firstName.trim()) {
+			return "First name is required";
+		}
+		return "Please complete all required fields";
+	};
+
 	if (isLoading) {
 		return (
 			<div className="p-6 text-center text-slate-500 dark:text-slate-400">
@@ -166,15 +217,16 @@ export default function ProfilePage() {
 								height={100}
 								className="h-[80px] w-[80px] rounded-full border-4 border-slate-200 object-cover shadow-md md:h-[120px] md:w-[120px] dark:border-slate-700"
 							/>
-							<label className="bg-opacity-50 absolute inset-0 flex cursor-pointer items-center justify-center rounded-full bg-black opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+							<div className="bg-opacity-50 absolute inset-0 flex cursor-pointer items-center justify-center rounded-full bg-black opacity-0 transition-opacity duration-200 group-hover:opacity-100">
 								<Pencil className="h-4 w-4 text-white md:h-6 md:w-6" />
 								<Input
 									type="file"
 									accept="image/*"
 									className="hidden"
 									onChange={handleProfileImageChange}
+									aria-label="Upload profile photo"
 								/>
-							</label>
+							</div>
 						</div>
 
 						{/* Profile Info */}
@@ -286,11 +338,7 @@ export default function ProfilePage() {
 										setFirstName(e.target.value)
 									}
 									readOnly={!editPersonal}
-									className={`mt-1 ${
-										editPersonal
-											? "border-slate-300 bg-white text-slate-900 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
-											: "border-slate-200 bg-slate-100 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400"
-									}`}
+									className={getInputClassName(editPersonal)}
 								/>
 							</div>
 							<div>
@@ -307,11 +355,7 @@ export default function ProfilePage() {
 										setLastName(e.target.value)
 									}
 									readOnly={!editPersonal}
-									className={`mt-1 ${
-										editPersonal
-											? "border-slate-300 bg-white text-slate-900 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
-											: "border-slate-200 bg-slate-100 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400"
-									}`}
+									className={getInputClassName(editPersonal)}
 								/>
 							</div>
 							<div>
@@ -325,7 +369,7 @@ export default function ProfilePage() {
 									id="email"
 									type="email"
 									value={email}
-									readOnly={true}
+									readOnly
 									className="mt-1 cursor-not-allowed border-slate-200 bg-slate-100 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400"
 								/>
 							</div>
@@ -342,7 +386,7 @@ export default function ProfilePage() {
 										type="tel"
 										value={phone}
 										onChange={(e) => {
-											const value = e.target.value;
+											const { value } = e.target;
 											if (/^(\+?\d*)$/.test(value)) {
 												setPhone(value);
 											}
@@ -350,19 +394,11 @@ export default function ProfilePage() {
 										readOnly={!editPersonal}
 										placeholder="e.g., +628123456789"
 										inputMode="tel"
-										className={`mt-1 ${
-											editPersonal
-												? `border-slate-300 bg-white pr-10 text-slate-900 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 ${
-														phoneValidation.isValid ===
-														false
-															? "border-red-500 focus:border-red-500"
-															: phoneValidation.isValid ===
-															  true
-															? "border-green-500 focus:border-green-500"
-															: ""
-												  }`
-												: "border-slate-200 bg-slate-100 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400"
-										}`}
+										className={getInputClassName(
+											editPersonal,
+											true,
+											phoneValidation.isValid
+										)}
 									/>
 									{editPersonal && (
 										<div className="absolute top-1/2 right-3 -translate-y-1/2">
@@ -405,7 +441,7 @@ export default function ProfilePage() {
 								<Input
 									id="nik"
 									value={nik}
-									readOnly={true}
+									readOnly
 									className="mt-1 cursor-not-allowed border-slate-200 bg-slate-100 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400"
 								/>
 							</div>
@@ -417,6 +453,13 @@ export default function ProfilePage() {
 									Gender
 								</Label>
 								{editPersonal ? (
+									<Input
+										id="gender"
+										value={gender}
+										readOnly
+										className={getInputClassName(false)}
+									/>
+								) : (
 									<Select
 										value={gender}
 										onValueChange={setGender}
@@ -433,13 +476,6 @@ export default function ProfilePage() {
 											</SelectItem>
 										</SelectContent>
 									</Select>
-								) : (
-									<Input
-										id="gender"
-										value={gender}
-										readOnly={true}
-										className="mt-1 border-slate-200 bg-slate-100 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400"
-									/>
 								)}
 							</div>
 							<div>
@@ -456,11 +492,7 @@ export default function ProfilePage() {
 										setPlaceOfBirth(e.target.value)
 									}
 									readOnly={!editPersonal}
-									className={`mt-1 ${
-										editPersonal
-											? "border-slate-300 bg-white text-slate-900 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
-											: "border-slate-200 bg-slate-100 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400"
-									}`}
+									className={getInputClassName(editPersonal)}
 								/>
 							</div>
 							<div>
@@ -475,7 +507,7 @@ export default function ProfilePage() {
 									type="date"
 									value={dateOfBirth}
 									onChange={(e) => {
-										const value = e.target.value;
+										const { value } = e.target;
 										if (value && editPersonal) {
 											if (!validateDateOfBirth(value)) {
 												return;
@@ -508,11 +540,7 @@ export default function ProfilePage() {
 													.split("T")[0]
 											: undefined
 									}
-									className={`mt-1 ${
-										editPersonal
-											? "border-slate-300 bg-white text-slate-900 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
-											: "border-slate-200 bg-slate-100 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400"
-									}`}
+									className={getInputClassName(editPersonal)}
 								/>
 							</div>
 							<div className="sm:col-span-2">
@@ -523,6 +551,13 @@ export default function ProfilePage() {
 									Last Education
 								</Label>
 								{editPersonal ? (
+									<Input
+										id="lastEducation"
+										value={lastEducation}
+										readOnly
+										className={getInputClassName(false)}
+									/>
+								) : (
 									<Select
 										value={lastEducation}
 										onValueChange={setLastEducation}
@@ -563,13 +598,6 @@ export default function ProfilePage() {
 											</SelectItem>
 										</SelectContent>
 									</Select>
-								) : (
-									<Input
-										id="lastEducation"
-										value={lastEducation}
-										readOnly={true}
-										className="mt-1 border-slate-200 bg-slate-100 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400"
-									/>
 								)}
 							</div>
 						</div>
@@ -588,13 +616,7 @@ export default function ProfilePage() {
 								</Button>
 								{!isPersonalFormValid() && (
 									<p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-										{phoneValidation.isValidating
-											? "Validating phone number..."
-											: phoneValidation.isValid === false
-											? "Please fix phone number error"
-											: !firstName.trim()
-											? "First name is required"
-											: "Please complete all required fields"}
+										{getValidationFormMessage()}
 									</p>
 								)}
 							</div>
@@ -634,11 +656,7 @@ export default function ProfilePage() {
 										setBankName(e.target.value)
 									}
 									readOnly={!editBank}
-									className={`mt-1 ${
-										editBank
-											? "border-slate-300 bg-white text-slate-900 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
-											: "border-slate-200 bg-slate-100 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400"
-									}`}
+									className={getInputClassName(editBank)}
 								/>
 							</div>
 							<div>
@@ -655,11 +673,7 @@ export default function ProfilePage() {
 										setBankAccountHolder(e.target.value)
 									}
 									readOnly={!editBank}
-									className={`mt-1 ${
-										editBank
-											? "border-slate-300 bg-white text-slate-900 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
-											: "border-slate-200 bg-slate-100 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400"
-									}`}
+									className={getInputClassName(editBank)}
 								/>
 							</div>
 							<div className="sm:col-span-2">
@@ -676,11 +690,7 @@ export default function ProfilePage() {
 										setBankAccountNumber(e.target.value)
 									}
 									readOnly={!editBank}
-									className={`mt-1 ${
-										editBank
-											? "border-slate-300 bg-white text-slate-900 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
-											: "border-slate-200 bg-slate-100 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400"
-									}`}
+									className={getInputClassName(editBank)}
 								/>
 							</div>
 						</div>
@@ -759,13 +769,9 @@ export default function ProfilePage() {
 								type={showNewPassword ? "text" : "password"}
 								value={newPassword}
 								onChange={(e) => setNewPassword(e.target.value)}
-								className={`mt-1 bg-white pr-10 text-slate-900 placeholder:text-slate-400 focus:ring-2 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 ${
-									passwordValidation.isValid === false
-										? "border-red-500 focus:border-red-500 focus:ring-red-500"
-										: passwordValidation.isValid === true
-										? "border-green-500 focus:border-green-500 focus:ring-green-500"
-										: "border-slate-300 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600"
-								}`}
+								className={getPasswordInputClassName(
+									passwordValidation.isValid
+								)}
 								placeholder="Enter your new password"
 							/>
 							{/* Eye toggle button */}
@@ -785,11 +791,12 @@ export default function ProfilePage() {
 							{/* Validation icon */}
 							{newPassword && (
 								<div className="absolute inset-y-0 right-10 flex items-center pt-1">
-									{passwordValidation.isValid === true ? (
+									{passwordValidation.isValid === true && (
 										<CheckCircle className="h-4 w-4 text-green-500" />
-									) : passwordValidation.isValid === false ? (
+									)}
+									{passwordValidation.isValid === false && (
 										<XCircle className="h-4 w-4 text-red-500" />
-									) : null}
+									)}
 								</div>
 							)}
 						</div>
@@ -866,14 +873,9 @@ export default function ProfilePage() {
 								onChange={(e) =>
 									setConfirmPassword(e.target.value)
 								}
-								className={`mt-1 bg-white pr-10 text-slate-900 placeholder:text-slate-400 focus:ring-2 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 ${
-									confirmPasswordValidation.isValid === false
-										? "border-red-500 focus:border-red-500 focus:ring-red-500"
-										: confirmPasswordValidation.isValid ===
-										  true
-										? "border-green-500 focus:border-green-500 focus:ring-green-500"
-										: "border-slate-300 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600"
-								}`}
+								className={getPasswordInputClassName(
+									confirmPasswordValidation.isValid
+								)}
 								placeholder="Confirm your new password"
 							/>
 							{/* Eye toggle button */}
@@ -894,12 +896,13 @@ export default function ProfilePage() {
 							{confirmPassword && (
 								<div className="absolute inset-y-0 right-10 flex items-center pt-1">
 									{confirmPasswordValidation.isValid ===
-									true ? (
+										true && (
 										<CheckCircle className="h-4 w-4 text-green-500" />
-									) : confirmPasswordValidation.isValid ===
-									  false ? (
+									)}
+									{confirmPasswordValidation.isValid ===
+										false && (
 										<XCircle className="h-4 w-4 text-red-500" />
-									) : null}
+									)}
 								</div>
 							)}
 						</div>
@@ -989,4 +992,6 @@ export default function ProfilePage() {
 			)}
 		</div>
 	);
-}
+};
+
+export default ProfilePage;

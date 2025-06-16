@@ -23,20 +23,15 @@ export interface PaginationResponse {
 	[key: string]: unknown;
 }
 
-export function createPaginationParams(
-	page = 1,
-	pageSize = 10
-): PaginationParams {
-	return {
+const createPaginationParams = (page = 1, pageSize = 10): PaginationParams => ({
 		page: Math.max(1, page),
 		pageSize: Math.min(100, Math.max(1, pageSize)),
-	};
-}
+	});
 
-export function calculatePaginationResult<T>(
+const calculatePaginationResult = <T>(
 	data: PaginationResponse,
 	itemsKey: string = "items"
-): PaginationResult<T> {
+): PaginationResult<T> => {
 	const items = (data[itemsKey] as T[]) || [];
 	const totalItems = data.total_items || 0;
 	const totalPages = data.total_pages || 1;
@@ -54,21 +49,19 @@ export function calculatePaginationResult<T>(
 		hasPrevPage,
 		items,
 	};
-}
+};
 
-export function createPaginationQueryParams(
+const createPaginationQueryParams = (
 	params: PaginationParams
-): Record<string, string> {
-	return {
+): Record<string, string> => ({
 		page: params.page.toString(),
 		page_size: params.pageSize.toString(),
-	};
-}
+	});
 
-export function updateUrlWithPagination(
+const updateUrlWithPagination = (
 	url: string,
 	params: PaginationParams
-): string {
+): string => {
 	const urlObj = new URL(
 		url,
 		typeof window !== "undefined"
@@ -78,9 +71,9 @@ export function updateUrlWithPagination(
 	urlObj.searchParams.set("page", params.page.toString());
 	urlObj.searchParams.set("page_size", params.pageSize.toString());
 	return urlObj.toString();
-}
+};
 
-export function getPaginationParamsFromUrl(url: string): PaginationParams {
+const getPaginationParamsFromUrl = (url: string): PaginationParams => {
 	const urlObj = new URL(
 		url,
 		typeof window !== "undefined"
@@ -90,4 +83,12 @@ export function getPaginationParamsFromUrl(url: string): PaginationParams {
 	const page = parseInt(urlObj.searchParams.get("page") || "1", 10);
 	const pageSize = parseInt(urlObj.searchParams.get("page_size") || "10", 10);
 	return createPaginationParams(page, pageSize);
-}
+};
+
+export {
+	createPaginationParams,
+	calculatePaginationResult,
+	createPaginationQueryParams,
+	updateUrlWithPagination,
+	getPaginationParamsFromUrl,
+};

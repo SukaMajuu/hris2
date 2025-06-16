@@ -6,13 +6,15 @@
  * @param delay - The number of milliseconds to delay
  * @returns The debounced function
  */
-export function debounce<T extends (...args: Parameters<T>) => ReturnType<T>>(
+const debounce = <T extends (...args: Parameters<T>) => ReturnType<T>>(
 	func: T,
 	delay: number
-): T {
+): T => {
 	let timeoutId: NodeJS.Timeout;
 	return ((...args: Parameters<T>) => {
 		clearTimeout(timeoutId);
 		timeoutId = setTimeout(() => func(...args), delay);
 	}) as T;
-}
+};
+
+export { debounce };

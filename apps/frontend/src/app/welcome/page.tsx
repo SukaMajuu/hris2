@@ -1,16 +1,17 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { useQueryClient } from "@tanstack/react-query";
 import { CheckCircle, Crown, Users, Calendar, BarChart3 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { useActivateTrial } from "@/api/mutations/subscription.mutation";
-import { useAuthStore } from "@/stores/auth.store";
-import { useQueryClient } from "@tanstack/react-query";
 
-export default function WelcomePage() {
+import { useActivateTrial } from "@/api/mutations/subscription.mutation";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { useAuthStore } from "@/stores/auth.store";
+
+const WelcomePage = () => {
 	const router = useRouter();
 	const queryClient = useQueryClient();
 	const activateTrialMutation = useActivateTrial();
@@ -142,4 +143,6 @@ export default function WelcomePage() {
 			</Card>
 		</div>
 	);
-}
+};
+
+export default WelcomePage;

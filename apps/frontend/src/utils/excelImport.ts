@@ -1,4 +1,5 @@
 import * as XLSX from "xlsx";
+
 import type {
 	EmployeeImportData,
 	ImportValidationError,
@@ -40,13 +41,16 @@ const PHONE_REGEX = /^\+[1-9]\d{8,14}$/;
 const NIK_REGEX = /^\d{16}$/;
 const BANK_ACCOUNT_REGEX = /^\d+$/;
 
-function validateDate(dateString: string): boolean {
+const validateDate = (dateString: string): boolean => {
 	if (!dateString) return true; // Optional field
 	const date = new Date(dateString);
-	return !isNaN(date.getTime()) && !!dateString.match(/^\d{4}-\d{2}-\d{2}$/);
-}
+	return (
+		!Number.isNaN(date.getTime()) &&
+		!!dateString.match(/^\d{4}-\d{2}-\d{2}$/)
+	);
+};
 
-function validateAge(dateOfBirth: string): boolean {
+const validateAge = (dateOfBirth: string): boolean => {
 	if (!dateOfBirth) return true; // Optional field
 	const today = new Date();
 	const birthDate = new Date(dateOfBirth);
@@ -60,13 +64,12 @@ function validateAge(dateOfBirth: string): boolean {
 		return age - 1 >= 16 && age - 1 <= 70;
 	}
 	return age >= 16 && age <= 70;
-}
+};
 
-function normalizeHeader(header: string): string {
-	return header.toLowerCase().trim().replace(/\s+/g, "_");
-}
+const normalizeHeader = (header: string): string =>
+	header.toLowerCase().trim().replace(/\s+/g, "_");
 
-function convertExcelDate(excelDate: unknown): string | undefined {
+const convertExcelDate = (excelDate: unknown): string | undefined => {
 	if (!excelDate) return undefined;
 
 	// If it's already a string in the right format, return it
@@ -76,7 +79,7 @@ function convertExcelDate(excelDate: unknown): string | undefined {
 		}
 		// Try to parse other date formats
 		const parsed = new Date(excelDate);
-		if (!isNaN(parsed.getTime())) {
+		if (!Number.isNaN(parsed.getTime())) {
 			return parsed.toISOString().split("T")[0];
 		}
 		return undefined;
@@ -99,12 +102,12 @@ function convertExcelDate(excelDate: unknown): string | undefined {
 	}
 
 	return undefined;
-}
+};
 
-function validateRow(
+const validateRow = (
 	row: Record<string, unknown>,
 	rowIndex: number
-): ImportValidationError[] {
+): ImportValidationError[] => {
 	const errors: ImportValidationError[] = [];
 
 	// Helper function to safely convert to string
@@ -120,7 +123,7 @@ function validateRow(
 	};
 
 	// Check required fields
-	for (const field of REQUIRED_FIELDS) {
+	REQUIRED_FIELDS.forEach((field) => {
 		const value = toString(row[field]);
 		if (!value || value.trim() === "") {
 			errors.push({
@@ -130,7 +133,7 @@ function validateRow(
 				value: toErrorValue(row[field]),
 			});
 		}
-	}
+	});
 
 	// Validate email format
 	if (row.email) {
@@ -303,15 +306,15 @@ function validateRow(
 	}
 
 	return errors;
-}
+};
 
-function checkDuplicates(
+const checkDuplicates = (
 	data: EmployeeImportData[]
 ): {
 	emails: string[];
 	niks: string[];
 	employeeCodes: string[];
-} {
+} => {
 	const emails = new Set<string>();
 	const niks = new Set<string>();
 	const employeeCodes = new Set<string>();
@@ -351,10 +354,10 @@ function checkDuplicates(
 		niks: Array.from(duplicateNiks),
 		employeeCodes: Array.from(duplicateEmployeeCodes),
 	};
-}
+};
 
-export function parseEmployeeExcel(file: File): Promise<ImportResult> {
-	return new Promise((resolve, reject) => {
+const parseEmployeeExcel = (file: File): Promise<ImportResult> =>
+	new Promise((resolve, reject) => {
 		const reader = new FileReader();
 
 		reader.onload = (e) => {
@@ -500,9 +503,8 @@ export function parseEmployeeExcel(file: File): Promise<ImportResult> {
 
 		reader.readAsArrayBuffer(file);
 	});
-}
 
-export function generateEmployeeExcelTemplate(): Blob {
+const generateEmployeeExcelTemplate = (): Blob => {
 	const headers = [
 		"email",
 		"first_name",
@@ -559,9 +561,9 @@ export function generateEmployeeExcelTemplate(): Blob {
 		type:
 			"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 	});
-}
+};
 
-export function downloadExcelTemplate() {
+const downloadExcelTemplate = () => {
 	const blob = generateEmployeeExcelTemplate();
 	const url = window.URL.createObjectURL(blob);
 	const link = document.createElement("a");
@@ -571,4 +573,15 @@ export function downloadExcelTemplate() {
 	link.click();
 	document.body.removeChild(link);
 	window.URL.revokeObjectURL(url);
-}
+};
+
+export {
+	validateDate,
+	validateAge,
+	normalizeHeader,
+	convertExcelDate,
+	validateRow,
+	parseEmployeeExcel,
+	generateEmployeeExcelTemplate,
+	downloadExcelTemplate,
+};

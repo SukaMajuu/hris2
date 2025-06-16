@@ -2,13 +2,13 @@ import * as React from "react";
 
 const MOBILE_BREAKPOINT = 768;
 
-export function useIsMobile() {
+const useIsMobile = () => {
 	const [isMobile, setIsMobile] = React.useState<boolean | undefined>(
 		undefined
 	);
 
 	React.useEffect(() => {
-		if (typeof window === "undefined") return;
+		if (typeof window === "undefined") return undefined;
 
 		const mql = window.matchMedia(
 			`(max-width: ${MOBILE_BREAKPOINT - 1}px)`
@@ -22,4 +22,6 @@ export function useIsMobile() {
 	}, []);
 
 	return !!isMobile;
-}
+};
+
+export { useIsMobile };

@@ -1,4 +1,4 @@
-import { Employee } from "@/types/employee";
+import { Employee } from "@/types/employee.types";
 import { WorkSchedule } from "@/types/work-schedule.types";
 
 export interface CheckclockSettings {

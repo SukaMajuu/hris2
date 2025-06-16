@@ -1,11 +1,13 @@
-import { ApiService } from "./api.service";
 import { API_ROUTES } from "@/config/api.routes";
 import {
 	Attendance,
 	ClockInAttendanceRequest,
 	ClockOutAttendanceRequest,
-} from "@/types/attendance";
-import { ApiResponse } from "@/types/subscription"; // Assuming you have a common ApiResponse type
+} from "@/types/attendance.types";
+import { ApiResponse } from "@/types/subscription.types"; // Assuming you have a common ApiResponse type
+import { formatAttendanceStatus } from "@/utils/status";
+
+import { ApiService } from "./api.service";
 
 export interface AttendanceStatistics {
 	on_time: number;
@@ -60,6 +62,7 @@ class AttendanceService {
 		);
 		return response.data.data;
 	} // Get all attendances
+
 	async getAttendances(
 		page: number = 1,
 		pageSize: number = 100
@@ -88,6 +91,7 @@ class AttendanceService {
 		);
 		return response.data.data;
 	} // Get attendances by employee ID
+
 	async getAttendancesByEmployee(
 		employeeId: number,
 		page: number = 1,
@@ -136,6 +140,7 @@ class AttendanceService {
 	async deleteAttendance(id: number): Promise<void> {
 		await this.apiService.delete(API_ROUTES.v1.api.attendances.delete(id));
 	}
+
 	// Get attendance statistics for dashboard
 	async getAttendanceStatistics(): Promise<AttendanceStatistics> {
 		const response = await this.apiService.get<
@@ -143,6 +148,7 @@ class AttendanceService {
 		>(API_ROUTES.v1.api.attendances.statistics);
 		return response.data.data;
 	} // Get employee monthly statistics for dashboard
+
 	async getEmployeeMonthlyStatistics(
 		year?: number,
 		month?: number
@@ -188,7 +194,7 @@ class AttendanceService {
 						attendance.employee.last_name || ""
 				  }`.trim()
 				: "Unknown Employee",
-			status: this.formatStatus(attendance.status),
+			status: formatAttendanceStatus(attendance.status),
 			check_in: attendance.clock_in || "-",
 			check_out: attendance.clock_out || "-",
 			employee: attendance.employee
@@ -199,23 +205,6 @@ class AttendanceService {
 				  }
 				: undefined,
 		}));
-	}
-	private formatStatus(status: string): string {
-		switch (status.toLowerCase()) {
-			case "on_time":
-			case "ontime":
-				return "Ontime";
-			case "late":
-				return "Late";
-			case "early_leave":
-				return "Early Leave";
-			case "absent":
-				return "Absent";
-			case "leave":
-				return "Leave";
-			default:
-				return status;
-		}
 	}
 }
 

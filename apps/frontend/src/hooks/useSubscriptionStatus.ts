@@ -1,8 +1,8 @@
 import { useUserSubscription } from "@/api/queries/subscription.queries";
-import { useAuthStore } from "@/stores/auth.store";
 import { ROLES, Role } from "@/const/role";
+import { useAuthStore } from "@/stores/auth.store";
 
-export function useSubscriptionStatus() {
+const useSubscriptionStatus = () => {
 	const user = useAuthStore((state) => state.user);
 	const isAuthStoreLoading = useAuthStore((state) => state.isLoading);
 	const isNewUser = useAuthStore((state) => state.isNewUser);
@@ -47,4 +47,6 @@ export function useSubscriptionStatus() {
 		isNewUser,
 		isEligibleForTrial,
 	};
-}
+};
+
+export { useSubscriptionStatus };

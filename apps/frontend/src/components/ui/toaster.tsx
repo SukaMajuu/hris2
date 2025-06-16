@@ -10,13 +10,12 @@ import {
 } from "@/components/ui/toast";
 import { useToast } from "@/components/ui/use-toast";
 
-export function Toaster() {
+export const Toaster = () => {
 	const { toasts } = useToast();
 
 	return (
 		<ToastProvider>
-			{toasts.map(function (toast) {
-				return (
+			{toasts.map((toast) => (
 					<Toast key={toast.id} {...toast}>
 						<div className="grid gap-1">
 							{toast.title && (
@@ -31,8 +30,7 @@ export function Toaster() {
 						{toast.action}
 						<ToastClose />
 					</Toast>
-				);
-			})}
+				))}
 			<ToastViewport />
 		</ToastProvider>
 	);

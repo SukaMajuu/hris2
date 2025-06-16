@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
+import { useEffect, useRef, useState } from "react";
 import "leaflet/dist/leaflet.css";
 
 interface MapContainerProps {
@@ -18,12 +18,11 @@ export const MapContainer = ({
 	onMapReady,
 }: MapContainerProps) => {
 	const mapRef = useRef<HTMLDivElement>(null);
-	const [map, setMap] = useState<L.Map | null>(null);
+	const [_, setMap] = useState<L.Map | null>(null);
 	const mapInitialized = useRef(false);
 
-	// Initialize map only once
 	useEffect(() => {
-		if (mapInitialized.current || !mapRef.current) return;
+		if (mapInitialized.current || !mapRef.current) return () => {};
 
 		const DefaultIcon = L.icon({
 			iconUrl:
@@ -74,14 +73,14 @@ export const MapContainer = ({
 			onMapReady(mapInstance);
 		}
 
-		// Cleanup function
 		return () => {
 			if (mapInstance) {
 				mapInstance.remove();
 				mapInitialized.current = false;
 			}
 		};
-	}, [initialLat, initialLng, interactive, onMapReady]);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [interactive, onMapReady]);
 
 	return (
 		<div

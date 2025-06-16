@@ -1,24 +1,20 @@
 "use client";
 
-import React, { Suspense } from "react";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
 import { Clock, Loader2, Copy, CheckCircle2 } from "lucide-react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import React, { Suspense, useState } from "react";
 import { toast } from "sonner";
 
-const formatCurrency = (value: number) => {
-	return `Rp ${value.toLocaleString("id-ID")}`;
-};
+import { Button } from "@/components/ui/button";
+import { formatCurrency } from "@/utils/currency";
 
-function PaymentPendingContent() {
+const PaymentPendingContent = () => {
 	const searchParams = useSearchParams();
 	const [copiedField, setCopiedField] = useState<string | null>(null);
 
 	// Get parameters from URL (these would typically be provided by Midtrans)
 	const transactionId = searchParams.get("transaction_id");
-	const orderId = searchParams.get("order_id");
 	const amount = searchParams.get("gross_amount");
 	const paymentType = searchParams.get("payment_type");
 	const vaNumber = searchParams.get("va_number");
@@ -45,7 +41,7 @@ function PaymentPendingContent() {
 			toast.success(`${fieldName} copied to clipboard`);
 			setTimeout(() => setCopiedField(null), 2000);
 		} catch (error) {
-			toast.error("Failed to copy to clipboard");
+			toast.error(`Failed to copy to clipboard: ${error}`);
 		}
 	};
 
@@ -129,7 +125,7 @@ function PaymentPendingContent() {
 										Amount to Pay:
 									</span>
 									<span className="text-orange-800 dark:text-orange-300">
-										{formatCurrency(parseInt(amount))}
+										{formatCurrency(parseInt(amount, 10))}
 									</span>
 								</div>
 							)}
@@ -153,6 +149,7 @@ function PaymentPendingContent() {
 											{vaNumber}
 										</span>
 										<button
+											type="button"
 											onClick={() =>
 												copyToClipboard(
 													vaNumber,
@@ -191,6 +188,7 @@ function PaymentPendingContent() {
 											{transactionId}
 										</span>
 										<button
+											type="button"
 											onClick={() =>
 												copyToClipboard(
 													transactionId,
@@ -220,7 +218,10 @@ function PaymentPendingContent() {
 						<ol className="space-y-2 text-sm text-slate-700 dark:text-slate-300">
 							{instructions.steps.map((step, index) => (
 								<li
-									key={index}
+									key={`step-${index + 1}-${step
+										.slice(0, 20)
+										.replace(/\s+/g, "-")
+										.toLowerCase()}`}
 									className="flex items-start space-x-3"
 								>
 									<span className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 rounded-full w-6 h-6 flex items-center justify-center text-xs font-semibold flex-shrink-0 mt-0.5">
@@ -239,20 +240,20 @@ function PaymentPendingContent() {
 						</h3>
 						<ul className="space-y-2 text-sm text-blue-700 dark:text-blue-400">
 							<li className="flex items-start space-x-2">
-								<div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+								<div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
 								<span>
 									Payment must be completed within 24 hours
 								</span>
 							</li>
 							<li className="flex items-start space-x-2">
-								<div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+								<div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
 								<span>
 									Your subscription will be activated
 									automatically after payment verification
 								</span>
 							</li>
 							<li className="flex items-start space-x-2">
-								<div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+								<div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
 								<span>
 									You will receive a confirmation email once
 									payment is processed
@@ -310,20 +311,20 @@ function PaymentPendingContent() {
 			</div>
 		</div>
 	);
-}
+};
 
-export default function PaymentPendingPage() {
-	return (
-		<Suspense
-			fallback={
-				<div className="min-h-screen bg-slate-100 dark:bg-slate-950 p-4 md:p-8">
-					<div className="max-w-3xl mx-auto flex items-center justify-center min-h-96">
-						<Loader2 className="h-8 w-8 animate-spin text-slate-600" />
-					</div>
+const PaymentPendingPage = () => (
+	<Suspense
+		fallback={
+			<div className="min-h-screen bg-slate-100 dark:bg-slate-950 p-4 md:p-8">
+				<div className="max-w-3xl mx-auto flex items-center justify-center min-h-96">
+					<Loader2 className="h-8 w-8 animate-spin text-slate-600" />
 				</div>
-			}
-		>
-			<PaymentPendingContent />
-		</Suspense>
-	);
-}
+			</div>
+		}
+	>
+		<PaymentPendingContent />
+	</Suspense>
+);
+
+export default PaymentPendingPage;

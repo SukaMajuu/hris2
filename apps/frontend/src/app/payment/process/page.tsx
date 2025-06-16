@@ -1,13 +1,15 @@
 "use client";
 
-import React, { Suspense, useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
 import { AlertCircle, Loader2, CreditCard } from "lucide-react";
+import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useInitiatePaidCheckout } from "@/api/mutations/subscription.mutation";
-import { toast } from "sonner";
 import Script from "next/script";
+import React, { Suspense, useEffect, useState } from "react";
+import { toast } from "sonner";
+
+import { useInitiatePaidCheckout } from "@/api/mutations/subscription.mutation";
+import { Button } from "@/components/ui/button";
+import { formatCurrency } from "@/utils/currency";
 
 // Define proper types for Midtrans
 interface MidtransResult {
@@ -43,11 +45,7 @@ declare global {
 	}
 }
 
-const formatCurrency = (value: number) => {
-	return `Rp ${value.toLocaleString("id-ID")}`;
-};
-
-function PaymentProcessContent() {
+const PaymentProcessContent = () => {
 	const searchParams = useSearchParams();
 	const router = useRouter();
 	const [isProcessingPayment, setIsProcessingPayment] = useState(false);
@@ -85,8 +83,8 @@ function PaymentProcessContent() {
 
 				const response = await initiatePaidCheckoutMutation.mutateAsync(
 					{
-						subscription_plan_id: parseInt(planId),
-						seat_plan_id: parseInt(seatPlanId),
+						subscription_plan_id: parseInt(planId, 10),
+						seat_plan_id: parseInt(seatPlanId, 10),
 						is_monthly: isMonthly,
 					}
 				);
@@ -170,10 +168,10 @@ function PaymentProcessContent() {
 
 			// Construct success URL with all necessary parameters
 			const successParams = new URLSearchParams({
-				planId: planId,
-				seatPlanId: seatPlanId,
+				planId,
+				seatPlanId,
 				isMonthly: isMonthly.toString(),
-				amount: amount,
+				amount,
 			});
 
 			if (isUpgrade) successParams.set("upgrade", "true");
@@ -264,11 +262,26 @@ function PaymentProcessContent() {
 		return "You're about to complete your subscription payment";
 	};
 
+	const getPaymentButtonText = () => {
+		if (isProcessingPayment) {
+			return (
+				<>
+					<Loader2 className="h-4 w-4 animate-spin mr-2" />
+					Processing Payment...
+				</>
+			);
+		}
+		if (!snapScriptLoaded) {
+			return "Loading Payment System...";
+		}
+		return "Pay with Midtrans";
+	};
+
 	return (
 		<>
 			{/* Load Midtrans Snap Script only if using Midtrans */}
 			<Script
-				src={"https://app.sandbox.midtrans.com/snap/snap.js"}
+				src="https://app.sandbox.midtrans.com/snap/snap.js"
 				data-client-key={
 					process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY ||
 					"SB-Mid-client-YOUR_CLIENT_KEY"
@@ -329,7 +342,7 @@ function PaymentProcessContent() {
 										Total Amount:
 									</span>
 									<span className="text-slate-800 dark:text-slate-100">
-										{formatCurrency(parseInt(amount))}
+										{formatCurrency(parseInt(amount, 10))}
 									</span>
 								</div>
 							</div>
@@ -387,16 +400,7 @@ function PaymentProcessContent() {
 										!snapScriptLoaded || isProcessingPayment
 									}
 								>
-									{isProcessingPayment ? (
-										<>
-											<Loader2 className="h-4 w-4 animate-spin mr-2" />
-											Processing Payment...
-										</>
-									) : !snapScriptLoaded ? (
-										"Loading Payment System..."
-									) : (
-										"Pay with Midtrans"
-									)}
+									{getPaymentButtonText()}
 								</Button>
 							)}
 
@@ -436,20 +440,20 @@ function PaymentProcessContent() {
 			</div>
 		</>
 	);
-}
+};
 
-export default function PaymentProcessPage() {
-	return (
-		<Suspense
-			fallback={
-				<div className="min-h-screen bg-slate-100 dark:bg-slate-950 p-4 md:p-8">
-					<div className="max-w-3xl mx-auto flex items-center justify-center min-h-96">
-						<Loader2 className="h-8 w-8 animate-spin text-slate-600" />
-					</div>
+const PaymentProcessPage = () => (
+	<Suspense
+		fallback={
+			<div className="min-h-screen bg-slate-100 dark:bg-slate-950 p-4 md:p-8">
+				<div className="max-w-3xl mx-auto flex items-center justify-center min-h-96">
+					<Loader2 className="h-8 w-8 animate-spin text-slate-600" />
 				</div>
-			}
-		>
-			<PaymentProcessContent />
-		</Suspense>
-	);
-}
+			</div>
+		}
+	>
+		<PaymentProcessContent />
+	</Suspense>
+);
+
+export default PaymentProcessPage;

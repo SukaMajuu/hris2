@@ -1,39 +1,50 @@
-import { useMemo } from 'react';
-import { useEmployeesQuery } from '@/api/queries/employee.queries';
-import { useResignEmployeeMutation } from '@/api/mutations/employee.mutations';
-import type { EmployeeFilters, Employee } from '@/types/employee';
+import { useMemo } from "react";
 
-export function useEmployeeManagement(page: number, pageSize: number, filters: EmployeeFilters) {
-  const { data, isLoading: loading, error, refetch } = useEmployeesQuery(page, pageSize, filters);
+import { useResignEmployeeMutation } from "@/api/mutations/employee.mutations";
+import { useEmployeesQuery } from "@/api/queries/employee.queries";
+import type { EmployeeFilters, Employee } from "@/types/employee.types";
 
-  const resignMutation = useResignEmployeeMutation();
+const useEmployeeManagement = (
+	page: number,
+	pageSize: number,
+	filters: EmployeeFilters
+) => {
+	const { data, isLoading: loading, error, refetch } = useEmployeesQuery(
+		page,
+		pageSize,
+		filters
+	);
 
-  const employees = useMemo(() => {
-    if (!data?.data?.items) return [];
+	const resignMutation = useResignEmployeeMutation();
 
-    return data.data.items.map((emp: Employee) => ({
-      ...emp,
-      employmentStatus: emp.employment_status ? 'Active' : 'Inactive',
-    }));
-  }, [data?.data?.items]);
+	const employees = useMemo(() => {
+		if (!data?.data?.items) return [];
 
-  const totalEmployees = data?.data?.pagination?.total_items || 0;
+		return data.data.items.map((emp: Employee) => ({
+			...emp,
+			employmentStatus: emp.employment_status ? "Active" : "Inactive",
+		}));
+	}, [data?.data?.items]);
 
-  const handleResignEmployee = async (id: number) => {
-    try {
-      await resignMutation.mutateAsync(id);
-    } catch (error) {
-      console.error('Failed to resign employee:', error);
-      throw error;
-    }
-  };
+	const totalEmployees = data?.data?.pagination?.total_items || 0;
 
-  return {
-    employees,
-    totalEmployees,
-    loading,
-    error: error as Error | null,
-    handleResignEmployee,
-    refetchEmployees: refetch,
-  };
-}
+	const handleResignEmployee = async (id: number) => {
+		try {
+			await resignMutation.mutateAsync(id);
+		} catch (err) {
+			console.error("Failed to resign employee:", err);
+			throw err;
+		}
+	};
+
+	return {
+		employees,
+		totalEmployees,
+		loading,
+		error: error as Error | null,
+		handleResignEmployee,
+		refetchEmployees: refetch,
+	};
+};
+
+export default useEmployeeManagement;

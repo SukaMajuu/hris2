@@ -1,22 +1,20 @@
 "use client";
 
-import React, { Suspense, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-import Link from "next/link";
 import { AlertCircle, Loader2 } from "lucide-react";
-import { useCheckout } from "./_hooks/useCheckout";
-import CheckoutPageSkeleton from "./_components/CheckoutPageSkeleton";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import React, { Suspense, useState } from "react";
 import { toast } from "sonner";
 
-const formatCurrency = (value: number) => {
-	// Format Indonesian Rupiah without locale-specific issues
-	return `Rp ${value.toLocaleString("en-US")}`;
-};
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { formatCurrency } from "@/utils/currency";
 
-function CheckoutPageContent() {
+import CheckoutPageSkeleton from "./_components/CheckoutPageSkeleton";
+import { useCheckout } from "./_hooks/useCheckout";
+
+const CheckoutPageContent = () => {
 	const router = useRouter();
 	const [isProcessingCheckout, setIsProcessingCheckout] = useState(false);
 
@@ -172,14 +170,12 @@ function CheckoutPageContent() {
 
 					router.push(`/payment/process?${params.toString()}`);
 					return;
-				} else {
-					toast.success(
-						response?.message ||
-							"Subscription updated successfully!"
-					);
-					router.push("/subscription?updated=true");
-					return;
 				}
+				toast.success(
+					response?.message || "Subscription updated successfully!"
+				);
+				router.push("/subscription?updated=true");
+				return;
 			}
 
 			const isMonthly = selectedBillingOption?.id === "monthly";
@@ -239,15 +235,26 @@ function CheckoutPageContent() {
 	};
 
 	const getButtonText = () => {
-		switch (changeContext.type) {
-			case "trial_conversion":
-				return "Convert to Paid Plan";
-			case "plan_change":
-			case "seat_change":
-				return "Complete Change";
-			default:
-				return "Continue to Payment";
+		if (changeContext.type === "trial_conversion") {
+			return "Convert Trial to Paid";
 		}
+		if (
+			changeContext.type === "plan_change" ||
+			changeContext.type === "seat_change"
+		) {
+			return "Confirm Changes";
+		}
+		return "Continue to Payment";
+	};
+
+	const getPriceLabelText = () => {
+		if (isUpgradeAmount) {
+			return "Amount Due Today:";
+		}
+		if (presetAmount) {
+			return "Change Amount:";
+		}
+		return "Price:";
 	};
 
 	return (
@@ -336,7 +343,7 @@ function CheckoutPageContent() {
 											key={feature.id}
 											className="flex items-start space-x-2"
 										>
-											<div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+											<div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0" />
 											<div>
 												<p className="font-medium text-slate-700 dark:text-slate-200">
 													{feature.name}
@@ -455,11 +462,7 @@ function CheckoutPageContent() {
 
 					<div className="flex justify-between text-sm">
 						<span className="text-slate-600 dark:text-slate-400">
-							{isUpgradeAmount
-								? "Amount Due Today:"
-								: presetAmount
-								? "Change Amount:"
-								: "Price:"}
+							{getPriceLabelText()}
 						</span>
 						<span
 							className={`font-medium ${
@@ -557,12 +560,12 @@ function CheckoutPageContent() {
 			</div>
 		</div>
 	);
-}
+};
 
-export default function CheckoutPage() {
-	return (
-		<Suspense fallback={<CheckoutPageSkeleton />}>
-			<CheckoutPageContent />
-		</Suspense>
-	);
-}
+const CheckoutPage = () => (
+	<Suspense fallback={<CheckoutPageSkeleton />}>
+		<CheckoutPageContent />
+	</Suspense>
+);
+
+export default CheckoutPage;

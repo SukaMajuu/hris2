@@ -8,8 +8,9 @@ import {
   type LucideIcon,
   LogOut,
 } from "lucide-react"
-import { ROLES, type Role } from "@/const/role"
+
 import { FEATURE_CODES, type FeatureCode } from "@/const/features"
+import { ROLES, type Role } from "@/const/role"
 
 export type MenuItemType = "main" | "footer"
 
@@ -113,30 +114,23 @@ export const menuItems: MenuItemConfig[] = [
   }
 ]
 
-export const getMenuItemsByRole = (role: Role): MenuItemConfig[] => {
-  return menuItems.filter(item => item.roles.includes(role))
-}
+export const getMenuItemsByRole = (role: Role): MenuItemConfig[] => menuItems.filter(item => item.roles.includes(role))
 
-export const getMainMenuItemsByRole = (role: Role): MenuItemConfig[] => {
-  return menuItems.filter(item =>
+export const getMainMenuItemsByRole = (role: Role): MenuItemConfig[] => menuItems.filter(item =>
     item.roles.includes(role) &&
     item.type === "main"
   )
-}
 
-export const getFooterItemsByRole = (role: Role): MenuItemConfig[] => {
-  return menuItems.filter(item =>
+export const getFooterItemsByRole = (role: Role): MenuItemConfig[] => menuItems.filter(item =>
     item.roles.includes(role) &&
     item.type === "footer"
   )
-}
 
 // New function to get menu items filtered by both role and feature access
 export const getMenuItemsByRoleAndFeatures = (
   role: Role,
   hasFeature: (feature: FeatureCode) => boolean
-): MenuItemConfig[] => {
-  return menuItems
+): MenuItemConfig[] => menuItems
     .filter(item => item.roles.includes(role))
     .filter(item => {
       // If no feature is required, show the item
@@ -146,9 +140,9 @@ export const getMenuItemsByRoleAndFeatures = (
       if (item.href === "/dashboard") {
         if (role === ROLES.admin) {
           return hasFeature(FEATURE_CODES.ADMIN_DASHBOARD);
-        } else {
+        } 
           return hasFeature(FEATURE_CODES.EMPLOYEE_DASHBOARD);
-        }
+        
       }
 
       // Check if user has required feature
@@ -161,21 +155,16 @@ export const getMenuItemsByRoleAndFeatures = (
         if (!subItem.requiredFeature) return true;
         return hasFeature(subItem.requiredFeature);
       })
-    }));
-}
+    }))
 
 export const getMainMenuItemsByRoleAndFeatures = (
   role: Role,
   hasFeature: (feature: FeatureCode) => boolean
-): MenuItemConfig[] => {
-  return getMenuItemsByRoleAndFeatures(role, hasFeature)
-    .filter(item => item.type === "main");
-}
+): MenuItemConfig[] => getMenuItemsByRoleAndFeatures(role, hasFeature)
+    .filter(item => item.type === "main")
 
 export const getFooterItemsByRoleAndFeatures = (
   role: Role,
   hasFeature: (feature: FeatureCode) => boolean
-): MenuItemConfig[] => {
-  return getMenuItemsByRoleAndFeatures(role, hasFeature)
-    .filter(item => item.type === "footer");
-}
+): MenuItemConfig[] => getMenuItemsByRoleAndFeatures(role, hasFeature)
+    .filter(item => item.type === "footer")

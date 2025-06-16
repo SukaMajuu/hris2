@@ -1,20 +1,20 @@
-import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { leaveRequestService } from "@/services/leave-request.service";
+
 import {
-	CreateLeaveRequestRequest,
-	LeaveType,
-	LeaveRequestStatus,
-} from "@/types/leave-request";
-import { useMyLeaveRequests } from "@/app/(user)/attendance/_hooks/useMyLeaveRequests";
-import { useMyLeaveRequestsQuery } from "@/api/queries/leave-request.queries";
-import { useFeatureAccess } from "@/hooks/useFeatureAccess";
-import { FEATURE_CODES } from "@/const/features";
-import { useEmployeeMonthlyStatistics } from "@/api/queries/attendance.queries";
+	useEmployeeMonthlyStatistics,
+	useAttendancesByEmployee,
+} from "@/api/queries/attendance.queries";
 import { useCurrentUserProfileQuery } from "@/api/queries/employee.queries";
-import { useAttendancesByEmployee } from "@/api/queries/attendance.queries";
+import { useMyLeaveRequestsQuery } from "@/api/queries/leave-request.queries";
+import { FEATURE_CODES } from "@/const/features";
+import { LEAVE_STATUS, LEAVE_TYPE, LeaveType } from "@/const/leave";
+import { useFeatureAccess } from "@/hooks/useFeatureAccess";
+import { useLeaveRequestsData } from "@/hooks/useLeaveRequestsData";
+import { leaveRequestService } from "@/services/leave-request.service";
+import { CreateLeaveRequestRequest } from "@/types/leave-request.types";
 
 interface UseUserDashboardProps {
 	selectedMonth: string;
@@ -22,11 +22,11 @@ interface UseUserDashboardProps {
 	monthYearOptions: Array<{ value: string; label: string }>;
 }
 
-export function useUserDashboard({
+export const useUserDashboard = ({
 	selectedMonth,
 	onMonthChange,
 	monthYearOptions,
-}: UseUserDashboardProps) {
+}: UseUserDashboardProps) => {
 	const router = useRouter();
 
 	// State management
@@ -44,11 +44,11 @@ export function useUserDashboard({
 	const { hasFeature } = useFeatureAccess();
 	const canAccessCheckClock = hasFeature(FEATURE_CODES.CHECK_CLOCK_SYSTEM); // Data fetching hooks
 	const {
-		data: leaveRequestsData,
+		leaveRequestsData,
 		isLoading,
 		error,
 		refetch,
-	} = useMyLeaveRequests(1, 100); // Fetch more records to get all leaves
+	} = useLeaveRequestsData(1, 100); // Fetch more records to get all leaves
 
 	// Also fetch using the new query hook for more comprehensive data (without filters to get all leave requests)
 	const { data: myLeaveRequestsData } = useMyLeaveRequestsQuery(1, 100);
@@ -64,15 +64,17 @@ export function useUserDashboard({
 	// Provide fallback to current month if selectedMonth is invalid or empty
 	const getCurrentMonthString = () => {
 		const now = new Date();
-		const year = now.getFullYear();
-		const month = now.getMonth() + 1; // getMonth() returns 0-11, we need 1-12
-		return `${year}-${month.toString().padStart(2, "0")}`;
+		const currentYear = now.getFullYear();
+		const currentMonth = now.getMonth() + 1; // getMonth() returns 0-11, we need 1-12
+		return `${currentYear}-${currentMonth.toString().padStart(2, "0")}`;
 	};
 	const validSelectedMonth =
 		selectedMonth && selectedMonth.includes("-")
 			? selectedMonth
 			: getCurrentMonthString();
-	const [year, month] = validSelectedMonth.split("-").map(Number);
+	const [selectedYear, selectedMonthNum] = validSelectedMonth
+		.split("-")
+		.map(Number);
 	const generateMonthYearOptions = () => {
 		const options = [];
 		const now = new Date();
@@ -80,11 +82,13 @@ export function useUserDashboard({
 		const currentMonth = now.getMonth();
 
 		// Generate current month first, then previous months (0 to 11 for last 12 months)
-		for (let i = 0; i < 12; i++) {
+		for (let i = 0; i < 12; i += 1) {
 			const date = new Date(currentYear, currentMonth - i);
-			const year = date.getFullYear();
-			const month = date.getMonth() + 1;
-			const value = `${year}-${month.toString().padStart(2, "0")}`;
+			const optionYear = date.getFullYear();
+			const optionMonth = date.getMonth() + 1;
+			const value = `${optionYear}-${optionMonth
+				.toString()
+				.padStart(2, "0")}`;
 			const label = date.toLocaleDateString("en-US", {
 				month: "long",
 				year: "numeric",
@@ -103,12 +107,12 @@ export function useUserDashboard({
 	const {
 		data: monthlyStats,
 		isLoading: isLoadingMonthlyStats,
-	} = useEmployeeMonthlyStatistics(year, month);
+	} = useEmployeeMonthlyStatistics(selectedYear, selectedMonthNum);
 
 	// Form management
 	const form = useForm<CreateLeaveRequestRequest>({
 		defaultValues: {
-			leave_type: LeaveType.SICK_LEAVE,
+			leave_type: LEAVE_TYPE.SICK_LEAVE,
 			start_date: "",
 			end_date: "",
 			employee_note: "",
@@ -121,12 +125,11 @@ export function useUserDashboard({
 			const today = new Date();
 			const day = today.getDay(); // 0 is Sunday, 1 is Monday, etc.
 
-			const formatDate = (date: Date): string => {
-				return date.toLocaleDateString("en-US", {
+			const formatDate = (date: Date): string =>
+				date.toLocaleDateString("en-US", {
 					day: "numeric",
 					month: "short",
 				});
-			};
 
 			if (period === "Weekly") {
 				const monday = new Date(today);
@@ -136,15 +139,15 @@ export function useUserDashboard({
 				friday.setDate(monday.getDate() + 4); // Friday is 4 days after Monday
 
 				return `(${formatDate(monday)}–${formatDate(friday)})`;
-			} else if (period === "Monthly") {
-				const [
-					selectedYear,
-					selectedMonthIndex,
-				] = validSelectedMonth.split("-").map(Number);
-				if (selectedYear && selectedMonthIndex) {
+			}
+			if (period === "Monthly") {
+				const [filterYear, filterMonthIndex] = validSelectedMonth
+					.split("-")
+					.map(Number);
+				if (filterYear && filterMonthIndex) {
 					const monthDate = new Date(
-						selectedYear,
-						selectedMonthIndex - 1
+						filterYear,
+						filterMonthIndex - 1
 					);
 					return `(${monthDate.toLocaleDateString("en-US", {
 						month: "short",
@@ -162,24 +165,24 @@ export function useUserDashboard({
 	const getChartLabels = () => {
 		if (selectedPeriod === "Monthly") {
 			// Generate only working days (Monday-Friday) for selected month
-			const [selectedYear, selectedMonthIndex] = validSelectedMonth
+			const [chartYear, chartMonthIndex] = validSelectedMonth
 				.split("-")
 				.map(Number);
 
 			// Validate that we have valid year and month
-			if (!selectedYear || !selectedMonthIndex) {
+			if (!chartYear || !chartMonthIndex) {
 				return [];
 			}
 
 			const daysInMonth = new Date(
-				selectedYear,
-				selectedMonthIndex,
+				chartYear,
+				chartMonthIndex,
 				0
 			).getDate();
 
 			const workingDays = [];
-			for (let i = 1; i <= daysInMonth; i++) {
-				const date = new Date(selectedYear, selectedMonthIndex - 1, i);
+			for (let i = 1; i <= daysInMonth; i += 1) {
+				const date = new Date(chartYear, chartMonthIndex - 1, i);
 				const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
 
 				// Only include Monday (1) to Friday (5)
@@ -193,27 +196,26 @@ export function useUserDashboard({
 				}
 			}
 			return workingDays;
-		} else {
-			// Generate only Monday-Friday (5 days) for current week
-			const today = new Date();
-			const currentDay = today.getDay();
-			const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
-			const monday = new Date(today);
-			monday.setDate(today.getDate() + mondayOffset);
-
-			const weekDays = [];
-			for (let i = 0; i < 5; i++) {
-				const day = new Date(monday);
-				day.setDate(monday.getDate() + i);
-				weekDays.push(
-					day.toLocaleDateString("en-US", {
-						month: "short",
-						day: "numeric",
-					})
-				);
-			}
-			return weekDays;
 		}
+		// Generate only Monday-Friday (5 days) for current week
+		const today = new Date();
+		const currentDay = today.getDay();
+		const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
+		const monday = new Date(today);
+		monday.setDate(today.getDate() + mondayOffset);
+
+		const weekDays = [];
+		for (let i = 0; i < 5; i += 1) {
+			const day = new Date(monday);
+			day.setDate(monday.getDate() + i);
+			weekDays.push(
+				day.toLocaleDateString("en-US", {
+					month: "short",
+					day: "numeric",
+				})
+			);
+		}
+		return weekDays;
 	};
 
 	// Generate real work hours data based on attendance records
@@ -229,15 +231,15 @@ export function useUserDashboard({
 		let filteredAttendance = attendanceData;
 		if (selectedPeriod === "Monthly") {
 			// Filter for selected month
-			const [selectedYear, selectedMonthIndex] = validSelectedMonth
+			const [filterYear, filterMonthIndex] = validSelectedMonth
 				.split("-")
 				.map(Number);
-			if (selectedYear && selectedMonthIndex) {
+			if (filterYear && filterMonthIndex) {
 				filteredAttendance = attendanceData.filter((attendance) => {
 					const attendanceDate = new Date(attendance.date);
 					return (
-						attendanceDate.getFullYear() === selectedYear &&
-						attendanceDate.getMonth() === selectedMonthIndex - 1
+						attendanceDate.getFullYear() === filterYear &&
+						attendanceDate.getMonth() === filterMonthIndex - 1
 					);
 				});
 			}
@@ -349,7 +351,7 @@ export function useUserDashboard({
 	const handleRequestLeave = () => {
 		// Reset form and open permit dialog directly
 		form.reset({
-			leave_type: LeaveType.SICK_LEAVE,
+			leave_type: LEAVE_TYPE.SICK_LEAVE,
 			start_date: "",
 			end_date: "",
 			employee_note: "",
@@ -391,9 +393,7 @@ export function useUserDashboard({
 			};
 
 			// Submit leave request
-			const response = await leaveRequestService.createLeaveRequest(
-				leaveRequestData
-			);
+			await leaveRequestService.createLeaveRequest(leaveRequestData);
 
 			// Show success notification
 			toast.success("Leave request submitted successfully!", {
@@ -403,7 +403,7 @@ export function useUserDashboard({
 			// Close dialog and reset form
 			setOpenPermitDialog(false);
 			form.reset({
-				leave_type: LeaveType.SICK_LEAVE,
+				leave_type: LEAVE_TYPE.SICK_LEAVE,
 				start_date: "",
 				end_date: "",
 				employee_note: "",
@@ -412,14 +412,14 @@ export function useUserDashboard({
 
 			// Refresh data after successful submission
 			refetch();
-		} catch (error) {
-			console.error("Error submitting leave request:", error);
+		} catch (submitError) {
+			console.error("Error submitting leave request:", submitError);
 
 			// Show error notification
 			toast.error("Failed to submit leave request", {
 				description:
-					error instanceof Error
-						? error.message
+					submitError instanceof Error
+						? submitError.message
 						: "Please try again later.",
 			});
 		} finally {
@@ -437,9 +437,8 @@ export function useUserDashboard({
 			myLeaveRequestsData?.items.filter((request) => {
 				const startDate = new Date(request.start_date);
 				const isAnnualLeave =
-					request.leave_type === LeaveType.ANNUAL_LEAVE;
-				const isApproved =
-					request.status === LeaveRequestStatus.APPROVED;
+					request.leave_type === LEAVE_TYPE.ANNUAL_LEAVE;
+				const isApproved = request.status === LEAVE_STATUS.APPROVED;
 				const isCurrentYear = startDate.getFullYear() === currentYear;
 
 				return isAnnualLeave && isApproved && isCurrentYear;
@@ -590,4 +589,4 @@ export function useUserDashboard({
 		// Annual leave data
 		getAnnualLeaveData,
 	};
-}
+};

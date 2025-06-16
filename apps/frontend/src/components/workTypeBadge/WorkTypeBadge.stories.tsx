@@ -1,6 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import WorkTypeBadge from "./index";
+
 import { WORK_TYPES } from "@/const/work";
+
+import WorkTypeBadge from "./index";
 
 const meta: Meta<typeof WorkTypeBadge> = {
 	title: "Components/WorkTypeBadge",
@@ -35,7 +37,7 @@ export const WFA: Story = {
 	},
 };
 
-//story for Hybrid
+// story for Hybrid
 export const Hybrid: Story = {
 	args: {
 		workType: WORK_TYPES.Hybrid,

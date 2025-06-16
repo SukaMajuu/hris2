@@ -1,20 +1,21 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
-import { useEmployeeDetailQuery } from "@/api/queries/employee.queries";
+import { toast } from "sonner";
+
+import {
+	useUploadDocumentForEmployee,
+	useDeleteDocument,
+} from "@/api/mutations/document.mutations";
 import {
 	useUpdateEmployee,
 	useResetEmployeePassword,
 } from "@/api/mutations/employee.mutations";
 import { useDocumentsByEmployee } from "@/api/queries/document.queries";
-import {
-	useUploadDocumentForEmployee,
-	useDeleteDocument,
-} from "@/api/mutations/document.mutations";
-import { toast } from "sonner";
+import { useEmployeeDetailQuery } from "@/api/queries/employee.queries";
 import type { Document } from "@/services/document.service";
 import { EmployeeService } from "@/services/employee.service";
 import { debounce } from "@/utils/debounce";
 
-interface ValidationState {
+interface _ValidationState {
 	isValidating: boolean;
 	isValid: boolean | null;
 	message: string;
@@ -35,7 +36,7 @@ export interface ClientDocument {
 	id?: number;
 }
 
-export function useDetailEmployee(employeeId: number) {
+export const useDetailEmployee = (employeeId: number) => {
 	const {
 		data: employee,
 		isLoading,
@@ -83,7 +84,7 @@ export function useDetailEmployee(employeeId: number) {
 	const [editBank, setEditBank] = useState(false);
 
 	// Reset password confirmation state
-	const [isConfirmingReset, setIsConfirmingReset] = useState(false);
+	const [_isConfirmingReset, setIsConfirmingReset] = useState(false);
 
 	// Validation states
 	const [validationStates, setValidationStates] = useState({
@@ -144,6 +145,8 @@ export function useDetailEmployee(employeeId: number) {
 						case "employee_code":
 							// Employee code doesn't have specific format requirements
 							break;
+						default:
+							break;
 					}
 
 					if (formatError) {
@@ -203,7 +206,8 @@ export function useDetailEmployee(employeeId: number) {
 									: "",
 							},
 						}));
-					} catch (error) {
+					} catch (err) {
+						console.error("Error validating field:", err);
 						setValidationStates((prev) => ({
 							...prev,
 							[field]: {
@@ -262,6 +266,8 @@ export function useDetailEmployee(employeeId: number) {
 					break;
 				case "employee_code":
 					// Employee code doesn't have specific format requirements
+					break;
+				default:
 					break;
 			}
 
@@ -327,11 +333,13 @@ export function useDetailEmployee(employeeId: number) {
 		[]
 	);
 
-	const hasValidationErrors = useCallback(() => {
-		return Object.values(validationStates).some(
-			(state) => state.isValid === false
-		);
-	}, [validationStates]);
+	const hasValidationErrors = useCallback(
+		() =>
+			Object.values(validationStates).some(
+				(state) => state.isValid === false
+			),
+		[validationStates]
+	);
 
 	// Validation wrapper functions
 	const setEmailWithValidation = useCallback(
@@ -439,8 +447,8 @@ export function useDetailEmployee(employeeId: number) {
 					toast.success("Document uploaded successfully!");
 					// Clear the input
 					e.target.value = "";
-				} catch (error) {
-					console.error("Error uploading document:", error);
+				} catch (err) {
+					console.error("Error uploading document:", err);
 					toast.error("Failed to upload document. Please try again.");
 				}
 			}
@@ -455,8 +463,8 @@ export function useDetailEmployee(employeeId: number) {
 				try {
 					await deleteDocumentMutation.mutateAsync(doc.id);
 					toast.success("Document deleted successfully!");
-				} catch (error) {
-					console.error("Error deleting document:", error);
+				} catch (err) {
+					console.error("Error deleting document:", err);
 					toast.error("Failed to delete document. Please try again.");
 				}
 			}
@@ -557,8 +565,8 @@ export function useDetailEmployee(employeeId: number) {
 			// Reset profile file state after successful save
 			setProfileFile(null);
 			setEditJob(false);
-		} catch (error) {
-			console.error("Error updating job info:", error);
+		} catch (err) {
+			console.error("Error updating job info:", err);
 			toast.error("Failed to update job information. Please try again.");
 		}
 	}, [
@@ -581,12 +589,12 @@ export function useDetailEmployee(employeeId: number) {
 			const updateData = {
 				first_name: firstName,
 				last_name: lastName,
-				nik: nik,
-				email: email,
-				gender: gender,
+				nik,
+				email,
+				gender,
 				place_of_birth: placeOfBirth,
 				date_of_birth: dateOfBirth,
-				phone: phone,
+				phone,
 				last_education: lastEducation,
 				tax_status: taxStatus,
 			};
@@ -599,8 +607,8 @@ export function useDetailEmployee(employeeId: number) {
 			toast.success("Personal information updated successfully!");
 
 			setEditPersonal(false);
-		} catch (error) {
-			console.error("Error updating personal info:", error);
+		} catch (err) {
+			console.error("Error updating personal info:", err);
 			toast.error(
 				"Failed to update personal information. Please try again."
 			);
@@ -638,8 +646,8 @@ export function useDetailEmployee(employeeId: number) {
 			toast.success("Bank information updated successfully!");
 
 			setEditBank(false);
-		} catch (error) {
-			console.error("Error updating bank info:", error);
+		} catch (err) {
+			console.error("Error updating bank info:", err);
 			toast.error("Failed to update bank information. Please try again.");
 		}
 	}, [
@@ -666,8 +674,8 @@ export function useDetailEmployee(employeeId: number) {
 		try {
 			await resetEmployeePasswordMutation.mutateAsync(employee.id);
 			toast.success(`Password reset email sent to ${employee.email}`);
-		} catch (error) {
-			console.error("Error resetting password:", error);
+		} catch (err) {
+			console.error("Error resetting password:", err);
 			toast.error(
 				"Failed to send password reset email. Please try again."
 			);
@@ -758,4 +766,4 @@ export function useDetailEmployee(employeeId: number) {
 		handleCancelEdit,
 		handleCancelPersonalEdit,
 	};
-}
+};

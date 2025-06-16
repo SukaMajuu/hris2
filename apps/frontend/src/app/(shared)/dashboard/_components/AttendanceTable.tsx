@@ -1,15 +1,5 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { DataTable } from "@/components/dataTable";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipProvider,
-	TooltipTrigger,
-} from "@/components/ui/tooltip";
 import {
 	ColumnDef,
 	useReactTable,
@@ -19,11 +9,22 @@ import {
 	PaginationState,
 	ColumnFiltersState,
 } from "@tanstack/react-table";
-import { useFeatureAccess } from "@/hooks/useFeatureAccess";
-import { FEATURE_CODES } from "@/const/features";
 import { Crown, Sparkles } from "lucide-react";
 import Link from "next/link";
+import React, { useState, useMemo } from "react";
+
 import { useRecentAttendances } from "@/api/queries/attendance.queries";
+import { DataTable } from "@/components/dataTable";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { FEATURE_CODES } from "@/const/features";
+import { useFeatureAccess } from "@/hooks/useFeatureAccess";
 import type { RecentAttendance } from "@/services/attendance.service";
 
 // Render functions outside the component
@@ -40,25 +41,20 @@ const renderNameCell = (name: string) => (
 	</TooltipProvider>
 );
 
+// Helper function to get status badge class
+const getStatusBadgeClass = (status: string) => {
+	if (status === "Ontime") return "bg-[#34d399] text-white";
+	if (status === "Early Leave") return "bg-[#fbbf24] text-white";
+	if (status === "Late") return "bg-[#f87171] text-white";
+	if (status === "Leave") return "bg-[#8b5cf6] text-white";
+	return "bg-[#94a3b8] text-white";
+};
+
 const renderStatusCell = (status: string) => (
-	<Badge
-		className={
-			status === "Ontime"
-				? "bg-[#34d399] text-white"
-				: status === "Early Leave"
-				? "bg-[#fbbf24] text-white"
-				: status === "Late"
-				? "bg-[#f87171] text-white"
-				: status === "Leave"
-				? "bg-[#8b5cf6] text-white"
-				: "bg-[#94a3b8] text-white"
-		}
-	>
-		{status}
-	</Badge>
+	<Badge className={getStatusBadgeClass(status)}>{status}</Badge>
 );
 
-export function AttendanceTable() {
+export const AttendanceTable = () => {
 	const { hasFeature } = useFeatureAccess();
 	const canAccessCheckClock = hasFeature(FEATURE_CODES.CHECK_CLOCK_SYSTEM);
 
@@ -157,4 +153,4 @@ export function AttendanceTable() {
 			</CardContent>
 		</Card>
 	);
-}
+};

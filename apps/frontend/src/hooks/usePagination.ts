@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
+import { useState, useEffect, useCallback } from "react";
+
 import { PaginationParams, createPaginationParams } from "@/lib/pagination";
 
 /**
@@ -8,7 +9,7 @@ import { PaginationParams, createPaginationParams } from "@/lib/pagination";
  * @param initialPageSize Initial page size
  * @returns Pagination state and handlers
  */
-export function usePagination(initialPage = 1, initialPageSize = 10) {
+export const usePagination = (initialPage = 1, initialPageSize = 10) => {
 	const searchParams = useSearchParams();
 	const [pagination, setPagination] = useState<PaginationParams>(() => {
 		const page = searchParams.get("page");
@@ -67,4 +68,4 @@ export function usePagination(initialPage = 1, initialPageSize = 10) {
 		prevPage,
 		resetPagination,
 	};
-}
+};

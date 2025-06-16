@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import L from "leaflet";
+import { useEffect, useRef } from "react";
 
 interface MapCircleProps {
 	map: L.Map;
-	latitude: number;
-	longitude: number;
+	latitude: number | undefined;
+	longitude: number | undefined;
 	radius: number;
 }
 
@@ -21,6 +21,15 @@ export const MapCircle = ({
 	// Update circle when props change
 	useEffect(() => {
 		if (!map) return;
+
+		// If coordinates are undefined, remove circle and return
+		if (latitude === undefined || longitude === undefined) {
+			if (circleRef.current) {
+				map.removeLayer(circleRef.current);
+				circleRef.current = null;
+			}
+			return;
+		}
 
 		// Remove existing circle
 		if (circleRef.current) {

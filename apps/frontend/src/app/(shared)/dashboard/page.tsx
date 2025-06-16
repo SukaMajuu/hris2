@@ -1,12 +1,5 @@
 'use client';
 
-import { useAuthStore } from '@/stores/auth.store';
-import { type Role } from '@/const/role';
-import { Trash2Icon, UsersIcon, UserPlusIcon, BriefcaseIcon } from 'lucide-react';
-import React from 'react';
-import { Clock, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
-
-import { StatCard } from '@/app/(admin)/employee-management/_components/StatCard';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -17,22 +10,39 @@ import {
   Legend,
   ArcElement,
 } from 'chart.js';
+import { Trash2Icon, UsersIcon, UserPlusIcon, BriefcaseIcon , Clock, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
+import React from 'react';
 
-import { useDashboardData } from './_hooks/useDashboardData';
-import { EmployeeStatsChart } from './_components/EmployeeStatsChart';
-import { EmployeeStatusChart } from './_components/EmployeeStatusChart';
-import { AttendanceStatistics } from './_components/AttendanceStatistics';
-import { AttendanceTable } from './_components/AttendanceTable';
-import { UserDashboardCharts } from './_components/UserDashboardCharts';
+import { useEmployeeMonthlyStatistics } from '@/api/queries/attendance.queries';
+import { StatCard } from '@/app/(admin)/employee-management/_components/StatCard';
 import { FeatureGuard } from '@/components/subscription/FeatureGuard';
 import { TrialBanner } from '@/components/subscription/TrialBanner';
 import { FEATURE_CODES } from '@/const/features';
+import { type Role } from '@/const/role';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
-import { useEmployeeMonthlyStatistics } from '@/api/queries/attendance.queries';
+import { useAuthStore } from '@/stores/auth.store';
+
+
+
+
+import { AttendanceStatistics } from './_components/AttendanceStatistics';
+import { AttendanceTable } from './_components/AttendanceTable';
+import { EmployeeStatsChart } from './_components/EmployeeStatsChart';
+import { EmployeeStatusChart } from './_components/EmployeeStatusChart';
+import { UserDashboardCharts } from './_components/UserDashboardCharts';
+import { useDashboardData } from './_hooks/useDashboardData';
+
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
 
-export default function DashboardPage() {
+// Helper function to get work hours display
+const getWorkHoursDisplay = (isLoading: boolean, totalWorkHours?: number) => {
+  if (isLoading) return '...';
+  if (!totalWorkHours) return '0h 0m';
+  return `${Math.floor(totalWorkHours)}h ${Math.floor((totalWorkHours % 1) * 60)}m`;
+};
+
+const DashboardPage = () => {
   const { user } = useAuthStore();
   const role = (user?.role as Role) || 'user';
   const { canAccessAdminDashboard, canAccessEmployeeDashboard } = useFeatureAccess();
@@ -52,7 +62,6 @@ export default function DashboardPage() {
     selectedMonthForEmployeeStatusChart,
     setSelectedMonthForEmployeeStatusChart,
     monthYearOptions,
-    isLoadingHireDateRange,
   } = useDashboardData();
 
   const currentDate = new Date();
@@ -70,7 +79,7 @@ export default function DashboardPage() {
     return (
       <div className='flex flex-col gap-6'>
         <FeatureGuard feature={requiredFeature}>
-          <div></div>
+          <div />
         </FeatureGuard>
       </div>
     );
@@ -159,13 +168,7 @@ export default function DashboardPage() {
             <div className='mb-2 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4'>
               <StatCard
                 label='Work Hours'
-                value={
-                  isLoadingMonthlyStats
-                    ? '...'
-                    : monthlyStats?.total_work_hours
-                      ? `${Math.floor(monthlyStats.total_work_hours)}h ${Math.floor((monthlyStats.total_work_hours % 1) * 60)}m`
-                      : '0h 0m'
-                }
+                value={getWorkHoursDisplay(isLoadingMonthlyStats, monthlyStats?.total_work_hours)}
                 icon={<Clock className='h-5 w-5' />}
                 description={`${new Date(currentYear, currentMonth - 1).toLocaleString('en-US', { month: 'long', year: 'numeric' })}`}
               />
@@ -198,4 +201,6 @@ export default function DashboardPage() {
       )}
     </div>
   );
-}
+};
+
+export default DashboardPage;

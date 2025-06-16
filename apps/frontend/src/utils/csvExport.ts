@@ -1,4 +1,4 @@
-export function exportToCSV<T extends Record<string, unknown>>(
+const exportToCSV = <T extends Record<string, unknown>>(
 	data: T[],
 	filename: string,
 	columns?: Array<{
@@ -6,7 +6,7 @@ export function exportToCSV<T extends Record<string, unknown>>(
 		header: string;
 		transform?: (value: unknown) => string;
 	}>
-) {
+) => {
 	if (!data || data.length === 0) {
 		return;
 	}
@@ -15,7 +15,7 @@ export function exportToCSV<T extends Record<string, unknown>>(
 
 	if (columns) {
 		const headers = columns.map((col) => col.header).join(",");
-		csvContent = headers + "\n";
+		csvContent = `${headers}\n`;
 
 		data.forEach((row) => {
 			const values = columns.map((col) => {
@@ -33,7 +33,7 @@ export function exportToCSV<T extends Record<string, unknown>>(
 				}
 				return stringValue;
 			});
-			csvContent += values.join(",") + "\n";
+			csvContent += `${values.join(",")}\n`;
 		});
 	} else {
 		const firstRow = data[0];
@@ -42,7 +42,7 @@ export function exportToCSV<T extends Record<string, unknown>>(
 		}
 
 		const headers = Object.keys(firstRow).join(",");
-		csvContent = headers + "\n";
+		csvContent = `${headers}\n`;
 
 		data.forEach((row) => {
 			const values = Object.values(row).map((value) => {
@@ -56,7 +56,7 @@ export function exportToCSV<T extends Record<string, unknown>>(
 				}
 				return stringValue;
 			});
-			csvContent += values.join(",") + "\n";
+			csvContent += `${values.join(",")}\n`;
 		});
 	}
 
@@ -72,4 +72,6 @@ export function exportToCSV<T extends Record<string, unknown>>(
 		link.click();
 		document.body.removeChild(link);
 	}
-}
+};
+
+export { exportToCSV };

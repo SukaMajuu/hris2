@@ -1,8 +1,9 @@
 "use client";
 
-import React from "react";
-import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+import React from "react";
+
+import { Button } from "@/components/ui/button";
 
 interface FormNavigationProps {
 	activeStep: number;
@@ -13,20 +14,19 @@ interface FormNavigationProps {
 	onSubmit: (e: React.FormEvent) => void;
 }
 
-export function FormNavigation({
+export const FormNavigation = ({
 	activeStep,
 	totalSteps,
 	isSubmitting = false,
 	onBack,
 	onNext,
 	onSubmit,
-}: FormNavigationProps) {
-	return (
+}: FormNavigationProps) => (
 		<div className="mt-8 flex justify-end gap-3">
 			{activeStep > 1 && (
 				<Button
 					type="button"
-					variant={"outline"}
+					variant="outline"
 					onClick={onBack}
 					disabled={isSubmitting}
 					className="cursor-pointer border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
@@ -64,5 +64,4 @@ export function FormNavigation({
 				</Button>
 			)}
 		</div>
-	);
-}
+	)

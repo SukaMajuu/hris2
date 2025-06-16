@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { usePathname, useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
-import { useAuthStore, User as AppUser, Role } from "@/stores/auth.store";
-import { tokenService } from "@/services/token.service";
 import { jwtDecode } from "jwt-decode";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState, useRef } from "react";
+
+import { supabase } from "@/lib/supabase";
+import { TokenService } from "@/services/token.service";
+import { useAuthStore, User as AppUser, Role } from "@/stores/auth.store";
 
 interface DecodedJwtPayload {
 	user_id: number;
@@ -17,7 +18,7 @@ interface DecodedJwtPayload {
 	exp?: number;
 }
 
-export function useAuthListener() {
+const useAuthListener = () => {
 	const router = useRouter();
 	const pathname = usePathname();
 	const setUser = useAuthStore((state) => state.setUser);
@@ -34,10 +35,10 @@ export function useAuthListener() {
 		if (pathname === "/auth/callback") {
 			setIsLoading(false);
 			setInitialSetupCompleted(true);
-			return;
+			return undefined;
 		}
 
-		const token = tokenService.getAccessToken();
+		const token = TokenService.getAccessToken();
 		const currentAuthStoreState = useAuthStore.getState();
 
 		if (!currentAuthStoreState.isAuthenticated && token) {
@@ -56,7 +57,7 @@ export function useAuthListener() {
 					"[AuthListener] Error rehydrating from token:",
 					error
 				);
-				tokenService.clearTokens();
+				TokenService.clearTokens();
 				clearUser();
 			}
 		} else if (
@@ -70,7 +71,7 @@ export function useAuthListener() {
 		const { data: authListener } = supabase.auth.onAuthStateChange(
 			async (event, session) => {
 				if (pathname === "/auth/callback") {
-					return;
+					return undefined;
 				}
 
 				const appState = useAuthStore.getState();
@@ -82,7 +83,7 @@ export function useAuthListener() {
 					}
 					setIsLoading(false);
 					setInitialSetupCompleted(true);
-					return;
+					return undefined;
 				}
 
 				if (event === "SIGNED_OUT") {
@@ -91,9 +92,9 @@ export function useAuthListener() {
 
 					if (
 						appState.isAuthenticated ||
-						tokenService.getAccessToken()
+						TokenService.getAccessToken()
 					) {
-						tokenService.clearTokens();
+						TokenService.clearTokens();
 						clearUser();
 					}
 
@@ -114,7 +115,7 @@ export function useAuthListener() {
 					setTimeout(() => {
 						justLoggedOutRef.current = false;
 					}, 500);
-					return;
+					return undefined;
 				}
 
 				if (
@@ -124,7 +125,7 @@ export function useAuthListener() {
 					if (justLoggedOutRef.current) {
 						setIsLoading(false);
 						setInitialSetupCompleted(true);
-						return;
+						return undefined;
 					}
 
 					if (event === "SIGNED_IN") {
@@ -133,12 +134,12 @@ export function useAuthListener() {
 
 					if (
 						appState.isAuthenticated &&
-						tokenService.getAccessToken()
+						TokenService.getAccessToken()
 					) {
 						setIsLoading(false);
 					}
 				} else if (!session && event === "INITIAL_SESSION") {
-					const tokenExists = !!tokenService.getAccessToken();
+					const tokenExists = !!TokenService.getAccessToken();
 					if (!tokenExists && appState.isAuthenticated) {
 						clearUser();
 					} else if (!tokenExists && !appState.isAuthenticated) {
@@ -147,13 +148,14 @@ export function useAuthListener() {
 				}
 				setInitialSetupCompleted(true);
 				if (useAuthStore.getState().isLoading) setIsLoading(false);
+				return undefined;
 			}
 		);
 
 		const fallbackTimer = setTimeout(() => {
 			if (!initialSetupCompleted || useAuthStore.getState().isLoading) {
 				const state = useAuthStore.getState();
-				if (!state.isAuthenticated && !tokenService.getAccessToken()) {
+				if (!state.isAuthenticated && !TokenService.getAccessToken()) {
 					if (
 						pathname !== "/login" &&
 						pathname !== "/register" &&
@@ -194,4 +196,6 @@ export function useAuthListener() {
 	]);
 
 	return { initialAuthCheckCompleted: initialSetupCompleted };
-}
+};
+
+export { useAuthListener };

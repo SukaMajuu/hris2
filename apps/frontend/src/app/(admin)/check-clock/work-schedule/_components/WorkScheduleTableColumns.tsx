@@ -1,11 +1,11 @@
 import { ColumnDef } from "@tanstack/react-table";
-import { Button } from "@/components/ui/button";
 import { Edit, Trash2, Eye } from "lucide-react";
-import { WorkSchedule } from "@/types/work-schedule.types";
+
+import { Button } from "@/components/ui/button";
 import WorkTypeBadge from "@/components/workTypeBadge";
 import { WorkType } from "@/const/work";
+import { WorkSchedule } from "@/types/work-schedule.types";
 
-// Component for the No. column
 export const NoColumn = ({
 	row,
 	currentPage,
@@ -20,7 +20,6 @@ export const NoColumn = ({
 	</div>
 );
 
-// Component for the Schedule Name column
 export const NameColumn = ({ row }: { row: { original: WorkSchedule } }) => (
 	<div className="flex items-center justify-center">
 		<div className="max-w-[120px] truncate text-center text-xs md:max-w-[200px] md:text-sm">
@@ -29,7 +28,6 @@ export const NameColumn = ({ row }: { row: { original: WorkSchedule } }) => (
 	</div>
 );
 
-// Component for the Work Type column
 export const WorkTypeColumn = ({
 	row,
 }: {
@@ -40,7 +38,6 @@ export const WorkTypeColumn = ({
 	</div>
 );
 
-// Component for the Actions column
 export const ActionsColumn = ({
 	row,
 	onView,
@@ -94,7 +91,6 @@ export const ActionsColumn = ({
 	</div>
 );
 
-// Function to create the columns configuration
 export const createWorkScheduleColumns = (
 	currentPage: number,
 	pageSize: number,

@@ -1,7 +1,8 @@
-import { ApiService, PaginatedResponse } from "./api.service";
 import { API_ROUTES } from "@/config/api.routes";
-import type { Employee, EmployeeFilters } from "@/types/employee";
+import type { Employee, EmployeeFilters } from "@/types/employee.types";
 import type { EmployeeImportData } from "@/utils/csvImport";
+
+import { ApiService, PaginatedResponse } from "./api.service";
 
 export interface EmployeeApiResponse {
 	status: number;

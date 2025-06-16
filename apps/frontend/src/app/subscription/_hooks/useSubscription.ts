@@ -1,10 +1,12 @@
-import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { useState, useEffect, useMemo } from "react";
+
 import {
 	useSubscriptionPlans,
 	useUserSubscription,
 	useSeatPlans,
 } from "@/api/queries/subscription.queries";
+
 import { SeatTier } from "../_components/SeatTierCardComponent";
 
 export const useSubscription = () => {
@@ -45,13 +47,13 @@ export const useSubscription = () => {
 			const targetPlanName = searchParams.get("targetPlanName");
 
 			if (isDowngradeFromURL && targetPlanId && targetPlanName) {
-				setSelectedPlanId(parseInt(targetPlanId));
+				setSelectedPlanId(parseInt(targetPlanId, 10));
 				setActiveView("seat");
 				setIsDowngradeContext(true);
 
 				// Store in sessionStorage for consistency
 				const downgradeData = {
-					planId: parseInt(targetPlanId),
+					planId: parseInt(targetPlanId, 10),
 					planName: targetPlanName,
 					isDowngrade: true,
 				};

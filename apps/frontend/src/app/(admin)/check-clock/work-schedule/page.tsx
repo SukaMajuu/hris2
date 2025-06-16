@@ -1,37 +1,25 @@
 "use client";
 
-import WorkTypeBadge from "@/components/workTypeBadge";
-import { WorkType } from "@/const/work";
-import { DataTable } from "@/components/dataTable";
-import { Card, CardContent } from "@/components/ui/card";
-import { PaginationComponent } from "@/components/pagination";
-import { PageSizeComponent } from "@/components/pageSize";
-import { Button } from "@/components/ui/button";
-import { Edit, Eye, Plus, Search, Trash } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import React, { useCallback, useMemo } from "react";
-import {
-	ColumnDef,
-	getCoreRowModel,
-	getFilteredRowModel,
-	getPaginationRowModel,
-	useReactTable,
-} from "@tanstack/react-table";
-import ConfirmationDelete from "./_components/ConfirmationDelete";
+import { Plus, Search } from "lucide-react";
 import Link from "next/link";
-import WorkScheduleDetailDialog from "./_components/WorkScheduleDetail";
-import { WorkSchedule } from "@/types/work-schedule.types";
-import { useWorkSchedule } from "./_hooks/useWorkSchedule";
-import { usePagination } from "@/hooks/usePagination";
-import { useRouter } from "next/navigation";
+import React from "react";
+
+import { DataTable } from "@/components/dataTable";
+import { PageSizeComponent } from "@/components/pageSize";
+import { PaginationComponent } from "@/components/pagination";
 import { FeatureGuard } from "@/components/subscription/FeatureGuard";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { Input } from "@/components/ui/input";
 import { FEATURE_CODES } from "@/const/features";
-import { createWorkScheduleColumns } from "./_components/WorkScheduleTableColumns";
+import { usePagination } from "@/hooks/usePagination";
 
-export default function WorkSchedulePage() {
-	const router = useRouter();
-	const [scheduleNameFilter, setScheduleNameFilter] = React.useState("");
+import WorkScheduleDetailDialog from "./_components/WorkScheduleDetail";
+import { useWorkSchedule } from "./_hooks/useWorkSchedule";
+import { useWorkScheduleTable } from "./_hooks/useWorkScheduleTable";
 
+const WorkSchedulePage = () => {
 	const { pagination, setPage, setPageSize } = usePagination(1, 10);
 
 	const {
@@ -54,110 +42,30 @@ export default function WorkSchedulePage() {
 		handleOpenViewDialog,
 		handleCloseViewDialog,
 		handleConfirmDelete,
+		handleEdit,
+		handleRowClick,
 	} = useWorkSchedule(pagination.page, pagination.pageSize);
 
-	const handleEdit = useCallback(
-		(id: number) => {
-			router.push(`/check-clock/work-schedule/edit/${id}`);
-		},
-		[router]
-	);
-
-	const handleEditWrapper = useCallback(
-		(schedule: WorkSchedule) => {
-			if (schedule.id) {
-				handleEdit(schedule.id);
-			}
-		},
-		[handleEdit]
-	);
-
-	const handleRowClick = useCallback(
-		(row: { original: WorkSchedule }) => {
-			const workSchedule = row.original;
-			if (workSchedule.id) {
-				router.push(
-					`/check-clock/work-schedule/edit/${workSchedule.id}`
-				);
-			}
-		},
-		[router]
-	);
-
-	const handleOpenDelete = useCallback(
-		(data: WorkSchedule) => {
-			handleOpenDeleteDialog(data);
-		},
-		[handleOpenDeleteDialog]
-	);
-
-	const handleView = useCallback(
-		(data: WorkSchedule) => {
-			handleOpenViewDialog(data);
-		},
-		[handleOpenViewDialog]
-	);
-
-	const columns = useMemo<ColumnDef<WorkSchedule>[]>(
-		() =>
-			createWorkScheduleColumns(
-				serverPagination.currentPage,
-				serverPagination.pageSize,
-				handleOpenViewDialog,
-				handleEditWrapper,
-				handleOpenDelete
-			),
-		[
-			serverPagination.currentPage,
-			serverPagination.pageSize,
-			handleOpenViewDialog,
-			handleEditWrapper,
-			handleOpenDelete,
-		]
-	);
-
-	const table = useReactTable<WorkSchedule>({
-		data: workSchedules,
-		columns,
-		state: {
-			columnFilters: [{ id: "name", value: scheduleNameFilter }],
-			pagination: {
-				pageIndex: serverPagination.currentPage - 1,
-				pageSize: serverPagination.pageSize,
-			},
-		},
-		onColumnFiltersChange: (updater) => {
-			const newFilters =
-				typeof updater === "function"
-					? updater(table.getState().columnFilters)
-					: updater;
-			const nameFilterUpdate = newFilters.find((f) => f.id === "name");
-			setScheduleNameFilter((nameFilterUpdate?.value as string) || "");
-		},
-		onPaginationChange: (updater) => {
-			const currentPaginationState = {
-				pageIndex: serverPagination.currentPage - 1,
-				pageSize: serverPagination.pageSize,
-			};
-			const newPagination =
-				typeof updater === "function"
-					? updater(currentPaginationState)
-					: updater;
-			setPage(newPagination.pageIndex + 1);
-			setPageSize(newPagination.pageSize);
-		},
-		pageCount: serverPagination.totalPages || 0,
-		manualPagination: true,
-		getCoreRowModel: getCoreRowModel(),
-		getPaginationRowModel: getPaginationRowModel(),
-		getFilteredRowModel: getFilteredRowModel(),
-		autoResetPageIndex: false,
+	// Table logic
+	const {
+		table,
+		scheduleNameFilter,
+		handleNameFilterChange,
+	} = useWorkScheduleTable({
+		workSchedules,
+		pagination: serverPagination,
+		onEdit: handleEdit,
+		onView: handleOpenViewDialog,
+		onDelete: handleOpenDeleteDialog,
+		onRowClick: handleRowClick,
+		onPageChange: setPage,
+		onPageSizeChange: setPageSize,
 	});
 	if (isLoading) {
 		return (
 			<main className="flex min-h-screen items-center justify-center">
 				<div className="text-center">
-					<div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600"></div>
+					<div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600" />
 					<p>Loading work schedules...</p>
 				</div>
 			</main>
@@ -190,6 +98,7 @@ export default function WorkSchedulePage() {
 						{error?.message}
 					</p>
 					<button
+						type="button"
 						onClick={() => window.location.reload()}
 						className="mt-4 rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
 					>
@@ -210,7 +119,7 @@ export default function WorkSchedulePage() {
 								Work Schedule
 							</h2>
 							<Link href="/check-clock/work-schedule/add">
-								<Button className="gap-2 bg-[#6B9AC4] hover:bg-[#5A89B3] text-white dark:text-slate-100 hover:cursor-pointer px-4 py-2 rounded-md">
+								<Button className="gap-2 bg-primary hover:bg-primary/90 text-white dark:text-slate-100 hover:cursor-pointer px-4 py-2 rounded-md">
 									<Plus className="h-4 w-4" />
 									Add Data
 								</Button>
@@ -221,14 +130,11 @@ export default function WorkSchedulePage() {
 								<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
 								<Input
 									value={scheduleNameFilter ?? ""}
-									onChange={(event) => {
-										const newNameFilter =
-											event.target.value;
-										setScheduleNameFilter(newNameFilter);
-										table
-											.getColumn("name")
-											?.setFilterValue(newNameFilter);
-									}}
+									onChange={(event) =>
+										handleNameFilterChange(
+											event.target.value
+										)
+									}
 									className="pl-10 w-full bg-white border-gray-200"
 									placeholder="Search Schedule Name"
 								/>
@@ -243,11 +149,14 @@ export default function WorkSchedulePage() {
 					</footer>
 				</CardContent>
 			</Card>
-			<ConfirmationDelete
-				isDeleteDialogOpen={isDeleteDialogOpen}
-				handleCloseDeleteDialog={handleCloseDeleteDialog}
-				handleConfirmDelete={handleConfirmDelete}
-				workScheduleToDelete={workScheduleToDelete as WorkSchedule}
+
+			<ConfirmationDialog
+				open={isDeleteDialogOpen}
+				onOpenChange={handleCloseDeleteDialog}
+				itemName={workScheduleToDelete?.name}
+				itemType="work schedule"
+				onConfirm={handleConfirmDelete}
+				onCancel={handleCloseDeleteDialog}
 			/>
 
 			<WorkScheduleDetailDialog
@@ -263,4 +172,6 @@ export default function WorkSchedulePage() {
 			/>
 		</FeatureGuard>
 	);
-}
+};
+
+export default WorkSchedulePage;

@@ -1,9 +1,19 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
+import { useState, useRef, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
+
+import { useCreateEmployee } from '@/api/mutations/employee.mutations';
+import {
+  type ContractType,
+  type EducationLevel,
+  type Gender,
+  type TaxStatus,
+} from '@/const';
+import { useSubscriptionLimit } from '@/hooks/useSubscriptionLimit';
 import {
   employeeFormSchema,
   type EmployeeFormData,
@@ -11,50 +21,17 @@ import {
   employeeInfoSchema,
   bankInfoSchema,
 } from '@/schemas/employee.schema';
-import { useCreateEmployee } from '@/api/mutations/employee.mutations';
-import { toast } from 'sonner';
-import { useSubscriptionLimit } from '@/hooks/useSubscriptionLimit';
 
-const getTodaysDate = (): string => {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, '0');
-  const day = String(today.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
+const getTodaysDate = (): string => new Date().toISOString().split('T')[0] || '';
 
 type FormEmployeeData = Omit<
   EmployeeFormData,
   'gender' | 'lastEducation' | 'taxStatus' | 'contractType'
 > & {
-  gender: '' | 'Male' | 'Female';
-  lastEducation:
-    | ''
-    | 'SD'
-    | 'SMP'
-    | 'SMA/SMK'
-    | 'D1'
-    | 'D2'
-    | 'D3'
-    | 'S1/D4'
-    | 'S2'
-    | 'S3'
-    | 'Other';
-  taxStatus:
-    | ''
-    | 'TK/0'
-    | 'TK/1'
-    | 'TK/2'
-    | 'TK/3'
-    | 'K/0'
-    | 'K/1'
-    | 'K/2'
-    | 'K/3'
-    | 'K/I/0'
-    | 'K/I/1'
-    | 'K/I/2'
-    | 'K/I/3';
-  contractType: '' | 'permanent' | 'contract' | 'freelance';
+  gender: '' | Gender;
+  lastEducation: '' | EducationLevel;
+  taxStatus: '' | TaxStatus;
+  contractType: '' | ContractType;
 };
 
 const initialFormData: FormEmployeeData = {
@@ -81,7 +58,7 @@ const initialFormData: FormEmployeeData = {
   bankAccountNumber: '',
 };
 
-export function useAddEmployeeForm() {
+export const useAddEmployeeForm = () => {
   const [activeStep, setActiveStep] = useState(1);
   const [hasRealtimeValidationErrors, setHasRealtimeValidationErrors] = useState(false);
   const profilePhotoInputRef = useRef<HTMLInputElement>(null);
@@ -140,11 +117,11 @@ export function useAddEmployeeForm() {
         processedValue = value.replace(/\D/g, '').slice(0, 16);
       } else if (name === 'phoneNumber') {
         if (value.startsWith('+')) {
-          processedValue = '+' + value.slice(1).replace(/\D/g, '');
+          processedValue = `+${  value.slice(1).replace(/\D/g, '')}`;
         } else if (value === '') {
           processedValue = '';
         } else {
-          processedValue = '+' + value.replace(/\D/g, '');
+          processedValue = `+${  value.replace(/\D/g, '')}`;
         }
       } else if (name === 'bankAccountNumber') {
         processedValue = value.replace(/\D/g, '');
@@ -192,7 +169,7 @@ export function useAddEmployeeForm() {
     try {
       currentStepSchema.parse(currentData);
       return true;
-    } catch (error) {
+    } catch {
       return false;
     }
   };
@@ -362,7 +339,8 @@ export function useAddEmployeeForm() {
 
     let canProceed = true;
 
-    for (let step = activeStep; step < stepNumber; step++) {
+    const stepValidations = [];
+    for (let step = activeStep; step < stepNumber; step += 1) {
       if (step === 1 && hasRealtimeValidationErrors) {
         canProceed = false;
         break;
@@ -388,12 +366,13 @@ export function useAddEmployeeForm() {
       const currentStepFields = stepFields[step as keyof typeof stepFields];
 
       if (currentStepFields && currentStepFields.length > 0) {
-        const isValid = await form.trigger(currentStepFields);
-        if (!isValid) {
-          canProceed = false;
-          break;
-        }
+        stepValidations.push(form.trigger(currentStepFields));
       }
+    }
+
+    if (stepValidations.length > 0) {
+      const validationResults = await Promise.all(stepValidations);
+      canProceed = validationResults.every(Boolean);
     }
 
     if (canProceed) {
@@ -433,19 +412,17 @@ export function useAddEmployeeForm() {
 
     const currentData = getValues();
 
-    for (const field of currentStepFields) {
+    const hasInvalidField = currentStepFields.some((field) => {
       const value = currentData[field];
 
       if (!value || (typeof value === 'string' && value.trim() === '')) {
-        return false;
+        return true;
       }
 
-      if (errors[field]) {
-        return false;
-      }
-    }
+      return Boolean(errors[field]);
+    });
 
-    return true;
+    return !hasInvalidField;
   };
 
   return {

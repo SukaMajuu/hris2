@@ -1,7 +1,8 @@
 import { ColumnDef } from "@tanstack/react-table";
-import { Button } from "@/components/ui/button";
 import { Edit, Trash2 } from "lucide-react";
-import { LocationResponse } from "@/types/location";
+
+import { Button } from "@/components/ui/button";
+import { LocationResponse } from "@/types/location.types";
 
 // Component for the No. column
 export const NoColumn = ({

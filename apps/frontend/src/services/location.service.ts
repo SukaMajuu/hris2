@@ -2,9 +2,10 @@ import {
 	CreateLocationRequest,
 	LocationResponse,
 	UpdateLocationRequest,
-} from "@/types/location";
-import { API_ROUTES } from "../config/api.routes";
+} from "@/types/location.types";
+
 import { ApiService } from "./api.service";
+import { API_ROUTES } from "../config/api.routes";
 
 // Backend response structure based on swagger/backend code
 interface ApiResponse<T> {

@@ -1,6 +1,7 @@
-import React, { useState } from "react";
-import { Button } from "../ui/button";
 import { Mail, Phone, MapPin, CheckCircle } from "lucide-react";
+import React, { useState } from "react";
+
+import { Button } from "../ui/button";
 
 const Contact: React.FC = () => {
 	const [formState, setFormState] = useState({
@@ -267,7 +268,7 @@ const Contact: React.FC = () => {
 											rows={4}
 											className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
 											placeholder="Tell us about your HR needs and challenges..."
-										></textarea>
+										/>
 									</div>
 
 									<div className="mb-6 flex items-center">
@@ -283,14 +284,14 @@ const Contact: React.FC = () => {
 										>
 											I agree to the{" "}
 											<a
-												href="#"
+												href="/privacy"
 												className="text-blue-800 hover:underline"
 											>
 												privacy policy
 											</a>{" "}
 											and{" "}
 											<a
-												href="#"
+												href="/terms"
 												className="text-blue-800 hover:underline"
 											>
 												terms of service

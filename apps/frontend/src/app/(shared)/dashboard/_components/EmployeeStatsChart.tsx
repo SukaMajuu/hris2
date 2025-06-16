@@ -1,6 +1,9 @@
 'use client';
 
+import { Calendar } from 'lucide-react';
 import React from 'react';
+import { Bar } from 'react-chartjs-2';
+
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Select,
@@ -9,8 +12,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Calendar } from 'lucide-react';
-import { Bar } from 'react-chartjs-2';
 import type { EmployeeStatsData } from '@/services/employee.service';
 
 interface EmployeeStatsChartProps {
@@ -21,13 +22,13 @@ interface EmployeeStatsChartProps {
   monthYearOptions: Array<{ value: string; label: string }>;
 }
 
-export function EmployeeStatsChart({
+export const EmployeeStatsChart = ({
   employeeStats,
   isLoading,
   selectedMonth,
   onMonthChange,
   monthYearOptions,
-}: EmployeeStatsChartProps) {
+}: EmployeeStatsChartProps) => {
   const barData = {
     labels: ['New', 'Active', 'Resign'],
     datasets: [
@@ -68,7 +69,7 @@ export function EmployeeStatsChart({
         enabled: true,
         callbacks: {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          label: function (context: any) {
+          label (context: any) {
             let label = context.dataset.label || '';
             if (label) {
               label += ': ';

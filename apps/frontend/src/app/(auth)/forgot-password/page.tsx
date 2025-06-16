@@ -1,5 +1,11 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+
+import { useRequestPasswordResetMutation } from "@/api/mutations/auth.mutation";
 import { Button } from "@/components/ui/button";
 import {
 	Form,
@@ -10,17 +16,12 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import Link from "next/link";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
 import {
 	forgotPasswordSchema,
 	ForgotPasswordFormData,
 } from "@/schemas/auth.schema";
-import { useRequestPasswordResetMutation } from "@/api/mutations/auth.mutation";
 
-export default function ForgotPasswordPage() {
+const ForgotPasswordPage = () => {
 	const router = useRouter();
 	const forgotPasswordForm = useForm<ForgotPasswordFormData>({
 		resolver: zodResolver(forgotPasswordSchema),
@@ -97,4 +98,6 @@ export default function ForgotPasswordPage() {
 			</div>
 		</div>
 	);
-}
+};
+
+export default ForgotPasswordPage;

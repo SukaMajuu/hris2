@@ -1,10 +1,11 @@
-import { useAuthStore } from "@/stores/auth.store";
-import { toast } from "sonner";
-import { useLogoutMutation } from "@/api/mutations/auth.mutation";
+import { useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import { useRef, useCallback, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { tokenService } from "@/services/token.service";
+import { toast } from "sonner";
+
+import { useLogoutMutation } from "@/api/mutations/auth.mutation";
+import { TokenService } from "@/services/token.service";
+import { useAuthStore } from "@/stores/auth.store";
 
 /**
  * Enhanced logout hook with comprehensive cache and storage clearing
@@ -41,7 +42,7 @@ export const useLogout = () => {
 			queryClient.clear();
 
 			// 2. Clear all localStorage (tokens, etc.)
-			tokenService.clearAllAuthStorage(); // This clears auth tokens including Supabase
+			TokenService.clearAllAuthStorage(); // This clears auth tokens including Supabase
 
 			// Clear any other localStorage items that might exist
 			const localStorageKeysToKeep: string[] = []; // Keep nothing for security

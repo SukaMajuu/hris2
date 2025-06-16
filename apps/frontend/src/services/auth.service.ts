@@ -1,12 +1,13 @@
-import { ApiService } from "./api.service";
-import { tokenService } from "./token.service";
+import { API_ROUTES } from "@/config/api.routes";
 import {
 	LoginCredentials,
 	RegisterCredentials,
 	AuthResponse,
 	ApiRefreshResponse,
-} from "@/types/auth";
-import { API_ROUTES } from "@/config/api.routes";
+} from "@/types/auth.types";
+
+import { ApiService } from "./api.service";
+import { TokenService } from "./token.service";
 
 interface ApiResponse<T> {
 	data: T;
@@ -25,7 +26,7 @@ export class AuthService {
 			credentials
 		);
 		const { access_token, user } = response.data.data;
-		tokenService.setAccessToken(access_token);
+		TokenService.setAccessToken(access_token);
 		return { user, access_token };
 	}
 
@@ -35,7 +36,7 @@ export class AuthService {
 			credentials
 		);
 		const { access_token, user } = response.data.data;
-		tokenService.setAccessToken(access_token);
+		TokenService.setAccessToken(access_token);
 		return { user, access_token };
 	}
 
@@ -49,7 +50,7 @@ export class AuthService {
 			}
 		);
 		const { access_token, user } = response.data.data;
-		tokenService.setAccessToken(access_token);
+		TokenService.setAccessToken(access_token);
 		return { user, access_token };
 	}
 
@@ -62,13 +63,12 @@ export class AuthService {
 			);
 
 			if (refreshResponse.data?.data?.access_token) {
-				tokenService.setAccessToken(
+				TokenService.setAccessToken(
 					refreshResponse.data.data.access_token
 				);
 				return true;
-			} else {
-				return false;
 			}
+			return false;
 		} catch (error) {
 			console.error(
 				"[AuthService] Proactive token refresh failed:",
@@ -112,7 +112,7 @@ export class AuthService {
 			);
 		} finally {
 			// Clear all authentication storage including Supabase tokens
-			tokenService.clearAllAuthStorage();
+			TokenService.clearAllAuthStorage();
 		}
 	}
 }

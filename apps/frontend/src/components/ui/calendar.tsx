@@ -1,16 +1,16 @@
 "use client";
 
-import * as React from "react";
 import {
 	ChevronDownIcon,
 	ChevronLeftIcon,
 	ChevronRightIcon,
 } from "lucide-react";
-import { DayButton, DayPicker, getDefaultClassNames } from "react-day-picker";
+import * as React from "react";
 import type { HTMLAttributes, ThHTMLAttributes, Ref } from "react";
+import { DayButton, DayPicker, getDefaultClassNames } from "react-day-picker";
 
-import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 // Define components outside the render function with correct types
 const CalendarRoot = ({
@@ -19,8 +19,7 @@ const CalendarRoot = ({
 	...props
 }: {
 	rootRef?: Ref<HTMLDivElement>;
-} & HTMLAttributes<HTMLDivElement>) => {
-	return (
+} & HTMLAttributes<HTMLDivElement>) => (
 		<div
 			data-slot="calendar"
 			ref={rootRef}
@@ -28,7 +27,6 @@ const CalendarRoot = ({
 			{...props}
 		/>
 	);
-};
 
 const CalendarChevron = ({
 	className,
@@ -60,17 +58,15 @@ const CalendarWeekNumber = ({
 	...props
 }: {
 	week: unknown;
-} & ThHTMLAttributes<HTMLTableCellElement>) => {
-	return (
+} & ThHTMLAttributes<HTMLTableCellElement>) => (
 		<td {...props}>
 			<div className="flex size-(--cell-size) items-center justify-center text-center">
 				{children}
 			</div>
 		</td>
 	);
-};
 
-function Calendar({
+const Calendar = ({
 	className,
 	classNames,
 	showOutsideDays = true,
@@ -81,7 +77,7 @@ function Calendar({
 	...props
 }: React.ComponentProps<typeof DayPicker> & {
 	buttonVariant?: React.ComponentProps<typeof Button>["variant"];
-}) {
+}) => {
 	const defaultClassNames = getDefaultClassNames();
 
 	return (
@@ -204,12 +200,12 @@ function Calendar({
 	);
 }
 
-function CalendarDayButton({
+const CalendarDayButton = ({
 	className,
 	day,
 	modifiers,
 	...props
-}: React.ComponentProps<typeof DayButton>) {
+}: React.ComponentProps<typeof DayButton>) => {
 	const defaultClassNames = getDefaultClassNames();
 
 	const ref = React.useRef<HTMLButtonElement>(null);

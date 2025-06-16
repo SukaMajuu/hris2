@@ -1,16 +1,15 @@
-import { ApiService, PaginatedResponse } from "./api.service";
 import { API_ROUTES } from "@/config/api.routes";
-import { LeaveRequestStatus } from "@/types/leave-request";
+import { type LeaveStatus } from "@/const/leave";
 import type {
 	LeaveRequest,
 	CreateLeaveRequestRequest,
 	UpdateLeaveRequestRequest,
 	UpdateLeaveRequestStatusRequest,
 	LeaveRequestFilters,
-	LeaveRequestApiResponse,
-	LeaveRequestsApiResponse,
 	LeaveRequestStatsData,
-} from "@/types/leave-request";
+} from "@/types/leave-request.types";
+
+import { ApiService, PaginatedResponse } from "./api.service";
 
 export interface LeaveRequestStatsResponse {
 	message: string;
@@ -22,7 +21,6 @@ interface ApiResponse<T> {
 }
 
 class LeaveRequestService extends ApiService {
-	// Get all leave requests (admin/manager view)
 	async getLeaveRequests(
 		page = 1,
 		pageSize = 10,
@@ -46,17 +44,12 @@ class LeaveRequestService extends ApiService {
 			if (filters.search) params.append("search", filters.search);
 		}
 
-		const finalUrl = `${
-			API_ROUTES.v1.api.leaveRequests.list
-		}?${params.toString()}`;
-
 		const response = await this.get<
 			ApiResponse<PaginatedResponse<LeaveRequest>>
 		>(`${API_ROUTES.v1.api.leaveRequests.list}?${params.toString()}`);
 		return response.data.data;
 	}
 
-	// Get my leave requests (employee view)
 	async getMyLeaveRequests(
 		page = 1,
 		pageSize = 10,
@@ -83,14 +76,13 @@ class LeaveRequestService extends ApiService {
 		return response.data.data;
 	}
 
-	// Get leave request by ID
 	async getLeaveRequestDetail(id: number): Promise<LeaveRequest> {
 		const response = await this.get<ApiResponse<LeaveRequest>>(
 			API_ROUTES.v1.api.leaveRequests.detail(id)
 		);
 		return response.data.data;
 	}
-	// Create leave request
+
 	async createLeaveRequest(
 		data: CreateLeaveRequestRequest
 	): Promise<LeaveRequest> {
@@ -111,7 +103,7 @@ class LeaveRequestService extends ApiService {
 		);
 		return response.data.data;
 	}
-	// Update leave request
+
 	async updateLeaveRequest(
 		id: number,
 		data: UpdateLeaveRequestRequest
@@ -131,15 +123,14 @@ class LeaveRequestService extends ApiService {
 		);
 		return response.data.data;
 	}
-	// Update leave request status (approve/reject)
+
 	async updateLeaveRequestStatus(
 		id: number,
 		data: UpdateLeaveRequestStatusRequest
 	): Promise<LeaveRequest> {
-		// Map frontend enum values to backend DTO expected values
 		const backendData = {
 			...data,
-			status: this.mapStatusForBackend(data.status),
+			status: LeaveRequestService.mapStatusForBackend(data.status),
 		};
 
 		const response = await this.patch<ApiResponse<LeaveRequest>>(
@@ -147,13 +138,12 @@ class LeaveRequestService extends ApiService {
 			backendData
 		);
 		return response.data.data;
-	} // Helper method to map frontend status values to backend DTO expected values
-	private mapStatusForBackend(status: LeaveRequestStatus): string {
-		// Database uses spaces, so we keep the original values
+	}
+
+	private static mapStatusForBackend(status: LeaveStatus): string {
 		return status;
 	}
 
-	// Delete leave request
 	async deleteLeaveRequest(id: number): Promise<{ message: string }> {
 		const response = await this.delete<{ message: string }>(
 			API_ROUTES.v1.api.leaveRequests.delete(id)
@@ -161,7 +151,6 @@ class LeaveRequestService extends ApiService {
 		return response.data;
 	}
 
-	// Get leave request statistics
 	async getLeaveRequestStats(): Promise<LeaveRequestStatsData> {
 		const response = await this.get<ApiResponse<LeaveRequestStatsData>>(
 			`${API_ROUTES.v1.api.leaveRequests.base}/stats`
@@ -169,7 +158,6 @@ class LeaveRequestService extends ApiService {
 		return response.data.data;
 	}
 
-	// Create leave request (admin - for specific employee)
 	async createLeaveRequestForEmployee(
 		employeeId: number,
 		data: CreateLeaveRequestRequest

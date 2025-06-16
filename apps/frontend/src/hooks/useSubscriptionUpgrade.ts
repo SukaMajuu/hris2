@@ -1,6 +1,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+
 import {
 	useChangeSeatPlan,
 	useChangeSubscriptionPlan,
@@ -11,13 +12,11 @@ import {
 	UpgradeSubscriptionPlanRequest,
 	ConvertTrialToPaidRequest,
 	SubscriptionChangeResponse,
-} from "@/types/subscription";
+} from "@/types/subscription.types";
 
 export const useSubscriptionUpgrade = () => {
 	const router = useRouter();
 	const [isLoading, setIsLoading] = useState(false);
-	const [isConverting, setIsConverting] = useState(false);
-	const [isChangingSeat, setIsChangingSeat] = useState(false);
 
 	const changePlanMutation = useChangeSubscriptionPlan();
 	const changeSeatMutation = useChangeSeatPlan();

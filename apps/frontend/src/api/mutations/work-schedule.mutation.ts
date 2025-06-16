@@ -1,7 +1,9 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { queryKeys } from "../query-keys";
+
 import { workScheduleService } from "@/services/work-schedule.service";
 import { WorkSchedule } from "@/types/work-schedule.types";
+
+import { queryKeys } from "../query-keys";
 
 export const useCreateWorkSchedule = () => {
 	const queryClient = useQueryClient();
@@ -11,13 +13,11 @@ export const useCreateWorkSchedule = () => {
 		onSuccess: (newData) => {
 			// Invalidate all work schedule list queries regardless of params
 			queryClient.invalidateQueries({
-				predicate: (query) => {
-					return (
+				predicate: (query) => (
 						Array.isArray(query.queryKey) &&
 						query.queryKey[0] === "workSchedules" &&
 						query.queryKey[1] === "list"
-					);
-				},
+					),
 			});
 
 			// Set the new data in the detail query cache if ID is available
@@ -40,13 +40,11 @@ export const useUpdateWorkSchedule = () => {
 		onSuccess: (updatedData, variables) => {
 			// Invalidate all work schedule list queries regardless of params
 			queryClient.invalidateQueries({
-				predicate: (query) => {
-					return (
+				predicate: (query) => (
 						Array.isArray(query.queryKey) &&
 						query.queryKey[0] === "workSchedules" &&
 						query.queryKey[1] === "list"
-					);
-				},
+					),
 			});
 
 			// Also invalidate the specific detail query for this item
@@ -71,13 +69,11 @@ export const useDeleteWorkSchedule = () => {
 		onSuccess: (_, deletedId) => {
 			// Invalidate all work schedule list queries regardless of params
 			queryClient.invalidateQueries({
-				predicate: (query) => {
-					return (
+				predicate: (query) => (
 						Array.isArray(query.queryKey) &&
 						query.queryKey[0] === "workSchedules" &&
 						query.queryKey[1] === "list"
-					);
-				},
+					),
 			});
 
 			// Remove the deleted item from detail query cache

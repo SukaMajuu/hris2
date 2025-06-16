@@ -1,4 +1,5 @@
 import { create } from "zustand";
+
 import { CheckClockEmployeeEntry } from "@/types/check-clock-employee.types";
 
 interface CheckClockEmployeeState {

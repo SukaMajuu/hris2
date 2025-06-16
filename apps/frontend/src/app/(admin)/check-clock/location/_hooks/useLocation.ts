@@ -1,13 +1,17 @@
 import { useState, useCallback, useMemo } from "react";
-import { useLocations } from "@/api/queries/location.queries";
+import { toast } from "sonner";
+
 import {
 	useCreateLocation,
 	useUpdateLocation,
 	useDeleteLocation,
 } from "@/api/mutations/location.mutation";
-import { toast } from "sonner";
-import { CreateLocationRequest, UpdateLocationRequest } from "@/types/location";
-import { Location } from "@/types/location";
+import { useLocations } from "@/api/queries/location.queries";
+import {
+	CreateLocationRequest,
+	UpdateLocationRequest,
+	Location,
+} from "@/types/location.types";
 
 interface FilterOptions {
 	name?: string;

@@ -1,12 +1,13 @@
 "use client";
 
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
-import { WorkScheduleForm } from "@/app/(admin)/check-clock/work-schedule/_components/WorkScheduleForm";
-import { useAddWorkSchedule } from "./_hooks/useAddWorkSchedule";
+import { WorkScheduleForm } from "@/app/(admin)/check-clock/work-schedule/_components/workScheduleForm/WorkScheduleForm";
 import { FeatureGuard } from "@/components/subscription/FeatureGuard";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { FEATURE_CODES } from "@/const/features";
 
-export default function AddWorkSchedulePage() {
+import { useAddWorkSchedule } from "./_hooks/useAddWorkSchedule";
+
+const AddWorkSchedulePage = () => {
 	const {
 		// Locations for form
 		locations,
@@ -25,8 +26,10 @@ export default function AddWorkSchedulePage() {
 		return (
 			<main className="flex min-h-screen items-center justify-center">
 				<div className="text-center">
-					<div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600"></div>
-					<p className="text-slate-500 dark:text-slate-400">Loading locations...</p>
+					<div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600" />
+					<p className="text-slate-500 dark:text-slate-400">
+						Loading locations...
+					</p>
 				</div>
 			</main>
 		);
@@ -55,4 +58,6 @@ export default function AddWorkSchedulePage() {
 			</div>
 		</FeatureGuard>
 	);
-}
+};
+
+export default AddWorkSchedulePage;

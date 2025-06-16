@@ -134,7 +134,7 @@ const CheckClockEmployeeTab = () => {
 								</Button>
 							</Link>
 							<Link href="/employee-management">
-								<Button className="gap-2 bg-[#6B9AC4] hover:bg-[#5A89B3] text-white dark:text-slate-100 hover:cursor-pointer px-4 py-2 rounded-md">
+								<Button className="gap-2 bg-primary hover:bg-primary/90 text-white dark:text-slate-100 hover:cursor-pointer px-4 py-2 rounded-md">
 									<Users className="h-4 w-4" />
 									Manage Employees
 								</Button>

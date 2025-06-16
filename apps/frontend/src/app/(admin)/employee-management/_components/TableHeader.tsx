@@ -246,7 +246,7 @@ export const TableHeader = ({
 						<DropdownMenuTrigger asChild>
 							<Button
 								variant="outline"
-								className="hover:bg-secondary cursor-pointer gap-2 hover:text-white"
+								className="hover:bg-primary/80 cursor-pointer gap-2 hover:text-white"
 							>
 								<FileText className="h-4 w-4" />
 								Export
@@ -271,13 +271,13 @@ export const TableHeader = ({
 					<Button
 						variant="outline"
 						onClick={handleImport}
-						className="hover:bg-secondary cursor-pointer gap-2 hover:text-white"
+						className="hover:bg-primary/80 cursor-pointer gap-2 hover:text-white"
 					>
 						<Upload className="h-4 w-4" />
 						Import
 					</Button>
 					<Link href="/employee-management/add">
-						<Button className="hover:bg-secondary cursor-pointer gap-2 bg-[#6B9AC4]">
+						<Button className="cursor-pointer gap-2 bg-primary hover:bg-primary/90">
 							<Plus className="h-4 w-4" />
 							Add Data
 						</Button>
@@ -300,13 +300,13 @@ export const TableHeader = ({
 					<PopoverTrigger asChild>
 						<Button
 							variant="outline"
-							className="hover:bg-secondary cursor-pointer gap-2 hover:text-white"
+							className="hover:bg-primary/80 cursor-pointer gap-2 hover:text-white"
 						>
 							<Filter className="h-4 w-4" />
 							Filters
 							{hasActiveFilters && (
 								<Badge
-									variant="secondary"
+									variant="outline"
 									className="ml-1 h-5 w-5 rounded-full p-0 text-xs"
 								>
 									{activeFilterCount}
@@ -323,7 +323,7 @@ export const TableHeader = ({
 										variant="ghost"
 										size="sm"
 										onClick={clearFilters}
-										className="hover:bg-secondary h-auto rounded-md p-2 text-xs text-gray-600 transition-colors hover:text-white"
+										className="hover:bg-primary/80 h-auto rounded-md p-2 text-xs text-gray-600 transition-colors hover:text-white"
 									>
 										<X className="mr-1 h-3 w-3" />
 										Clear All
@@ -351,26 +351,26 @@ export const TableHeader = ({
 									>
 										<SelectTrigger
 											id="genderFilter"
-											className="hover:bg-secondary cursor-pointer gap-2 hover:text-white"
+											className="hover:bg-primary/80 cursor-pointer gap-2 hover:text-white"
 										>
 											<SelectValue placeholder="Select gender" />
 										</SelectTrigger>
 										<SelectContent>
 											<SelectItem
 												value="all"
-												className="hover:bg-secondary focus:bg-secondary cursor-pointer hover:text-white focus:text-white"
+												className="focus:bg-primary/80 cursor-pointer hover:text-white focus:text-white"
 											>
 												All Genders
 											</SelectItem>
 											<SelectItem
 												value="Male"
-												className="hover:bg-secondary focus:bg-secondary cursor-pointer hover:text-white focus:text-white"
+												className="focus:bg-primary/80 cursor-pointer hover:text-white focus:text-white"
 											>
 												Male
 											</SelectItem>
 											<SelectItem
 												value="Female"
-												className="hover:bg-secondary focus:bg-secondary cursor-pointer hover:text-white focus:text-white"
+												className="focus:bg-primary/80 cursor-pointer hover:text-white focus:text-white"
 											>
 												Female
 											</SelectItem>
@@ -397,26 +397,26 @@ export const TableHeader = ({
 									>
 										<SelectTrigger
 											id="statusFilter"
-											className="hover:bg-secondary cursor-pointer gap-2 hover:text-white"
+											className="hover:bg-primary/80 cursor-pointer gap-2 hover:text-white"
 										>
 											<SelectValue placeholder="Select status" />
 										</SelectTrigger>
 										<SelectContent>
 											<SelectItem
 												value="all"
-												className="hover:bg-secondary focus:bg-secondary cursor-pointer hover:text-white focus:text-white"
+												className="focus:bg-primary/80 cursor-pointer hover:text-white focus:text-white"
 											>
 												All Status
 											</SelectItem>
 											<SelectItem
 												value="Active"
-												className="hover:bg-secondary focus:bg-secondary cursor-pointer hover:text-white focus:text-white"
+												className="focus:bg-primary/80 cursor-pointer hover:text-white focus:text-white"
 											>
 												Active
 											</SelectItem>
 											<SelectItem
 												value="Inactive"
-												className="hover:bg-secondary focus:bg-secondary cursor-pointer hover:text-white focus:text-white"
+												className="focus:bg-primary/80 cursor-pointer hover:text-white focus:text-white"
 											>
 												Inactive
 											</SelectItem>

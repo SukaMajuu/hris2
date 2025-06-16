@@ -176,7 +176,7 @@ const CheckClockOverviewTab = () => {
 								Check-Clock Overview
 							</h2>
 							<Button
-								className="gap-2 bg-[#6B9AC4] hover:bg-[#5A89B3] text-white dark:text-slate-100 px-4 py-2 rounded-md"
+								className="gap-2 bg-primary hover:bg-primary/90 text-white dark:text-slate-100 px-4 py-2 rounded-md"
 								onClick={() => setOpenDialog(true)}
 								disabled={isLoading}
 							>

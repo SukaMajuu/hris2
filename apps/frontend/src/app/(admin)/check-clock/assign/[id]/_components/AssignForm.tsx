@@ -314,7 +314,7 @@ export const AssignForm = ({
 						<Button
 							type="submit"
 							variant="default"
-							className="px-6 py-2 text-sm bg-[#6B9AC4] hover:bg-[#5a89b3]"
+							className="px-6 py-2 text-sm bg-primary hover:bg-primary/90"
 							disabled={isLoading || !isFormValid}
 						>
 							{isLoading

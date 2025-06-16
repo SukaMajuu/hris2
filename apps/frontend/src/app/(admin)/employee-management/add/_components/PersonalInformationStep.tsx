@@ -1,10 +1,24 @@
 "use client";
 
-import { Loader2, CheckCircle, XCircle } from "lucide-react";
-import React, { useEffect } from "react";
+import {
+	Loader2,
+	CheckCircle,
+	XCircle,
+	ChevronDownIcon,
+	CalendarIcon,
+} from "lucide-react";
+import React, { useEffect, useState } from "react";
 import { FieldErrors } from "react-hook-form";
+import { format } from "date-fns";
 
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@/components/ui/popover";
 import {
 	Select,
 	SelectContent,
@@ -13,6 +27,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 
 import type { FormEmployeeData } from "../_hooks/useAddEmployeeForm";
 import { useRealtimeValidation } from "../_hooks/useRealtimeValidation";
@@ -32,6 +47,8 @@ export const PersonalInformationStep = ({
 	onSelectChange,
 	onValidationChange,
 }: PersonalInformationStepProps) => {
+	const [datePickerOpen, setDatePickerOpen] = useState(false);
+
 	const {
 		validationStates,
 		validateField,
@@ -489,50 +506,90 @@ export const PersonalInformationStep = ({
 						>
 							Date of Birth *
 						</label>
-						<Input
-							id="dateOfBirth"
-							name="dateOfBirth"
-							type="date"
-							value={formData.dateOfBirth}
-							onChange={onInputChange}
-							max={
-								new Date(
-									new Date().setFullYear(
-										new Date().getFullYear() - 16
-									)
-								)
-									.toISOString()
-									.split("T")[0]
-							}
-							min={
-								new Date(
-									new Date().setFullYear(
-										new Date().getFullYear() - 100
-									)
-								)
-									.toISOString()
-									.split("T")[0]
-							}
-							className={`focus:ring-primary focus:border-primary mt-1 w-full border-slate-300 placeholder:text-slate-400 dark:border-slate-600 dark:placeholder:text-slate-500 ${
-								formData.dateOfBirth
-									? "bg-slate-50 text-black dark:bg-slate-800 dark:text-slate-200"
-									: "bg-white text-slate-400 dark:bg-slate-900 dark:text-slate-200"
-							} ${
-								errors.dateOfBirth
-									? "border-red-500 focus:border-red-500"
-									: ""
-							}`}
-						/>
+						<div className="relative">
+							<Popover
+								open={datePickerOpen}
+								onOpenChange={setDatePickerOpen}
+							>
+								<PopoverTrigger asChild>
+									<Button
+										variant={"outline"}
+										className={cn(
+											"focus:ring-primary focus:border-primary mt-1 w-full justify-between text-left font-normal border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800",
+											!formData.dateOfBirth &&
+												"text-slate-400 dark:text-slate-500",
+											formData.dateOfBirth &&
+												"text-black dark:text-slate-200",
+											errors.dateOfBirth &&
+												"border-red-500 focus:border-red-500"
+										)}
+									>
+										{formData.dateOfBirth
+											? format(
+													new Date(
+														formData.dateOfBirth
+													),
+													"PPP"
+											  )
+											: "Select date of birth"}
+										<ChevronDownIcon className="h-4 w-4 opacity-50" />
+									</Button>
+								</PopoverTrigger>
+								<PopoverContent
+									className="w-auto overflow-hidden p-0"
+									align="start"
+								>
+									<Calendar
+										mode="single"
+										captionLayout="dropdown"
+										selected={
+											formData.dateOfBirth
+												? new Date(formData.dateOfBirth)
+												: undefined
+										}
+										defaultMonth={new Date(2009, 0)}
+										onSelect={(date) => {
+											if (date) {
+												const event = {
+													target: {
+														name: "dateOfBirth",
+														value: date
+															.toISOString()
+															.split("T")[0],
+													},
+												} as React.ChangeEvent<
+													HTMLInputElement
+												>;
+												onInputChange(event);
+											}
+											setDatePickerOpen(false);
+										}}
+										disabled={(date) => {
+											const today = new Date();
+											const minAge = new Date(
+												today.getFullYear() - 100,
+												today.getMonth(),
+												today.getDate()
+											);
+											const maxAge = new Date(
+												today.getFullYear() - 16,
+												today.getMonth(),
+												today.getDate()
+											);
+											return (
+												date > maxAge || date < minAge
+											);
+										}}
+										initialFocus
+									/>
+								</PopoverContent>
+							</Popover>
+						</div>
 						{errors.dateOfBirth && (
 							<p className="mt-1 text-sm text-red-500">
 								{errors.dateOfBirth.message}
 							</p>
 						)}
-						{/* {!errors.dateOfBirth && (
-              <p className='mt-1 text-xs text-slate-500 dark:text-slate-400'>
-                Employee age must be valid
-              </p>
-            )} */}
 					</div>
 					<div>
 						<label

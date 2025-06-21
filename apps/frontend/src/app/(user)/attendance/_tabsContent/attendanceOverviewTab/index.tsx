@@ -24,6 +24,11 @@ import { Attendance } from "@/types/attendance.types";
 import { Employee } from "@/types/employee.types";
 import { LeaveRequest } from "@/types/leave-request.types";
 import { formatLeaveType } from "@/utils/leave";
+import {
+	formatLeaveStatus,
+	getLeaveStatusBadgeClasses,
+	formatAttendanceStatus,
+} from "@/utils/status";
 import { formatWorkHours } from "@/utils/time";
 import { utcToLocal } from "@/utils/timezone";
 
@@ -41,21 +46,10 @@ import { useLeaveRequestsForAttendance } from "../../_hooks/useLeaveRequestsForA
 
 // Helper function to get status badge for leave requests
 const getLeaveStatusBadge = (status: LeaveStatus) => {
-	switch (status.toLowerCase()) {
-		case "approved":
-			return <Badge className="bg-green-600 text-white">Approved</Badge>;
-		case "rejected":
-			return <Badge className="bg-red-600 text-white">Rejected</Badge>;
-		case "waiting_approval":
-		case "waiting approval":
-			return (
-				<Badge className="bg-yellow-600 text-white">
-					Waiting Approval
-				</Badge>
-			);
-		default:
-			return <Badge className="bg-gray-600 text-white">{status}</Badge>;
-	}
+	const formattedStatus = formatLeaveStatus(status);
+	const badgeClasses = getLeaveStatusBadgeClasses(status);
+
+	return <Badge className={badgeClasses}>{formattedStatus}</Badge>;
 };
 
 // Helper function to get clock in time display
@@ -345,7 +339,9 @@ const AttendanceOverviewTab = () => {
 											{ATTENDANCE_TABLE_HEADERS.STATUS}
 										</p>
 										<p className="text-slate-700">
-											{selectedData.status}
+											{formatAttendanceStatus(
+												selectedData.status
+											)}
 										</p>
 									</div>
 									<div className="col-span-1 md:col-span-2">

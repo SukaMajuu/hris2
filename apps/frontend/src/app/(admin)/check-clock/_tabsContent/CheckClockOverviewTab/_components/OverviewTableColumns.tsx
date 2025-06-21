@@ -4,6 +4,10 @@ import { Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { LeaveRequest } from "@/types/leave-request.types";
+import {
+	formatAttendanceStatus,
+	getAttendanceStatusBadgeClasses,
+} from "@/utils/status";
 import { formatWorkHours, formatTime } from "@/utils/time";
 
 // Combined interface for table display (matching the hook)
@@ -122,33 +126,23 @@ const WorkHoursColumn = ({ row }: TableRowProps) => {
 	);
 };
 
-const StatusColumn = ({ row }: TableRowProps) => {
-	const { status } = row.original;
-	let badgeVariant: "default" | "secondary" | "destructive" | "outline" =
-		"default";
-	let badgeText = status;
+const StatusColumn = ({
+	status,
+	leaveType,
+}: {
+	status: string;
+	leaveType?: string;
+}) => {
+	const formattedStatus = formatAttendanceStatus(status);
+	const badgeClasses = getAttendanceStatusBadgeClasses(status);
 
-	if (status === "present") {
-		badgeVariant = "default";
-		badgeText = "Present";
-	} else if (status === "late") {
-		badgeVariant = "secondary";
-		badgeText = "Late";
-	} else if (status === "absent") {
-		badgeVariant = "destructive";
-		badgeText = "Absent";
-	} else if (status === "leave") {
-		badgeVariant = "outline";
-		badgeText = row.original.leave_type || "Leave";
-	}
+	// For leave status, show leave type if available
+	const displayText =
+		status === "leave" && leaveType
+			? `${formattedStatus} (${leaveType})`
+			: formattedStatus;
 
-	return (
-		<div className="flex items-center justify-center">
-			<Badge variant={badgeVariant} className="text-xs md:text-sm">
-				{badgeText}
-			</Badge>
-		</div>
-	);
+	return <Badge className={badgeClasses}>{displayText}</Badge>;
 };
 
 const ActionColumn = ({
@@ -227,7 +221,12 @@ const createOverviewColumns = (
 	{
 		header: "Status",
 		accessorKey: "status",
-		cell: StatusColumn,
+		cell: (props) => (
+			<StatusColumn
+				status={props.getValue() as string}
+				leaveType={props.row.original.leave_type}
+			/>
+		),
 		meta: { className: "w-[80px] md:w-[120px] text-center" },
 	},
 	{

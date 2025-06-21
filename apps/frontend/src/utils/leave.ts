@@ -2,30 +2,26 @@
  * Leave type utilities
  */
 
+import { LEAVE_TYPE, LEAVE_TYPE_LABELS, LeaveType } from "@/const";
+
 /**
  * Formats leave type strings for display
  * @param leaveType - The leave type string to format
  * @returns Formatted leave type string
  */
-export const formatLeaveType = (leaveType: string): string => {
+export const formatLeaveType = (leaveType: LeaveType): string => {
 	switch (leaveType) {
 		case "sick_leave":
-			return "Sick Leave";
+			return LEAVE_TYPE_LABELS[LEAVE_TYPE.SICK_LEAVE];
 		case "compassionate_leave":
-			return "Compassionate Leave";
+			return LEAVE_TYPE_LABELS[LEAVE_TYPE.COMPASSIONATE_LEAVE];
 		case "maternity_leave":
-			return "Maternity Leave";
+			return LEAVE_TYPE_LABELS[LEAVE_TYPE.MATERNITY_LEAVE];
 		case "annual_leave":
-			return "Annual Leave";
+			return LEAVE_TYPE_LABELS[LEAVE_TYPE.ANNUAL_LEAVE];
 		case "marriage_leave":
-			return "Marriage Leave";
-		case "paternity_leave":
-			return "Paternity Leave";
-		case "unpaid_leave":
-			return "Unpaid Leave";
+			return LEAVE_TYPE_LABELS[LEAVE_TYPE.MARRIAGE_LEAVE];
 		default:
-			return leaveType
-				.replace(/_/g, " ")
-				.replace(/\b\w/g, (l) => l.toUpperCase());
+			return LEAVE_TYPE_LABELS[leaveType] || leaveType;
 	}
 };

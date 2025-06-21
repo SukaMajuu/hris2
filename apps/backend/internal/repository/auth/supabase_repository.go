@@ -341,6 +341,11 @@ func (r *supabaseRepository) LoginWithEmployeeCredentials(ctx context.Context, e
 		}
 		return nil, fmt.Errorf("error finding employee by code: %w", err)
 	}
+
+	if !employee.EmploymentStatus {
+		return nil, domain.ErrEmployeeResigned
+	}
+
 	if employee.User.ID == 0 {
 		return nil, fmt.Errorf("employee found but no associated user record")
 	}

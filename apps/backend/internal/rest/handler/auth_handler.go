@@ -113,6 +113,8 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	if err != nil {
 		if errors.Is(err, domain.ErrInvalidCredentials) {
 			response.Unauthorized(c, "Invalid credentials", err)
+		} else if errors.Is(err, domain.ErrEmployeeResigned) {
+			response.Forbidden(c, "Access denied. Your employment has ended and you can no longer access the system. Please contact HR for assistance.", err)
 		} else {
 			response.InternalServerError(c, fmt.Errorf("login process failed: %w", err))
 		}
@@ -266,6 +268,9 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 		if errors.Is(err, domain.ErrInvalidToken) {
 			h.clearRefreshTokenCookie(c)
 			response.Unauthorized(c, "Invalid or expired refresh token", err)
+		} else if errors.Is(err, domain.ErrEmployeeResigned) {
+			h.clearRefreshTokenCookie(c)
+			response.Forbidden(c, "Access denied. Your employment has ended and you can no longer access the system.", err)
 		} else {
 			log.Printf("Internal error during token refresh: %v", err)
 			response.InternalServerError(c, fmt.Errorf("token refresh failed internally"))

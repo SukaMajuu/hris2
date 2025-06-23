@@ -10,7 +10,7 @@ import (
 )
 
 type AuthMiddleware struct {
-	authUseCase *auth.AuthUseCase
+	authUseCase     *auth.AuthUseCase
 	employeeUseCase *employee.EmployeeUseCase
 }
 
@@ -42,6 +42,18 @@ func (m *AuthMiddleware) Authenticate() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
+
+		// Check if user is an employee and if they have resigned
+		employee, err := m.employeeUseCase.GetEmployeeByUserID(c.Request.Context(), userID)
+		if err == nil && !employee.EmploymentStatus {
+			// Employee exists and has resigned
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": "Access denied. Your employment has ended and you can no longer access the system.",
+			})
+			c.Abort()
+			return
+		}
+		// If error occurred (employee not found), continue - allows admin users to access
 
 		c.Set("userID", userID)
 		c.Set("userRole", role)

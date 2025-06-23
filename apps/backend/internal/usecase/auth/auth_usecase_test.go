@@ -560,6 +560,8 @@ func TestRefreshToken(t *testing.T) {
 							mockAuthRepo.On("GetUserByID", mock.Anything, tt.claims.UserID).Return(tt.user, tt.userError).Maybe()
 
 							if tt.userError == nil {
+								mockEmployeeRepo.On("GetByUserID", mock.Anything, tt.user.ID).Return(&domain.Employee{EmploymentStatus: true}, nil).Maybe()
+
 								mockJWTService.On("GenerateToken", tt.user.ID, tt.user.Email, tt.user.Role).
 									Return(tt.expectedAccessToken, tt.expectedRefreshToken, "hashed-token", tt.generateError).Maybe()
 
@@ -591,6 +593,7 @@ func TestRefreshToken(t *testing.T) {
 			}
 
 			mockAuthRepo.AssertExpectations(t)
+			mockEmployeeRepo.AssertExpectations(t)
 			mockJWTService.AssertExpectations(t)
 		})
 	}

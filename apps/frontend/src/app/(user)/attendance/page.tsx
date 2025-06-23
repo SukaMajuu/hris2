@@ -6,8 +6,8 @@ import { FeatureGuard } from "@/components/subscription/FeatureGuard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FEATURE_CODES } from "@/const/features";
 
-import AttendanceOverviewTab from "./_tabsContent/AttendanceOverviewTab";
-import LeaveRequestTab from "./_tabsContent/LeaveRequestTab";
+import AttendanceOverviewTab from "./_tabsContent/attendanceOverviewTab";
+import LeaveRequestTab from "./_tabsContent/leaveRequestTab";
 
 const AttendancePage = () => {
 	const searchParams = useSearchParams();

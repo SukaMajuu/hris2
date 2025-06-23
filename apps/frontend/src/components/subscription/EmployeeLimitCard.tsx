@@ -43,13 +43,7 @@ export const EmployeeLimitCard: React.FC<EmployeeLimitCardProps> = ({ className 
     return 'bg-green-500';
   };
 
-  const getBadgeVariant = (): 'default' | 'secondary' | 'destructive' | 'outline' => {
-    return 'default';
-
-    // if (usagePercentage >= 100) return "destructive";
-    // if (usagePercentage >= 80) return "secondary";
-    // return "default";
-  };
+  const getBadgeVariant = (): 'default' | 'secondary' | 'destructive' | 'outline' => 'default';
 
   return (
     <Card className='border border-gray-100 transition-shadow hover:shadow-md dark:border-gray-800'>

@@ -31,6 +31,7 @@ export class ApiService {
   }> = [];
 
   private lastEmployeeResignedToast = 0;
+
   private readonly TOAST_THROTTLE_MS = 5000; // 5 seconds
 
   constructor() {

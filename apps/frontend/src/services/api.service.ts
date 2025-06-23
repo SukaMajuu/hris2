@@ -260,5 +260,6 @@ export class ApiService {
         });
       });
     }
+    return Promise.resolve();
   }
 }

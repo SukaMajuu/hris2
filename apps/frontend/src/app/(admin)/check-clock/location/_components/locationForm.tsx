@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
+
+import { MapComponent } from "@/components/MapComponent";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -12,24 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import dynamic from "next/dynamic";
-import { Location } from "@/types/location";
-import { toast } from "sonner";
-
-const MapComponent = dynamic(
-	() =>
-		import("@/components/MapComponent").then((mod) => ({
-			default: mod.MapComponent,
-		})),
-	{
-		ssr: false,
-		loading: () => (
-			<div className="flex items-center justify-center h-full text-gray-400">
-				Loading map...
-			</div>
-		),
-	}
-);
+import { Location } from "@/types/location.types";
 
 interface LocationFormProps {
 	dialogOpen: boolean;
@@ -46,7 +32,7 @@ interface LocationFormProps {
 	isLoading?: boolean;
 }
 
-export function LocationForm({
+export const LocationForm = ({
 	dialogOpen,
 	setDialogOpenAction,
 	isEditing,
@@ -56,8 +42,9 @@ export function LocationForm({
 	handleSaveAction,
 	onMapPositionChangeAction,
 	isLoading = false,
-}: LocationFormProps) {
+}: LocationFormProps) => {
 	const [validationErrors, setValidationErrors] = useState<string[]>([]);
+	const [isGeocodingLoading, setIsGeocodingLoading] = useState(false);
 
 	useEffect(() => {
 		if (!dialogOpen) {
@@ -65,10 +52,43 @@ export function LocationForm({
 		}
 	}, [dialogOpen]);
 
+	// Reverse geocoding function
+	const reverseGeocode = async (lat: number, lng: number) => {
+		setIsGeocodingLoading(true);
+		try {
+			const response = await fetch(
+				`https://api.maptiler.com/geocoding/${lng},${lat}.json?key=l1lKcXOmHNvH2YPTkRWZ`
+			);
+
+			if (!response.ok) {
+				throw new Error("Geocoding request failed");
+			}
+
+			const data = await response.json();
+
+			if (data.features && data.features.length > 0) {
+				// Get the most relevant address (usually the first one)
+				const address =
+					data.features[0].place_name || data.features[0].text || "";
+
+				// Auto-fill the address detail
+				setFormDataAction((prev) => ({
+					...prev,
+					address_detail: address,
+				}));
+			}
+		} catch (error) {
+			console.error("Error reverse geocoding:", error);
+			// Don't show error toast as this is optional functionality
+		} finally {
+			setIsGeocodingLoading(false);
+		}
+	};
+
 	const handleUseCurrentLocation = () => {
 		if (navigator.geolocation) {
 			navigator.geolocation.getCurrentPosition(
-				(position) => {
+				async (position) => {
 					const newLat = position.coords.latitude;
 					const newLng = position.coords.longitude;
 					setFormDataAction((prev) => ({
@@ -76,8 +96,12 @@ export function LocationForm({
 						latitude: newLat,
 						longitude: newLng,
 					}));
+
+					// Auto-fill address detail
+					await reverseGeocode(newLat, newLng);
 				},
 				(error) => {
+					console.error("Error getting current location:", error);
 					toast.error(
 						"Could not get your current location. Please check your browser settings."
 					);
@@ -93,7 +117,16 @@ export function LocationForm({
 			...prev,
 			latitude: undefined,
 			longitude: undefined,
+			address_detail: "", // Also clear the address detail
 		}));
+	};
+
+	const handleMapPositionChange = async (lat: number, lng: number) => {
+		// Call the original handler
+		onMapPositionChangeAction(lat, lng);
+
+		// Auto-fill address detail
+		await reverseGeocode(lat, lng);
 	};
 
 	const validateForm = () => {
@@ -159,8 +192,8 @@ export function LocationForm({
 							Please fix the following errors:
 						</p>
 						<ul className="list-disc ml-5 mt-1">
-							{validationErrors.map((error, index) => (
-								<li key={index}>{error}</li>
+							{validationErrors.map((error) => (
+								<li key={error}>{error}</li>
 							))}
 						</ul>
 					</div>
@@ -177,8 +210,8 @@ export function LocationForm({
 								latitude={formData.latitude}
 								longitude={formData.longitude}
 								radius={formData.radius_m || 100}
-								onPositionChange={onMapPositionChangeAction}
-								interactive={true}
+								onPositionChange={handleMapPositionChange}
+								interactive
 							/>
 						</div>
 						<div className="flex flex-wrap gap-2 pt-2">
@@ -217,7 +250,7 @@ export function LocationForm({
 									handleChangeAction("name", e.target.value)
 								}
 								placeholder="e.g., Main Office, Branch Kemang"
-								className="w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+								className="w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 placeholder:text-gray-400"
 							/>
 						</div>
 
@@ -227,6 +260,12 @@ export function LocationForm({
 								className="text-sm font-medium text-gray-700"
 							>
 								Address Details
+								{isGeocodingLoading && (
+									<span className="ml-2 text-xs text-blue-600">
+										<div className="inline-block animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600 mr-1" />
+										Fetching address...
+									</span>
+								)}
 							</Label>
 							<Input
 								id="address_detail"
@@ -237,8 +276,13 @@ export function LocationForm({
 										e.target.value
 									)
 								}
-								placeholder="e.g., Jl. Merdeka No. 1, Jakarta"
-								className="w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+								placeholder={
+									isGeocodingLoading
+										? "Loading address..."
+										: "e.g., Jl. Merdeka No. 1, Jakarta"
+								}
+								className="w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 placeholder:text-gray-400"
+								disabled={isGeocodingLoading}
 							/>
 						</div>
 
@@ -312,12 +356,12 @@ export function LocationForm({
 					</Button>
 					<Button
 						onClick={handleSave}
-						className="bg-[#6B9AC4] hover:bg-[#5A89B3] text-white"
+						className="bg-primary hover:bg-primary/90 text-white"
 						disabled={isLoading}
 					>
 						{isLoading ? (
 							<>
-								<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+								<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
 								{isEditing ? "Updating..." : "Saving..."}
 							</>
 						) : (
@@ -332,4 +376,4 @@ export function LocationForm({
 			</DialogContent>
 		</Dialog>
 	);
-}
+};

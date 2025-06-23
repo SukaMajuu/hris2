@@ -34,13 +34,11 @@ export const getRouteRequiredFeature = (pathname: string): FeatureCode | null =>
 	}
 
 	// Check for partial matches (useful for dynamic routes)
-	for (const route in ROUTE_FEATURE_MAP) {
-		if (pathname.startsWith(route) && route !== '/') {
-			return ROUTE_FEATURE_MAP[route] || null;
-		}
-	}
+	const matchingRoute = Object.keys(ROUTE_FEATURE_MAP).find(route =>
+		pathname.startsWith(route) && route !== '/'
+	);
 
-	return null;
+	return matchingRoute ? ROUTE_FEATURE_MAP[matchingRoute] || null : null;
 };
 
 /**
@@ -50,8 +48,7 @@ export const filterNavigationByFeatures = <T extends { href: string; requiredFea
 	items: T[],
 	hasFeature: (feature: FeatureCode) => boolean,
 	isAdmin: boolean = false
-): T[] => {
-	return items.filter(item => {
+): T[] => items.filter(item => {
 		if (!item.requiredFeature) return true;
 
 		// Special handling for dashboard routes
@@ -63,7 +60,6 @@ export const filterNavigationByFeatures = <T extends { href: string; requiredFea
 
 		return hasFeature(item.requiredFeature);
 	});
-};
 
 /**
  * Check if user can access a specific route

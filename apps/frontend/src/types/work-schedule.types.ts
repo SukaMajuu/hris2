@@ -1,5 +1,6 @@
 import { WorkType } from "@/const/work";
-import { Location } from "./location";
+
+import { Location } from "./location.types";
 
 export type WorkScheduleDetailItem = {
 	id?: number;
@@ -21,4 +22,15 @@ export interface WorkSchedule {
 	name: string;
 	work_type: string;
 	details: WorkScheduleDetailItem[];
+}
+
+// Assignment-related types
+export interface WorkScheduleAssignmentData {
+	employee_id: number;
+	work_schedule_id: number;
+}
+
+export interface WorkScheduleAssignment {
+	employee_id: number;
+	work_schedule_id?: number;
 }

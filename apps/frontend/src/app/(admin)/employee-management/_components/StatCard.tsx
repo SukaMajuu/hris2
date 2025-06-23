@@ -1,5 +1,6 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowUpIcon, ArrowDownIcon, MinusIcon } from "lucide-react";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface StatCardProps {
 	label: string;
@@ -12,23 +13,23 @@ interface StatCardProps {
 	description?: string;
 }
 
-export function StatCard({
+export const StatCard = ({
 	label,
 	value,
 	icon,
 	trend,
 	description,
-}: StatCardProps) {
+}: StatCardProps) => {
 	const getTrendIcon = () => {
 		if (!trend) return null;
 
 		if (trend.value > 0) {
 			return <ArrowUpIcon className="h-4 w-4 text-green-500" />;
-		} else if (trend.value < 0) {
-			return <ArrowDownIcon className="h-4 w-4 text-red-500" />;
-		} else {
-			return <MinusIcon className="h-4 w-4 text-gray-500" />;
 		}
+		if (trend.value < 0) {
+			return <ArrowDownIcon className="h-4 w-4 text-red-500" />;
+		}
+		return <MinusIcon className="h-4 w-4 text-gray-500" />;
 	};
 
 	return (
@@ -51,13 +52,17 @@ export function StatCard({
 						<div className="flex items-center gap-1 text-sm mt-1">
 							{getTrendIcon()}
 							<span
-								className={
-									trend.value > 0
-										? "text-green-500"
-										: trend.value < 0
-										? "text-red-500"
-										: "text-gray-500"
-								}
+								className={(() => {
+									if (trend.value > 0) {
+										return "text-green-500";
+									}
+
+									if (trend.value < 0) {
+										return "text-red-500";
+									}
+
+									return "text-gray-500";
+								})()}
 							>
 								{Math.abs(trend.value)}% {trend.label}
 							</span>
@@ -73,4 +78,4 @@ export function StatCard({
 			</CardContent>
 		</Card>
 	);
-}
+};

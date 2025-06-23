@@ -1,9 +1,10 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 
-export default function NotFound() {
+import { Button } from "@/components/ui/button";
+
+const NotFound = () => {
 	const router = useRouter();
 
 	return (
@@ -28,4 +29,6 @@ export default function NotFound() {
 			</Button>
 		</div>
 	);
-}
+};
+
+export default NotFound;

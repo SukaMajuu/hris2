@@ -1,7 +1,5 @@
 import { queryClient } from '@/lib/react-query';
 
-const useQueryClient = () => {
-  return { queryClient };
-};
+const useQueryClient = () => ({ queryClient });
 
 export default useQueryClient;

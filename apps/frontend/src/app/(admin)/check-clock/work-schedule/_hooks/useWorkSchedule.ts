@@ -1,10 +1,14 @@
+import { useRouter } from "next/navigation";
 import { useState, useCallback } from "react";
-import { useWorkSchedules } from "@/api/queries/work-schedule.queries";
-import { useDeleteWorkSchedule } from "@/api/mutations/work-schedule.mutation";
 import { toast } from "sonner";
+
+import { useDeleteWorkSchedule } from "@/api/mutations/work-schedule.mutation";
+import { useWorkSchedules } from "@/api/queries/work-schedule.queries";
 import { WorkSchedule } from "@/types/work-schedule.types";
 
 export const useWorkSchedule = (page = 1, pageSize = 10) => {
+	const router = useRouter();
+
 	// State management
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 	const [
@@ -62,6 +66,28 @@ export const useWorkSchedule = (page = 1, pageSize = 10) => {
 		setViewedSchedule(null);
 	}, []);
 
+	// Navigation handlers
+	const handleEdit = useCallback(
+		(schedule: WorkSchedule) => {
+			if (schedule.id) {
+				router.push(`/check-clock/work-schedule/edit/${schedule.id}`);
+			}
+		},
+		[router]
+	);
+
+	const handleRowClick = useCallback(
+		(row: { original: WorkSchedule }) => {
+			const workSchedule = row.original;
+			if (workSchedule.id) {
+				router.push(
+					`/check-clock/work-schedule/edit/${workSchedule.id}`
+				);
+			}
+		},
+		[router]
+	);
+
 	// Delete work schedule
 	const handleConfirmDelete = useCallback(async () => {
 		if (!workScheduleToDelete?.id) return;
@@ -100,6 +126,8 @@ export const useWorkSchedule = (page = 1, pageSize = 10) => {
 		handleOpenViewDialog,
 		handleCloseViewDialog,
 		handleConfirmDelete,
+		handleEdit,
+		handleRowClick,
 
 		// Query controls
 		refetch: workSchedulesQuery.refetch,

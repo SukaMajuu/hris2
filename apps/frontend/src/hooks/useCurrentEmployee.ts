@@ -1,7 +1,8 @@
-import { useAuthStore } from "@/stores/auth.store";
 import { useMemo } from "react";
 
-export function useCurrentEmployee() {
+import { useAuthStore } from "@/stores/auth.store";
+
+const useCurrentEmployee = () => {
 	const { user } = useAuthStore();
 
 	const currentEmployee = useMemo(() => {
@@ -17,4 +18,6 @@ export function useCurrentEmployee() {
 		currentEmployee,
 		isLoggedIn: !!user,
 	};
-}
+};
+
+export { useCurrentEmployee };

@@ -1,24 +1,21 @@
 import { useQuery } from "@tanstack/react-query";
-import { queryKeys } from "../query-keys";
+
 import { subscriptionService } from "@/services/subscription.service";
 
-export const useSubscriptionPlans = () => {
-	return useQuery({
+import { queryKeys } from "../query-keys";
+
+export const useSubscriptionPlans = () => useQuery({
 		queryKey: queryKeys.subscription.plans,
 		queryFn: () => subscriptionService.getSubscriptionPlans(),
 	});
-};
 
-export const useSeatPlans = (subscriptionPlanId: number) => {
-	return useQuery({
+export const useSeatPlans = (subscriptionPlanId: number) => useQuery({
 		queryKey: queryKeys.subscription.seatPlans(subscriptionPlanId),
 		queryFn: () => subscriptionService.getSeatPlans(subscriptionPlanId),
 		enabled: !!subscriptionPlanId,
 	});
-};
 
-export const useUserSubscription = () => {
-	return useQuery({
+export const useUserSubscription = () => useQuery({
 		queryKey: queryKeys.subscription.userSubscription,
 		queryFn: async () => {
 			try {
@@ -56,12 +53,9 @@ export const useUserSubscription = () => {
 		staleTime: 5 * 60 * 1000,
 		gcTime: 10 * 60 * 1000,
 	});
-};
 
-export const useCheckoutSession = (sessionId: string) => {
-	return useQuery({
+export const useCheckoutSession = (sessionId: string) => useQuery({
 		queryKey: queryKeys.subscription.checkoutSession(sessionId),
 		queryFn: () => subscriptionService.getCheckoutSession(sessionId),
 		enabled: !!sessionId,
 	});
-};

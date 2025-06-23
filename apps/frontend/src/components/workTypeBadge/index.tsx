@@ -1,8 +1,8 @@
-import { WorkType } from "@/const/work";
 import { Badge } from "@/components/ui/badge";
+import { WorkType } from "@/const/work";
 import { cn } from "@/lib/utils";
 
-function WorkTypeBadge({ workType }: { workType: WorkType }) {
+const WorkTypeBadge = ({ workType }: { workType: WorkType }) => {
 	const getBadgeStyle = (type: WorkType) => {
 		switch (type) {
 			case "WFO":

@@ -7,11 +7,11 @@ export const loginSchema = z.object({
 		.refine(
 			(value) => {
 				const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-				const phoneRegex = /^[\+]?[1-9][\d]{0,15}$|^[\+]?[(]?[\d\s\-\(\)]{10,}$/;
+				const phoneRegex = /^[+]?[1-9][\d]{0,15}$|^[+]?[(]?[\d\s\-()]{10,}$/;
 
 				return (
 					emailRegex.test(value) ||
-					phoneRegex.test(value.replace(/[\s\-\(\)]/g, ""))
+					phoneRegex.test(value.replace(/[\s\-()]/g, ""))
 				);
 			},
 			{

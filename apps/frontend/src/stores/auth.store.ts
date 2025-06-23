@@ -1,7 +1,8 @@
 import { create } from "zustand";
-import { User } from "@/types/api";
-import { Role } from "@/const/role";
 import { persist } from "zustand/middleware";
+
+import { Role } from "@/const/role";
+import { User } from "@/types/api";
 
 interface AuthState {
 	user: User | null;

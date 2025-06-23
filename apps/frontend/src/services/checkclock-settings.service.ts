@@ -3,8 +3,9 @@ import {
 	UpdateCheckclockSettingsRequest,
 	CheckclockSettingsResponse,
 } from "@/types/checkclock-settings.types";
-import { API_ROUTES } from "../config/api.routes";
+
 import { ApiService } from "./api.service";
+import { API_ROUTES } from "../config/api.routes";
 
 // Backend response structure based on standardized backend code
 interface ApiResponse<T> {
@@ -26,7 +27,10 @@ interface CheckclockSettingsListData {
 }
 
 class CheckclockSettingsService {
-	constructor(private apiService: ApiService) {}
+	// eslint-disable-next-line no-useless-constructor, no-empty-function
+	constructor(private apiService: ApiService) {
+		// Constructor parameter properties are automatically assigned
+	}
 
 	public async getCheckclockSettings(
 		params: Record<string, string | number>
@@ -87,4 +91,9 @@ class CheckclockSettingsService {
 	}
 }
 
-export default new CheckclockSettingsService(new ApiService());
+const checkclockSettingsService = new CheckclockSettingsService(
+	new ApiService()
+);
+
+export { checkclockSettingsService };
+export default checkclockSettingsService;

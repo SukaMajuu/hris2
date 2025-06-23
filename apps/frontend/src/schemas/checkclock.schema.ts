@@ -225,8 +225,7 @@ export const transformWorkScheduleForBackend = (
 	data: WorkScheduleInput
 ): Omit<WorkScheduleInput, "workScheduleDetails"> & {
 	workScheduleDetails: Omit<WorkScheduleDetailInput, "location">[];
-} => {
-	return {
+} => ({
 		...data,
 		workScheduleDetails: data.workScheduleDetails.map((detail) => {
 			// eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -245,8 +244,7 @@ export const transformWorkScheduleForBackend = (
 			// dan hanya kirim locationId, bukan objek location utuh.
 			return { ...restOfDetail }; // restOfDetail sudah termasuk locationId jika WFO
 		}),
-	};
-};
+	});
 
 /**
  * =================================

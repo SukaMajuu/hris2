@@ -1,11 +1,13 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { queryKeys } from "../query-keys";
+
 import { leaveRequestService } from "@/services/leave-request.service";
 import type {
 	CreateLeaveRequestRequest,
 	UpdateLeaveRequestRequest,
 	UpdateLeaveRequestStatusRequest,
-} from "@/types/leave-request";
+} from "@/types/leave-request.types";
+
+import { queryKeys } from "../query-keys";
 
 // Create leave request
 export const useCreateLeaveRequestMutation = () => {
@@ -18,6 +20,7 @@ export const useCreateLeaveRequestMutation = () => {
 		onSuccess: () => {
 			// Invalidate and refetch leave request lists
 			queryClient.invalidateQueries({ queryKey: ["leaveRequests"] });
+			queryClient.invalidateQueries({ queryKey: ["my-leave-requests"] });
 			queryClient.invalidateQueries({
 				queryKey: queryKeys.leaveRequests.stats,
 			});
@@ -40,6 +43,10 @@ export const useUpdateLeaveRequestMutation = () => {
 		onSuccess: (_, variables) => {
 			// Invalidate and refetch leave request lists and detail
 			queryClient.invalidateQueries({ queryKey: ["leaveRequests"] });
+			queryClient.invalidateQueries({ queryKey: ["my-leave-requests"] });
+			queryClient.invalidateQueries({
+				queryKey: ["my-leave-request-detail", variables.id],
+			});
 			queryClient.invalidateQueries({
 				queryKey: queryKeys.leaveRequests.detail(variables.id),
 			});
@@ -65,6 +72,10 @@ export const useUpdateLeaveRequestStatusMutation = () => {
 		onSuccess: (_, variables) => {
 			// Invalidate and refetch leave request lists and detail
 			queryClient.invalidateQueries({ queryKey: ["leaveRequests"] });
+			queryClient.invalidateQueries({ queryKey: ["my-leave-requests"] });
+			queryClient.invalidateQueries({
+				queryKey: ["my-leave-request-detail", variables.id],
+			});
 			queryClient.invalidateQueries({
 				queryKey: queryKeys.leaveRequests.detail(variables.id),
 			});
@@ -84,6 +95,7 @@ export const useDeleteLeaveRequestMutation = () => {
 		onSuccess: () => {
 			// Invalidate and refetch leave request lists
 			queryClient.invalidateQueries({ queryKey: ["leaveRequests"] });
+			queryClient.invalidateQueries({ queryKey: ["my-leave-requests"] });
 			queryClient.invalidateQueries({
 				queryKey: queryKeys.leaveRequests.stats,
 			});
@@ -108,6 +120,7 @@ export const useCreateLeaveRequestForEmployeeMutation = () => {
 		onSuccess: () => {
 			// Invalidate and refetch leave request lists
 			queryClient.invalidateQueries({ queryKey: ["leaveRequests"] });
+			queryClient.invalidateQueries({ queryKey: ["my-leave-requests"] });
 			queryClient.invalidateQueries({
 				queryKey: queryKeys.leaveRequests.stats,
 			});

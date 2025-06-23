@@ -1,14 +1,14 @@
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useAuthStore } from "@/stores/auth.store";
-import { RegisterFormData } from "@/schemas/auth.schema";
-import { toast } from "sonner";
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { registerSchema } from "@/schemas/auth.schema";
-import { getSupabaseGoogleToken } from "@/utils/google-auth";
 import { AxiosError } from "axios";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+
 import { useRegisterMutation } from "@/api/mutations/auth.mutation";
+import { RegisterFormData , registerSchema } from "@/schemas/auth.schema";
+import { useAuthStore } from "@/stores/auth.store";
+import { getSupabaseGoogleToken } from "@/utils/google-auth";
 
 export const useRegister = () => {
 	const [isLoading, setIsLoading] = useState(false);

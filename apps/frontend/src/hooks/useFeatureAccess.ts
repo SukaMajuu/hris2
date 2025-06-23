@@ -1,8 +1,10 @@
 import { useMemo } from 'react';
-import { useSubscriptionStatus } from './useSubscriptionStatus';
+
 import { FEATURE_CODES, PLAN_FEATURES, type FeatureCode, type PlanType } from '@/const/features';
 
-export function useFeatureAccess() {
+import { useSubscriptionStatus } from './useSubscriptionStatus';
+
+const useFeatureAccess = () => {
 	const { userSubscription, hasActiveSubscription, isAdmin } = useSubscriptionStatus();
 
 	const availableFeatures = useMemo(() => {
@@ -55,37 +57,27 @@ export function useFeatureAccess() {
 	/**
 	 * Check if multiple features are available
 	 */
-	const hasFeatures = (featureCodes: FeatureCode[]): boolean => {
-		return featureCodes.every(featureCode => hasFeature(featureCode));
-	};
+	const hasFeatures = (featureCodes: FeatureCode[]): boolean => featureCodes.every(featureCode => hasFeature(featureCode));
 
 	/**
 	 * Check if any of the provided features are available
 	 */
-	const hasAnyFeature = (featureCodes: FeatureCode[]): boolean => {
-		return featureCodes.some(featureCode => hasFeature(featureCode));
-	};
+	const hasAnyFeature = (featureCodes: FeatureCode[]): boolean => featureCodes.some(featureCode => hasFeature(featureCode));
 
 	/**
 	 * Get the user's current plan type
 	 */
-	const getCurrentPlanType = (): string | null => {
-		return userSubscription?.subscription_plan?.type || null;
-	};
+	const getCurrentPlanType = (): string | null => userSubscription?.subscription_plan?.type || null;
 
 	/**
 	 * Check if user has access to admin features
 	 */
-	const hasAdminAccess = (): boolean => {
-		return isAdmin && hasActiveSubscription;
-	};
+	const hasAdminAccess = (): boolean => isAdmin && hasActiveSubscription;
 
 	/**
 	 * Check if user has access to employee features
 	 */
-	const hasEmployeeAccess = (): boolean => {
-		return hasActiveSubscription && hasFeature(FEATURE_CODES.EMPLOYEE_DASHBOARD);
-	};
+	const hasEmployeeAccess = (): boolean => hasActiveSubscription && hasFeature(FEATURE_CODES.EMPLOYEE_DASHBOARD);
 
 	return {
 		hasFeature,
@@ -103,4 +95,6 @@ export function useFeatureAccess() {
 		canConfigureCheckClock: () => hasFeature(FEATURE_CODES.CHECK_CLOCK_SETTINGS),
 		canUseCheckClockSystem: () => hasFeature(FEATURE_CODES.CHECK_CLOCK_SYSTEM),
 	};
-}
+};
+
+export { useFeatureAccess };

@@ -1,4 +1,11 @@
+import {
+	flexRender,
+	Table as TanStackTableType,
+	Row as TanStackRow,
+	Cell as TanStackCell,
+} from "@tanstack/react-table";
 import React from "react";
+
 import {
 	Table as ShadcnTable,
 	TableBody,
@@ -8,12 +15,6 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import {
-	flexRender,
-	Table as TanStackTableType,
-	Row as TanStackRow,
-	Cell as TanStackCell,
-} from "@tanstack/react-table";
 
 export interface Column<T> {
 	header: string;
@@ -31,15 +32,14 @@ interface DataTableProps<TData> {
 	onRowClick?: (row: TanStackRow<TData>) => void;
 }
 
-export function DataTable<TData>({
+export const DataTable = <TData,>({
 	table,
 	containerClassName,
 	rowClassName,
 	headerClassName,
 	cellClassName,
 	onRowClick,
-}: DataTableProps<TData>) {
-	return (
+}: DataTableProps<TData>) => (
 		<div
 			className={cn(
 				"scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100 w-full overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900",
@@ -153,4 +153,3 @@ export function DataTable<TData>({
 			</ShadcnTable>
 		</div>
 	);
-}

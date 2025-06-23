@@ -1,11 +1,11 @@
 "use client";
 
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { ShieldAlert } from "lucide-react";
+import Link from "next/link";
 
-export default function UnauthorizedPage() {
-	return (
+import { Button } from "@/components/ui/button";
+
+const UnauthorizedPage = () => (
 		<div className="flex flex-col items-center justify-center min-h-screen text-center px-4">
 			<ShieldAlert className="w-16 h-16 text-yellow-500 mb-6" />
 			<h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100">
@@ -25,4 +25,5 @@ export default function UnauthorizedPage() {
 			</Link>
 		</div>
 	);
-}
+
+export default UnauthorizedPage;

@@ -1,8 +1,10 @@
 import { CalendarIcon, UsersIcon, UserPlusIcon, BriefcaseIcon } from 'lucide-react';
-import { StatCard } from './StatCard';
+
 import { useEmployeeStatsQuery } from '@/api/queries/employee.queries';
 
-export function StatsSection() {
+import { StatCard } from './StatCard';
+
+export const StatsSection = () => {
   const { data: employeeStats, isLoading: isLoadingStats } = useEmployeeStatsQuery();
 
   const currentPeriod = new Date().toLocaleString('en-US', {

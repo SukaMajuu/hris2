@@ -1,7 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { EyeOff, Eye } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+
 import { Button } from "@/components/ui/button";
 import {
 	Form,
@@ -12,19 +18,13 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import Link from "next/link";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { supabase } from "@/lib/supabase";
 import {
 	resetPasswordSchema,
 	ResetPasswordFormData,
 } from "@/schemas/auth.schema";
-import { supabase } from "@/lib/supabase";
-import { toast } from "sonner";
-import { EyeOff } from "lucide-react";
-import { Eye } from "lucide-react";
 
-export default function ResetPasswordPage() {
+const ResetPasswordPage = () => {
 	const router = useRouter();
 	const [isLoading, setIsLoading] = useState(false);
 	const [message, setMessage] = useState("");
@@ -225,4 +225,6 @@ export default function ResetPasswordPage() {
 			</div>
 		</div>
 	);
-}
+};
+
+export default ResetPasswordPage;

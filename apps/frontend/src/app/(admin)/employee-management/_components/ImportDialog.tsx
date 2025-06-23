@@ -1,7 +1,11 @@
 'use client';
 
+import { Upload, Download, AlertCircle, CheckCircle, Users } from 'lucide-react';
 import { useState, useRef } from 'react';
-import { Upload, Download, AlertCircle, CheckCircle, X, Users } from 'lucide-react';
+import { toast } from 'sonner';
+
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -10,13 +14,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useSubscriptionLimit } from '@/hooks/useSubscriptionLimit';
+import { EmployeeService, type BulkImportResult } from '@/services/employee.service';
 import { parseEmployeeCSV, downloadCSVTemplate } from '@/utils/csvImport';
 import { parseEmployeeExcel, downloadExcelTemplate } from '@/utils/excelImport';
-import { EmployeeService, type BulkImportResult } from '@/services/employee.service';
-import { useSubscriptionLimit } from '@/hooks/useSubscriptionLimit';
-import { toast } from 'sonner';
+
 
 interface ImportDialogProps {
   open: boolean;
@@ -41,7 +43,7 @@ interface ImportPreview {
   };
 }
 
-export function ImportDialog({ open, onOpenChange, onImportComplete }: ImportDialogProps) {
+export const ImportDialog = ({ open, onOpenChange, onImportComplete }: ImportDialogProps) => {
   const [file, setFile] = useState<File | null>(null);
   const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -207,7 +209,7 @@ export function ImportDialog({ open, onOpenChange, onImportComplete }: ImportDia
           <DialogTitle>Import Employees</DialogTitle>
           <DialogDescription>
             Upload a CSV or Excel file to import multiple employees at once. Each employee will get
-            a user account with default password 'password'.
+            a user account with default password &apos;password&apos;.
             <br />
             <strong>⚠️ Important:</strong> If any employee has an error, the entire import will be
             cancelled and no employees will be created. Please ensure all data is valid before
@@ -234,13 +236,17 @@ export function ImportDialog({ open, onOpenChange, onImportComplete }: ImportDia
                   )}
                 </span>
                 <Badge
-                  variant={
-                    limitInfo.canAddCount > 10
-                      ? 'default'
-                      : limitInfo.canAddCount > 0
-                        ? 'secondary'
-                        : 'destructive'
-                  }
+                  variant={(() => {
+                    if (limitInfo.canAddCount > 10) {
+                      return 'default';
+                    }
+
+                    if (limitInfo.canAddCount > 0) {
+                      return 'secondary';
+                    }
+
+                    return 'destructive';
+                  })()}
                 >
                   {limitInfo.canAddCount} remaining
                 </Badge>
@@ -303,7 +309,7 @@ export function ImportDialog({ open, onOpenChange, onImportComplete }: ImportDia
           {/* Processing State */}
           {isProcessing && (
             <div className='py-4 text-center'>
-              <div className='mx-auto h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent'></div>
+              <div className='mx-auto h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent' />
               <p className='mt-2 text-gray-600'>Processing file...</p>
             </div>
           )}
@@ -393,36 +399,26 @@ export function ImportDialog({ open, onOpenChange, onImportComplete }: ImportDia
                         Validation Errors ({importPreview.errors.length}):
                       </h4>
                       <div className='max-h-64 space-y-1 overflow-y-auto text-sm text-red-700'>
-                        {importPreview.errors.slice(0, 1000).map((error, index) => {
+                        {importPreview.errors.slice(0, 1000).map((error) => {
                           let errorText = '';
 
-                          if (
-                            error.field === 'nik' &&
-                            error.message.includes('already registered')
-                          ) {
-                            errorText = `🔴 Row ${error.row}: NIK "${error.value}" is already registered`;
-                          } else if (
-                            error.field === 'email' &&
-                            error.message.includes('already used')
-                          ) {
-                            errorText = `📧 Row ${error.row}: Email "${error.value}" is already in use`;
-                          } else if (
-                            error.field === 'employee_code' &&
-                            error.message.includes('already used')
-                          ) {
+                          if (error.field === 'nik' && error.message.includes('already registered')) {
+                            errorText = `🔴 Row ${error.row}: NIK "${error.value}" is already registered to another employee`;
+                          } else if (error.field === 'email' && error.message.includes('already used')) {
+                            errorText = `📧 Row ${error.row}: Email "${error.value}" is already used by another employee`;
+                          } else if (error.field === 'employee_code' && error.message.includes('already used')) {
                             errorText = `🏷️ Row ${error.row}: Employee code "${error.value}" is already in use`;
-                          } else if (
-                            error.field === 'phone' &&
-                            error.message.includes('already used')
-                          ) {
-                            errorText = `📱 Row ${error.row}: Phone "${error.value}" is already in use`;
+                          } else if (error.field === 'phone' && error.message.includes('already used')) {
+                            errorText = `📱 Row ${error.row}: Phone number "${error.value}" is already used by another employee`;
+                          } else if (error.field === 'general') {
+                            errorText = `⚠️ Row ${error.row}: ${error.message}`;
                           } else if (error.value) {
                             errorText = `• Row ${error.row}: ${error.message} (Value: "${error.value}")`;
                           } else {
                             errorText = `• Row ${error.row}: ${error.message}`;
                           }
 
-                          return <p key={index}>{errorText}</p>;
+                          return <p key={`error-${error.row}-${error.field}-${error.message.slice(0, 20)}`} className="text-xs text-red-600">{errorText}</p>;
                         })}
                         {importPreview.errors.length > 1000 && (
                           <p className='font-medium'>
@@ -509,10 +505,10 @@ export function ImportDialog({ open, onOpenChange, onImportComplete }: ImportDia
                       Import Error Details ({importResult.failed_rows.length}):
                     </h4>
                     <div className='max-h-64 space-y-2 overflow-y-auto text-sm text-red-700'>
-                      {importResult.failed_rows.slice(0, 1000).map((failedRow, index) => (
-                        <div key={index} className='border-b border-red-200 pb-2 last:border-b-0'>
+                      {importResult.failed_rows.slice(0, 1000).map((failedRow) => (
+                        <div key={`failed-row-${failedRow.row}-${failedRow.errors[0]?.field || 'unknown'}`} className='border-b border-red-200 pb-2 last:border-b-0'>
                           <p className='font-semibold text-red-900'>Row {failedRow.row}:</p>
-                          {failedRow.errors.map((error, errorIndex) => {
+                          {failedRow.errors.map((error) => {
                             let errorText = '';
 
                             if (
@@ -544,7 +540,7 @@ export function ImportDialog({ open, onOpenChange, onImportComplete }: ImportDia
                             }
 
                             return (
-                              <p key={errorIndex} className='mt-1 ml-2'>
+                              <p key={`error-${failedRow.row}-${error.field}-${error.message.slice(0, 20)}`} className='mt-1 ml-2'>
                                 {errorText}
                               </p>
                             );
@@ -605,7 +601,7 @@ export function ImportDialog({ open, onOpenChange, onImportComplete }: ImportDia
               >
                 {isImporting ? (
                   <>
-                    <div className='mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent'></div>
+                    <div className='mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent' />
                     Importing...
                   </>
                 ) : (

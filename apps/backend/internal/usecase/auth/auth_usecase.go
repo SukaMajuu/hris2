@@ -310,6 +310,11 @@ func (uc *AuthUseCase) RefreshToken(ctx context.Context, rawRefreshToken string)
 		return "", "", fmt.Errorf("failed to retrieve user details for refresh: %w", err)
 	}
 
+	employee, err := uc.employeeRepo.GetByUserID(ctx, user.ID)
+	if err == nil && !employee.EmploymentStatus {
+		return "", "", domain.ErrEmployeeResigned
+	}
+
 	newAccessToken, newRefreshToken, newRefreshTokenHash, err := uc.jwtService.GenerateToken(user.ID, user.Email, user.Role)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to generate new tokens: %w", err)

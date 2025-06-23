@@ -32,12 +32,13 @@ var (
 // Employee errors
 var (
 	ErrEmployeeNotFound = errors.New("employee not found")
+	ErrEmployeeResigned = errors.New("employee has resigned and cannot login")
 )
 
 // Leave Request errors
 var (
-	ErrLeaveRequestNotFound      = errors.New("leave request not found")
-	ErrOverlappingLeaveRequest   = errors.New("overlapping leave request already exists")
+	ErrLeaveRequestNotFound    = errors.New("leave request not found")
+	ErrOverlappingLeaveRequest = errors.New("overlapping leave request already exists")
 )
 
 // Location errors

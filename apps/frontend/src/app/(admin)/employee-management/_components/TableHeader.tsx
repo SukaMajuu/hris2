@@ -312,7 +312,10 @@ export const TableHeader = ({
               <div className='grid grid-cols-2 gap-4'>
                 {/* Gender Filter */}
                 <div className='space-y-2'>
-                  <label className='flex items-center gap-2 text-sm font-medium text-gray-700'>
+                  <label
+                    htmlFor='gender-filter'
+                    className='flex items-center gap-2 text-sm font-medium text-gray-700'
+                  >
                     <Users className='h-4 w-4 text-blue-500' />
                     Gender
                   </label>
@@ -320,7 +323,10 @@ export const TableHeader = ({
                     value={genderFilter || 'all'}
                     onValueChange={(value) => setGenderFilter(value === 'all' ? undefined : value)}
                   >
-                    <SelectTrigger className='border-gray-200 bg-white transition-colors hover:bg-gray-50'>
+                    <SelectTrigger
+                      id='gender-filter'
+                      className='border-gray-200 bg-white transition-colors hover:bg-gray-50'
+                    >
                       <SelectValue placeholder='Select gender' />
                     </SelectTrigger>
                     <SelectContent>
@@ -348,7 +354,10 @@ export const TableHeader = ({
 
                 {/* Employment Status Filter */}
                 <div className='space-y-2'>
-                  <label className='flex items-center gap-2 text-sm font-medium text-gray-700'>
+                  <label
+                    htmlFor='status-filter'
+                    className='flex items-center gap-2 text-sm font-medium text-gray-700'
+                  >
                     <UserCheck className='h-4 w-4 text-green-500' />
                     Employment Status
                   </label>
@@ -356,7 +365,10 @@ export const TableHeader = ({
                     value={statusFilter || 'all'}
                     onValueChange={(value) => setStatusFilter(value === 'all' ? undefined : value)}
                   >
-                    <SelectTrigger className='border-gray-200 bg-white transition-colors hover:bg-gray-50'>
+                    <SelectTrigger
+                      id='status-filter'
+                      className='border-gray-200 bg-white transition-colors hover:bg-gray-50'
+                    >
                       <SelectValue placeholder='Select status' />
                     </SelectTrigger>
                     <SelectContent>

@@ -247,7 +247,7 @@ export class ApiService {
     const now = Date.now();
     if (now - this.lastEmployeeResignedToast > this.TOAST_THROTTLE_MS) {
       this.lastEmployeeResignedToast = now;
-      import('sonner').then(({ toast }) => {
+      return import('sonner').then(({ toast }) => {
         toast.error(title, {
           duration: 15000,
           description,
